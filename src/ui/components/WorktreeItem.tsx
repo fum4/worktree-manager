@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { WorktreeInfo } from '../hooks/useWorktrees';
 import {
   removeWorktree,
+  renameWorktree,
   startWorktree,
   stopWorktree,
 } from '../hooks/useWorktrees';
@@ -15,6 +16,9 @@ interface WorktreeItemProps {
 export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(worktree.id);
+  const [editBranch, setEditBranch] = useState(worktree.branch);
 
   const isRunning = worktree.status === 'running';
   const primaryPort = worktree.ports[0] ?? null;
@@ -66,6 +70,88 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
     }
   };
 
+  const handleEditStart = () => {
+    setEditName(worktree.id);
+    setEditBranch(worktree.branch);
+    setIsEditing(true);
+    setError(null);
+  };
+
+  const handleEditCancel = () => {
+    setIsEditing(false);
+    setError(null);
+  };
+
+  const handleEditSave = async () => {
+    const changes: { name?: string; branch?: string } = {};
+    if (editName.trim() !== worktree.id) changes.name = editName.trim();
+    if (editBranch.trim() !== worktree.branch)
+      changes.branch = editBranch.trim();
+
+    if (Object.keys(changes).length === 0) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    const result = await renameWorktree(worktree.id, changes);
+    setIsLoading(false);
+
+    if (result.success) {
+      setIsEditing(false);
+    } else {
+      setError(result.error || 'Failed to rename');
+    }
+    onUpdate();
+  };
+
+  if (isEditing) {
+    return (
+      <div className="bg-gray-800 rounded-lg p-4 border border-blue-600 transition-colors">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-gray-400 text-xs w-14">Name</label>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="flex-1 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-gray-400 text-xs w-14">Branch</label>
+            <input
+              type="text"
+              value={editBranch}
+              onChange={(e) => setEditBranch(e.target.value)}
+              className="flex-1 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-white text-sm focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleEditCancel}
+              disabled={isLoading}
+              className="px-3 py-1.5 text-xs font-medium text-gray-300 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleEditSave}
+              disabled={isLoading}
+              className="px-3 py-1.5 text-xs font-medium text-blue-400 bg-blue-900/30 rounded hover:bg-blue-900/50 disabled:opacity-50 transition-colors"
+            >
+              {isLoading ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+        {error && <div className="mt-2 text-red-400 text-xs">{error}</div>}
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors">
       <div className="flex items-center gap-3">
@@ -114,14 +200,25 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={handleStart}
-              disabled={isLoading}
-              className="px-3 py-1.5 text-xs font-medium text-green-400 bg-green-900/30 rounded hover:bg-green-900/50 disabled:opacity-50 transition-colors"
-            >
-              {isLoading ? 'Starting...' : 'Start'}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleEditStart}
+                disabled={isLoading}
+                className="px-3 py-1.5 text-xs font-medium text-gray-400 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 transition-colors"
+                title="Rename worktree"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={handleStart}
+                disabled={isLoading}
+                className="px-3 py-1.5 text-xs font-medium text-green-400 bg-green-900/30 rounded hover:bg-green-900/50 disabled:opacity-50 transition-colors"
+              >
+                {isLoading ? 'Starting...' : 'Start'}
+              </button>
+            </>
           )}
           <button
             type="button"

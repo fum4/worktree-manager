@@ -7,7 +7,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { WorktreeManager } from './manager';
-import type { WorktreeConfig, WorktreeCreateRequest } from './types';
+import type {
+  WorktreeConfig,
+  WorktreeCreateRequest,
+  WorktreeRenameRequest,
+} from './types';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(currentDir, '..', '..');
@@ -15,7 +19,7 @@ const projectRoot = path.resolve(currentDir, '..', '..');
 // In prod (built): currentDir is dist, UI is in dist/ui
 const uiDir = currentDir.includes('src/server')
   ? path.join(projectRoot, 'dist', 'ui')
-  : uiDir;
+  : path.join(currentDir, 'ui');
 
 export function createWorktreeServer(manager: WorktreeManager) {
   const app = new Hono();
@@ -90,6 +94,23 @@ export function createWorktreeServer(manager: WorktreeManager) {
     const id = c.req.param('id');
     const result = await manager.stopWorktree(id);
     return c.json(result, result.success ? 200 : 400);
+  });
+
+  app.patch('/api/worktrees/:id', async (c) => {
+    try {
+      const id = c.req.param('id');
+      const body = await c.req.json<WorktreeRenameRequest>();
+      const result = await manager.renameWorktree(id, body);
+      return c.json(result, result.success ? 200 : 400);
+    } catch (error) {
+      return c.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : 'Invalid request',
+        },
+        400,
+      );
+    }
   });
 
   app.delete('/api/worktrees/:id', async (c) => {
@@ -192,5 +213,6 @@ export type {
   WorktreeCreateRequest,
   WorktreeInfo,
   WorktreeListResponse,
+  WorktreeRenameRequest,
   WorktreeResponse,
 } from './types';

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { createWorktree } from '../hooks/useWorktrees';
 
@@ -6,10 +6,32 @@ interface CreateFormProps {
   onCreated: () => void;
 }
 
+function deriveName(branch: string): string {
+  return branch
+    .replace(/^(feature|fix|chore)\//, '')
+    .replace(/[^a-zA-Z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 export function CreateForm({ onCreated }: CreateFormProps) {
   const [branch, setBranch] = useState('');
+  const [name, setName] = useState('');
+  const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!nameManuallyEdited) {
+      setName(deriveName(branch));
+    }
+  }, [branch, nameManuallyEdited]);
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    setNameManuallyEdited(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,12 +40,17 @@ export function CreateForm({ onCreated }: CreateFormProps) {
     setIsCreating(true);
     setError(null);
 
-    const result = await createWorktree(branch.trim());
+    const result = await createWorktree(
+      branch.trim(),
+      name.trim() || undefined,
+    );
 
     setIsCreating(false);
 
     if (result.success) {
       setBranch('');
+      setName('');
+      setNameManuallyEdited(false);
       onCreated();
     } else {
       setError(result.error || 'Failed to create worktree');
@@ -37,6 +64,15 @@ export function CreateForm({ onCreated }: CreateFormProps) {
       </h2>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="flex gap-2">
+          <input
+            ref={nameInputRef}
+            type="text"
+            value={name}
+            onChange={(e) => handleNameChange(e.target.value)}
+            placeholder="worktree-name"
+            className="w-40 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
+            disabled={isCreating}
+          />
           <input
             type="text"
             value={branch}

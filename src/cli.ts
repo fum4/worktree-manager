@@ -94,16 +94,24 @@ async function runInit() {
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
+  const projectDir = (await prompt(
+    rl,
+    `Project directory (absolute or relative to cwd) [.]: `,
+  )) || '.';
+
+  const resolvedProjectDir = path.resolve(process.cwd(), projectDir);
+
+  if (!existsSync(resolvedProjectDir)) {
+    console.error(`[worktree-manager] Directory "${resolvedProjectDir}" does not exist.`);
+    rl.close();
+    process.exit(1);
+  }
+
   const detectedBranch = detectDefaultBranch();
   const baseBranch = (await prompt(
     rl,
     `Base branch for new worktrees [${detectedBranch}]: `,
   )) || detectedBranch;
-
-  const projectDir = (await prompt(
-    rl,
-    'Project subdirectory (relative to repo root, "." for root) [.]: ',
-  )) || '.';
 
   const startCommand = (await prompt(
     rl,
@@ -128,8 +136,7 @@ async function runInit() {
   rl.close();
 
   const config: ConfigFile = {
-    projectDir: projectDir === '.' ? '.' : projectDir,
-    worktreesDir: worktreesDir,
+    worktreesDir,
     startCommand,
     baseBranch,
     maxInstances,
@@ -140,7 +147,7 @@ async function runInit() {
     },
   };
 
-  const configPath = path.join(process.cwd(), CONFIG_FILE_NAME);
+  const configPath = path.join(resolvedProjectDir, CONFIG_FILE_NAME);
   writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
 
   console.log(`\n[worktree-manager] Config written to ${configPath}`);

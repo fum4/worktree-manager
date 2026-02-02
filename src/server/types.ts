@@ -50,6 +50,15 @@ export interface WorktreeCreateRequest {
   branch: string;
   /** Worktree ID (defaults to branch name sanitized) */
   id?: string;
+  /** Explicit worktree name (display name / directory), falls back to sanitized branch */
+  name?: string;
+}
+
+export interface WorktreeRenameRequest {
+  /** New worktree name (renames directory) */
+  name?: string;
+  /** New branch name */
+  branch?: string;
 }
 
 export interface WorktreeResponse {

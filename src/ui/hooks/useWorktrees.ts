@@ -101,18 +101,43 @@ export function usePorts() {
 
 export async function createWorktree(
   branch: string,
+  name?: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const body: { branch: string; name?: string } = { branch };
+    if (name) body.name = name;
     const res = await fetch(`${API_BASE}/api/worktrees`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ branch }),
+      body: JSON.stringify(body),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to create worktree',
+    };
+  }
+}
+
+export async function renameWorktree(
+  id: string,
+  request: { name?: string; branch?: string },
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      },
+    );
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to rename worktree',
     };
   }
 }

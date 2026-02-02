@@ -8,12 +8,69 @@ import type {
   WorktreeConfig,
   WorktreeCreateRequest,
   WorktreeInfo,
+  WorktreeRenameRequest,
 } from './types';
 
 const MAX_LOG_LINES = 100;
 
+// ANSI color helpers for terminal log prefixes
+const RESET = '\x1b[0m';
+const BOLD = '\x1b[1m';
+const DIM = '\x1b[2m';
+
+// Distinct colors for worktree names (bright, easy to distinguish)
+const WORKTREE_COLORS = [
+  '\x1b[36m', // cyan
+  '\x1b[33m', // yellow
+  '\x1b[35m', // magenta
+  '\x1b[32m', // green
+  '\x1b[34m', // blue
+  '\x1b[91m', // bright red
+  '\x1b[96m', // bright cyan
+  '\x1b[93m', // bright yellow
+  '\x1b[95m', // bright magenta
+  '\x1b[92m', // bright green
+];
+
+// Distinct colors for ports (consistent across worktrees)
+const PORT_COLORS = [
+  '\x1b[38;5;214m', // orange
+  '\x1b[38;5;75m',  // sky blue
+  '\x1b[38;5;183m', // lavender
+  '\x1b[38;5;114m', // mint
+  '\x1b[38;5;210m', // salmon
+  '\x1b[38;5;229m', // pale yellow
+  '\x1b[38;5;152m', // teal
+  '\x1b[38;5;218m', // pink
+];
+
+let worktreeColorIndex = 0;
+const worktreeColorMap = new Map<string, string>();
+const portColorMap = new Map<number, string>();
+
+function getWorktreeColor(id: string): string {
+  let color = worktreeColorMap.get(id);
+  if (!color) {
+    color = WORKTREE_COLORS[worktreeColorIndex % WORKTREE_COLORS.length];
+    worktreeColorIndex++;
+    worktreeColorMap.set(id, color);
+  }
+  return color;
+}
+
+function getPortColor(basePort: number): string {
+  let color = portColorMap.get(basePort);
+  if (!color) {
+    color = PORT_COLORS[portColorMap.size % PORT_COLORS.length];
+    portColorMap.set(basePort, color);
+  }
+  return color;
+}
+
 export class WorktreeManager {
   private config: WorktreeConfig;
+
+  private configDir: string;
 
   private portManager: PortManager;
 
@@ -23,6 +80,7 @@ export class WorktreeManager {
 
   constructor(config: WorktreeConfig, configFilePath: string | null = null) {
     this.config = config;
+    this.configDir = configFilePath ? path.dirname(configFilePath) : process.cwd();
     this.portManager = new PortManager(config, configFilePath);
 
     const worktreesPath = this.getWorktreesAbsolutePath();
@@ -35,7 +93,7 @@ export class WorktreeManager {
     if (path.isAbsolute(this.config.worktreesDir)) {
       return this.config.worktreesDir;
     }
-    return path.join(process.cwd(), this.config.worktreesDir);
+    return path.join(this.configDir, this.config.worktreesDir);
   }
 
   getPortManager(): PortManager {
@@ -211,9 +269,28 @@ export class WorktreeManager {
         this.notifyListeners();
       });
 
+      const basePorts = this.portManager.getDiscoveredPorts();
+      const portMap = new Map(
+        basePorts.map((base) => [base + offset, base]),
+      );
+      const wtColor = getWorktreeColor(id);
+      const coloredName = `${BOLD}${wtColor}${id}${RESET}`;
+      const linePrefix = (line: string) => {
+        for (const [offsetPort, basePort] of portMap) {
+          if (line.includes(String(offsetPort))) {
+            const pColor = getPortColor(basePort);
+            return `${DIM}[${RESET}${coloredName} ${pColor}:${basePort}${RESET}${DIM}]${RESET}`;
+          }
+        }
+        return `${DIM}[${RESET}${coloredName}${DIM}]${RESET}`;
+      };
+
       childProcess.stdout?.on('data', (data) => {
         const output = data.toString();
         const lines = output.split('\n').filter((l: string) => l.trim());
+        lines.forEach((line: string) =>
+          process.stdout.write(`${linePrefix(line)} ${line}\n`),
+        );
         const processInfo = this.runningProcesses.get(id);
         if (processInfo) {
           processInfo.logs.push(...lines);
@@ -231,6 +308,9 @@ export class WorktreeManager {
           .toString()
           .split('\n')
           .filter((l: string) => l.trim());
+        lines.forEach((line: string) =>
+          process.stderr.write(`${linePrefix(line)} ${line}\n`),
+        );
         const processInfo = this.runningProcesses.get(id);
         if (processInfo) {
           processInfo.logs.push(...lines);
@@ -292,6 +372,7 @@ export class WorktreeManager {
     }
 
     const worktreeId =
+      request.name ||
       id ||
       branch
         .replace(/^(feature|fix|chore)\//, '')
@@ -384,6 +465,94 @@ export class WorktreeManager {
     }
   }
 
+  async renameWorktree(
+    currentId: string,
+    request: WorktreeRenameRequest,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (this.runningProcesses.has(currentId)) {
+      return {
+        success: false,
+        error: 'Cannot rename a running worktree. Stop it first.',
+      };
+    }
+
+    const worktreesPath = this.getWorktreesAbsolutePath();
+    const currentPath = path.join(worktreesPath, currentId);
+
+    if (!existsSync(currentPath)) {
+      return { success: false, error: `Worktree "${currentId}" not found` };
+    }
+
+    if (!request.name && !request.branch) {
+      return { success: false, error: 'Nothing to rename' };
+    }
+
+    try {
+      const gitRoot = this.getGitRoot();
+
+      // Rename directory (worktree name)
+      if (request.name && request.name !== currentId) {
+        if (!/^[a-zA-Z0-9-]+$/.test(request.name)) {
+          return { success: false, error: 'Invalid worktree name' };
+        }
+
+        const newPath = path.join(worktreesPath, request.name);
+        if (existsSync(newPath)) {
+          return {
+            success: false,
+            error: `Worktree "${request.name}" already exists`,
+          };
+        }
+
+        execFileSync('git', ['worktree', 'move', currentPath, newPath], {
+          cwd: gitRoot,
+          encoding: 'utf-8',
+          stdio: 'pipe',
+        });
+
+        // Update color map
+        const color = worktreeColorMap.get(currentId);
+        if (color) {
+          worktreeColorMap.delete(currentId);
+          worktreeColorMap.set(request.name, color);
+        }
+      }
+
+      // Rename branch
+      if (request.branch) {
+        if (!this.validateBranchName(request.branch)) {
+          return { success: false, error: 'Invalid branch name' };
+        }
+
+        const worktreeCwd = request.name
+          ? path.join(worktreesPath, request.name)
+          : currentPath;
+
+        const currentBranch = this.getWorktreeBranch(worktreeCwd);
+        if (currentBranch && currentBranch !== request.branch) {
+          execFileSync(
+            'git',
+            ['branch', '-m', currentBranch, request.branch],
+            {
+              cwd: worktreeCwd,
+              encoding: 'utf-8',
+              stdio: 'pipe',
+            },
+          );
+        }
+      }
+
+      this.notifyListeners();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to rename worktree',
+      };
+    }
+  }
+
   async removeWorktree(
     id: string,
   ): Promise<{ success: boolean; error?: string }> {
@@ -402,11 +571,29 @@ export class WorktreeManager {
     try {
       const gitRoot = this.getGitRoot();
 
-      execFileSync('git', ['worktree', 'remove', worktreePath, '--force'], {
-        cwd: gitRoot,
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      });
+      try {
+        execFileSync('git', ['worktree', 'remove', worktreePath, '--force'], {
+          cwd: gitRoot,
+          encoding: 'utf-8',
+          stdio: 'pipe',
+        });
+      } catch {
+        // Git doesn't recognize it as a worktree — remove the directory directly
+        execFileSync('rm', ['-rf', worktreePath], {
+          encoding: 'utf-8',
+          stdio: 'pipe',
+        });
+        // Clean up any stale worktree references
+        try {
+          execFileSync('git', ['worktree', 'prune'], {
+            cwd: gitRoot,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          });
+        } catch {
+          // Ignore prune failures
+        }
+      }
 
       this.notifyListeners();
       return { success: true };
