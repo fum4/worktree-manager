@@ -60,6 +60,24 @@ export function createWorktreeServer(manager: WorktreeManager) {
     });
   });
 
+  app.post('/api/detect-env', (c) => {
+    const portManager = manager.getPortManager();
+    const config = manager.getConfig();
+    const projectDir = config.projectDir && config.projectDir !== '.'
+      ? path.resolve(process.cwd(), config.projectDir)
+      : process.cwd();
+
+    const mapping = portManager.detectEnvMapping(projectDir);
+    if (Object.keys(mapping).length > 0) {
+      portManager.persistEnvMapping(mapping);
+    }
+
+    return c.json({
+      success: true,
+      envMapping: mapping,
+    });
+  });
+
   app.post('/api/worktrees', async (c) => {
     try {
       const body = await c.req.json<WorktreeCreateRequest>();

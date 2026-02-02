@@ -82,11 +82,94 @@ export class PortManager {
       ? `${existingNodeOptions} ${requireFlag}`
       : requireFlag;
 
-    return {
+    const env: Record<string, string> = {
       NODE_OPTIONS: nodeOptions,
       __WM_PORT_OFFSET__: String(offset),
       __WM_KNOWN_PORTS__: JSON.stringify(this.config.ports.discovered),
     };
+
+    // Resolve env var templates with offset ports
+    const envMapping = this.config.envMapping;
+    if (envMapping) {
+      for (const [key, template] of Object.entries(envMapping)) {
+        env[key] = template.replace(/\$\{(\d+)\}/g, (_, portStr) => {
+          return String(parseInt(portStr, 10) + offset);
+        });
+      }
+    }
+
+    return env;
+  }
+
+  detectEnvMapping(projectDir: string): Record<string, string> {
+    const envFiles = ['.env', '.env.local', '.env.development', '.env.development.local'];
+    const discoveredPorts = this.config.ports.discovered;
+    if (discoveredPorts.length === 0) return {};
+
+    const mapping: Record<string, string> = {};
+
+    for (const envFile of envFiles) {
+      const filePath = path.join(projectDir, envFile);
+      if (!existsSync(filePath)) continue;
+
+      const content = readFileSync(filePath, 'utf-8');
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+
+        const eqIndex = trimmed.indexOf('=');
+        if (eqIndex === -1) continue;
+
+        const key = trimmed.slice(0, eqIndex).trim();
+        let value = trimmed.slice(eqIndex + 1).trim();
+        // Strip surrounding quotes
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+
+        // Check if value contains any discovered port
+        let template = value;
+        let hasPort = false;
+        for (const port of discoveredPorts) {
+          const portStr = String(port);
+          if (template.includes(portStr)) {
+            template = template.replaceAll(portStr, `\${${portStr}}`);
+            hasPort = true;
+          }
+        }
+
+        if (hasPort) {
+          mapping[key] = template;
+        }
+      }
+    }
+
+    return mapping;
+  }
+
+  persistEnvMapping(mapping: Record<string, string>): void {
+    if (!this.configFilePath) return;
+
+    this.config.envMapping = mapping;
+
+    try {
+      const content = readFileSync(this.configFilePath, 'utf-8');
+      const config = JSON.parse(content);
+      config.envMapping = mapping;
+      writeFileSync(
+        this.configFilePath,
+        JSON.stringify(config, null, 2) + '\n',
+      );
+      console.log(
+        `[port-discovery] Saved env mapping to ${this.configFilePath}`,
+      );
+    } catch (err) {
+      console.error(
+        '[port-discovery] Failed to persist env mapping:',
+        err instanceof Error ? err.message : err,
+      );
+    }
   }
 
   async discoverPorts(
@@ -188,6 +271,13 @@ export class PortManager {
     if (ports.length > 0) {
       this.config.ports.discovered = ports;
       this.persistDiscoveredPorts(ports);
+
+      // Auto-detect env var mappings after port discovery
+      const envMapping = this.detectEnvMapping(workingDir);
+      if (Object.keys(envMapping).length > 0) {
+        this.persistEnvMapping(envMapping);
+        log(`[port-discovery] Detected env var mappings: ${Object.keys(envMapping).join(', ')}`);
+      }
     }
 
     return { ports };

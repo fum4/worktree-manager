@@ -18,6 +18,8 @@ export interface WorktreeConfig {
   baseBranch: string;
   /** Port configuration for multi-port offset */
   ports: PortConfig;
+  /** Env var templates with port references, e.g. { "VITE_API_URL": "http://localhost:${4000}" } */
+  envMapping?: Record<string, string>;
   /** Maximum concurrent running worktrees (default: 5) */
   maxInstances: number;
   /** Port for the manager server (default: 3100) */

@@ -5,7 +5,7 @@ import { createInterface } from 'readline';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 
-import { startWorktreeServer } from './server/index';
+import { startWorktreeServer, PortManager } from './server/index';
 import type { PortConfig, WorktreeConfig } from './server/types';
 
 const CONFIG_FILE_NAME = '.worktree-manager.json';
@@ -16,6 +16,7 @@ interface ConfigFile {
   startCommand?: string;
   baseBranch?: string;
   ports?: Partial<PortConfig>;
+  envMapping?: Record<string, string>;
   maxInstances?: number;
   serverPort?: number;
 }
@@ -151,6 +152,31 @@ async function runInit() {
   writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
 
   console.log(`\n[worktree-manager] Config written to ${configPath}`);
+
+  // Auto-detect env var mappings if ports are already known
+  if (config.ports?.discovered && config.ports.discovered.length > 0) {
+    const tempConfig: WorktreeConfig = {
+      projectDir: projectDir,
+      worktreesDir: worktreesDir,
+      startCommand,
+      baseBranch,
+      ports: config.ports as PortConfig,
+      maxInstances,
+      serverPort,
+    };
+    const pm = new PortManager(tempConfig, configPath);
+    const envMapping = pm.detectEnvMapping(resolvedProjectDir);
+    if (Object.keys(envMapping).length > 0) {
+      pm.persistEnvMapping(envMapping);
+      console.log('\nFound env var mappings:');
+      for (const [key, template] of Object.entries(envMapping)) {
+        const original = template.replace(/\$\{(\d+)\}/g, (_, p) => p);
+        console.log(`  ${key}=${original} → ${template}`);
+      }
+      console.log('Saved to config.');
+    }
+  }
+
   console.log('');
   console.log('Next steps:');
   console.log('  1. Run `worktree-manager` to start the manager UI');
@@ -207,6 +233,7 @@ function loadConfig(): { config: WorktreeConfig; configPath: string | null } {
         discovered: fileConfig.ports?.discovered ?? defaults.ports.discovered,
         offsetStep: fileConfig.ports?.offsetStep ?? defaults.ports.offsetStep,
       },
+      envMapping: fileConfig.envMapping,
       maxInstances: fileConfig.maxInstances ?? defaults.maxInstances,
       serverPort: fileConfig.serverPort ?? defaults.serverPort,
     };
@@ -242,6 +269,10 @@ async function main() {
     `  Discovered ports: ${config.ports.discovered.length > 0 ? config.ports.discovered.join(', ') : '(none - run discovery)'}`,
   );
   console.log(`  Offset step: ${config.ports.offsetStep}`);
+  const envMappingKeys = config.envMapping ? Object.keys(config.envMapping) : [];
+  console.log(
+    `  Env mappings: ${envMappingKeys.length > 0 ? envMappingKeys.join(', ') : '(none)'}`,
+  );
   console.log(`  Max instances: ${config.maxInstances}`);
   console.log(`  Server port: ${config.serverPort}`);
   console.log('');

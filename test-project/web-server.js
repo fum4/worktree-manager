@@ -1,9 +1,11 @@
 const http = require('http');
 
-const PORT = 4100;
-const API_PORT = 4000;
+const PORT = parseInt(process.env.WEB_PORT, 10) || 4100;
+const API_PORT = parseInt(process.env.API_PORT, 10) || 4000;
 
-const html = `<!DOCTYPE html>
+function getHtml(webPort) {
+  const apiUrl = process.env.API_URL || `http://localhost:${API_PORT}`;
+  return `<!DOCTYPE html>
 <html>
 <head>
   <title>Test Project</title>
@@ -16,7 +18,8 @@ const html = `<!DOCTYPE html>
 </head>
 <body>
   <h1>Test Project</h1>
-  <p>Web server port: <strong>${PORT}</strong> | API port: <strong>${API_PORT}</strong></p>
+  <p>Web server port: <strong>${webPort}</strong> | API port: <strong>${API_PORT}</strong></p>
+  <p>API_URL: <strong>${apiUrl}</strong></p>
   <button onclick="pingApi()">Ping API</button>
   <pre id="result">Click the button to ping the API server</pre>
   <script>
@@ -34,12 +37,13 @@ const html = `<!DOCTYPE html>
   </script>
 </body>
 </html>`;
+}
 
 const server = http.createServer((req, res) => {
   const start = Date.now();
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(html);
+    res.end(getHtml(server.address().port));
     console.log(`[web-server] ${req.method} ${req.url} → 200 (${Date.now() - start}ms)`);
   } else if (req.url === '/api' || req.url.startsWith('/api/')) {
     // Proxy /api to api-server (validates port-hook connect patching)
