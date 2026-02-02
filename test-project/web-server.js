@@ -41,7 +41,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(html);
     console.log(`[web-server] ${req.method} ${req.url} → 200 (${Date.now() - start}ms)`);
-  } else {
+  } else if (req.url === '/api' || req.url.startsWith('/api/')) {
     // Proxy /api to api-server (validates port-hook connect patching)
     const apiReq = http.request(
       { hostname: 'localhost', port: API_PORT, path: req.url, method: 'GET' },
@@ -49,12 +49,14 @@ const server = http.createServer((req, res) => {
         let body = '';
         apiRes.on('data', (chunk) => { body += chunk; });
         apiRes.on('end', () => {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
+          let apiResponse;
+          try { apiResponse = JSON.parse(body); } catch { apiResponse = body; }
+          res.writeHead(apiRes.statusCode, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             webPort: server.address().port,
-            apiResponse: JSON.parse(body),
+            apiResponse,
           }));
-          console.log(`[web-server] ${req.method} ${req.url} → 200 (${Date.now() - start}ms)`);
+          console.log(`[web-server] ${req.method} ${req.url} → ${apiRes.statusCode} (${Date.now() - start}ms)`);
         });
       },
     );
@@ -64,6 +66,10 @@ const server = http.createServer((req, res) => {
       console.log(`[web-server] ${req.method} ${req.url} → 500 ${err.message} (${Date.now() - start}ms)`);
     });
     apiReq.end();
+  } else {
+    res.writeHead(404);
+    res.end('Not found');
+    console.log(`[web-server] ${req.method} ${req.url} → 404 (${Date.now() - start}ms)`);
   }
 });
 
