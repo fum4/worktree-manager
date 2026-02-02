@@ -1,0 +1,12 @@
+{
+  "projectDir": "./test-project",
+  "worktreesDir": ".worktrees",
+  "startCommand": "npm run dev",
+  "baseBranch": "origin/main",
+  "maxInstances": 5,
+  "serverPort": 6969,
+  "ports": {
+    "discovered": [],
+    "offsetStep": 1
+  }
+}

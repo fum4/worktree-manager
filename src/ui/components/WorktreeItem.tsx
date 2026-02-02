@@ -1,0 +1,141 @@
+import { useState } from 'react';
+
+import type { WorktreeInfo } from '../hooks/useWorktrees';
+import {
+  removeWorktree,
+  startWorktree,
+  stopWorktree,
+} from '../hooks/useWorktrees';
+
+interface WorktreeItemProps {
+  worktree: WorktreeInfo;
+  onUpdate: () => void;
+}
+
+export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isRunning = worktree.status === 'running';
+  const primaryPort = worktree.ports[0] ?? null;
+
+  const handleStart = async () => {
+    setIsLoading(true);
+    setError(null);
+    const result = await startWorktree(worktree.id);
+    setIsLoading(false);
+    if (!result.success) {
+      setError(result.error || 'Failed to start');
+    }
+    onUpdate();
+  };
+
+  const handleStop = async () => {
+    setIsLoading(true);
+    setError(null);
+    const result = await stopWorktree(worktree.id);
+    setIsLoading(false);
+    if (!result.success) {
+      setError(result.error || 'Failed to stop');
+    }
+    onUpdate();
+  };
+
+  const handleRemove = async () => {
+    // eslint-disable-next-line no-alert
+    if (
+      !window.confirm(
+        `Remove worktree "${worktree.id}"? This will delete the directory.`,
+      )
+    ) {
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    const result = await removeWorktree(worktree.id);
+    setIsLoading(false);
+    if (!result.success) {
+      setError(result.error || 'Failed to remove');
+    }
+    onUpdate();
+  };
+
+  const handleOpen = () => {
+    if (primaryPort) {
+      window.open(`http://localhost:${primaryPort}`, '_blank');
+    }
+  };
+
+  return (
+    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors">
+      <div className="flex items-center gap-3">
+        <div
+          className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+            isRunning
+              ? 'bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.5)]'
+              : 'bg-gray-600'
+          }`}
+        />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-white truncate">
+              {worktree.id}
+            </span>
+            {worktree.ports.length > 0 && (
+              <span className="text-gray-500 text-sm">
+                {worktree.ports.map((p) => `:${p}`).join(', ')}
+              </span>
+            )}
+          </div>
+          <div className="text-gray-500 text-xs truncate">
+            {worktree.branch}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isRunning ? (
+            <>
+              <button
+                type="button"
+                onClick={handleStop}
+                disabled={isLoading}
+                className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-900/30 rounded hover:bg-red-900/50 disabled:opacity-50 transition-colors"
+              >
+                Stop
+              </button>
+              <button
+                type="button"
+                onClick={handleOpen}
+                disabled={!primaryPort}
+                className="px-3 py-1.5 text-xs font-medium text-gray-300 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 transition-colors"
+              >
+                Open
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={handleStart}
+              disabled={isLoading}
+              className="px-3 py-1.5 text-xs font-medium text-green-400 bg-green-900/30 rounded hover:bg-green-900/50 disabled:opacity-50 transition-colors"
+            >
+              {isLoading ? 'Starting...' : 'Start'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={isLoading}
+            className="px-2 py-1.5 text-xs font-medium text-red-400 hover:bg-red-900/30 rounded disabled:opacity-50 transition-colors"
+            title="Remove worktree"
+          >
+            &times;
+          </button>
+        </div>
+      </div>
+
+      {error && <div className="mt-2 text-red-400 text-xs">{error}</div>}
+    </div>
+  );
+}
