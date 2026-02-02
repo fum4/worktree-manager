@@ -24,7 +24,7 @@ const html = `<!DOCTYPE html>
       const el = document.getElementById('result');
       el.textContent = 'Pinging...';
       try {
-        const res = await fetch('http://localhost:${API_PORT}/api');
+        const res = await fetch('/api');
         const data = await res.json();
         el.textContent = JSON.stringify(data, null, 2);
       } catch (err) {
