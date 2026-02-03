@@ -19,83 +19,69 @@ export function Header({
   onPortsDiscovered,
 }: HeaderProps) {
   const [isDiscovering, setIsDiscovering] = useState(false);
-  const [discoverError, setDiscoverError] = useState<string | null>(null);
 
   const handleDiscover = async () => {
     setIsDiscovering(true);
-    setDiscoverError(null);
     const result = await discoverPorts();
     setIsDiscovering(false);
     if (result.success) {
       onPortsDiscovered();
-    } else {
-      setDiscoverError(result.error || 'Discovery failed');
     }
   };
 
   const hasPorts = portsInfo.discovered.length > 0;
 
   return (
-    <header className="mb-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-white">{projectName || 'Worktree Manager'}</h1>
-          <span className="text-sm text-gray-500 self-end mb-[2px]">wok3</span>
-          {runningCount > 0 && (
-            <span className="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-full">
-              {runningCount} running
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              isConnected ? 'bg-green-500' : 'bg-gray-500'
-            }`}
-          />
-          <span className="text-gray-400">
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
-        </div>
-      </div>
-      <p className="mt-2 text-gray-400 text-sm">
-        Manage git worktrees and their dev servers
-      </p>
-
-      <div className="mt-4 flex items-center gap-3">
-        {hasPorts ? (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500">Ports:</span>
-            <span className="text-gray-300 font-mono text-xs">
-              {portsInfo.discovered.join(', ')}
+    <header className="h-10 flex-shrink-0 flex items-center justify-between px-4 border-b border-gray-800 bg-gray-900">
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-semibold text-white">{projectName || 'Worktree Manager'}</span>
+        <span className="text-xs text-gray-500">wok3</span>
+        {hasPorts && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-gray-600 text-[10px] font-mono">
+              {portsInfo.discovered.map((p) => `:${p}`).join(' ')}
             </span>
             <button
               type="button"
               onClick={handleDiscover}
               disabled={isDiscovering}
-              className="px-2 py-1 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+              className="text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-50"
               title="Re-discover ports"
             >
-              {isDiscovering ? 'Scanning...' : 'Rescan'}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                <path fillRule="evenodd" d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37l-.84-.841a4.5 4.5 0 0 0-7.08.932.75.75 0 0 1-1.3-.75 6 6 0 0 1 9.44-1.242l.842.84V3.227a.75.75 0 0 1 .75-.75Zm-.911 7.5A.75.75 0 0 1 13.199 11a6 6 0 0 1-9.44 1.241l-.84-.84v1.371a.75.75 0 0 1-1.5 0V9.591a.75.75 0 0 1 .75-.75H5.35a.75.75 0 0 1 0 1.5H3.98l.841.841a4.5 4.5 0 0 0 7.08-.932.75.75 0 0 1 1.025-.273Z" clipRule="evenodd" />
+              </svg>
             </button>
           </div>
-        ) : (
+        )}
+        {!hasPorts && (
           <button
             type="button"
             onClick={handleDiscover}
             disabled={isDiscovering}
-            className="px-3 py-1.5 text-xs font-medium text-yellow-400 bg-yellow-900/30 rounded hover:bg-yellow-900/50 disabled:opacity-50 transition-colors"
+            className="text-[10px] text-yellow-400 hover:text-yellow-300 transition-colors disabled:opacity-50"
           >
-            {isDiscovering
-              ? 'Discovering ports (this may take ~20s)...'
-              : 'Discover Ports'}
+            {isDiscovering ? 'Scanning...' : 'Discover Ports'}
           </button>
         )}
       </div>
-
-      {discoverError && (
-        <div className="mt-2 text-red-400 text-xs">{discoverError}</div>
-      )}
+      <div className="flex items-center gap-3">
+        {runningCount > 0 && (
+          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-600 text-white rounded-full">
+            {runningCount} running
+          </span>
+        )}
+        <div className="flex items-center gap-1.5 text-xs">
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              isConnected ? 'bg-green-500' : 'bg-gray-500'
+            }`}
+          />
+          <span className="text-gray-500">
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+      </div>
     </header>
   );
 }
