@@ -33,7 +33,8 @@ export function createWorktreeServer(manager: WorktreeManager) {
 
   app.get('/api/config', (c) => {
     const config = manager.getConfig();
-    return c.json({ config });
+    const projectName = manager.getProjectName();
+    return c.json({ config, projectName });
   });
 
   app.get('/api/ports', (c) => {
@@ -183,7 +184,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
       const html = readFileSync(indexPath, 'utf-8');
       return c.html(html);
     } catch {
-      return c.text('UI not built. Run: yarn build', 404);
+      return c.text('UI not built. Run build command', 404);
     }
   });
 

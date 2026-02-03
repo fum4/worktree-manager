@@ -4,6 +4,7 @@ import { discoverPorts } from '../hooks/useWorktrees';
 import type { PortsInfo } from '../hooks/useWorktrees';
 
 interface HeaderProps {
+  projectName: string | null;
   runningCount: number;
   isConnected: boolean;
   portsInfo: PortsInfo;
@@ -11,6 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({
+  projectName,
   runningCount,
   isConnected,
   portsInfo,
@@ -37,7 +39,8 @@ export function Header({
     <header className="mb-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-white">Worktree Manager</h1>
+          <h1 className="text-2xl font-bold text-white">{projectName || 'Worktree Manager'}</h1>
+          <span className="text-sm text-gray-500 self-end mb-[2px]">wok3</span>
           {runningCount > 0 && (
             <span className="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-full">
               {runningCount} running

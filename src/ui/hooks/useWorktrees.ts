@@ -76,6 +76,21 @@ export function useWorktrees() {
   return { worktrees, isConnected, error, refetch: fetchWorktrees };
 }
 
+export function useProjectName() {
+  const [projectName, setProjectName] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/config`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.projectName) setProjectName(data.projectName);
+      })
+      .catch(() => {});
+  }, []);
+
+  return projectName;
+}
+
 export function usePorts() {
   const [ports, setPorts] = useState<PortsInfo>({
     discovered: [],

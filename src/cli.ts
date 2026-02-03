@@ -14,6 +14,7 @@ interface ConfigFile {
   projectDir?: string;
   worktreesDir?: string;
   startCommand?: string;
+  installCommand?: string;
   baseBranch?: string;
   ports?: Partial<PortConfig>;
   envMapping?: Record<string, string>;
@@ -114,10 +115,17 @@ async function runInit() {
     `Base branch for new worktrees [${detectedBranch}]: `,
   )) || detectedBranch;
 
-  const startCommand = (await prompt(
-    rl,
-    'Dev start command [yarn dev]: ',
-  )) || 'yarn dev';
+  let startCommand = '';
+  while (!startCommand) {
+    startCommand = await prompt(rl, 'Dev start command: ');
+    if (!startCommand) console.log('  Start command is required.');
+  }
+
+  let installCommand = '';
+  while (!installCommand) {
+    installCommand = await prompt(rl, 'Install dependencies command: ');
+    if (!installCommand) console.log('  Install command is required.');
+  }
 
   const serverPort = parseInt(
     (await prompt(rl, 'Manager UI port [3100]: ')) || '3100',
@@ -139,6 +147,7 @@ async function runInit() {
   const config: ConfigFile = {
     worktreesDir,
     startCommand,
+    installCommand,
     baseBranch,
     maxInstances,
     serverPort,
@@ -159,6 +168,7 @@ async function runInit() {
       projectDir: projectDir,
       worktreesDir: worktreesDir,
       startCommand,
+      installCommand,
       baseBranch,
       ports: config.ports as PortConfig,
       maxInstances,
@@ -191,7 +201,8 @@ function loadConfig(): { config: WorktreeConfig; configPath: string | null } {
   const defaults: WorktreeConfig = {
     projectDir: '.',
     worktreesDir: '.worktrees',
-    startCommand: 'yarn dev',
+    startCommand: '',
+    installCommand: '',
     baseBranch: 'origin/main',
     ports: {
       discovered: [],
@@ -228,6 +239,7 @@ function loadConfig(): { config: WorktreeConfig; configPath: string | null } {
       projectDir: fileConfig.projectDir ?? defaults.projectDir,
       worktreesDir: fileConfig.worktreesDir ?? defaults.worktreesDir,
       startCommand: fileConfig.startCommand ?? defaults.startCommand,
+      installCommand: fileConfig.installCommand ?? defaults.installCommand,
       baseBranch: fileConfig.baseBranch ?? defaults.baseBranch,
       ports: {
         discovered: fileConfig.ports?.discovered ?? defaults.ports.discovered,
@@ -263,7 +275,8 @@ async function main() {
   console.log('[worktree-manager] Configuration:');
   console.log(`  Project directory: ${config.projectDir}`);
   console.log(`  Worktrees directory: ${config.worktreesDir}`);
-  console.log(`  Start command: ${config.startCommand}`);
+  console.log(`  Start command: ${config.startCommand || '(not set)'}`);
+  console.log(`  Install command: ${config.installCommand || '(not set)'}`);
   console.log(`  Base branch: ${config.baseBranch}`);
   console.log(
     `  Discovered ports: ${config.ports.discovered.length > 0 ? config.ports.discovered.join(', ') : '(none - run discovery)'}`,

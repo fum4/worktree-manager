@@ -465,7 +465,8 @@ export class WorktreeManager {
       console.log(
         `[worktree-manager] Installing dependencies in ${worktreeId}...`,
       );
-      await execFile('yarn', ['install'], {
+      const [installCmd, ...installArgs] = this.config.installCommand.split(' ');
+      await execFile(installCmd, installArgs, {
         cwd: worktreePath,
         encoding: 'utf-8',
       });
@@ -638,6 +639,16 @@ export class WorktreeManager {
       this.stopWorktree(id),
     );
     await Promise.all(stopPromises);
+  }
+
+  getProjectName(): string | null {
+    try {
+      const pkgPath = path.join(this.configDir, 'package.json');
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+      return pkg.name || null;
+    } catch {
+      return null;
+    }
   }
 
   getConfig(): WorktreeConfig {
