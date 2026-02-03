@@ -1,9 +1,9 @@
 {
-  "name": "worktree-manager",
+  "name": "wok3",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "worktree-manager": "./dist/cli.js"
+    "wok3": "./dist/cli.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
