@@ -59,7 +59,7 @@ export async function findPRForBranch(
     return {
       url: pr.html_url,
       number: pr.number,
-      state: pr.state,
+      state: pr.state === 'closed' && pr.merged_at ? 'merged' : pr.state,
       isDraft: pr.draft ?? false,
       title: pr.title,
     };

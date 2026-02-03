@@ -42,6 +42,7 @@ There is no test runner configured. The `test-project/` directory is a manual in
 - **`src/server/port-manager.ts`** — `PortManager` class. Discovers ports via `lsof`, allocates/releases integer offsets (1, 2, 3...), builds env vars (`NODE_OPTIONS`, `__WM_PORT_OFFSET__`, `__WM_KNOWN_PORTS__`) for spawned processes.
 - **`src/runtime/port-hook.cjs`** — The core innovation. Pure CJS with zero dependencies (required by `--require`). Patches `net.Server.prototype.listen` and `net.Socket.prototype.connect` to offset known ports by the worktree's allocated offset. Handles three `connect()` calling conventions including Node.js internal array form.
 - **`src/ui/`** — React + Tailwind UI. `useWorktrees` hook establishes SSE connection with auto-reconnect. Components: Header, CreateForm, WorktreeList, WorktreeItem.
+- **`src/ui/theme.ts`** — Centralized theme tokens (Tailwind class fragments) for colors, borders, surfaces, buttons, status indicators, etc. **All UI components must import from this file instead of hardcoding Tailwind color classes.** This keeps the visual language consistent and lets you restyle the entire app from one place.
 
 ### Data Flow
 
