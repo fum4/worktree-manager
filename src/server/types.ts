@@ -34,7 +34,9 @@ export interface WorktreeInfo {
   /** Git branch name */
   branch: string;
   /** Current status */
-  status: 'running' | 'stopped' | 'starting';
+  status: 'running' | 'stopped' | 'starting' | 'creating';
+  /** Status message for in-progress operations like creation */
+  statusMessage?: string;
   /** All offset ports if running */
   ports: number[];
   /** Port offset applied to this worktree */

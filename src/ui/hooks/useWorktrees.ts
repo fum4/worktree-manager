@@ -4,7 +4,8 @@ export interface WorktreeInfo {
   id: string;
   path: string;
   branch: string;
-  status: 'running' | 'stopped' | 'starting';
+  status: 'running' | 'stopped' | 'starting' | 'creating';
+  statusMessage?: string;
   ports: number[];
   offset: number | null;
   pid: number | null;

@@ -1,6 +1,9 @@
-import { execFileSync, spawn } from 'child_process';
+import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync } from 'fs';
 import path from 'path';
+import { promisify } from 'util';
+
+const execFile = promisify(execFileCb);
 
 import { PortManager } from './port-manager';
 import type {
@@ -53,6 +56,8 @@ export class WorktreeManager {
   private portManager: PortManager;
 
   private runningProcesses: Map<string, RunningProcess> = new Map();
+
+  private creatingWorktrees: Map<string, WorktreeInfo> = new Map();
 
   private eventListeners: Set<(worktrees: WorktreeInfo[]) => void> = new Set();
 
@@ -121,6 +126,9 @@ export class WorktreeManager {
 
       if (!existsSync(gitPath)) continue;
 
+      // Skip entries that are still being created (they appear via creatingWorktrees)
+      if (this.creatingWorktrees.has(entry.name)) continue;
+
       const branch = this.getWorktreeBranch(worktreePath);
       const runningInfo = this.runningProcesses.get(entry.name);
 
@@ -135,6 +143,11 @@ export class WorktreeManager {
         lastActivity: runningInfo?.lastActivity,
         logs: runningInfo?.logs ?? [],
       });
+    }
+
+    // Append in-progress creations
+    for (const creating of this.creatingWorktrees.values()) {
+      worktrees.push(creating);
     }
 
     return worktrees;
@@ -367,76 +380,110 @@ export class WorktreeManager {
       };
     }
 
+    if (this.creatingWorktrees.has(worktreeId)) {
+      return {
+        success: false,
+        error: `Worktree "${worktreeId}" is already being created`,
+      };
+    }
+
+    // Create placeholder entry for immediate UI feedback
+    const placeholder: WorktreeInfo = {
+      id: worktreeId,
+      path: worktreePath,
+      branch,
+      status: 'creating',
+      statusMessage: 'Fetching branch...',
+      ports: [],
+      offset: null,
+      pid: null,
+    };
+
+    this.creatingWorktrees.set(worktreeId, placeholder);
+    this.notifyListeners();
+
+    // Run the actual creation async — don't block the HTTP response
+    this.runCreateWorktree(worktreeId, branch, worktreePath).catch(() => {
+      // Error handling is done inside runCreateWorktree
+    });
+
+    return { success: true, worktree: placeholder };
+  }
+
+  private async runCreateWorktree(
+    worktreeId: string,
+    branch: string,
+    worktreePath: string,
+  ): Promise<void> {
+    const updateStatus = (statusMessage: string) => {
+      const entry = this.creatingWorktrees.get(worktreeId);
+      if (entry) {
+        entry.statusMessage = statusMessage;
+        this.notifyListeners();
+      }
+    };
+
     try {
       const gitRoot = this.getGitRoot();
 
+      // Step 1: Fetch
       try {
-        execFileSync('git', ['fetch', 'origin', branch], {
+        await execFile('git', ['fetch', 'origin', branch], {
           cwd: gitRoot,
           encoding: 'utf-8',
-          stdio: 'pipe',
         });
       } catch {
         // Branch might not exist on remote
       }
 
+      // Step 2: Create worktree
+      updateStatus('Creating worktree...');
+
       try {
-        execFileSync(
+        await execFile(
           'git',
           ['worktree', 'add', worktreePath, '-b', branch, this.config.baseBranch],
-          {
-            cwd: gitRoot,
-            encoding: 'utf-8',
-            stdio: 'pipe',
-          },
+          { cwd: gitRoot, encoding: 'utf-8' },
         );
       } catch {
         try {
-          execFileSync('git', ['worktree', 'add', worktreePath, branch], {
+          await execFile('git', ['worktree', 'add', worktreePath, branch], {
             cwd: gitRoot,
             encoding: 'utf-8',
-            stdio: 'pipe',
           });
         } catch {
-          execFileSync(
+          await execFile(
             'git',
             ['worktree', 'add', worktreePath, '-B', branch, `origin/${branch}`],
-            {
-              cwd: gitRoot,
-              encoding: 'utf-8',
-              stdio: 'pipe',
-            },
+            { cwd: gitRoot, encoding: 'utf-8' },
           );
         }
       }
 
+      // Step 3: Install dependencies
+      updateStatus('Installing dependencies...');
       console.log(
         `[worktree-manager] Installing dependencies in ${worktreeId}...`,
       );
-      execFileSync('yarn', ['install'], {
+      await execFile('yarn', ['install'], {
         cwd: worktreePath,
         encoding: 'utf-8',
-        stdio: 'pipe',
       });
 
-      const worktree: WorktreeInfo = {
-        id: worktreeId,
-        path: worktreePath,
-        branch,
-        status: 'stopped',
-        ports: [],
-        offset: null,
-        pid: null,
-      };
-
+      // Done — remove from creating map; getWorktrees() will pick it up from filesystem
+      this.creatingWorktrees.delete(worktreeId);
       this.notifyListeners();
-      return { success: true, worktree };
     } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : 'Failed to create worktree',
-      };
+      const message =
+        error instanceof Error ? error.message : 'Failed to create worktree';
+      console.error(`[worktree-manager] Failed to create ${worktreeId}: ${message}`);
+      updateStatus(`Error: ${message}`);
+
+      // Remove after a delay so the user can see the error
+      setTimeout(() => {
+        this.creatingWorktrees.delete(worktreeId);
+        this.notifyListeners();
+      }, 5000);
     }
   }
 

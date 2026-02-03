@@ -7,6 +7,7 @@ import {
   startWorktree,
   stopWorktree,
 } from '../hooks/useWorktrees';
+import { ConfirmModal } from './ConfirmModal';
 
 interface WorktreeItemProps {
   worktree: WorktreeInfo;
@@ -25,6 +26,7 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
   const [editBranch, setEditBranch] = useState(worktree.branch);
 
   const isRunning = worktree.status === 'running';
+  const isCreating = worktree.status === 'creating';
 
   const handleStart = async () => {
     setIsLoading(true);
@@ -48,20 +50,20 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
     onUpdate();
   };
 
-  const handleRemove = async () => {
-    // eslint-disable-next-line no-alert
-    if (
-      !window.confirm(
-        `Remove worktree "${worktree.id}"? This will delete the directory.`,
-      )
-    ) {
-      return;
-    }
-    setIsLoading(true);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleRemove = () => {
+    setShowRemoveModal(true);
+  };
+
+  const handleConfirmRemove = async () => {
+    setShowRemoveModal(false);
+    setIsDeleting(true);
     setError(null);
     const result = await removeWorktree(worktree.id);
-    setIsLoading(false);
     if (!result.success) {
+      setIsDeleting(false);
       setError(result.error || 'Failed to remove');
     }
     onUpdate();
@@ -114,6 +116,54 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
     userScrolledUp.current = !atBottom;
   };
+
+  if (isDeleting) {
+    return (
+      <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-red-500 animate-pulse" />
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-white truncate">
+                {worktree.id}
+              </span>
+            </div>
+            <div className="text-gray-500 text-xs truncate">
+              {worktree.branch}
+            </div>
+          </div>
+
+          <span className="text-red-400 text-xs">Deleting...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isCreating) {
+    return (
+      <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-yellow-500 animate-pulse" />
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-white truncate">
+                {worktree.id}
+              </span>
+            </div>
+            <div className="text-gray-500 text-xs truncate">
+              {worktree.branch}
+            </div>
+          </div>
+
+          <span className="text-yellow-400 text-xs">
+            {worktree.statusMessage || 'Creating...'}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (isEditing) {
     return (
@@ -257,6 +307,16 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
           {worktree.logs?.length ? worktree.logs.join('\n') : 'No logs yet.'}
           <div ref={logsEndRef} />
         </pre>
+      )}
+
+      {showRemoveModal && (
+        <ConfirmModal
+          title="Remove worktree"
+          message={`Remove "${worktree.id}"? This will delete the worktree directory.`}
+          confirmLabel="Delete"
+          onConfirm={handleConfirmRemove}
+          onCancel={() => setShowRemoveModal(false)}
+        />
       )}
     </div>
   );
