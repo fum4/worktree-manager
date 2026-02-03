@@ -183,6 +183,23 @@ export const settings = {
   card:            'bg-white/[0.03]',
 } as const;
 
+// ─── Jira priority / type ────────────────────────────────────────
+export const jiraPriority: Record<string, string> = {
+  highest: 'text-red-500',
+  high: 'text-orange-400',
+  medium: 'text-yellow-400',
+  low: 'text-green-400',
+  lowest: 'text-blue-400',
+};
+
+export const jiraType: Record<string, string> = {
+  bug: 'text-red-400 bg-red-900/30',
+  story: 'text-green-400 bg-green-900/30',
+  task: 'text-blue-400 bg-blue-900/30',
+  subtask: 'text-gray-400 bg-gray-800',
+  epic: 'text-purple-400 bg-purple-900/30',
+};
+
 // ─── Error banner ────────────────────────────────────────────────
 export const errorBanner = {
   bg:              'bg-red-900/30',

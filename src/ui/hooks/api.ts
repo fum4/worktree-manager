@@ -1,3 +1,5 @@
+import type { JiraIssueDetail, JiraIssueSummary } from '../types';
+
 const API_BASE = '';
 
 export async function createWorktree(
@@ -207,6 +209,34 @@ export async function loginGitHub(): Promise<{ success: boolean; code?: string; 
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to authenticate with GitHub',
+    };
+  }
+}
+
+export async function fetchJiraIssues(
+  query?: string,
+): Promise<{ issues: JiraIssueSummary[]; error?: string }> {
+  try {
+    const params = query ? `?query=${encodeURIComponent(query)}` : '';
+    const res = await fetch(`${API_BASE}/api/jira/issues${params}`);
+    return await res.json();
+  } catch (err) {
+    return {
+      issues: [],
+      error: err instanceof Error ? err.message : 'Failed to fetch Jira issues',
+    };
+  }
+}
+
+export async function fetchJiraIssueDetail(
+  key: string,
+): Promise<{ issue?: JiraIssueDetail; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/jira/issues/${encodeURIComponent(key)}`);
+    return await res.json();
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'Failed to fetch issue detail',
     };
   }
 }

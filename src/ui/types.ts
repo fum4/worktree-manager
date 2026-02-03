@@ -33,3 +33,34 @@ export interface GitHubStatus {
   authenticated: boolean;
   repo: string | null;
 }
+
+export interface JiraIssueSummary {
+  key: string;
+  summary: string;
+  status: string;
+  priority: string;
+  type: string;
+  assignee: string | null;
+  updated: string;
+  labels: string[];
+  url: string;
+}
+
+export interface JiraIssueDetail {
+  key: string;
+  summary: string;
+  description: string;
+  status: string;
+  priority: string;
+  type: string;
+  assignee: string | null;
+  reporter: string | null;
+  labels: string[];
+  created: string;
+  updated: string;
+  comments: Array<{ author: string; body: string; created: string }>;
+  attachments: Array<{ filename: string; mimeType: string; size: number }>;
+  linkedWorktree: string | null;
+  fetchedAt: string;
+  url: string;
+}

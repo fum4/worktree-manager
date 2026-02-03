@@ -7,6 +7,7 @@ interface CreateFormProps {
   onCreated: () => void;
   jiraConfigured: boolean;
   defaultProjectKey: string | null;
+  onTabChange?: (tab: 'branch' | 'jira') => void;
 }
 
 function deriveName(branch: string): string {
@@ -17,7 +18,7 @@ function deriveName(branch: string): string {
     .replace(/^-|-$/g, '');
 }
 
-export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey }: CreateFormProps) {
+export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, onTabChange }: CreateFormProps) {
   const [activeTab, setActiveTab] = useState<'branch' | 'jira'>('branch');
 
   // Branch form state
@@ -99,7 +100,7 @@ export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey }: Cre
         <div className="flex mb-2 gap-1">
           <button
             type="button"
-            onClick={() => { setActiveTab('branch'); setError(null); setJiraError(null); }}
+            onClick={() => { setActiveTab('branch'); setError(null); setJiraError(null); onTabChange?.('branch'); }}
             className={`flex-1 px-2 py-1 text-[10px] font-medium rounded transition-colors ${
               activeTab === 'branch' ? tab.active : tab.inactive
             }`}
@@ -108,7 +109,7 @@ export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey }: Cre
           </button>
           <button
             type="button"
-            onClick={() => { setActiveTab('jira'); setError(null); setJiraError(null); }}
+            onClick={() => { setActiveTab('jira'); setError(null); setJiraError(null); onTabChange?.('jira'); }}
             className={`flex-1 px-2 py-1 text-[10px] font-medium rounded transition-colors ${
               activeTab === 'jira' ? tab.active : tab.inactive
             }`}

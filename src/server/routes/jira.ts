@@ -8,7 +8,8 @@ import {
   saveJiraCredentials,
   saveJiraProjectConfig,
 } from '../../integrations/jira/credentials';
-import { testConnection } from '../../integrations/jira/auth';
+import { getApiBase, getAuthHeaders, testConnection } from '../../integrations/jira/auth';
+import { fetchIssue } from '../../integrations/jira/api';
 import type { JiraCredentials } from '../../integrations/jira/types';
 import type { WorktreeManager } from '../manager';
 
@@ -92,6 +93,99 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
       return c.json(
         { success: false, error: error instanceof Error ? error.message : 'Failed to disconnect' },
         400,
+      );
+    }
+  });
+
+  app.get('/api/jira/issues', async (c) => {
+    try {
+      const configDir = manager.getConfigDir();
+      const creds = loadJiraCredentials(configDir);
+      if (!creds) {
+        return c.json({ issues: [], error: 'Jira not configured' }, 400);
+      }
+
+      const apiBase = getApiBase(creds);
+      const headers = await getAuthHeaders(creds, configDir);
+      const query = c.req.query('query');
+
+      let jql = 'assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC';
+      if (query) {
+        jql = `assignee = currentUser() AND resolution = Unresolved AND text ~ "${query}" ORDER BY updated DESC`;
+      }
+
+      const params = new URLSearchParams({
+        jql,
+        fields: 'summary,status,priority,issuetype,assignee,updated,labels',
+        maxResults: '50',
+      });
+
+      const resp = await fetch(`${apiBase}/search/jql?${params}`, { headers });
+      if (!resp.ok) {
+        const body = await resp.text();
+        return c.json({ issues: [], error: `Jira API error: ${resp.status} ${body}` }, 502);
+      }
+
+      const data = (await resp.json()) as {
+        issues: Array<{
+          key: string;
+          fields: {
+            summary: string;
+            status: { name: string };
+            priority: { name: string };
+            issuetype: { name: string };
+            assignee: { displayName: string } | null;
+            updated: string;
+            labels: string[];
+          };
+        }>;
+      };
+
+      // Build site URL
+      let siteUrl: string;
+      if (creds.authMethod === 'oauth') {
+        siteUrl = creds.oauth.siteUrl;
+      } else {
+        siteUrl = creds.apiToken.baseUrl;
+      }
+      const baseUrl = siteUrl.replace(/\/$/, '');
+
+      const issues = data.issues.map((issue) => ({
+        key: issue.key,
+        summary: issue.fields.summary ?? '',
+        status: issue.fields.status?.name ?? 'Unknown',
+        priority: issue.fields.priority?.name ?? 'None',
+        type: issue.fields.issuetype?.name ?? 'Unknown',
+        assignee: issue.fields.assignee?.displayName ?? null,
+        updated: issue.fields.updated ?? '',
+        labels: issue.fields.labels ?? [],
+        url: `${baseUrl}/browse/${issue.key}`,
+      }));
+
+      return c.json({ issues });
+    } catch (error) {
+      return c.json(
+        { issues: [], error: error instanceof Error ? error.message : 'Failed to fetch issues' },
+        500,
+      );
+    }
+  });
+
+  app.get('/api/jira/issues/:key', async (c) => {
+    try {
+      const configDir = manager.getConfigDir();
+      const creds = loadJiraCredentials(configDir);
+      if (!creds) {
+        return c.json({ error: 'Jira not configured' }, 400);
+      }
+
+      const key = c.req.param('key');
+      const issue = await fetchIssue(key, creds, configDir);
+      return c.json({ issue });
+    } catch (error) {
+      return c.json(
+        { error: error instanceof Error ? error.message : 'Failed to fetch issue' },
+        error instanceof Error && error.message.includes('not found') ? 404 : 500,
       );
     }
   });

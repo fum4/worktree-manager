@@ -3,13 +3,21 @@ import { useEffect, useState } from 'react';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { CreateForm } from './components/CreateForm';
 import { DetailPanel } from './components/detail/DetailPanel';
+import { JiraDetailPanel } from './components/detail/JiraDetailPanel';
 import { Header } from './components/Header';
 import { IntegrationsPanel } from './components/IntegrationsPanel';
+import { JiraIssueList } from './components/JiraIssueList';
 import { NavBar, type View } from './components/NavBar';
 import { WorktreeList } from './components/WorktreeList';
 import { useConfig } from './hooks/useConfig';
+import { useJiraIssues } from './hooks/useJiraIssues';
 import { useJiraStatus, usePorts, useWorktrees } from './hooks/useWorktrees';
 import { errorBanner, surface, text } from './theme';
+
+type Selection =
+  | { type: 'worktree'; id: string }
+  | { type: 'jira'; key: string }
+  | null;
 
 export default function App() {
   const { worktrees, isConnected, error, refetch } = useWorktrees();
@@ -19,23 +27,37 @@ export default function App() {
   const runningCount = worktrees.filter((w) => w.status === 'running').length;
 
   const [activeView, setActiveView] = useState<View>('workspace');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<Selection>(null);
+  const [activeCreateTab, setActiveCreateTab] = useState<'branch' | 'jira'>('branch');
 
-  // Auto-select first worktree if none selected, or fix stale selection
+  const jiraEnabled = activeCreateTab === 'jira' && (jiraStatus?.configured ?? false);
+  const { issues: jiraIssues, isLoading: jiraIssuesLoading, error: jiraError, searchQuery: jiraSearchQuery, setSearchQuery: setJiraSearchQuery } = useJiraIssues(jiraEnabled);
+
+  // Auto-select first worktree when on branch tab, or fix stale selection
   useEffect(() => {
+    if (activeCreateTab !== 'branch') return;
     if (worktrees.length === 0) {
-      setSelectedId(null);
+      setSelection(null);
       return;
     }
-    if (!selectedId || !worktrees.find((w) => w.id === selectedId)) {
-      setSelectedId(worktrees[0].id);
+    if (!selection || selection.type !== 'worktree' || !worktrees.find((w) => w.id === selection.id)) {
+      setSelection({ type: 'worktree', id: worktrees[0].id });
     }
-  }, [worktrees, selectedId]);
+  }, [worktrees, selection, activeCreateTab]);
 
-  const selectedWorktree = worktrees.find((w) => w.id === selectedId) || null;
+  const selectedWorktree = selection?.type === 'worktree'
+    ? worktrees.find((w) => w.id === selection.id) || null
+    : null;
 
   const handleDeleted = () => {
-    setSelectedId(null);
+    setSelection(null);
+  };
+
+  const handleCreateWorktreeFromJira = () => {
+    // Switch to worktree tab so user sees the newly created worktree
+    setActiveCreateTab('branch');
+    setSelection(null);
+    refetch();
   };
 
   return (
@@ -64,22 +86,42 @@ export default function App() {
               onCreated={refetch}
               jiraConfigured={jiraStatus?.configured ?? false}
               defaultProjectKey={jiraStatus?.defaultProjectKey ?? null}
+              onTabChange={setActiveCreateTab}
             />
-            <WorktreeList
-              worktrees={worktrees}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
+            {activeCreateTab === 'branch' ? (
+              <WorktreeList
+                worktrees={worktrees}
+                selectedId={selection?.type === 'worktree' ? selection.id : null}
+                onSelect={(id) => setSelection({ type: 'worktree', id })}
+              />
+            ) : (
+              <JiraIssueList
+                issues={jiraIssues}
+                selectedKey={selection?.type === 'jira' ? selection.key : null}
+                onSelect={(key) => setSelection({ type: 'jira', key })}
+                isLoading={jiraIssuesLoading}
+                error={jiraError}
+                searchQuery={jiraSearchQuery}
+                onSearchChange={setJiraSearchQuery}
+              />
+            )}
           </aside>
 
           {/* Right panel */}
           <main className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}>
-            <DetailPanel
-              worktree={selectedWorktree}
-              onUpdate={refetch}
-              onDeleted={handleDeleted}
-              onNavigateToIntegrations={() => setActiveView('integrations')}
-            />
+            {selection?.type === 'jira' ? (
+              <JiraDetailPanel
+                issueKey={selection.key}
+                onCreateWorktree={handleCreateWorktreeFromJira}
+              />
+            ) : (
+              <DetailPanel
+                worktree={selectedWorktree}
+                onUpdate={refetch}
+                onDeleted={handleDeleted}
+                onNavigateToIntegrations={() => setActiveView('integrations')}
+              />
+            )}
           </main>
         </div>
       )}
