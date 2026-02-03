@@ -82,4 +82,5 @@ export interface RunningProcess {
   process: ChildProcess;
   lastActivity: number;
   logs: string[];
+  logNotifyTimer?: ReturnType<typeof setTimeout>;
 }

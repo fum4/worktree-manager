@@ -251,9 +251,19 @@ export class WorktreeManager {
       const coloredName = `${BOLD}${wtColor}${id}${RESET}`;
       const linePrefix = `${DIM}[${RESET}${coloredName}${DIM}]${RESET}`;
 
+      const scheduleLogNotify = () => {
+        const info = this.runningProcesses.get(id);
+        if (info) {
+          if (info.logNotifyTimer) clearTimeout(info.logNotifyTimer);
+          info.logNotifyTimer = setTimeout(() => {
+            info.logNotifyTimer = undefined;
+            this.notifyListeners();
+          }, 250);
+        }
+      };
+
       childProcess.stdout?.on('data', (data) => {
-        const output = data.toString();
-        const lines = output.split('\n').filter((l: string) => l.trim());
+        const lines = data.toString().split('\n').filter((l: string) => l.trim());
         lines.forEach((line: string) =>
           process.stdout.write(`${linePrefix} ${line}\n`),
         );
@@ -264,9 +274,7 @@ export class WorktreeManager {
             processInfo.logs.splice(0, processInfo.logs.length - MAX_LOG_LINES);
           }
         }
-        if (output.includes('ready in') || output.includes('Local:')) {
-          this.notifyListeners();
-        }
+        scheduleLogNotify();
       });
 
       childProcess.stderr?.on('data', (data) => {
@@ -284,6 +292,7 @@ export class WorktreeManager {
             processInfo.logs.splice(0, processInfo.logs.length - MAX_LOG_LINES);
           }
         }
+        scheduleLogNotify();
       });
 
       this.notifyListeners();

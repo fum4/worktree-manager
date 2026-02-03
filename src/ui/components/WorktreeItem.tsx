@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { WorktreeInfo } from '../hooks/useWorktrees';
 import {
@@ -16,12 +16,15 @@ interface WorktreeItemProps {
 export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showLogs, setShowLogs] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const logsEndRef = useRef<HTMLDivElement>(null);
+  const logsContainerRef = useRef<HTMLPreElement>(null);
+  const userScrolledUp = useRef(false);
   const [editName, setEditName] = useState(worktree.id);
   const [editBranch, setEditBranch] = useState(worktree.branch);
 
   const isRunning = worktree.status === 'running';
-  const primaryPort = worktree.ports[0] ?? null;
 
   const handleStart = async () => {
     setIsLoading(true);
@@ -64,12 +67,6 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
     onUpdate();
   };
 
-  const handleOpen = () => {
-    if (primaryPort) {
-      window.open(`http://localhost:${primaryPort}`, '_blank');
-    }
-  };
-
   const handleEditStart = () => {
     setEditName(worktree.id);
     setEditBranch(worktree.branch);
@@ -104,6 +101,18 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
       setError(result.error || 'Failed to rename');
     }
     onUpdate();
+  };
+
+  useEffect(() => {
+    if (!showLogs || userScrolledUp.current) return;
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [worktree.logs, showLogs]);
+
+  const handleLogsScroll = () => {
+    const el = logsContainerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 30;
+    userScrolledUp.current = !atBottom;
   };
 
   if (isEditing) {
@@ -192,11 +201,14 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
               </button>
               <button
                 type="button"
-                onClick={handleOpen}
-                disabled={!primaryPort}
-                className="px-3 py-1.5 text-xs font-medium text-gray-300 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 transition-colors"
+                onClick={() => setShowLogs((v) => !v)}
+                className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                  showLogs
+                    ? 'text-yellow-300 bg-yellow-900/40'
+                    : 'text-gray-300 bg-gray-700 hover:bg-gray-600'
+                }`}
               >
-                Open
+                Logs
               </button>
             </>
           ) : (
@@ -224,15 +236,28 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
             type="button"
             onClick={handleRemove}
             disabled={isLoading}
-            className="px-2 py-1.5 text-xs font-medium text-red-400 hover:bg-red-900/30 rounded disabled:opacity-50 transition-colors"
+            className="px-2 py-1.5 text-red-400 hover:bg-red-900/30 rounded disabled:opacity-50 transition-colors"
             title="Remove worktree"
           >
-            &times;
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+              <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.519.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
+            </svg>
           </button>
         </div>
       </div>
 
       {error && <div className="mt-2 text-red-400 text-xs">{error}</div>}
+
+      {showLogs && isRunning && (
+        <pre
+          ref={logsContainerRef}
+          onScroll={handleLogsScroll}
+          className="mt-2 bg-gray-900 text-gray-300 text-xs font-mono p-3 rounded max-h-[300px] overflow-y-auto"
+        >
+          {worktree.logs?.length ? worktree.logs.join('\n') : 'No logs yet.'}
+          <div ref={logsEndRef} />
+        </pre>
+      )}
     </div>
   );
 }
