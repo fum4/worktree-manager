@@ -5,6 +5,7 @@ import { promisify } from 'util';
 
 const execFile = promisify(execFileCb);
 
+import { GitHubManager } from '../github/github-manager';
 import {
   fetchIssue,
   loadJiraCredentials,
@@ -67,6 +68,8 @@ export class WorktreeManager {
 
   private creatingWorktrees: Map<string, WorktreeInfo> = new Map();
 
+  private githubManager: GitHubManager | null = null;
+
   private eventListeners: Set<(worktrees: WorktreeInfo[]) => void> = new Set();
 
   constructor(config: WorktreeConfig, configFilePath: string | null = null) {
@@ -89,6 +92,32 @@ export class WorktreeManager {
 
   getPortManager(): PortManager {
     return this.portManager;
+  }
+
+  getGitHubManager(): GitHubManager | null {
+    return this.githubManager;
+  }
+
+  async initGitHub(): Promise<void> {
+    this.githubManager = new GitHubManager();
+    try {
+      await this.githubManager.initialize(this.getGitRoot());
+      this.githubManager.startPolling(
+        () => this.getWorktrees(),
+        () => this.notifyListeners(),
+      );
+      const status = this.githubManager.getStatus();
+      if (status.repo) {
+        console.log(`[wok3] GitHub: connected to ${status.repo}`);
+      } else if (!status.installed) {
+        console.log('[wok3] GitHub: gh CLI not found, GitHub features disabled');
+      } else if (!status.authenticated) {
+        console.log('[wok3] GitHub: not authenticated, run "gh auth login"');
+      }
+    } catch {
+      console.log('[wok3] GitHub: initialization failed, features disabled');
+      this.githubManager = null;
+    }
   }
 
   subscribe(listener: (worktrees: WorktreeInfo[]) => void): () => void {
@@ -161,6 +190,21 @@ export class WorktreeManager {
           if (taskData.status) info.jiraStatus = taskData.status;
         } catch {
           // Ignore corrupt task files
+        }
+      }
+
+      // Populate GitHub info from cache
+      if (this.githubManager) {
+        const pr = this.githubManager.getCachedPR(entry.name);
+        if (pr) {
+          info.githubPrUrl = pr.url;
+          info.githubPrState = pr.isDraft ? 'draft' : pr.state;
+        }
+        const git = this.githubManager.getCachedGitStatus(entry.name);
+        if (git) {
+          info.hasUncommitted = git.hasUncommitted;
+          info.hasUnpushed = git.ahead > 0;
+          info.commitsAhead = git.ahead;
         }
       }
 
@@ -701,6 +745,7 @@ export class WorktreeManager {
   }
 
   async stopAll(): Promise<void> {
+    this.githubManager?.stopPolling();
     const stopPromises = Array.from(this.runningProcesses.keys()).map((id) =>
       this.stopWorktree(id),
     );

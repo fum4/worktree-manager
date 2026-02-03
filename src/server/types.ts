@@ -54,6 +54,16 @@ export interface WorktreeInfo {
   jiraUrl?: string;
   /** Jira issue status (e.g. "In Progress", "To Do") */
   jiraStatus?: string;
+  /** GitHub PR URL if one exists for this worktree's branch */
+  githubPrUrl?: string;
+  /** GitHub PR state: 'open', 'closed', 'merged', or 'draft' */
+  githubPrState?: string;
+  /** Whether there are uncommitted changes in the worktree */
+  hasUncommitted?: boolean;
+  /** Whether there are unpushed commits */
+  hasUnpushed?: boolean;
+  /** Number of commits ahead of upstream */
+  commitsAhead?: number;
 }
 
 export interface WorktreeCreateRequest {

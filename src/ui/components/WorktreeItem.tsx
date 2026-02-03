@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { WorktreeInfo } from '../hooks/useWorktrees';
 import {
+  commitChanges,
+  createPullRequest,
+  pushChanges,
   removeWorktree,
   renameWorktree,
   startWorktree,
@@ -24,6 +27,11 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
   const userScrolledUp = useRef(false);
   const [editName, setEditName] = useState(worktree.id);
   const [editBranch, setEditBranch] = useState(worktree.branch);
+  const [showCommitInput, setShowCommitInput] = useState(false);
+  const [commitMessage, setCommitMessage] = useState('');
+  const [showCreatePrInput, setShowCreatePrInput] = useState(false);
+  const [prTitle, setPrTitle] = useState('');
+  const [isGitLoading, setIsGitLoading] = useState(false);
 
   const isRunning = worktree.status === 'running';
   const isCreating = worktree.status === 'creating';
@@ -101,6 +109,47 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
       setIsEditing(false);
     } else {
       setError(result.error || 'Failed to rename');
+    }
+    onUpdate();
+  };
+
+  const handleCommit = async () => {
+    if (!commitMessage.trim()) return;
+    setIsGitLoading(true);
+    setError(null);
+    const result = await commitChanges(worktree.id, commitMessage.trim());
+    setIsGitLoading(false);
+    if (result.success) {
+      setShowCommitInput(false);
+      setCommitMessage('');
+    } else {
+      setError(result.error || 'Failed to commit');
+    }
+    onUpdate();
+  };
+
+  const handlePush = async () => {
+    setIsGitLoading(true);
+    setError(null);
+    const result = await pushChanges(worktree.id);
+    setIsGitLoading(false);
+    if (!result.success) {
+      setError(result.error || 'Failed to push');
+    }
+    onUpdate();
+  };
+
+  const handleCreatePr = async () => {
+    if (!prTitle.trim()) return;
+    setIsGitLoading(true);
+    setError(null);
+    const result = await createPullRequest(worktree.id, prTitle.trim());
+    setIsGitLoading(false);
+    if (result.success) {
+      setShowCreatePrInput(false);
+      setPrTitle('');
+    } else {
+      setError(result.error || 'Failed to create PR');
     }
     onUpdate();
   };
@@ -246,6 +295,32 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
                 {worktree.jiraStatus}
               </span>
             )}
+            {worktree.githubPrUrl && (
+              <a
+                href={worktree.githubPrUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-400 hover:text-purple-300 transition-colors"
+                title="Open Pull Request"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                  <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
+                </svg>
+              </a>
+            )}
+            {worktree.githubPrState && (
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${
+                worktree.githubPrState === 'draft'
+                  ? 'text-gray-300 bg-gray-700'
+                  : worktree.githubPrState === 'open'
+                    ? 'text-green-400 bg-green-900/30'
+                    : worktree.githubPrState === 'merged'
+                      ? 'text-purple-400 bg-purple-900/30'
+                      : 'text-red-400 bg-red-900/30'
+              }`}>
+                {worktree.githubPrState === 'draft' ? 'Draft' : worktree.githubPrState === 'open' ? 'Open' : worktree.githubPrState === 'merged' ? 'Merged' : 'Closed'}
+              </span>
+            )}
             {worktree.ports.length > 0 && (
               <span className="text-gray-500 text-sm">
                 {worktree.ports.map((p) => `:${p}`).join(', ')}
@@ -258,6 +333,57 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {worktree.hasUncommitted && (
+            <button
+              type="button"
+              onClick={() => { setShowCommitInput((v) => !v); setShowCreatePrInput(false); }}
+              disabled={isGitLoading}
+              className={`px-2 py-1.5 rounded transition-colors ${
+                showCommitInput
+                  ? 'text-orange-300 bg-orange-900/40'
+                  : 'text-orange-400 bg-orange-900/30 hover:bg-orange-900/50'
+              } disabled:opacity-50`}
+              title="Commit changes"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25h5a.75.75 0 0 0 0-1.5h-5A2.75 2.75 0 0 0 2 5.75v8.5A2.75 2.75 0 0 0 4.75 17h8.5A2.75 2.75 0 0 0 16 14.25v-5a.75.75 0 0 0-1.5 0v5c0 .69-.56 1.25-1.25 1.25h-8.5c-.69 0-1.25-.56-1.25-1.25v-8.5Z" />
+              </svg>
+            </button>
+          )}
+          {worktree.hasUnpushed && (
+            <button
+              type="button"
+              onClick={handlePush}
+              disabled={isGitLoading}
+              className="px-2 py-1.5 text-cyan-400 bg-cyan-900/30 hover:bg-cyan-900/50 rounded disabled:opacity-50 transition-colors flex items-center gap-1"
+              title={`Push ${worktree.commitsAhead || ''} commit(s)`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                <path fillRule="evenodd" d="M10 17a.75.75 0 0 1-.75-.75V5.612L5.29 9.77a.75.75 0 0 1-1.08-1.04l5.25-5.5a.75.75 0 0 1 1.08 0l5.25 5.5a.75.75 0 1 1-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0 1 10 17Z" clipRule="evenodd" />
+              </svg>
+              {worktree.commitsAhead ? (
+                <span className="text-[10px] font-medium">{worktree.commitsAhead}</span>
+              ) : null}
+            </button>
+          )}
+          {!worktree.githubPrUrl && !worktree.hasUnpushed && (
+            <button
+              type="button"
+              onClick={() => { setShowCreatePrInput((v) => !v); setShowCommitInput(false); }}
+              disabled={isGitLoading}
+              className={`px-2 py-1.5 rounded transition-colors ${
+                showCreatePrInput
+                  ? 'text-purple-300 bg-purple-900/40'
+                  : 'text-purple-400 bg-purple-900/30 hover:bg-purple-900/50'
+              } disabled:opacity-50`}
+              title="Create Pull Request"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
+              </svg>
+            </button>
+          )}
           {isRunning ? (
             <>
               <button
@@ -275,9 +401,12 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
                 type="button"
                 onClick={handleStop}
                 disabled={isLoading}
-                className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-900/30 rounded hover:bg-red-900/50 disabled:opacity-50 transition-colors"
+                className="px-2 py-1.5 text-red-400 bg-red-900/30 rounded hover:bg-red-900/50 disabled:opacity-50 transition-colors"
+                title="Stop worktree"
               >
-                Stop
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path fillRule="evenodd" d="M2 10a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm5-2.25A.75.75 0 0 1 7.75 7h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-4.5Z" clipRule="evenodd" />
+                </svg>
               </button>
             </>
           ) : (
@@ -286,18 +415,30 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
                 type="button"
                 onClick={handleEditStart}
                 disabled={isLoading}
-                className="px-3 py-1.5 text-xs font-medium text-gray-400 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 transition-colors"
+                className="px-2 py-1.5 text-gray-400 bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50 transition-colors"
                 title="Rename worktree"
               >
-                Edit
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                  <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25h5a.75.75 0 0 0 0-1.5h-5A2.75 2.75 0 0 0 2 5.75v8.5A2.75 2.75 0 0 0 4.75 17h8.5A2.75 2.75 0 0 0 16 14.25v-5a.75.75 0 0 0-1.5 0v5c0 .69-.56 1.25-1.25 1.25h-8.5c-.69 0-1.25-.56-1.25-1.25v-8.5Z" />
+                </svg>
               </button>
               <button
                 type="button"
                 onClick={handleStart}
                 disabled={isLoading}
-                className="px-3 py-1.5 text-xs font-medium text-green-400 bg-green-900/30 rounded hover:bg-green-900/50 disabled:opacity-50 transition-colors"
+                className="px-2 py-1.5 text-green-400 bg-green-900/30 rounded hover:bg-green-900/50 disabled:opacity-50 transition-colors"
+                title="Start worktree"
               >
-                {isLoading ? 'Starting...' : 'Start'}
+                {isLoading ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 animate-spin">
+                    <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H4.598a.75.75 0 0 0-.75.75v3.634a.75.75 0 0 0 1.5 0v-2.033l.312.311a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.06-7.19a.75.75 0 0 0-1.5 0v2.033l-.312-.312a7 7 0 0 0-11.712 3.138.75.75 0 0 0 1.449.39 5.5 5.5 0 0 1 9.201-2.466l.312.312H11.58a.75.75 0 1 0 0 1.5h3.634a.75.75 0 0 0 .75-.75V4.234Z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                    <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.841Z" />
+                  </svg>
+                )}
               </button>
             </>
           )}
@@ -316,6 +457,64 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
       </div>
 
       {error && <div className="mt-2 text-red-400 text-xs">{error}</div>}
+
+      {showCommitInput && (
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="text"
+            value={commitMessage}
+            onChange={(e) => setCommitMessage(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCommit(); if (e.key === 'Escape') setShowCommitInput(false); }}
+            placeholder="Commit message..."
+            className="flex-1 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-white text-xs focus:outline-none focus:border-orange-500"
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={handleCommit}
+            disabled={isGitLoading || !commitMessage.trim()}
+            className="px-3 py-1 text-xs font-medium text-orange-400 bg-orange-900/30 rounded hover:bg-orange-900/50 disabled:opacity-50 transition-colors"
+          >
+            {isGitLoading ? 'Committing...' : 'Commit'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCommitInput(false)}
+            className="px-3 py-1 text-xs font-medium text-gray-300 bg-gray-700 rounded hover:bg-gray-600 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {showCreatePrInput && (
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="text"
+            value={prTitle}
+            onChange={(e) => setPrTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCreatePr(); if (e.key === 'Escape') setShowCreatePrInput(false); }}
+            placeholder="PR title..."
+            className="flex-1 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-white text-xs focus:outline-none focus:border-purple-500"
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={handleCreatePr}
+            disabled={isGitLoading || !prTitle.trim()}
+            className="px-3 py-1 text-xs font-medium text-purple-400 bg-purple-900/30 rounded hover:bg-purple-900/50 disabled:opacity-50 transition-colors"
+          >
+            {isGitLoading ? 'Creating...' : 'Create'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCreatePrInput(false)}
+            className="px-3 py-1 text-xs font-medium text-gray-300 bg-gray-700 rounded hover:bg-gray-600 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {showLogs && isRunning && (
         <pre

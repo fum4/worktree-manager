@@ -8,6 +8,7 @@ import { select, input, password } from '@inquirer/prompts';
 
 import { startWorktreeServer, PortManager } from './server/index';
 import type { PortConfig, WorktreeConfig } from './server/types';
+import { checkGhAuth, checkGhInstalled, getRepoInfo } from './github/gh-client';
 import {
   loadJiraCredentials,
   saveJiraCredentials,
@@ -299,6 +300,19 @@ interface Integration {
 
 const INTEGRATIONS: Integration[] = [
   {
+    name: 'github',
+    description: 'GitHub (PRs, commit & push)',
+    getStatus: () => {
+      try {
+        execFileSync('which', ['gh'], { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+        return 'ready (gh installed)';
+      } catch {
+        return 'gh not installed';
+      }
+    },
+    setup: runConnectGitHub,
+  },
+  {
     name: 'jira',
     description: 'Atlassian Jira (issue tracking)',
     getStatus: (configDir) => loadJiraCredentials(configDir) ? 'connected' : 'not configured',
@@ -344,6 +358,52 @@ async function runConnect() {
 
   const match = items.find((i) => i.name === chosen)!;
   await match.setup();
+}
+
+async function runConnectGitHub() {
+  console.log('[wok3] GitHub Integration\n');
+
+  const installed = await checkGhInstalled();
+  if (!installed) {
+    console.log('  The GitHub CLI (gh) is not installed.\n');
+    console.log('  Install it:');
+    console.log('    macOS:   brew install gh');
+    console.log('    Linux:   https://github.com/cli/cli/blob/trunk/docs/install_linux.md');
+    console.log('    Windows: winget install --id GitHub.cli\n');
+    console.log('  Then run: gh auth login');
+    return;
+  }
+
+  console.log('  ✓ gh CLI installed');
+
+  const authenticated = await checkGhAuth();
+  if (!authenticated) {
+    console.log('  ✗ Not authenticated\n');
+    console.log('  Run: gh auth login');
+    return;
+  }
+
+  console.log('  ✓ Authenticated');
+
+  try {
+    const gitRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+
+    const repo = await getRepoInfo(gitRoot);
+    if (repo) {
+      console.log(`  ✓ Repository: ${repo.owner}/${repo.repo} (default branch: ${repo.defaultBranch})`);
+    } else {
+      console.log('  ✗ Could not detect repository. Make sure this is a GitHub repo.');
+      return;
+    }
+  } catch {
+    console.log('  ✗ Not inside a git repository.');
+    return;
+  }
+
+  console.log('\n[wok3] GitHub is ready! PR detection, commit, and push will work automatically.');
 }
 
 async function runConnectJira() {

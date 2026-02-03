@@ -1,0 +1,204 @@
+import type { WorktreeInfo } from '../server/types';
+
+import {
+  checkGhAuth,
+  checkGhInstalled,
+  commitAll,
+  createPR,
+  findPRForBranch,
+  getGitStatus,
+  getRepoInfo,
+  pushBranch,
+} from './gh-client';
+import type { GitHubConfig, GitStatusInfo, PRInfo } from './types';
+
+export class GitHubManager {
+  private config: GitHubConfig | null = null;
+
+  private gitStatusCache: Map<string, GitStatusInfo> = new Map();
+
+  private prCache: Map<string, PRInfo | null> = new Map();
+
+  private gitStatusInterval: ReturnType<typeof setInterval> | null = null;
+
+  private prInterval: ReturnType<typeof setInterval> | null = null;
+
+  private installed = false;
+
+  private authenticated = false;
+
+  async initialize(gitRoot: string): Promise<void> {
+    this.installed = await checkGhInstalled();
+    if (!this.installed) return;
+
+    this.authenticated = await checkGhAuth();
+    if (!this.authenticated) return;
+
+    this.config = await getRepoInfo(gitRoot);
+  }
+
+  isAvailable(): boolean {
+    return this.installed && this.authenticated && this.config !== null;
+  }
+
+  getStatus(): { installed: boolean; authenticated: boolean; repo: string | null } {
+    return {
+      installed: this.installed,
+      authenticated: this.authenticated,
+      repo: this.config ? `${this.config.owner}/${this.config.repo}` : null,
+    };
+  }
+
+  getDefaultBranch(): string | null {
+    return this.config?.defaultBranch ?? null;
+  }
+
+  startPolling(
+    getWorktrees: () => WorktreeInfo[],
+    onUpdate: () => void,
+  ): void {
+    if (!this.isAvailable()) return;
+
+    // Git status polling — every 10s
+    const pollGitStatus = async () => {
+      const worktrees = getWorktrees();
+      let changed = false;
+      for (const wt of worktrees) {
+        if (wt.status === 'creating') continue;
+        try {
+          const status = await getGitStatus(wt.path);
+          const prev = this.gitStatusCache.get(wt.id);
+          if (
+            !prev ||
+            prev.hasUncommitted !== status.hasUncommitted ||
+            prev.ahead !== status.ahead ||
+            prev.behind !== status.behind
+          ) {
+            this.gitStatusCache.set(wt.id, status);
+            changed = true;
+          }
+        } catch {
+          // Ignore individual failures
+        }
+      }
+      if (changed) onUpdate();
+    };
+
+    // PR polling — every 60s
+    const pollPRs = async () => {
+      if (!this.config) return;
+      const worktrees = getWorktrees();
+      let changed = false;
+      for (const wt of worktrees) {
+        if (wt.status === 'creating') continue;
+        try {
+          const pr = await findPRForBranch(this.config.owner, this.config.repo, wt.branch);
+          const prev = this.prCache.get(wt.id);
+          const prChanged =
+            (!prev && pr) ||
+            (prev && !pr) ||
+            (prev && pr && (prev.url !== pr.url || prev.state !== pr.state || prev.isDraft !== pr.isDraft));
+          if (prChanged) {
+            this.prCache.set(wt.id, pr);
+            changed = true;
+          }
+        } catch {
+          // Ignore individual failures
+        }
+      }
+      if (changed) onUpdate();
+    };
+
+    // Initial polls
+    pollGitStatus();
+    pollPRs();
+
+    this.gitStatusInterval = setInterval(pollGitStatus, 10_000);
+    this.prInterval = setInterval(pollPRs, 60_000);
+  }
+
+  stopPolling(): void {
+    if (this.gitStatusInterval) {
+      clearInterval(this.gitStatusInterval);
+      this.gitStatusInterval = null;
+    }
+    if (this.prInterval) {
+      clearInterval(this.prInterval);
+      this.prInterval = null;
+    }
+  }
+
+  getCachedGitStatus(id: string): GitStatusInfo | undefined {
+    return this.gitStatusCache.get(id);
+  }
+
+  getCachedPR(id: string): PRInfo | null | undefined {
+    return this.prCache.get(id);
+  }
+
+  async commitAll(
+    worktreePath: string,
+    id: string,
+    message: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    const result = await commitAll(worktreePath, message);
+    if (result.success) {
+      // Refresh git status cache
+      try {
+        this.gitStatusCache.set(id, await getGitStatus(worktreePath));
+      } catch {
+        // Ignore
+      }
+    }
+    return result;
+  }
+
+  async pushBranch(
+    worktreePath: string,
+    id: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    const result = await pushBranch(worktreePath);
+    if (result.success) {
+      // Refresh both caches
+      try {
+        this.gitStatusCache.set(id, await getGitStatus(worktreePath));
+      } catch {
+        // Ignore
+      }
+      if (this.config) {
+        const worktrees = [{ id, path: worktreePath }];
+        // Find the branch for this worktree path
+        try {
+          const { execFile: execFileCb } = await import('child_process');
+          const { promisify } = await import('util');
+          const execFile = promisify(execFileCb);
+          const { stdout } = await execFile('git', ['branch', '--show-current'], {
+            cwd: worktreePath,
+            encoding: 'utf-8',
+          });
+          const branch = stdout.trim();
+          if (branch) {
+            const pr = await findPRForBranch(this.config.owner, this.config.repo, branch);
+            this.prCache.set(id, pr);
+          }
+        } catch {
+          // Ignore
+        }
+      }
+    }
+    return result;
+  }
+
+  async createPR(
+    worktreePath: string,
+    id: string,
+    title: string,
+    body?: string,
+  ): Promise<{ success: boolean; pr?: PRInfo; error?: string }> {
+    const result = await createPR(worktreePath, title, body, this.config?.defaultBranch);
+    if (result.success && result.pr) {
+      this.prCache.set(id, result.pr);
+    }
+    return result;
+  }
+}

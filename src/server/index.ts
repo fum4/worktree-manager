@@ -170,6 +170,81 @@ export function createWorktreeServer(manager: WorktreeManager) {
     }
   });
 
+  app.get('/api/github/status', (c) => {
+    const ghManager = manager.getGitHubManager();
+    if (!ghManager) {
+      return c.json({ installed: false, authenticated: false, repo: null });
+    }
+    return c.json(ghManager.getStatus());
+  });
+
+  app.post('/api/worktrees/:id/commit', async (c) => {
+    const ghManager = manager.getGitHubManager();
+    if (!ghManager?.isAvailable()) {
+      return c.json({ success: false, error: 'GitHub integration not available' }, 400);
+    }
+    try {
+      const id = c.req.param('id');
+      const body = await c.req.json<{ message: string }>();
+      if (!body.message) {
+        return c.json({ success: false, error: 'Commit message is required' }, 400);
+      }
+      const worktrees = manager.getWorktrees();
+      const wt = worktrees.find((w) => w.id === id);
+      if (!wt) {
+        return c.json({ success: false, error: `Worktree "${id}" not found` }, 404);
+      }
+      const result = await ghManager.commitAll(wt.path, id, body.message);
+      return c.json(result, result.success ? 200 : 400);
+    } catch (error) {
+      return c.json(
+        { success: false, error: error instanceof Error ? error.message : 'Commit failed' },
+        400,
+      );
+    }
+  });
+
+  app.post('/api/worktrees/:id/push', async (c) => {
+    const ghManager = manager.getGitHubManager();
+    if (!ghManager?.isAvailable()) {
+      return c.json({ success: false, error: 'GitHub integration not available' }, 400);
+    }
+    const id = c.req.param('id');
+    const worktrees = manager.getWorktrees();
+    const wt = worktrees.find((w) => w.id === id);
+    if (!wt) {
+      return c.json({ success: false, error: `Worktree "${id}" not found` }, 404);
+    }
+    const result = await ghManager.pushBranch(wt.path, id);
+    return c.json(result, result.success ? 200 : 400);
+  });
+
+  app.post('/api/worktrees/:id/create-pr', async (c) => {
+    const ghManager = manager.getGitHubManager();
+    if (!ghManager?.isAvailable()) {
+      return c.json({ success: false, error: 'GitHub integration not available' }, 400);
+    }
+    try {
+      const id = c.req.param('id');
+      const body = await c.req.json<{ title: string; body?: string }>();
+      if (!body.title) {
+        return c.json({ success: false, error: 'PR title is required' }, 400);
+      }
+      const worktrees = manager.getWorktrees();
+      const wt = worktrees.find((w) => w.id === id);
+      if (!wt) {
+        return c.json({ success: false, error: `Worktree "${id}" not found` }, 404);
+      }
+      const result = await ghManager.createPR(wt.path, id, body.title, body.body);
+      return c.json(result, result.success ? 201 : 400);
+    } catch (error) {
+      return c.json(
+        { success: false, error: error instanceof Error ? error.message : 'Failed to create PR' },
+        400,
+      );
+    }
+  });
+
   app.get('/api/events', (c) => {
     const stream = new ReadableStream({
       start(controller) {
@@ -227,6 +302,7 @@ export async function startWorktreeServer(
   configFilePath?: string | null,
 ): Promise<{ manager: WorktreeManager; close: () => void }> {
   const manager = new WorktreeManager(config, configFilePath ?? null);
+  await manager.initGitHub();
   const app = createWorktreeServer(manager);
 
   const server = serve({

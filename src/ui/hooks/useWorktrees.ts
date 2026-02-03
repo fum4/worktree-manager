@@ -13,6 +13,11 @@ export interface WorktreeInfo {
   logs?: string[];
   jiraUrl?: string;
   jiraStatus?: string;
+  githubPrUrl?: string;
+  githubPrState?: string;
+  hasUncommitted?: boolean;
+  hasUnpushed?: boolean;
+  commitsAhead?: number;
 }
 
 export interface PortsInfo {
@@ -253,6 +258,89 @@ export async function createFromJira(
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to create from Jira',
+    };
+  }
+}
+
+export interface GitHubStatus {
+  installed: boolean;
+  authenticated: boolean;
+  repo: string | null;
+}
+
+export function useGitHubStatus() {
+  const [status, setStatus] = useState<GitHubStatus | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/github/status`)
+      .then((res) => res.json())
+      .then((data) => setStatus(data))
+      .catch(() => {});
+  }, []);
+
+  return status;
+}
+
+export async function commitChanges(
+  id: string,
+  message: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}/commit`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+      },
+    );
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to commit',
+    };
+  }
+}
+
+export async function pushChanges(
+  id: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}/push`,
+      {
+        method: 'POST',
+      },
+    );
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to push',
+    };
+  }
+}
+
+export async function createPullRequest(
+  id: string,
+  title: string,
+  body?: string,
+): Promise<{ success: boolean; pr?: { url: string }; error?: string }> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}/create-pr`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, body }),
+      },
+    );
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create PR',
     };
   }
 }
