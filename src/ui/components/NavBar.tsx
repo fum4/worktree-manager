@@ -4,8 +4,8 @@ export type View = 'workspace' | 'configuration' | 'integrations';
 
 const tabs: { id: View; label: string }[] = [
   { id: 'workspace', label: 'Workspace' },
-  { id: 'configuration', label: 'Configuration' },
   { id: 'integrations', label: 'Integrations' },
+  { id: 'configuration', label: 'Settings' },
 ];
 
 export function NavBar({

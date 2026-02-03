@@ -181,7 +181,7 @@ export function ConfigurationPanel({
   return (
     <div className={`flex-1 ${surface.panel} rounded-xl overflow-auto`}>
       <div className="max-w-2xl mx-auto p-6 flex flex-col gap-5">
-        <h2 className={`text-sm font-semibold ${text.primary}`}>Configuration</h2>
+        <h2 className={`text-sm font-semibold ${text.primary}`}>Settings</h2>
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Start Command" description="Command to start dev server">
