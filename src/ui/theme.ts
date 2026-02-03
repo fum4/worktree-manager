@@ -169,6 +169,20 @@ export const header = {
   disconnectedDot: 'bg-gray-500',
 } as const;
 
+// ─── Navigation bar ─────────────────────────────────────────────
+export const nav = {
+  bg:              'bg-gray-900',
+  active:          'text-white bg-white/[0.08]',
+  inactive:        'text-gray-500 hover:text-gray-300',
+} as const;
+
+// ─── Settings / Configuration ───────────────────────────────────
+export const settings = {
+  label:           'text-gray-300',
+  description:     'text-gray-500',
+  card:            'bg-white/[0.03]',
+} as const;
+
 // ─── Error banner ────────────────────────────────────────────────
 export const errorBanner = {
   bg:              'bg-red-900/30',

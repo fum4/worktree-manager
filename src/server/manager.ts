@@ -1,5 +1,5 @@
 import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 
@@ -768,6 +768,52 @@ export class WorktreeManager {
 
   getConfigDir(): string {
     return this.configDir;
+  }
+
+  updateConfig(partial: Partial<WorktreeConfig>): { success: boolean; error?: string } {
+    const configPath = path.join(this.configDir, '.wok3', 'config.json');
+
+    try {
+      let existing: Record<string, unknown> = {};
+      if (existsSync(configPath)) {
+        existing = JSON.parse(readFileSync(configPath, 'utf-8'));
+      }
+
+      // Merge allowed top-level fields
+      const allowedKeys = [
+        'startCommand', 'installCommand', 'baseBranch',
+        'projectDir', 'worktreesDir', 'serverPort',
+      ] as const;
+
+      for (const key of allowedKeys) {
+        if (key in partial && partial[key] !== undefined) {
+          existing[key] = partial[key];
+          (this.config as unknown as Record<string, unknown>)[key] = partial[key];
+        }
+      }
+
+      // Handle nested ports.offsetStep
+      if (partial.ports?.offsetStep !== undefined) {
+        const ports = (existing.ports ?? {}) as Record<string, unknown>;
+        ports.offsetStep = partial.ports.offsetStep;
+        existing.ports = ports;
+        this.config.ports.offsetStep = partial.ports.offsetStep;
+      }
+
+      // Handle envMapping
+      if (partial.envMapping !== undefined) {
+        existing.envMapping = partial.envMapping;
+        this.config.envMapping = partial.envMapping;
+      }
+
+      writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n');
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update config',
+      };
+    }
   }
 
   async createWorktreeFromJira(

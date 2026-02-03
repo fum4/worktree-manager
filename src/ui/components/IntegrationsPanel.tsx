@@ -1,0 +1,279 @@
+import { useEffect, useState } from 'react';
+
+import { disconnectJira, setupJira, updateJiraConfig } from '../hooks/useConfig';
+import { useGitHubStatus, useJiraStatus, type GitHubStatus, type JiraStatus } from '../hooks/useWorktrees';
+import { border, button, input, settings, surface, text } from '../theme';
+
+function GitHubCard({ status }: { status: GitHubStatus | null }) {
+  const isReady = status?.installed && status?.authenticated;
+
+  return (
+    <div className={`rounded-lg border ${border.subtle} ${settings.card} p-4 flex flex-col gap-3`}>
+      <div className="flex items-center justify-between">
+        <h3 className={`text-xs font-semibold ${text.primary}`}>GitHub</h3>
+        <span
+          className={`text-[11px] px-2 py-0.5 rounded-full ${
+            isReady ? 'text-green-400 bg-green-900/30' : 'text-gray-400 bg-gray-800'
+          }`}
+        >
+          {isReady ? 'Connected' : 'Not connected'}
+        </span>
+      </div>
+
+      {status === null ? (
+        <span className={`text-xs ${text.muted}`}>Loading...</span>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex gap-2 text-xs">
+            <span className={text.muted}>CLI:</span>
+            <span className={status.installed ? 'text-green-400' : text.error}>
+              {status.installed ? 'Installed' : 'Not installed'}
+            </span>
+          </div>
+          <div className="flex gap-2 text-xs">
+            <span className={text.muted}>Auth:</span>
+            <span className={status.authenticated ? 'text-green-400' : text.error}>
+              {status.authenticated ? 'Authenticated' : 'Not authenticated'}
+            </span>
+          </div>
+          {status.repo && (
+            <div className="flex gap-2 text-xs">
+              <span className={text.muted}>Repo:</span>
+              <span className={text.secondary}>{status.repo}</span>
+            </div>
+          )}
+          {!isReady && (
+            <p className={`text-[11px] ${text.muted} mt-1`}>
+              {!status.installed
+                ? 'Install the gh CLI: brew install gh'
+                : 'Run "gh auth login" in your terminal to authenticate.'}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function JiraCard({
+  status,
+  onStatusChange,
+}: {
+  status: JiraStatus | null;
+  onStatusChange: () => void;
+}) {
+  const [showSetup, setShowSetup] = useState(false);
+  const [baseUrl, setBaseUrl] = useState('');
+  const [email, setEmail] = useState('');
+  const [token, setToken] = useState('');
+  const [projectKey, setProjectKey] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    if (status?.defaultProjectKey) {
+      setProjectKey(status.defaultProjectKey);
+    }
+  }, [status?.defaultProjectKey]);
+
+  const handleConnect = async () => {
+    if (!baseUrl || !email || !token) return;
+    setSaving(true);
+    setFeedback(null);
+    const result = await setupJira(baseUrl, email, token);
+    setSaving(false);
+    if (result.success) {
+      setFeedback({ type: 'success', message: 'Connected to Jira' });
+      setShowSetup(false);
+      setBaseUrl('');
+      setEmail('');
+      setToken('');
+      onStatusChange();
+    } else {
+      setFeedback({ type: 'error', message: result.error ?? 'Failed to connect' });
+    }
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
+  const handleDisconnect = async () => {
+    setSaving(true);
+    const result = await disconnectJira();
+    setSaving(false);
+    if (result.success) {
+      onStatusChange();
+    }
+  };
+
+  const handleSaveProjectKey = async () => {
+    setSaving(true);
+    setFeedback(null);
+    const result = await updateJiraConfig(projectKey);
+    setSaving(false);
+    if (result.success) {
+      setFeedback({ type: 'success', message: 'Project key saved' });
+      onStatusChange();
+    } else {
+      setFeedback({ type: 'error', message: result.error ?? 'Failed to save' });
+    }
+    setTimeout(() => setFeedback(null), 3000);
+  };
+
+  const isConfigured = status?.configured ?? false;
+
+  return (
+    <div className={`rounded-lg border ${border.subtle} ${settings.card} p-4 flex flex-col gap-3`}>
+      <div className="flex items-center justify-between">
+        <h3 className={`text-xs font-semibold ${text.primary}`}>Jira</h3>
+        <span
+          className={`text-[11px] px-2 py-0.5 rounded-full ${
+            isConfigured ? 'text-green-400 bg-green-900/30' : 'text-gray-400 bg-gray-800'
+          }`}
+        >
+          {isConfigured ? 'Connected' : 'Not connected'}
+        </span>
+      </div>
+
+      {status === null ? (
+        <span className={`text-xs ${text.muted}`}>Loading...</span>
+      ) : isConfigured ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2 text-xs">
+            <span className={text.muted}>Auth:</span>
+            <span className="text-green-400">API Token</span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className={`text-[11px] ${settings.label}`}>Default Project Key</label>
+            <div className="flex gap-2">
+              <input
+                value={projectKey}
+                onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
+                placeholder="PROJ"
+                className={`flex-1 px-2 py-1 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+              />
+              <button
+                onClick={handleSaveProjectKey}
+                disabled={saving}
+                className={`text-xs px-2 py-1 rounded ${button.secondary} disabled:opacity-50`}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={handleDisconnect}
+            disabled={saving}
+            className={`text-xs ${text.error} hover:underline text-left disabled:opacity-50`}
+          >
+            Disconnect Jira
+          </button>
+        </div>
+      ) : showSetup ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
+            <label className={`text-[11px] ${settings.label}`}>Jira Base URL</label>
+            <input
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder="https://your-org.atlassian.net"
+              className={`px-2 py-1.5 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className={`text-[11px] ${settings.label}`}>Email</label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              className={`px-2 py-1.5 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className={`text-[11px] ${settings.label}`}>API Token</label>
+            <input
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder="Your Jira API token"
+              className={`px-2 py-1.5 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleConnect}
+              disabled={saving || !baseUrl || !email || !token}
+              className={`text-xs px-3 py-1.5 rounded font-medium ${button.primary} disabled:opacity-50`}
+            >
+              {saving ? 'Connecting...' : 'Connect'}
+            </button>
+            <button
+              onClick={() => setShowSetup(false)}
+              className={`text-xs px-3 py-1.5 rounded ${button.secondary}`}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <p className={`text-[11px] ${text.muted}`}>
+            Connect Jira to create worktrees directly from issues.
+          </p>
+          <button
+            onClick={() => setShowSetup(true)}
+            className={`text-xs px-3 py-1.5 rounded font-medium ${button.primary} self-start`}
+          >
+            Set up Jira
+          </button>
+        </div>
+      )}
+
+      {feedback && (
+        <span
+          className={`text-xs ${
+            feedback.type === 'success' ? 'text-green-400' : text.error
+          }`}
+        >
+          {feedback.message}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export function IntegrationsPanel() {
+  const githubStatus = useGitHubStatus();
+  const jiraStatus = useJiraStatus();
+  const [jiraRefreshKey, setJiraRefreshKey] = useState(0);
+
+  // Re-fetch Jira status when it changes
+  const [currentJiraStatus, setCurrentJiraStatus] = useState<JiraStatus | null>(null);
+
+  useEffect(() => {
+    setCurrentJiraStatus(jiraStatus);
+  }, [jiraStatus]);
+
+  useEffect(() => {
+    if (jiraRefreshKey === 0) return;
+    fetch('/api/jira/status')
+      .then((r) => r.json())
+      .then((d) => setCurrentJiraStatus(d))
+      .catch(() => {});
+  }, [jiraRefreshKey]);
+
+  return (
+    <div className={`flex-1 ${surface.panel} rounded-xl overflow-auto`}>
+      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-5">
+        <h2 className={`text-sm font-semibold ${text.primary}`}>Integrations</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <GitHubCard status={githubStatus} />
+          <JiraCard
+            status={currentJiraStatus}
+            onStatusChange={() => setJiraRefreshKey((k) => k + 1)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
