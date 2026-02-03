@@ -19,7 +19,7 @@ function getHtml(webPort) {
 </head>
 <body>
   <h1>Test Project</h1>
-  <p>Web server port: <strong>${webPort}</strong> | API port: <strong>${API_PORT}</strong></p>
+  <p>Web server port: <strong>${webPort}</strong> | API port: <strong>${apiUrl}</strong></p>
   <p>API_URL: <strong>${apiUrl}</strong> | WEB_URL: <strong>${webUrl}</strong></p>
   <button onclick="pingApi()">Ping API</button>
   <pre id="result">Click the button to ping the API server</pre>
