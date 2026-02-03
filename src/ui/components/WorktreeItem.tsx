@@ -193,14 +193,6 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
             <>
               <button
                 type="button"
-                onClick={handleStop}
-                disabled={isLoading}
-                className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-900/30 rounded hover:bg-red-900/50 disabled:opacity-50 transition-colors"
-              >
-                Stop
-              </button>
-              <button
-                type="button"
                 onClick={() => setShowLogs((v) => !v)}
                 className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                   showLogs
@@ -209,6 +201,14 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
                 }`}
               >
                 Logs
+              </button>
+              <button
+                type="button"
+                onClick={handleStop}
+                disabled={isLoading}
+                className="px-3 py-1.5 text-xs font-medium text-red-400 bg-red-900/30 rounded hover:bg-red-900/50 disabled:opacity-50 transition-colors"
+              >
+                Stop
               </button>
             </>
           ) : (
@@ -236,7 +236,7 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
             type="button"
             onClick={handleRemove}
             disabled={isLoading}
-            className="px-2 py-1.5 text-red-400 hover:bg-red-900/30 rounded disabled:opacity-50 transition-colors"
+            className="px-2 py-1.5 text-red-400 bg-red-900/30 hover:bg-red-900/50 rounded disabled:opacity-50 transition-colors"
             title="Remove worktree"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
