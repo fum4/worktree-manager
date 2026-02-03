@@ -26,8 +26,8 @@ export class PortManager {
 
   getProjectDir(): string {
     return this.config.projectDir && this.config.projectDir !== '.'
-      ? path.resolve(this.configDir, this.config.projectDir)
-      : this.configDir;
+      ? path.resolve(process.cwd(), this.config.projectDir)
+      : process.cwd();
   }
 
   getDiscoveredPorts(): number[] {
