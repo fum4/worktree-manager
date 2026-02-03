@@ -39,7 +39,7 @@ if (offset > 0 && knownPortSet.size > 0) {
       } else {
         args[0] = Object.assign({}, args[0], { port: newPort });
       }
-      console.log(`[worktree-manager] listen :${port} \u2192 :${newPort}`);
+      if (process.env.__WM_DEBUG__) console.log(`[worktree-manager] listen :${port} \u2192 :${newPort}`);
     }
 
     return origListen.apply(this, args);

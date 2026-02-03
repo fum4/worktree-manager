@@ -270,19 +270,25 @@ export class WorktreeManager {
       });
 
       const basePorts = this.portManager.getDiscoveredPorts();
-      const portMap = new Map(
-        basePorts.map((base) => [base + offset, base]),
-      );
+      const portMap = new Map<number, number>();
+      for (const base of basePorts) {
+        portMap.set(base + offset, base);
+        portMap.set(base, base);
+      }
       const wtColor = getWorktreeColor(id);
       const coloredName = `${BOLD}${wtColor}${id}${RESET}`;
+      const allPortsStr = basePorts.map((p) => {
+        const pColor = getPortColor(p);
+        return `${pColor}:${p}${RESET}`;
+      }).join(',');
       const linePrefix = (line: string) => {
-        for (const [offsetPort, basePort] of portMap) {
-          if (line.includes(String(offsetPort))) {
+        for (const [port, basePort] of portMap) {
+          if (line.includes(String(port))) {
             const pColor = getPortColor(basePort);
             return `${DIM}[${RESET}${coloredName} ${pColor}:${basePort}${RESET}${DIM}]${RESET}`;
           }
         }
-        return `${DIM}[${RESET}${coloredName}${DIM}]${RESET}`;
+        return `${DIM}[${RESET}${coloredName} ${allPortsStr}${DIM}]${RESET}`;
       };
 
       childProcess.stdout?.on('data', (data) => {
