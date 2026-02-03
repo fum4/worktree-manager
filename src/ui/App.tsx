@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { CreateForm } from './components/CreateForm';
-import { DetailPanel } from './components/DetailPanel';
+import { DetailPanel } from './components/detail/DetailPanel';
 import { Header } from './components/Header';
 import { IntegrationsPanel } from './components/IntegrationsPanel';
 import { NavBar, type View } from './components/NavBar';
@@ -78,19 +78,20 @@ export default function App() {
               worktree={selectedWorktree}
               onUpdate={refetch}
               onDeleted={handleDeleted}
+              onNavigateToIntegrations={() => setActiveView('integrations')}
             />
           </main>
         </div>
       )}
 
       {activeView === 'configuration' && (
-        <div className="flex-1 min-h-0 p-4 pt-3">
+        <div className="flex-1 flex flex-col min-h-0 p-4 pt-3">
           <ConfigurationPanel config={config} onSaved={refetchConfig} />
         </div>
       )}
 
       {activeView === 'integrations' && (
-        <div className="flex-1 min-h-0 p-4 pt-3">
+        <div className="flex-1 flex flex-col min-h-0 p-4 pt-3">
           <IntegrationsPanel />
         </div>
       )}

@@ -1,11 +1,76 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { disconnectJira, setupJira, updateJiraConfig } from '../hooks/useConfig';
-import { useGitHubStatus, useJiraStatus, type GitHubStatus, type JiraStatus } from '../hooks/useWorktrees';
+import { installGitHubCli, loginGitHub } from '../hooks/api';
+import { useGitHubStatus, useJiraStatus } from '../hooks/useWorktrees';
+import type { GitHubStatus, JiraStatus } from '../types';
 import { border, button, input, settings, surface, text } from '../theme';
 
-function GitHubCard({ status }: { status: GitHubStatus | null }) {
+function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; onStatusChange: () => void }) {
   const isReady = status?.installed && status?.authenticated;
+  const [loading, setLoading] = useState(false);
+  const [waitingForAuth, setWaitingForAuth] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll for auth completion after triggering login
+  useEffect(() => {
+    if (!waitingForAuth) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch('/api/github/status');
+        const data = await res.json();
+        if (data.authenticated) {
+          setWaitingForAuth(false);
+          setFeedback({ type: 'success', message: 'Authenticated with GitHub' });
+          onStatusChange();
+          setTimeout(() => setFeedback(null), 4000);
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 2000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [waitingForAuth, onStatusChange]);
+
+  // Stop polling if status shows authenticated
+  useEffect(() => {
+    if (status?.authenticated && waitingForAuth) {
+      setWaitingForAuth(false);
+    }
+  }, [status?.authenticated, waitingForAuth]);
+
+  const handleConnect = async () => {
+    setLoading(true);
+    setFeedback(null);
+    const result = await installGitHubCli();
+    setLoading(false);
+    if (result.success) {
+      const msg = result.code
+        ? `Enter code ${result.code} in your browser`
+        : 'gh CLI installed';
+      setFeedback({ type: 'success', message: msg });
+      if (result.code) setWaitingForAuth(true);
+      onStatusChange();
+    } else {
+      setFeedback({ type: 'error', message: result.error ?? 'Failed to install gh' });
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  };
+
+  const handleLogin = async () => {
+    setFeedback(null);
+    const result = await loginGitHub();
+    if (result.success && result.code) {
+      setFeedback({ type: 'success', message: `Enter code ${result.code} in your browser` });
+      setWaitingForAuth(true);
+    } else if (!result.success) {
+      setFeedback({ type: 'error', message: result.error ?? 'Failed to start login' });
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  };
 
   return (
     <div className={`rounded-lg border ${border.subtle} ${settings.card} p-4 flex flex-col gap-3`}>
@@ -42,14 +107,43 @@ function GitHubCard({ status }: { status: GitHubStatus | null }) {
               <span className={text.secondary}>{status.repo}</span>
             </div>
           )}
-          {!isReady && (
+          {!isReady && !status.installed && (
             <p className={`text-[11px] ${text.muted} mt-1`}>
-              {!status.installed
-                ? 'Install the gh CLI: brew install gh'
-                : 'Run "gh auth login" in your terminal to authenticate.'}
+              Install the GitHub CLI and authenticate to enable commits, pushes, and pull requests.
+            </p>
+          )}
+          {!isReady && status.installed && !status.authenticated && (
+            <p className={`text-[11px] ${text.muted} mt-1`}>
+              Authenticate with GitHub to enable commits, pushes, and pull requests.
             </p>
           )}
         </div>
+      )}
+
+      {feedback && (
+        <span className={`text-xs ${feedback.type === 'success' ? 'text-green-400' : text.error}`}>
+          {feedback.message}
+        </span>
+      )}
+
+      {status && !status.installed && !waitingForAuth && (
+        <button
+          onClick={handleConnect}
+          disabled={loading}
+          className={`text-xs px-3 py-1.5 rounded font-medium ${button.primary} disabled:opacity-50 self-start`}
+        >
+          {loading ? 'Installing...' : 'Connect'}
+        </button>
+      )}
+
+      {status && status.installed && !status.authenticated && !waitingForAuth && (
+        <button
+          onClick={handleLogin}
+          disabled={waitingForAuth}
+          className={`text-xs px-3 py-1.5 rounded font-medium ${button.primary} disabled:opacity-50 self-start`}
+        >
+          Login
+        </button>
       )}
     </div>
   );
@@ -245,14 +339,27 @@ function JiraCard({
 export function IntegrationsPanel() {
   const githubStatus = useGitHubStatus();
   const jiraStatus = useJiraStatus();
+  const [githubRefreshKey, setGithubRefreshKey] = useState(0);
   const [jiraRefreshKey, setJiraRefreshKey] = useState(0);
 
-  // Re-fetch Jira status when it changes
+  const [currentGithubStatus, setCurrentGithubStatus] = useState<GitHubStatus | null>(null);
   const [currentJiraStatus, setCurrentJiraStatus] = useState<JiraStatus | null>(null);
+
+  useEffect(() => {
+    setCurrentGithubStatus(githubStatus);
+  }, [githubStatus]);
 
   useEffect(() => {
     setCurrentJiraStatus(jiraStatus);
   }, [jiraStatus]);
+
+  useEffect(() => {
+    if (githubRefreshKey === 0) return;
+    fetch('/api/github/status')
+      .then((r) => r.json())
+      .then((d) => setCurrentGithubStatus(d))
+      .catch(() => {});
+  }, [githubRefreshKey]);
 
   useEffect(() => {
     if (jiraRefreshKey === 0) return;
@@ -267,7 +374,10 @@ export function IntegrationsPanel() {
       <div className="max-w-2xl mx-auto p-6 flex flex-col gap-5">
         <h2 className={`text-sm font-semibold ${text.primary}`}>Integrations</h2>
         <div className="grid grid-cols-2 gap-4">
-          <GitHubCard status={githubStatus} />
+          <GitHubCard
+            status={currentGithubStatus}
+            onStatusChange={() => setGithubRefreshKey((k) => k + 1)}
+          />
           <JiraCard
             status={currentJiraStatus}
             onStatusChange={() => setJiraRefreshKey((k) => k + 1)}

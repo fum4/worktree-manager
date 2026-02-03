@@ -1,4 +1,4 @@
-import type { WorktreeInfo } from '../hooks/useWorktrees';
+import type { WorktreeInfo } from '../types';
 import { text } from '../theme';
 import { WorktreeItem } from './WorktreeItem';
 

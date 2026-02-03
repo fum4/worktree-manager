@@ -3,21 +3,13 @@
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "wok3": "./dist/cli.js"
-  },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+    "wok3": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup src/cli.ts src/index.ts --format esm --dts --clean && mkdir -p dist/runtime && cp src/runtime/port-hook.cjs dist/runtime/port-hook.cjs && vite build",
-    "dev": "concurrently \"vite build --watch\" \"cd test-project && tsx watch ../src/cli.ts\"",
-    "start": "cd test-project && node ../dist/cli.js",
-    "init": "cd test-project && tsx ../src/cli.ts init",
+    "build": "tsup src/cli/index.ts --format esm --dts --clean && mkdir -p dist/runtime && cp src/runtime/port-hook.cjs dist/runtime/port-hook.cjs && vite build",
+    "dev": "concurrently \"vite build --watch\" \"cd test-project && tsx watch ../src/cli/index.ts\"",
+    "start": "cd test-project && node ../dist/index.js",
+    "init": "cd test-project && tsx ../src/cli/index.ts init",
     "check-types": "tsc --noEmit",
     "check-lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.tsx .",
     "format-lint": "eslint --fix --no-error-on-unmatched-pattern --ext .js,.ts,.tsx ."

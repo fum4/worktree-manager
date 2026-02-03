@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { createFromJira, createWorktree } from '../hooks/useWorktrees';
+import { createFromJira, createWorktree } from '../hooks/api';
 import { border, button, input, tab, text } from '../theme';
 
 interface CreateFormProps {

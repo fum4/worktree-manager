@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { discoverPorts } from '../hooks/useWorktrees';
-import type { PortsInfo } from '../hooks/useWorktrees';
+import { discoverPorts } from '../hooks/api';
+import type { PortsInfo } from '../types';
 import { badge, header, text } from '../theme';
 
 interface HeaderProps {

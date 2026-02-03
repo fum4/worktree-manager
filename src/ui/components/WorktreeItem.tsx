@@ -1,4 +1,4 @@
-import type { WorktreeInfo } from '../hooks/useWorktrees';
+import type { WorktreeInfo } from '../types';
 import { badge, border, status, surface, text } from '../theme';
 
 interface WorktreeItemProps {

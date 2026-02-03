@@ -1,7 +1,0 @@
-{
-  "name": "port-hook-test",
-  "private": true,
-  "scripts": {
-    "dev": "node start-all.js"
-  }
-}

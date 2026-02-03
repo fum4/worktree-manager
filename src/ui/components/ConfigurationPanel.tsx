@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { saveConfig, type WorktreeConfig } from '../hooks/useConfig';
-import { discoverPorts } from '../hooks/useWorktrees';
+import { discoverPorts } from '../hooks/api';
 import { border, button, input, settings, surface, text } from '../theme';
 
 function Field({

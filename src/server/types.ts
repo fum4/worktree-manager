@@ -1,5 +1,5 @@
 import type { ChildProcess } from 'child_process';
-import type { JiraProjectConfig } from '../jira/types';
+import type { JiraProjectConfig } from '../integrations/jira/types';
 
 export interface PortConfig {
   /** Ports discovered by running the dev command and monitoring with lsof */

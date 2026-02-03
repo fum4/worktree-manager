@@ -1,4 +1,4 @@
-import type { WorktreeInfo } from '../server/types';
+import type { WorktreeInfo } from '../../server/types';
 
 import {
   checkGhAuth,
