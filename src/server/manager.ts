@@ -32,21 +32,8 @@ const WORKTREE_COLORS = [
   '\x1b[92m', // bright green
 ];
 
-// Distinct colors for ports (consistent across worktrees)
-const PORT_COLORS = [
-  '\x1b[38;5;214m', // orange
-  '\x1b[38;5;75m',  // sky blue
-  '\x1b[38;5;183m', // lavender
-  '\x1b[38;5;114m', // mint
-  '\x1b[38;5;210m', // salmon
-  '\x1b[38;5;229m', // pale yellow
-  '\x1b[38;5;152m', // teal
-  '\x1b[38;5;218m', // pink
-];
-
 let worktreeColorIndex = 0;
 const worktreeColorMap = new Map<string, string>();
-const portColorMap = new Map<number, string>();
 
 function getWorktreeColor(id: string): string {
   let color = worktreeColorMap.get(id);
@@ -54,15 +41,6 @@ function getWorktreeColor(id: string): string {
     color = WORKTREE_COLORS[worktreeColorIndex % WORKTREE_COLORS.length];
     worktreeColorIndex++;
     worktreeColorMap.set(id, color);
-  }
-  return color;
-}
-
-function getPortColor(basePort: number): string {
-  let color = portColorMap.get(basePort);
-  if (!color) {
-    color = PORT_COLORS[portColorMap.size % PORT_COLORS.length];
-    portColorMap.set(basePort, color);
   }
   return color;
 }
@@ -269,33 +247,15 @@ export class WorktreeManager {
         this.notifyListeners();
       });
 
-      const basePorts = this.portManager.getDiscoveredPorts();
-      const portMap = new Map<number, number>();
-      for (const base of basePorts) {
-        portMap.set(base + offset, base);
-        portMap.set(base, base);
-      }
       const wtColor = getWorktreeColor(id);
       const coloredName = `${BOLD}${wtColor}${id}${RESET}`;
-      const allPortsStr = basePorts.map((p) => {
-        const pColor = getPortColor(p);
-        return `${pColor}:${p}${RESET}`;
-      }).join(',');
-      const linePrefix = (line: string) => {
-        for (const [port, basePort] of portMap) {
-          if (line.includes(String(port))) {
-            const pColor = getPortColor(basePort);
-            return `${DIM}[${RESET}${coloredName} ${pColor}:${basePort}${RESET}${DIM}]${RESET}`;
-          }
-        }
-        return `${DIM}[${RESET}${coloredName} ${allPortsStr}${DIM}]${RESET}`;
-      };
+      const linePrefix = `${DIM}[${RESET}${coloredName}${DIM}]${RESET}`;
 
       childProcess.stdout?.on('data', (data) => {
         const output = data.toString();
         const lines = output.split('\n').filter((l: string) => l.trim());
         lines.forEach((line: string) =>
-          process.stdout.write(`${linePrefix(line)} ${line}\n`),
+          process.stdout.write(`${linePrefix} ${line}\n`),
         );
         const processInfo = this.runningProcesses.get(id);
         if (processInfo) {
@@ -315,7 +275,7 @@ export class WorktreeManager {
           .split('\n')
           .filter((l: string) => l.trim());
         lines.forEach((line: string) =>
-          process.stderr.write(`${linePrefix(line)} ${line}\n`),
+          process.stderr.write(`${linePrefix} ${line}\n`),
         );
         const processInfo = this.runningProcesses.get(id);
         if (processInfo) {
