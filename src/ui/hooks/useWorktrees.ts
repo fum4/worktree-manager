@@ -11,6 +11,8 @@ export interface WorktreeInfo {
   pid: number | null;
   lastActivity?: number;
   logs?: string[];
+  jiraUrl?: string;
+  jiraStatus?: string;
 }
 
 export interface PortsInfo {
@@ -211,6 +213,46 @@ export async function removeWorktree(
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to remove worktree',
+    };
+  }
+}
+
+export interface JiraStatus {
+  configured: boolean;
+  defaultProjectKey: string | null;
+}
+
+export function useJiraStatus() {
+  const [jiraStatus, setJiraStatus] = useState<JiraStatus | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/jira/status`)
+      .then((res) => res.json())
+      .then((data) => setJiraStatus(data))
+      .catch(() => {});
+  }, []);
+
+  return jiraStatus;
+}
+
+export async function createFromJira(
+  issueKey: string,
+): Promise<{
+  success: boolean;
+  task?: { key: string; summary: string; status: string; type: string; url: string };
+  error?: string;
+}> {
+  try {
+    const res = await fetch(`${API_BASE}/api/jira/task`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ issueKey }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create from Jira',
     };
   }
 }

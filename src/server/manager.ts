@@ -5,6 +5,14 @@ import { promisify } from 'util';
 
 const execFile = promisify(execFileCb);
 
+import {
+  fetchIssue,
+  loadJiraCredentials,
+  loadJiraProjectConfig,
+  resolveTaskKey,
+  saveTaskData,
+} from '../jira/client';
+
 import { PortManager } from './port-manager';
 import type {
   RunningProcess,
@@ -132,7 +140,7 @@ export class WorktreeManager {
       const branch = this.getWorktreeBranch(worktreePath);
       const runningInfo = this.runningProcesses.get(entry.name);
 
-      worktrees.push({
+      const info: WorktreeInfo = {
         id: entry.name,
         path: worktreePath,
         branch: branch || 'unknown',
@@ -142,7 +150,21 @@ export class WorktreeManager {
         pid: runningInfo?.pid ?? null,
         lastActivity: runningInfo?.lastActivity,
         logs: runningInfo?.logs ?? [],
-      });
+      };
+
+      // Check for linked Jira task
+      const taskFile = path.join(this.configDir, '.wok3', 'tasks', entry.name, 'task.json');
+      if (existsSync(taskFile)) {
+        try {
+          const taskData = JSON.parse(readFileSync(taskFile, 'utf-8'));
+          if (taskData.url) info.jiraUrl = taskData.url;
+          if (taskData.status) info.jiraStatus = taskData.status;
+        } catch {
+          // Ignore corrupt task files
+        }
+      }
+
+      worktrees.push(info);
     }
 
     // Append in-progress creations
@@ -697,5 +719,65 @@ export class WorktreeManager {
 
   getConfig(): WorktreeConfig {
     return this.config;
+  }
+
+  getConfigDir(): string {
+    return this.configDir;
+  }
+
+  async createWorktreeFromJira(
+    issueKey: string,
+  ): Promise<{
+    success: boolean;
+    task?: { key: string; summary: string; status: string; type: string; url: string };
+    error?: string;
+  }> {
+    const creds = loadJiraCredentials(this.configDir);
+    if (!creds) {
+      return { success: false, error: 'Jira credentials not configured' };
+    }
+
+    const projectConfig = loadJiraProjectConfig(this.configDir);
+    let resolvedKey: string;
+    try {
+      resolvedKey = resolveTaskKey(issueKey, projectConfig);
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Invalid task key',
+      };
+    }
+
+    let taskData;
+    try {
+      taskData = await fetchIssue(resolvedKey, creds, this.configDir);
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to fetch issue',
+      };
+    }
+
+    // Save task data locally
+    const tasksDir = path.join(this.configDir, '.wok3', 'tasks');
+    saveTaskData(taskData, tasksDir);
+
+    // Create worktree using the issue key as branch name
+    const result = await this.createWorktree({ branch: resolvedKey, name: resolvedKey });
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    return {
+      success: true,
+      task: {
+        key: taskData.key,
+        summary: taskData.summary,
+        status: taskData.status,
+        type: taskData.type,
+        url: taskData.url,
+      },
+    };
   }
 }

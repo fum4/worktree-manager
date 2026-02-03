@@ -8,22 +8,24 @@ wok3 is a CLI tool + web UI for managing multiple git worktrees with automatic p
 
 ## Build & Dev Commands
 
+**Package manager**: pnpm
+
 ```bash
 # Build everything (tsup for backend + vite for UI + copy port-hook.cjs)
-npm run build
+pnpm build
 
 # Dev mode (concurrent watch for backend and frontend)
-npm run dev
+pnpm dev
 
 # Run the built CLI
-npm run start
+pnpm start
 
 # Type checking
-npm run check-types
+pnpm check-types
 
 # Lint
-npm run check-lint
-npm run format-lint   # auto-fix
+pnpm check-lint
+pnpm format-lint   # auto-fix
 ```
 
 There is no test runner configured. The `test-project/` directory is a manual integration test (two HTTP servers that validate port offsetting works).

@@ -1,4 +1,5 @@
 import type { ChildProcess } from 'child_process';
+import type { JiraProjectConfig } from '../jira/types';
 
 export interface PortConfig {
   /** Ports discovered by running the dev command and monitoring with lsof */
@@ -24,6 +25,8 @@ export interface WorktreeConfig {
   envMapping?: Record<string, string>;
   /** Port for the manager server (default: 3100) */
   serverPort: number;
+  /** Jira integration config (shared with team) */
+  jira?: JiraProjectConfig;
 }
 
 export interface WorktreeInfo {
@@ -47,6 +50,10 @@ export interface WorktreeInfo {
   lastActivity?: number;
   /** Output logs */
   logs?: string[];
+  /** Jira issue URL if this worktree was created from a Jira task */
+  jiraUrl?: string;
+  /** Jira issue status (e.g. "In Progress", "To Do") */
+  jiraStatus?: string;
 }
 
 export interface WorktreeCreateRequest {

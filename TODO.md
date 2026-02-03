@@ -1,0 +1,7 @@
+- jira
+- github
+- ide extension
+    - go to worktree folder
+    - search in worktree (doubt it)
+- cookies
+- multi lang support

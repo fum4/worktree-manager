@@ -2,11 +2,25 @@
 
 import { execFileSync } from 'child_process';
 import { createInterface } from 'readline';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
+import { select, input, password } from '@inquirer/prompts';
 
 import { startWorktreeServer, PortManager } from './server/index';
 import type { PortConfig, WorktreeConfig } from './server/types';
+import {
+  loadJiraCredentials,
+  saveJiraCredentials,
+  loadJiraProjectConfig,
+  saveJiraProjectConfig,
+  runOAuthFlow,
+  discoverCloudId,
+  testConnection,
+  resolveTaskKey,
+  fetchIssue,
+  saveTaskData,
+} from './jira/index';
+import type { JiraCredentials } from './jira/types';
 
 const CONFIG_DIR_NAME = '.wok3';
 const CONFIG_FILE_NAME = 'config.json';
@@ -269,11 +283,424 @@ function loadConfig(): { config: WorktreeConfig; configPath: string | null } {
   }
 }
 
+function findConfigDir(): string | null {
+  const configPath = findConfigFile();
+  if (!configPath) return null;
+  // configPath is like /path/to/project/.wok3/config.json → project dir is two levels up
+  return path.dirname(path.dirname(configPath));
+}
+
+interface Integration {
+  name: string;
+  description: string;
+  getStatus: (configDir: string) => string;
+  setup: () => Promise<void>;
+}
+
+const INTEGRATIONS: Integration[] = [
+  {
+    name: 'jira',
+    description: 'Atlassian Jira (issue tracking)',
+    getStatus: (configDir) => loadJiraCredentials(configDir) ? 'connected' : 'not configured',
+    setup: runConnectJira,
+  },
+];
+
+async function runConnect() {
+  const configDir = findConfigDir();
+  if (!configDir) {
+    console.error('[wok3] No config found. Run "wok3 init" first.');
+    process.exit(1);
+  }
+
+  // If integration name passed directly, skip the picker
+  const integration = process.argv[3];
+  if (integration) {
+    const match = INTEGRATIONS.find((i) => i.name === integration);
+    if (!match) {
+      console.error(`[wok3] Unknown integration: ${integration}`);
+      console.log(`Available: ${INTEGRATIONS.map((i) => i.name).join(', ')}`);
+      process.exit(1);
+    }
+    await match.setup();
+    return;
+  }
+
+  const items = INTEGRATIONS.map((i) => ({
+    ...i,
+    status: i.getStatus(configDir),
+  }));
+
+  const chosen = await select({
+    message: 'Select integration to set up',
+    choices: items.map((item) => {
+      const marker = item.status === 'connected' ? '✓' : '○';
+      return {
+        name: `${marker} ${item.name} — ${item.description} (${item.status})`,
+        value: item.name,
+      };
+    }),
+  });
+
+  const match = items.find((i) => i.name === chosen)!;
+  await match.setup();
+}
+
+async function runConnectJira() {
+  const configDir = findConfigDir();
+  if (!configDir) {
+    console.error('[wok3] No config found. Run "wok3 init" first.');
+    process.exit(1);
+  }
+
+  console.log('[wok3] Connect to Jira\n');
+
+  const authMethod = await select({
+    message: 'Authentication method',
+    choices: [
+      {
+        name: 'OAuth 2.0 (recommended)',
+        value: 'oauth' as const,
+        description: 'Requires creating an OAuth app at developer.atlassian.com',
+      },
+      {
+        name: 'API Token',
+        value: 'api-token' as const,
+        description: 'Simpler setup, no app registration needed',
+      },
+    ],
+  });
+
+  let creds: JiraCredentials;
+
+  if (authMethod === 'api-token') {
+    console.log('\n[wok3] API Token setup');
+    console.log('Create a token at: https://id.atlassian.com/manage-profile/security/api-tokens\n');
+
+    const baseUrl = (await input({
+      message: 'Jira site URL',
+      required: true,
+      validate: (v) => v.trim() ? true : 'URL is required.',
+    })).replace(/\/$/, '');
+
+    const email = await input({
+      message: 'Email',
+      required: true,
+      validate: (v) => v.trim() ? true : 'Email is required.',
+    });
+
+    const token = await password({
+      message: 'API Token',
+      validate: (v) => v.trim() ? true : 'Token is required.',
+    });
+
+    creds = {
+      authMethod: 'api-token',
+      apiToken: { baseUrl, email, token },
+    };
+  } else {
+    console.log('\n[wok3] OAuth 2.0 setup');
+    console.log('Create an OAuth app at: https://developer.atlassian.com/console\n');
+
+    const clientId = await input({
+      message: 'Client ID',
+      required: true,
+      validate: (v) => v.trim() ? true : 'Client ID is required.',
+    });
+
+    const clientSecret = await password({
+      message: 'Client Secret',
+      validate: (v) => v.trim() ? true : 'Client Secret is required.',
+    });
+
+    console.log('[wok3] Starting OAuth flow...');
+
+    const tokens = await runOAuthFlow(clientId, clientSecret);
+    const { cloudId, siteUrl } = await discoverCloudId(tokens.accessToken);
+
+    creds = {
+      authMethod: 'oauth',
+      oauth: {
+        clientId,
+        clientSecret,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: Date.now() + tokens.expiresIn * 1000,
+        cloudId,
+        siteUrl,
+      },
+    };
+  }
+
+  const defaultProjectKey = await input({
+    message: 'Default project key (e.g. PROJ, optional)',
+  });
+
+  saveJiraCredentials(configDir, creds);
+
+  if (defaultProjectKey) {
+    saveJiraProjectConfig(configDir, { defaultProjectKey: defaultProjectKey.toUpperCase() });
+  }
+
+  // Test connection
+  console.log('\n[wok3] Testing connection...');
+  try {
+    const user = await testConnection(creds, configDir);
+    console.log(`[wok3] Connected as: ${user}`);
+  } catch (err) {
+    console.error(`[wok3] Connection test failed: ${err}`);
+    process.exit(1);
+  }
+
+  console.log('\n[wok3] Jira connected successfully!');
+  console.log('[wok3] Credentials saved to .wok3/credentials.json (make sure it\'s gitignored)');
+}
+
+function copyEnvFilesForTask(sourceDir: string, targetDir: string, worktreesDir: string): void {
+  const copyEnvRecursive = (src: string, dest: string, relPath = '') => {
+    try {
+      const entries = readdirSync(src, { withFileTypes: true });
+      for (const entry of entries) {
+        const srcPath = path.join(src, entry.name);
+        const destPath = path.join(dest, entry.name);
+        const displayPath = relPath ? `${relPath}/${entry.name}` : entry.name;
+
+        if (entry.isDirectory()) {
+          if (entry.name === 'node_modules' || entry.name === '.git') continue;
+          if (entry.name === path.basename(worktreesDir)) continue;
+          copyEnvRecursive(srcPath, destPath, displayPath);
+        } else if (entry.isFile() && entry.name.startsWith('.env')) {
+          if (!existsSync(destPath)) {
+            const destDir = path.dirname(destPath);
+            if (!existsSync(destDir)) {
+              mkdirSync(destDir, { recursive: true });
+            }
+            copyFileSync(srcPath, destPath);
+            console.log(`[wok3] Copied ${displayPath} to worktree`);
+          }
+        }
+      }
+    } catch {
+      // Directory may not exist or be unreadable
+    }
+  };
+
+  copyEnvRecursive(sourceDir, targetDir);
+}
+
+async function runTask(taskId: string) {
+  const configDir = findConfigDir();
+  if (!configDir) {
+    console.error('[wok3] No config found. Run "wok3 init" first.');
+    process.exit(1);
+  }
+
+  const creds = loadJiraCredentials(configDir);
+  if (!creds) {
+    console.error('[wok3] Jira not connected. Run "wok3 connect jira" first.');
+    process.exit(1);
+  }
+
+  const projectConfig = loadJiraProjectConfig(configDir);
+  const key = resolveTaskKey(taskId, projectConfig);
+
+  console.log(`[wok3] Fetching ${key}...`);
+
+  const taskData = await fetchIssue(key, creds, configDir);
+
+  // Print summary
+  console.log('');
+  console.log(`  ${taskData.key}: ${taskData.summary}`);
+  console.log(`  Status: ${taskData.status}  |  Priority: ${taskData.priority}  |  Type: ${taskData.type}`);
+  if (taskData.assignee) console.log(`  Assignee: ${taskData.assignee}`);
+  if (taskData.labels.length > 0) console.log(`  Labels: ${taskData.labels.join(', ')}`);
+  console.log(`  URL: ${taskData.url}`);
+  console.log('');
+
+  // Save task data
+  const tasksDir = path.join(configDir, '.wok3', 'tasks');
+  saveTaskData(taskData, tasksDir);
+  console.log(`[wok3] Task saved to .wok3/tasks/${key}/task.json`);
+
+  // Download attachments if any
+  if (taskData.attachments.length > 0) {
+    console.log(`[wok3] Downloading ${taskData.attachments.length} attachment(s)...`);
+
+    // Re-fetch raw attachment data for download URLs
+    const configPath = findConfigFile()!;
+    const configContent = JSON.parse(readFileSync(configPath, 'utf-8'));
+    const { getApiBase, getAuthHeaders } = await import('./jira/client');
+    const base = getApiBase(creds);
+    const headers = await getAuthHeaders(creds, configDir);
+
+    const resp = await fetch(`${base}/issue/${encodeURIComponent(key)}?fields=attachment`, { headers });
+    if (resp.ok) {
+      const issue = (await resp.json()) as { fields: { attachment: Array<{ filename: string; content: string; mimeType: string; size: number }> } };
+      const { downloadAttachments } = await import('./jira/client');
+      const attachmentsDir = path.join(tasksDir, key, 'attachments');
+      const downloaded = await downloadAttachments(issue.fields.attachment, attachmentsDir, creds, configDir);
+      taskData.attachments = downloaded;
+
+      // Re-save with updated attachment paths
+      saveTaskData(taskData, tasksDir);
+      console.log(`[wok3] ${downloaded.length} attachment(s) downloaded`);
+    }
+  }
+
+  // Prompt for worktree action
+  console.log('');
+  const action = await select({
+    message: 'What would you like to do?',
+    choices: [
+      { name: 'Create a worktree for this task', value: 'create' },
+      { name: 'Link to an existing worktree', value: 'link' },
+      { name: 'Just save the data', value: 'save' },
+    ],
+    default: 'save',
+  });
+
+  if (action === 'create') {
+    await createWorktreeForTask(taskData, configDir, tasksDir);
+  } else if (action === 'link') {
+    await linkWorktreeToTask(taskData, configDir, tasksDir);
+  }
+
+  console.log('[wok3] Done.');
+}
+
+async function createWorktreeForTask(
+  taskData: { key: string; linkedWorktree: string | null },
+  configDir: string,
+  tasksDir: string,
+) {
+  const { config } = loadConfig();
+  const branchName = taskData.key.toLowerCase();
+
+  const worktreesDir = path.isAbsolute(config.worktreesDir)
+    ? config.worktreesDir
+    : path.join(configDir, config.worktreesDir);
+
+  if (!existsSync(worktreesDir)) {
+    mkdirSync(worktreesDir, { recursive: true });
+  }
+
+  const worktreePath = path.join(worktreesDir, branchName);
+
+  if (existsSync(worktreePath)) {
+    console.log(`[wok3] Worktree directory already exists: ${worktreePath}`);
+    console.log('[wok3] Linking to existing worktree instead.');
+    taskData.linkedWorktree = branchName;
+    saveTaskData(taskData as import('./jira/types').JiraTaskData, tasksDir);
+    return;
+  }
+
+  console.log(`[wok3] Creating worktree at ${worktreePath} (branch: ${branchName})...`);
+
+  // Try creating with -b (new branch), fallback to existing branch, fallback to -B
+  try {
+    execFileSync('git', ['worktree', 'add', '-b', branchName, worktreePath, config.baseBranch], {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+  } catch {
+    try {
+      execFileSync('git', ['worktree', 'add', worktreePath, branchName], {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    } catch {
+      execFileSync('git', ['worktree', 'add', '-B', branchName, worktreePath, config.baseBranch], {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    }
+  }
+
+  console.log('[wok3] Worktree created.');
+
+  // Copy .env files
+  copyEnvFilesForTask(configDir, worktreePath, worktreesDir);
+
+  // Run install command
+  if (config.installCommand) {
+    const projectSubdir = config.projectDir && config.projectDir !== '.'
+      ? path.join(worktreePath, config.projectDir)
+      : worktreePath;
+
+    console.log(`[wok3] Running: ${config.installCommand}`);
+    try {
+      const [cmd, ...args] = config.installCommand.split(' ');
+      execFileSync(cmd, args, {
+        encoding: 'utf-8',
+        cwd: projectSubdir,
+        stdio: 'inherit',
+      });
+    } catch (err) {
+      console.log(`[wok3] Warning: install command failed: ${err}`);
+    }
+  }
+
+  taskData.linkedWorktree = branchName;
+  saveTaskData(taskData as import('./jira/types').JiraTaskData, tasksDir);
+  console.log(`[wok3] Worktree linked to task ${taskData.key}`);
+}
+
+async function linkWorktreeToTask(
+  taskData: { key: string; linkedWorktree: string | null },
+  configDir: string,
+  tasksDir: string,
+) {
+  const { config } = loadConfig();
+  const worktreesDir = path.isAbsolute(config.worktreesDir)
+    ? config.worktreesDir
+    : path.join(configDir, config.worktreesDir);
+
+  if (!existsSync(worktreesDir)) {
+    console.log('[wok3] No worktrees directory found.');
+    return;
+  }
+
+  const entries = readdirSync(worktreesDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && existsSync(path.join(worktreesDir, e.name, '.git')));
+
+  if (entries.length === 0) {
+    console.log('[wok3] No existing worktrees found.');
+    return;
+  }
+
+  const chosen = await select({
+    message: 'Select worktree',
+    choices: entries.map((e) => ({
+      name: e.name,
+      value: e.name,
+    })),
+  });
+
+  taskData.linkedWorktree = chosen;
+  saveTaskData(taskData as import('./jira/types').JiraTaskData, tasksDir);
+  console.log(`[wok3] Task ${taskData.key} linked to worktree: ${chosen}`);
+}
+
 async function main() {
   const subcommand = process.argv[2];
 
   if (subcommand === 'init') {
     await runInit();
+    return;
+  }
+
+  if (subcommand === 'connect') {
+    await runConnect();
+    return;
+  }
+
+  if (subcommand === 'task') {
+    const taskId = process.argv[3];
+    if (!taskId) {
+      console.error('[wok3] Usage: wok3 task <TASK_ID>');
+      process.exit(1);
+    }
+    await runTask(taskId);
     return;
   }
 

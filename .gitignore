@@ -1,3 +1,5 @@
 node_modules/
 dist/
 .worktrees/
+.wok3/credentials.json
+.wok3/tasks/

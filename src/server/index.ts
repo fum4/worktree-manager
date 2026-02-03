@@ -6,6 +6,8 @@ import { cors } from 'hono/cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { loadJiraCredentials, loadJiraProjectConfig } from '../jira/client';
+
 import { WorktreeManager } from './manager';
 import type {
   WorktreeConfig,
@@ -137,6 +139,35 @@ export function createWorktreeServer(manager: WorktreeManager) {
     const id = c.req.param('id');
     const logs = manager.getLogs(id);
     return c.json({ logs });
+  });
+
+  app.get('/api/jira/status', (c) => {
+    const configDir = manager.getConfigDir();
+    const creds = loadJiraCredentials(configDir);
+    const projectConfig = loadJiraProjectConfig(configDir);
+    return c.json({
+      configured: creds !== null,
+      defaultProjectKey: projectConfig.defaultProjectKey ?? null,
+    });
+  });
+
+  app.post('/api/jira/task', async (c) => {
+    try {
+      const body = await c.req.json<{ issueKey: string }>();
+      if (!body.issueKey) {
+        return c.json({ success: false, error: 'Issue key is required' }, 400);
+      }
+      const result = await manager.createWorktreeFromJira(body.issueKey);
+      return c.json(result, result.success ? 201 : 400);
+    } catch (error) {
+      return c.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : 'Invalid request',
+        },
+        400,
+      );
+    }
   });
 
   app.get('/api/events', (c) => {
