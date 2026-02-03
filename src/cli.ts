@@ -754,6 +754,13 @@ async function main() {
     return;
   }
 
+  if (subcommand === 'mcp') {
+    const { config, configPath } = loadConfig();
+    const { startMcpServer } = await import('./mcp');
+    await startMcpServer(config, configPath);
+    return;
+  }
+
   if (subcommand === 'task') {
     const taskId = process.argv[3];
     if (!taskId) {
