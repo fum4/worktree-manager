@@ -39,7 +39,7 @@ if (offset > 0 && knownPortSet.size > 0) {
       } else {
         args[0] = Object.assign({}, args[0], { port: newPort });
       }
-      if (process.env.__WM_DEBUG__) console.log(`[worktree-manager] listen :${port} \u2192 :${newPort}`);
+      if (process.env.__WM_DEBUG__) console.log(`[wok3] listen :${port} \u2192 :${newPort}`);
     }
 
     return origListen.apply(this, args);
@@ -56,7 +56,7 @@ if (offset > 0 && knownPortSet.size > 0) {
       const host = typeof args[1] === 'string' ? args[1] : 'localhost';
       if (knownPortSet.has(port) && isLocalhost(host)) {
         args[0] = port + offset;
-        console.log(`[worktree-manager] connect :${port} \u2192 :${args[0]}`);
+        console.log(`[wok3] connect :${port} \u2192 :${args[0]}`);
       }
     }
     // Case 2: connect([options, cb]) — Node.js HTTP agent internal call
@@ -68,7 +68,7 @@ if (offset > 0 && knownPortSet.size > 0) {
         const host = opts.host || opts.hostname || '';
         if (port !== null && knownPortSet.has(port) && isLocalhost(host)) {
           inner[0] = Object.assign({}, opts, { port: port + offset });
-          console.log(`[worktree-manager] connect :${port} \u2192 :${port + offset}`);
+          console.log(`[wok3] connect :${port} \u2192 :${port + offset}`);
         }
       }
     }
@@ -79,7 +79,7 @@ if (offset > 0 && knownPortSet.size > 0) {
       const host = opts.host || opts.hostname || '';
       if (port !== null && knownPortSet.has(port) && isLocalhost(host)) {
         args[0] = Object.assign({}, opts, { port: port + offset });
-        console.log(`[worktree-manager] connect :${port} \u2192 :${port + offset}`);
+        console.log(`[wok3] connect :${port} \u2192 :${port + offset}`);
       }
     }
 

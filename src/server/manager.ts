@@ -63,7 +63,7 @@ export class WorktreeManager {
 
   constructor(config: WorktreeConfig, configFilePath: string | null = null) {
     this.config = config;
-    this.configDir = configFilePath ? path.dirname(configFilePath) : process.cwd();
+    this.configDir = configFilePath ? path.dirname(path.dirname(configFilePath)) : process.cwd();
     this.portManager = new PortManager(config, configFilePath);
 
     const worktreesPath = this.getWorktreesAbsolutePath();
@@ -189,13 +189,6 @@ export class WorktreeManager {
       return { success: true, ports: info.ports, pid: info.pid };
     }
 
-    if (this.runningProcesses.size >= this.config.maxInstances) {
-      return {
-        success: false,
-        error: `Maximum instances (${this.config.maxInstances}) reached. Stop another worktree first.`,
-      };
-    }
-
     const worktreesPath = this.getWorktreesAbsolutePath();
     const worktreePath = path.join(worktreesPath, id);
     if (!existsSync(worktreePath)) {
@@ -225,7 +218,7 @@ export class WorktreeManager {
       const portsDisplay =
         ports.length > 0 ? ports.join(', ') : `offset=${offset}`;
       console.log(
-        `[worktree-manager] Starting ${id} at ${workingDir} (ports: ${portsDisplay})`,
+        `[wok3] Starting ${id} at ${workingDir} (ports: ${portsDisplay})`,
       );
 
       const childProcess = spawn(cmd, args, {
@@ -250,7 +243,7 @@ export class WorktreeManager {
 
       childProcess.on('exit', (code) => {
         console.log(
-          `[worktree-manager] Worktree "${id}" exited with code ${code}`,
+          `[wok3] Worktree "${id}" exited with code ${code}`,
         );
         const processInfo = this.runningProcesses.get(id);
         if (processInfo) {
@@ -439,7 +432,15 @@ export class WorktreeManager {
       // Step 2: Create worktree
       updateStatus('Creating worktree...');
 
+      // TODO: revisit the priority/fallback order for worktree creation strategies.
+      // Current cascade:
+      //   1. Create new branch from baseBranch (-b)
+      //   2. Checkout existing local branch
+      //   3. Force-reset existing branch from baseBranch (-B)
+      // Edge cases: branch exists locally but not on remote, branch checked out
+      // elsewhere, detached HEAD states, etc.
       try {
+        // New branch from baseBranch (e.g. origin/develop)
         await execFile(
           'git',
           ['worktree', 'add', worktreePath, '-b', branch, this.config.baseBranch],
@@ -447,14 +448,16 @@ export class WorktreeManager {
         );
       } catch {
         try {
+          // Branch already exists locally — check it out
           await execFile('git', ['worktree', 'add', worktreePath, branch], {
             cwd: gitRoot,
             encoding: 'utf-8',
           });
         } catch {
+          // Branch exists but is conflicting — force-reset from baseBranch
           await execFile(
             'git',
-            ['worktree', 'add', worktreePath, '-B', branch, `origin/${branch}`],
+            ['worktree', 'add', worktreePath, '-B', branch, this.config.baseBranch],
             { cwd: gitRoot, encoding: 'utf-8' },
           );
         }
@@ -463,7 +466,7 @@ export class WorktreeManager {
       // Step 3: Install dependencies
       updateStatus('Installing dependencies...');
       console.log(
-        `[worktree-manager] Installing dependencies in ${worktreeId}...`,
+        `[wok3] Installing dependencies in ${worktreeId}...`,
       );
       const [installCmd, ...installArgs] = this.config.installCommand.split(' ');
       await execFile(installCmd, installArgs, {
@@ -477,7 +480,7 @@ export class WorktreeManager {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to create worktree';
-      console.error(`[worktree-manager] Failed to create ${worktreeId}: ${message}`);
+      console.error(`[wok3] Failed to create ${worktreeId}: ${message}`);
       updateStatus(`Error: ${message}`);
 
       // Remove after a delay so the user can see the error

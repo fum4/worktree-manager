@@ -255,6 +255,6 @@ worktree-manager init
 
 The init command will auto-detect your default branch and prompt for the rest. Then:
 
-1. Run `worktree-manager` to start the manager UI
+1. Run `wok3` to start the manager UI
 2. Click "Discover Ports" — it'll auto-detect all ports your dev command binds
 3. Create worktrees from branches and start them — ports are offset automatically

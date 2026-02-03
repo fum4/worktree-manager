@@ -28,7 +28,7 @@ export class PortManager {
    * not relevant for the main repo root.
    */
   getProjectDir(): string {
-    return this.configFilePath ? path.dirname(this.configFilePath) : process.cwd();
+    return this.configFilePath ? path.dirname(path.dirname(this.configFilePath)) : process.cwd();
   }
 
   getDiscoveredPorts(): number[] {
@@ -58,21 +58,13 @@ export class PortManager {
   }
 
   getHookPath(): string {
-    // In dist, the hook is at dist/runtime/port-hook.cjs
-    // In dev/src, it's at src/runtime/port-hook.cjs
-    const distHook = path.resolve(currentDir, '..', 'runtime', 'port-hook.cjs');
+    // In dist: currentDir is dist/, hook is at dist/runtime/port-hook.cjs
+    const distHook = path.resolve(currentDir, 'runtime', 'port-hook.cjs');
     if (existsSync(distHook)) {
       return distHook;
     }
-    // Fallback: look relative to project root
-    const srcHook = path.resolve(
-      currentDir,
-      '..',
-      '..',
-      'src',
-      'runtime',
-      'port-hook.cjs',
-    );
+    // In dev (tsx): currentDir is src/server/, hook is at src/runtime/port-hook.cjs
+    const srcHook = path.resolve(currentDir, '..', 'runtime', 'port-hook.cjs');
     if (existsSync(srcHook)) {
       return srcHook;
     }

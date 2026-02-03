@@ -204,13 +204,17 @@ export async function startWorktreeServer(
   });
 
   console.log(
-    `[worktree-manager] Server running at http://localhost:${config.serverPort}`,
+    `[wok3] Server running at http://localhost:${config.serverPort}`,
   );
 
+  let closing = false;
   const close = async () => {
-    console.log('[worktree-manager] Shutting down...');
+    if (closing) return;
+    closing = true;
+    console.log('\n[wok3] Shutting down...');
     await manager.stopAll();
     server.close();
+    process.exit(0);
   };
 
   process.on('SIGINT', close);

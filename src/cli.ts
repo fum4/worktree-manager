@@ -2,13 +2,14 @@
 
 import { execFileSync } from 'child_process';
 import { createInterface } from 'readline';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 
 import { startWorktreeServer, PortManager } from './server/index';
 import type { PortConfig, WorktreeConfig } from './server/types';
 
-const CONFIG_FILE_NAME = '.worktree-manager.json';
+const CONFIG_DIR_NAME = '.wok3';
+const CONFIG_FILE_NAME = 'config.json';
 
 interface ConfigFile {
   projectDir?: string;
@@ -18,7 +19,6 @@ interface ConfigFile {
   baseBranch?: string;
   ports?: Partial<PortConfig>;
   envMapping?: Record<string, string>;
-  maxInstances?: number;
   serverPort?: number;
 }
 
@@ -27,7 +27,7 @@ function findConfigFile(): string | null {
   const { root } = path.parse(currentDir);
 
   while (currentDir !== root) {
-    const configPath = path.join(currentDir, CONFIG_FILE_NAME);
+    const configPath = path.join(currentDir, CONFIG_DIR_NAME, CONFIG_FILE_NAME);
     if (existsSync(configPath)) {
       return configPath;
     }
@@ -67,6 +67,14 @@ function detectDefaultBranch(): string {
   return 'origin/main';
 }
 
+function detectInstallCommand(projectDir: string): string | null {
+  if (existsSync(path.join(projectDir, 'pnpm-lock.yaml'))) return 'pnpm install';
+  if (existsSync(path.join(projectDir, 'yarn.lock'))) return 'yarn install';
+  if (existsSync(path.join(projectDir, 'package-lock.json'))) return 'npm install';
+  if (existsSync(path.join(projectDir, 'bun.lockb'))) return 'bun install';
+  return null;
+}
+
 function prompt(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
   return new Promise((resolve) => {
     rl.question(question, (answer) => resolve(answer.trim()));
@@ -76,7 +84,7 @@ function prompt(rl: ReturnType<typeof createInterface>, question: string): Promi
 async function runInit() {
   const existingConfig = findConfigFile();
   if (existingConfig) {
-    console.log(`[worktree-manager] Config already exists at ${existingConfig}`);
+    console.log(`[wok3] Config already exists at ${existingConfig}`);
     console.log('Delete it first if you want to re-initialize.');
     process.exit(1);
   }
@@ -88,11 +96,11 @@ async function runInit() {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
   } catch {
-    console.error('[worktree-manager] Not inside a git repository.');
+    console.error('[wok3] Not inside a git repository.');
     process.exit(1);
   }
 
-  console.log('[worktree-manager] Initializing configuration...\n');
+  console.log('[wok3] Initializing configuration...\n');
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
@@ -104,7 +112,7 @@ async function runInit() {
   const resolvedProjectDir = path.resolve(process.cwd(), projectDir);
 
   if (!existsSync(resolvedProjectDir)) {
-    console.error(`[worktree-manager] Directory "${resolvedProjectDir}" does not exist.`);
+    console.error(`[wok3] Directory "${resolvedProjectDir}" does not exist.`);
     rl.close();
     process.exit(1);
   }
@@ -121,9 +129,15 @@ async function runInit() {
     if (!startCommand) console.log('  Start command is required.');
   }
 
+  const detectedInstallCommand = detectInstallCommand(resolvedProjectDir);
   let installCommand = '';
   while (!installCommand) {
-    installCommand = await prompt(rl, 'Install dependencies command: ');
+    installCommand = (await prompt(
+      rl,
+      detectedInstallCommand
+        ? `Install dependencies command [${detectedInstallCommand}]: `
+        : 'Install dependencies command: ',
+    )) || detectedInstallCommand || '';
     if (!installCommand) console.log('  Install command is required.');
   }
 
@@ -132,15 +146,10 @@ async function runInit() {
     10,
   );
 
-  const maxInstances = parseInt(
-    (await prompt(rl, 'Max concurrent worktrees [5]: ')) || '5',
-    10,
-  );
-
   const worktreesDir = (await prompt(
     rl,
-    'Worktrees directory [.worktrees]: ',
-  )) || '.worktrees';
+    'Worktrees directory [.wok3/worktrees]: ',
+  )) || '.wok3/worktrees';
 
   rl.close();
 
@@ -149,7 +158,6 @@ async function runInit() {
     startCommand,
     installCommand,
     baseBranch,
-    maxInstances,
     serverPort,
     ports: {
       discovered: [],
@@ -157,10 +165,14 @@ async function runInit() {
     },
   };
 
-  const configPath = path.join(resolvedProjectDir, CONFIG_FILE_NAME);
+  const configDirPath = path.join(resolvedProjectDir, CONFIG_DIR_NAME);
+  if (!existsSync(configDirPath)) {
+    mkdirSync(configDirPath, { recursive: true });
+  }
+  const configPath = path.join(configDirPath, CONFIG_FILE_NAME);
   writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
 
-  console.log(`\n[worktree-manager] Config written to ${configPath}`);
+  console.log(`\n[wok3] Config written to ${configPath}`);
 
   // Auto-detect env var mappings if ports are already known
   if (config.ports?.discovered && config.ports.discovered.length > 0) {
@@ -171,7 +183,6 @@ async function runInit() {
       installCommand,
       baseBranch,
       ports: config.ports as PortConfig,
-      maxInstances,
       serverPort,
     };
     const pm = new PortManager(tempConfig, configPath);
@@ -189,7 +200,7 @@ async function runInit() {
 
   console.log('');
   console.log('Next steps:');
-  console.log('  1. Run `worktree-manager` to start the manager UI');
+  console.log('  1. Run `wok3` to start the manager UI');
   console.log('  2. Click "Discover Ports" in the UI to auto-detect all ports');
   console.log('  3. Create worktrees and start them — ports are offset automatically');
   console.log('');
@@ -200,7 +211,7 @@ function loadConfig(): { config: WorktreeConfig; configPath: string | null } {
 
   const defaults: WorktreeConfig = {
     projectDir: '.',
-    worktreesDir: '.worktrees',
+    worktreesDir: '.wok3/worktrees',
     startCommand: '',
     installCommand: '',
     baseBranch: 'origin/main',
@@ -208,16 +219,15 @@ function loadConfig(): { config: WorktreeConfig; configPath: string | null } {
       discovered: [],
       offsetStep: 1,
     },
-    maxInstances: 5,
     serverPort: 3100,
   };
 
   if (!configPath) {
     console.log(
-      `[worktree-manager] No ${CONFIG_FILE_NAME} found, using defaults`,
+      `[wok3] No ${CONFIG_DIR_NAME}/${CONFIG_FILE_NAME} found, using defaults`,
     );
     console.log(
-      `[worktree-manager] Run "worktree-manager init" to create a config file`,
+      `[wok3] Run "wok3 init" to create a config file`,
     );
     return { config: defaults, configPath: null };
   }
@@ -226,12 +236,12 @@ function loadConfig(): { config: WorktreeConfig; configPath: string | null } {
     const content = readFileSync(configPath, 'utf-8');
     const fileConfig: ConfigFile = JSON.parse(content);
 
-    const configDir = path.dirname(configPath);
+    const configDir = path.dirname(path.dirname(configPath));
     if (configDir !== process.cwd()) {
-      console.log(`[worktree-manager] Found config at ${configPath}`);
+      console.log(`[wok3] Found config at ${configPath}`);
       process.chdir(configDir);
       console.log(
-        `[worktree-manager] Changed working directory to ${configDir}`,
+        `[wok3] Changed working directory to ${configDir}`,
       );
     }
 
@@ -246,14 +256,13 @@ function loadConfig(): { config: WorktreeConfig; configPath: string | null } {
         offsetStep: fileConfig.ports?.offsetStep ?? defaults.ports.offsetStep,
       },
       envMapping: fileConfig.envMapping,
-      maxInstances: fileConfig.maxInstances ?? defaults.maxInstances,
       serverPort: fileConfig.serverPort ?? defaults.serverPort,
     };
 
     return { config, configPath };
   } catch (error) {
     console.error(
-      `[worktree-manager] Failed to load config from ${configPath}:`,
+      `[wok3] Failed to load config from ${configPath}:`,
       error,
     );
     return { config: defaults, configPath: null };
@@ -268,11 +277,11 @@ async function main() {
     return;
   }
 
-  console.log('[worktree-manager] Starting...');
+  console.log('[wok3] Starting...');
 
   const { config, configPath } = loadConfig();
 
-  console.log('[worktree-manager] Configuration:');
+  console.log('[wok3] Configuration:');
   console.log(`  Project directory: ${config.projectDir}`);
   console.log(`  Worktrees directory: ${config.worktreesDir}`);
   console.log(`  Start command: ${config.startCommand || '(not set)'}`);
@@ -286,7 +295,6 @@ async function main() {
   console.log(
     `  Env mappings: ${envMappingKeys.length > 0 ? envMappingKeys.join(', ') : '(none)'}`,
   );
-  console.log(`  Max instances: ${config.maxInstances}`);
   console.log(`  Server port: ${config.serverPort}`);
   console.log('');
 
@@ -300,6 +308,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('[worktree-manager] Fatal error:', error);
+  console.error('[wok3] Fatal error:', error);
   process.exit(1);
 });
