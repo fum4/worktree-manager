@@ -16,9 +16,18 @@ export class PortManager {
 
   private configFilePath: string | null;
 
+  private configDir: string;
+
   constructor(config: WorktreeConfig, configFilePath: string | null = null) {
     this.config = config;
     this.configFilePath = configFilePath;
+    this.configDir = configFilePath ? path.dirname(configFilePath) : process.cwd();
+  }
+
+  getProjectDir(): string {
+    return this.config.projectDir && this.config.projectDir !== '.'
+      ? path.resolve(this.configDir, this.config.projectDir)
+      : this.configDir;
   }
 
   getDiscoveredPorts(): number[] {
@@ -180,10 +189,7 @@ export class PortManager {
     log('[port-discovery] Starting dev command to discover ports...');
 
     const [cmd, ...args] = this.config.startCommand.split(' ');
-    const workingDir =
-      this.config.projectDir && this.config.projectDir !== '.'
-        ? path.resolve(process.cwd(), this.config.projectDir)
-        : process.cwd();
+    const workingDir = this.getProjectDir();
 
     if (!existsSync(workingDir)) {
       return {

@@ -62,12 +62,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
 
   app.post('/api/detect-env', (c) => {
     const portManager = manager.getPortManager();
-    const config = manager.getConfig();
-    const projectDir = config.projectDir && config.projectDir !== '.'
-      ? path.resolve(process.cwd(), config.projectDir)
-      : process.cwd();
-
-    const mapping = portManager.detectEnvMapping(projectDir);
+    const mapping = portManager.detectEnvMapping(portManager.getProjectDir());
     if (Object.keys(mapping).length > 0) {
       portManager.persistEnvMapping(mapping);
     }

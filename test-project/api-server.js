@@ -1,6 +1,6 @@
 const http = require('http');
 
-const PORT = parseInt(process.env.API_PORT, 10) || 4000;
+const PORT = 4000;
 
 const server = http.createServer((req, res) => {
   const start = Date.now();

@@ -1,10 +1,11 @@
 const http = require('http');
 
-const PORT = parseInt(process.env.WEB_PORT, 10) || 4100;
-const API_PORT = parseInt(process.env.API_PORT, 10) || 4000;
+const PORT = 4100;
+const API_PORT = 4000;
 
 function getHtml(webPort) {
-  const apiUrl = process.env.API_URL || `http://localhost:${API_PORT}`;
+  const apiUrl = process.env.API_URL || 'not set';
+  const webUrl = process.env.WEB_URL || 'not set';
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -19,7 +20,7 @@ function getHtml(webPort) {
 <body>
   <h1>Test Project</h1>
   <p>Web server port: <strong>${webPort}</strong> | API port: <strong>${API_PORT}</strong></p>
-  <p>API_URL: <strong>${apiUrl}</strong></p>
+  <p>API_URL: <strong>${apiUrl}</strong> | WEB_URL: <strong>${webUrl}</strong></p>
   <button onclick="pingApi()">Ping API</button>
   <pre id="result">Click the button to ping the API server</pre>
   <script>
