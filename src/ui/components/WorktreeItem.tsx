@@ -134,7 +134,7 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
             </div>
           </div>
 
-          <span className="text-red-400 text-xs">Deleting...</span>
+          <span className="text-gray-400 text-xs">Deleting...</span>
         </div>
       </div>
     );
@@ -157,7 +157,7 @@ export function WorktreeItem({ worktree, onUpdate }: WorktreeItemProps) {
             </div>
           </div>
 
-          <span className="text-yellow-400 text-xs">
+          <span className="text-gray-400 text-xs">
             {worktree.statusMessage || 'Creating...'}
           </span>
         </div>

@@ -1,5 +1,5 @@
 import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync } from 'fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 
@@ -151,6 +151,44 @@ export class WorktreeManager {
     }
 
     return worktrees;
+  }
+
+  private copyEnvFiles(worktreePath: string): void {
+    // Recursively copy .env* files from the main project into the new worktree.
+    // These are gitignored so git worktree add won't include them.
+    const sourceDir = this.configDir;
+
+    const copyEnvRecursive = (src: string, dest: string, relPath = '') => {
+      try {
+        const entries = readdirSync(src, { withFileTypes: true });
+        for (const entry of entries) {
+          const srcPath = path.join(src, entry.name);
+          const destPath = path.join(dest, entry.name);
+          const displayPath = relPath ? `${relPath}/${entry.name}` : entry.name;
+
+          if (entry.isDirectory()) {
+            // Skip node_modules, .git, and the worktrees directory itself
+            if (entry.name === 'node_modules' || entry.name === '.git') continue;
+            const worktreesDir = path.basename(this.getWorktreesAbsolutePath());
+            if (entry.name === worktreesDir) continue;
+            copyEnvRecursive(srcPath, destPath, displayPath);
+          } else if (entry.isFile() && entry.name.startsWith('.env')) {
+            if (!existsSync(destPath)) {
+              const destDir = path.dirname(destPath);
+              if (!existsSync(destDir)) {
+                mkdirSync(destDir, { recursive: true });
+              }
+              copyFileSync(srcPath, destPath);
+              console.log(`[wok3] Copied ${displayPath} to worktree`);
+            }
+          }
+        }
+      } catch {
+        // Directory may not exist or be unreadable
+      }
+    };
+
+    copyEnvRecursive(sourceDir, worktreePath);
   }
 
   private getWorktreeBranch(worktreePath: string): string | null {
@@ -462,6 +500,9 @@ export class WorktreeManager {
           );
         }
       }
+
+      // Step 2.5: Copy .env* files from main project to worktree
+      this.copyEnvFiles(worktreePath);
 
       // Step 3: Install dependencies
       updateStatus('Installing dependencies...');

@@ -1,5 +1,5 @@
 import { execFileSync, spawn } from 'child_process';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -104,16 +104,12 @@ export class PortManager {
   }
 
   detectEnvMapping(projectDir: string): Record<string, string> {
-    const envFiles = ['.env', '.env.local', '.env.development', '.env.development.local'];
     const discoveredPorts = this.config.ports.discovered;
     if (discoveredPorts.length === 0) return {};
 
     const mapping: Record<string, string> = {};
 
-    for (const envFile of envFiles) {
-      const filePath = path.join(projectDir, envFile);
-      if (!existsSync(filePath)) continue;
-
+    const scanFile = (filePath: string) => {
       const content = readFileSync(filePath, 'utf-8');
       for (const line of content.split('\n')) {
         const trimmed = line.trim();
@@ -145,8 +141,25 @@ export class PortManager {
           mapping[key] = template;
         }
       }
-    }
+    };
 
+    const scanDir = (dir: string) => {
+      try {
+        const entries = readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            if (entry.name === 'node_modules' || entry.name === '.git') continue;
+            scanDir(path.join(dir, entry.name));
+          } else if (entry.isFile() && entry.name.startsWith('.env')) {
+            scanFile(path.join(dir, entry.name));
+          }
+        }
+      } catch {
+        // Directory may not be readable
+      }
+    };
+
+    scanDir(projectDir);
     return mapping;
   }
 
