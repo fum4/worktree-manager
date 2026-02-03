@@ -16,18 +16,19 @@ export class PortManager {
 
   private configFilePath: string | null;
 
-  private configDir: string;
-
   constructor(config: WorktreeConfig, configFilePath: string | null = null) {
     this.config = config;
     this.configFilePath = configFilePath;
-    this.configDir = configFilePath ? path.dirname(configFilePath) : process.cwd();
   }
 
+  /**
+   * Returns the directory where the main project lives (for discovery, env scanning, etc.).
+   * This is always the config file's directory, since cli.ts chdir's there on startup.
+   * Note: config.projectDir is a subdirectory path used *within worktrees* (monorepo subpath),
+   * not relevant for the main repo root.
+   */
   getProjectDir(): string {
-    return this.config.projectDir && this.config.projectDir !== '.'
-      ? path.resolve(process.cwd(), this.config.projectDir)
-      : process.cwd();
+    return this.configFilePath ? path.dirname(this.configFilePath) : process.cwd();
   }
 
   getDiscoveredPorts(): number[] {

@@ -11,5 +11,9 @@
       4100
     ],
     "offsetStep": 1
+  },
+  "envMapping": {
+    "API_URL": "http://localhost:${4000}",
+    "WEB_URL": "http://localhost:${4100}"
   }
 }
