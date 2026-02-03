@@ -10,6 +10,7 @@ import {
   startWorktree,
   stopWorktree,
 } from '../hooks/useWorktrees';
+import { action, badge, border, errorBanner, input, status, surface, text } from '../theme';
 import { ConfirmModal } from './ConfirmModal';
 
 interface DetailPanelProps {
@@ -62,7 +63,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
 
   if (!worktree) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-600 text-sm">
+      <div className={`flex-1 flex items-center justify-center ${text.dimmed} text-sm`}>
         Select a worktree or create a new one
       </div>
     );
@@ -177,9 +178,9 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
 
   if (isDeleting) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+      <div className={`flex-1 flex items-center justify-center ${text.muted} text-sm`}>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <div className={`w-2 h-2 rounded-full ${status.deleting.dot} animate-pulse`} />
           Deleting {worktree.id}...
         </div>
       </div>
@@ -189,7 +190,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Detail Header */}
-      <div className="flex-shrink-0 px-5 py-3 border-b border-gray-800">
+      <div className={`flex-shrink-0 px-5 py-3 border-b ${border.section}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {isEditing ? (
@@ -199,7 +200,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleEditSave(); if (e.key === 'Escape') handleEditCancel(); }}
-                  className="px-1 py-0.5 bg-gray-900 border border-gray-700 rounded text-white text-base font-semibold focus:outline-none focus:border-blue-500 w-40"
+                  className={`px-1 py-0.5 ${input.bgDetail} border ${border.modal} rounded ${text.primary} text-base font-semibold focus:outline-none focus:${border.focusPrimary} w-40`}
                   autoFocus
                 />
                 <input
@@ -207,26 +208,26 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
                   value={editBranch}
                   onChange={(e) => setEditBranch(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleEditSave(); if (e.key === 'Escape') handleEditCancel(); }}
-                  className="px-1 py-0.5 bg-gray-900 border border-gray-700 rounded text-gray-400 text-xs focus:outline-none focus:border-blue-500 w-48"
+                  className={`px-1 py-0.5 ${input.bgDetail} border ${border.modal} rounded ${text.secondary} text-xs focus:outline-none focus:${border.focusPrimary} w-48`}
                 />
                 <button type="button" onClick={handleEditSave} disabled={isLoading} className="px-2 py-0.5 text-[10px] font-medium text-blue-400 bg-blue-900/30 rounded hover:bg-blue-900/50 disabled:opacity-50 transition-colors">
                   {isLoading ? 'Saving...' : 'Save'}
                 </button>
-                <button type="button" onClick={handleEditCancel} className="px-2 py-0.5 text-[10px] font-medium text-gray-500 hover:text-gray-300 transition-colors">
+                <button type="button" onClick={handleEditCancel} className={`px-2 py-0.5 text-[10px] font-medium ${action.cancel.text} ${action.cancel.textHover} transition-colors`}>
                   Cancel
                 </button>
               </>
             ) : (
               <>
                 <h2
-                  className={`text-base font-semibold text-white truncate ${!isRunning && !isCreating ? 'cursor-text hover:bg-gray-800/50 px-1 -mx-1 rounded transition-colors' : ''}`}
+                  className={`text-base font-semibold ${text.primary} truncate ${!isRunning && !isCreating ? `cursor-text hover:${surface.editableHover} px-1 -mx-1 rounded transition-colors` : ''}`}
                   onClick={!isRunning && !isCreating ? handleEditStart : undefined}
                   title={!isRunning && !isCreating ? 'Click to edit' : undefined}
                 >
                   {worktree.id}
                 </h2>
                 <span
-                  className={`text-xs text-gray-500 truncate ${!isRunning && !isCreating ? 'cursor-text hover:text-gray-400 transition-colors' : ''}`}
+                  className={`text-xs ${text.muted} truncate ${!isRunning && !isCreating ? `cursor-text hover:${text.secondary} transition-colors` : ''}`}
                   onClick={!isRunning && !isCreating ? handleEditStart : undefined}
                   title={!isRunning && !isCreating ? 'Click to edit' : undefined}
                 >
@@ -237,22 +238,22 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {isCreating && (
-              <span className="px-2 py-0.5 text-[10px] font-medium text-yellow-400 bg-yellow-900/30 rounded">
+              <span className={`px-2 py-0.5 text-[10px] font-medium ${status.creating.badge} rounded`}>
                 Creating
               </span>
             )}
             {isRunning && (
-              <span className="px-2 py-0.5 text-[10px] font-medium text-green-400 bg-green-900/30 rounded">
+              <span className={`px-2 py-0.5 text-[10px] font-medium ${status.running.badge} rounded`}>
                 Running
               </span>
             )}
             {!isRunning && !isCreating && (
-              <span className="px-2 py-0.5 text-[10px] font-medium text-gray-400 bg-gray-800 rounded">
+              <span className={`px-2 py-0.5 text-[10px] font-medium ${status.stopped.badge} rounded`}>
                 Stopped
               </span>
             )}
             {worktree.ports.length > 0 && (
-              <span className="text-[10px] font-mono text-gray-500">
+              <span className={`text-[10px] font-mono ${text.muted}`}>
                 {worktree.ports.map((p) => `:${p}`).join(' ')}
               </span>
             )}
@@ -267,7 +268,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
                 href={worktree.jiraUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 transition-colors"
+                className={`flex items-center gap-1 text-[10px] ${badge.jira} ${badge.jiraHover} transition-colors`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
                   <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Z" clipRule="evenodd" />
@@ -275,7 +276,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
                 </svg>
                 Jira
                 {worktree.jiraStatus && (
-                  <span className="px-1 py-0.5 bg-blue-900/30 rounded text-[9px]">
+                  <span className={`px-1 py-0.5 ${badge.jiraStatus} rounded text-[9px]`}>
                     {worktree.jiraStatus}
                   </span>
                 )}
@@ -294,13 +295,10 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
                 PR
                 {worktree.githubPrState && (
                   <span className={`px-1 py-0.5 rounded text-[9px] ${
-                    worktree.githubPrState === 'draft'
-                      ? 'text-gray-300 bg-gray-700'
-                      : worktree.githubPrState === 'open'
-                        ? 'text-green-400 bg-green-900/30'
-                        : worktree.githubPrState === 'merged'
-                          ? 'text-purple-400 bg-purple-900/30'
-                          : 'text-red-400 bg-red-900/30'
+                    worktree.githubPrState === 'draft' ? badge.prDraft
+                      : worktree.githubPrState === 'open' ? badge.prOpen
+                        : worktree.githubPrState === 'merged' ? badge.prMerged
+                          : badge.prClosed
                   }`}>
                     {worktree.githubPrState === 'draft' ? 'Draft' : worktree.githubPrState === 'open' ? 'Open' : worktree.githubPrState === 'merged' ? 'Merged' : 'Closed'}
                   </span>
@@ -313,14 +311,14 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
 
       {/* Action Toolbar */}
       {!isCreating && (
-        <div className="flex-shrink-0 px-5 py-2 border-b border-gray-800 flex items-center justify-between">
+        <div className={`flex-shrink-0 px-5 py-2 border-b ${border.section} flex items-center justify-between`}>
           <div className="flex items-center gap-1.5">
             {isRunning ? (
               <button
                 type="button"
                 onClick={handleStop}
                 disabled={isLoading}
-                className="px-2 py-1 text-[10px] font-medium text-red-400 hover:bg-red-900/30 rounded disabled:opacity-50 transition-colors flex items-center gap-1"
+                className={`px-2 py-1 text-[10px] font-medium ${action.stop.text} ${action.stop.hover} rounded disabled:opacity-50 transition-colors flex items-center gap-1`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
                   <path fillRule="evenodd" d="M2 10a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm5-2.25A.75.75 0 0 1 7.75 7h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-4.5Z" clipRule="evenodd" />
@@ -332,7 +330,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
                 type="button"
                 onClick={handleStart}
                 disabled={isLoading}
-                className="px-2 py-1 text-[10px] font-medium text-green-400 hover:bg-green-900/30 rounded disabled:opacity-50 transition-colors flex items-center gap-1"
+                className={`px-2 py-1 text-[10px] font-medium ${action.start.text} ${action.start.hover} rounded disabled:opacity-50 transition-colors flex items-center gap-1`}
               >
                 {isLoading ? (
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 animate-spin">
@@ -350,7 +348,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
               type="button"
               onClick={handleRemove}
               disabled={isLoading}
-              className="px-2 py-1 text-[10px] font-medium text-red-400 hover:bg-red-900/30 rounded disabled:opacity-50 transition-colors"
+              className={`px-2 py-1 text-[10px] font-medium ${action.delete.text} ${action.delete.hover} rounded disabled:opacity-50 transition-colors`}
               title="Delete"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
@@ -367,8 +365,8 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
                 disabled={isGitLoading}
                 className={`px-2 py-1 text-[10px] font-medium rounded transition-colors flex items-center gap-1 ${
                   showCommitInput
-                    ? 'text-orange-300 bg-orange-900/40'
-                    : 'text-orange-400 hover:bg-orange-900/30'
+                    ? `${action.commit.textActive} ${action.commit.bgActive}`
+                    : `${action.commit.text} ${action.commit.hover}`
                 } disabled:opacity-50`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
@@ -383,7 +381,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
                 type="button"
                 onClick={handlePush}
                 disabled={isGitLoading}
-                className="px-2 py-1 text-[10px] font-medium text-cyan-400 hover:bg-cyan-900/30 rounded disabled:opacity-50 transition-colors flex items-center gap-1"
+                className={`px-2 py-1 text-[10px] font-medium ${action.push.text} ${action.push.hover} rounded disabled:opacity-50 transition-colors flex items-center gap-1`}
                 title={`Push ${worktree.commitsAhead || ''} commit(s)`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
@@ -399,8 +397,8 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
                 disabled={isGitLoading}
                 className={`px-2 py-1 text-[10px] font-medium rounded transition-colors flex items-center gap-1 ${
                   showCreatePrInput
-                    ? 'text-purple-300 bg-purple-900/40'
-                    : 'text-purple-400 hover:bg-purple-900/30'
+                    ? `${action.pr.textActive} ${action.pr.bgActive}`
+                    : `${action.pr.text} ${action.pr.hover}`
                 } disabled:opacity-50`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
@@ -415,40 +413,40 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
 
       {/* Inline inputs for commit / PR */}
       {showCommitInput && (
-        <div className="flex-shrink-0 px-5 py-2 border-b border-gray-800 flex items-center gap-2">
+        <div className={`flex-shrink-0 px-5 py-2 border-b ${border.section} flex items-center gap-2`}>
           <input
             type="text"
             value={commitMessage}
             onChange={(e) => setCommitMessage(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleCommit(); if (e.key === 'Escape') setShowCommitInput(false); }}
             placeholder="Commit message..."
-            className="flex-1 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-white text-xs focus:outline-none focus:border-orange-500 focus-visible:ring-1 ring-orange-500/50"
+            className={`flex-1 px-2 py-1 ${input.bgDetail} border ${border.modal} rounded ${input.text} text-xs focus:outline-none focus:${border.focusCommit} focus-visible:ring-1 ${input.ringCommit}`}
             autoFocus
           />
-          <button type="button" onClick={handleCommit} disabled={isGitLoading || !commitMessage.trim()} className="px-3 py-1 text-xs font-medium text-orange-400 bg-orange-900/30 rounded hover:bg-orange-900/50 disabled:opacity-50 transition-colors">
+          <button type="button" onClick={handleCommit} disabled={isGitLoading || !commitMessage.trim()} className={`px-3 py-1 text-xs font-medium ${action.commit.text} ${action.commit.bgSubmit} rounded ${action.commit.bgSubmitHover} disabled:opacity-50 transition-colors`}>
             {isGitLoading ? 'Committing...' : 'Commit'}
           </button>
-          <button type="button" onClick={() => setShowCommitInput(false)} className="px-2 py-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
+          <button type="button" onClick={() => setShowCommitInput(false)} className={`px-2 py-1 text-xs ${action.cancel.text} ${action.cancel.textHover} transition-colors`}>
             Cancel
           </button>
         </div>
       )}
 
       {showCreatePrInput && (
-        <div className="flex-shrink-0 px-5 py-2 border-b border-gray-800 flex items-center gap-2">
+        <div className={`flex-shrink-0 px-5 py-2 border-b ${border.section} flex items-center gap-2`}>
           <input
             type="text"
             value={prTitle}
             onChange={(e) => setPrTitle(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleCreatePr(); if (e.key === 'Escape') setShowCreatePrInput(false); }}
             placeholder="PR title..."
-            className="flex-1 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-white text-xs focus:outline-none focus:border-purple-500 focus-visible:ring-1 ring-purple-500/50"
+            className={`flex-1 px-2 py-1 ${input.bgDetail} border ${border.modal} rounded ${input.text} text-xs focus:outline-none focus:${border.focusPr} focus-visible:ring-1 ${input.ringPr}`}
             autoFocus
           />
-          <button type="button" onClick={handleCreatePr} disabled={isGitLoading || !prTitle.trim()} className="px-3 py-1 text-xs font-medium text-purple-400 bg-purple-900/30 rounded hover:bg-purple-900/50 disabled:opacity-50 transition-colors">
+          <button type="button" onClick={handleCreatePr} disabled={isGitLoading || !prTitle.trim()} className={`px-3 py-1 text-xs font-medium ${action.pr.text} ${action.pr.bgSubmit} rounded ${action.pr.bgSubmitHover} disabled:opacity-50 transition-colors`}>
             {isGitLoading ? 'Creating...' : 'Create PR'}
           </button>
-          <button type="button" onClick={() => setShowCreatePrInput(false)} className="px-2 py-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
+          <button type="button" onClick={() => setShowCreatePrInput(false)} className={`px-2 py-1 text-xs ${action.cancel.text} ${action.cancel.textHover} transition-colors`}>
             Cancel
           </button>
         </div>
@@ -456,8 +454,8 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
 
       {/* Error banner */}
       {error && (
-        <div className="flex-shrink-0 px-5 py-2 bg-red-900/20 border-b border-red-900/30">
-          <p className="text-red-400 text-xs">{error}</p>
+        <div className={`flex-shrink-0 px-5 py-2 ${errorBanner.panelBg} border-b ${errorBanner.border}`}>
+          <p className={`${text.error} text-xs`}>{error}</p>
         </div>
       )}
 
@@ -466,13 +464,13 @@ export function DetailPanel({ worktree, onUpdate, onDeleted }: DetailPanelProps)
         <pre
           ref={logsContainerRef}
           onScroll={handleLogsScroll}
-          className="flex-1 min-h-0 bg-gray-900/50 text-gray-300 text-xs font-mono p-4 overflow-y-auto"
+          className={`flex-1 min-h-0 ${text.secondary} text-xs font-mono p-4 overflow-y-auto`}
         >
           {worktree.logs?.length ? worktree.logs.join('\n') : 'No logs yet.'}
           <div ref={logsEndRef} />
         </pre>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-gray-600 text-xs">
+        <div className={`flex-1 flex items-center justify-center ${text.dimmed} text-xs`}>
           Start this worktree to see logs
         </div>
       )}

@@ -772,6 +772,7 @@ export class WorktreeManager {
 
   async createWorktreeFromJira(
     issueKey: string,
+    branch?: string,
   ): Promise<{
     success: boolean;
     task?: { key: string; summary: string; status: string; type: string; url: string };
@@ -807,8 +808,9 @@ export class WorktreeManager {
     const tasksDir = path.join(this.configDir, '.wok3', 'tasks');
     saveTaskData(taskData, tasksDir);
 
-    // Create worktree using the issue key as branch name
-    const result = await this.createWorktree({ branch: resolvedKey, name: resolvedKey });
+    // Create worktree using custom branch or issue key as branch name
+    const worktreeBranch = branch?.trim() || resolvedKey;
+    const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedKey });
 
     if (!result.success) {
       return { success: false, error: result.error };

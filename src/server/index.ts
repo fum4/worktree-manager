@@ -153,11 +153,11 @@ export function createWorktreeServer(manager: WorktreeManager) {
 
   app.post('/api/jira/task', async (c) => {
     try {
-      const body = await c.req.json<{ issueKey: string }>();
+      const body = await c.req.json<{ issueKey: string; branch?: string }>();
       if (!body.issueKey) {
         return c.json({ success: false, error: 'Issue key is required' }, 400);
       }
-      const result = await manager.createWorktreeFromJira(body.issueKey);
+      const result = await manager.createWorktreeFromJira(body.issueKey, body.branch);
       return c.json(result, result.success ? 201 : 400);
     } catch (error) {
       return c.json(

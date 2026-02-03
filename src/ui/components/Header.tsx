@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { discoverPorts } from '../hooks/useWorktrees';
 import type { PortsInfo } from '../hooks/useWorktrees';
+import { badge, header, text } from '../theme';
 
 interface HeaderProps {
   projectName: string | null;
@@ -32,20 +33,20 @@ export function Header({
   const hasPorts = portsInfo.discovered.length > 0;
 
   return (
-    <header className="h-10 flex-shrink-0 flex items-center justify-between px-4 border-b border-gray-800 bg-gray-900">
+    <header className={`h-10 flex-shrink-0 flex items-center justify-between px-4 ${header.bg}`}>
       <div className="flex items-center gap-3">
-        <span className="text-sm font-semibold text-white">{projectName || 'Worktree Manager'}</span>
-        <span className="text-xs text-gray-500">wok3</span>
+        <span className={`text-sm font-semibold ${text.primary}`}>{projectName || 'Worktree Manager'}</span>
+        <span className={`text-xs ${text.muted}`}>wok3</span>
         {hasPorts && (
           <div className="flex items-center gap-1.5">
-            <span className="text-gray-600 text-[10px] font-mono">
+            <span className={`text-[10px] font-mono ${header.ports}`}>
               {portsInfo.discovered.map((p) => `:${p}`).join(' ')}
             </span>
             <button
               type="button"
               onClick={handleDiscover}
               disabled={isDiscovering}
-              className="text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-50"
+              className={`${header.rescan} transition-colors disabled:opacity-50`}
               title="Re-discover ports"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
@@ -59,7 +60,7 @@ export function Header({
             type="button"
             onClick={handleDiscover}
             disabled={isDiscovering}
-            className="text-[10px] text-yellow-400 hover:text-yellow-300 transition-colors disabled:opacity-50"
+            className={`text-[10px] ${header.portsDiscover} transition-colors disabled:opacity-50`}
           >
             {isDiscovering ? 'Scanning...' : 'Discover Ports'}
           </button>
@@ -67,17 +68,17 @@ export function Header({
       </div>
       <div className="flex items-center gap-3">
         {runningCount > 0 && (
-          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-600 text-white rounded-full">
+          <span className={`px-1.5 py-0.5 text-[10px] font-medium ${badge.running} rounded-full`}>
             {runningCount} running
           </span>
         )}
         <div className="flex items-center gap-1.5 text-xs">
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              isConnected ? 'bg-green-500' : 'bg-gray-500'
+              isConnected ? header.connectedDot : header.disconnectedDot
             }`}
           />
-          <span className="text-gray-500">
+          <span className={header.connection}>
             {isConnected ? 'Connected' : 'Disconnected'}
           </span>
         </div>

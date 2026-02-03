@@ -1,4 +1,5 @@
 import type { WorktreeInfo } from '../hooks/useWorktrees';
+import { text } from '../theme';
 import { WorktreeItem } from './WorktreeItem';
 
 interface WorktreeListProps {
@@ -12,8 +13,8 @@ export function WorktreeList({ worktrees, selectedId, onSelect }: WorktreeListPr
     return (
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="text-center">
-          <p className="text-gray-500 text-xs">No worktrees yet</p>
-          <p className="text-gray-600 text-[10px] mt-1">Create one to get started</p>
+          <p className={`${text.muted} text-xs`}>No worktrees yet</p>
+          <p className={`${text.dimmed} text-[10px] mt-1`}>Create one to get started</p>
         </div>
       </div>
     );

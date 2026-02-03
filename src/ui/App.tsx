@@ -5,6 +5,7 @@ import { DetailPanel } from './components/DetailPanel';
 import { Header } from './components/Header';
 import { WorktreeList } from './components/WorktreeList';
 import { useJiraStatus, usePorts, useProjectName, useWorktrees } from './hooks/useWorktrees';
+import { errorBanner, surface, text } from './theme';
 
 export default function App() {
   const { worktrees, isConnected, error, refetch } = useWorktrees();
@@ -33,7 +34,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-950 text-gray-100">
+    <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
       <Header
         projectName={projectName}
         runningCount={runningCount}
@@ -43,14 +44,14 @@ export default function App() {
       />
 
       {error && (
-        <div className="flex-shrink-0 px-4 py-2 bg-red-900/30 border-b border-red-900/40 text-red-300 text-xs">
+        <div className={`flex-shrink-0 px-4 py-2 ${errorBanner.bg} ${text.errorBanner} text-xs`}>
           {error}
         </div>
       )}
 
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 gap-3 p-4 pt-3">
         {/* Left sidebar */}
-        <aside className="w-[300px] flex-shrink-0 border-r border-gray-800 flex flex-col bg-gray-900">
+        <aside className={`w-[300px] flex-shrink-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}>
           <CreateForm
             onCreated={refetch}
             jiraConfigured={jiraStatus?.configured ?? false}
@@ -64,7 +65,7 @@ export default function App() {
         </aside>
 
         {/* Right panel */}
-        <main className="flex-1 min-w-0 flex flex-col">
+        <main className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}>
           <DetailPanel
             worktree={selectedWorktree}
             onUpdate={refetch}

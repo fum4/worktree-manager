@@ -242,6 +242,7 @@ export function useJiraStatus() {
 
 export async function createFromJira(
   issueKey: string,
+  branch?: string,
 ): Promise<{
   success: boolean;
   task?: { key: string; summary: string; status: string; type: string; url: string };
@@ -251,7 +252,7 @@ export async function createFromJira(
     const res = await fetch(`${API_BASE}/api/jira/task`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ issueKey }),
+      body: JSON.stringify({ issueKey, branch: branch || undefined }),
     });
     return await res.json();
   } catch (err) {
