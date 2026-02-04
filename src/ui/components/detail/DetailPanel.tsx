@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { WorktreeInfo } from '../../types';
 import {
@@ -38,10 +38,17 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
   const [isGitLoading, setIsGitLoading] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'logs' | 'terminal'>('logs');
-  const [terminalMounted, setTerminalMounted] = useState(false);
+  const [tabPerWorktree, setTabPerWorktree] = useState<Record<string, 'logs' | 'terminal'>>({});
+  const [openTerminals, setOpenTerminals] = useState<Set<string>>(new Set());
 
-  // Reset state when worktree changes
+  const activeTab = worktree ? (tabPerWorktree[worktree.id] ?? 'logs') : 'logs';
+
+  const setActiveTab = useCallback((tab: 'logs' | 'terminal') => {
+    if (!worktree) return;
+    setTabPerWorktree(prev => ({ ...prev, [worktree.id]: tab }));
+  }, [worktree]);
+
+  // Reset form state when worktree changes (but NOT tab or terminal state)
   useEffect(() => {
     setError(null);
     setIsEditing(false);
@@ -49,8 +56,6 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
     setShowCreatePrInput(false);
     setCommitMessage('');
     setPrTitle('');
-    setActiveTab('logs');
-    setTerminalMounted(false);
   }, [worktree?.id]);
 
   if (!worktree) {
@@ -88,11 +93,21 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
     setShowRemoveModal(false);
     setIsDeleting(true);
     setError(null);
-    const result = await removeWorktree(worktree.id);
+    const deletedId = worktree.id;
+    const result = await removeWorktree(deletedId);
     if (!result.success) {
       setIsDeleting(false);
       setError(result.error || 'Failed to remove');
     } else {
+      setOpenTerminals(prev => {
+        const next = new Set(prev);
+        next.delete(deletedId);
+        return next;
+      });
+      setTabPerWorktree(prev => {
+        const { [deletedId]: _, ...rest } = prev;
+        return rest;
+      });
       onDeleted();
     }
     onUpdate();
@@ -259,7 +274,9 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
             type="button"
             onClick={() => {
               setActiveTab('terminal');
-              if (!terminalMounted) setTerminalMounted(true);
+              if (!openTerminals.has(worktree.id)) {
+                setOpenTerminals(prev => new Set(prev).add(worktree.id));
+              }
             }}
             className={`px-4 py-1.5 text-xs font-medium transition-colors ${
               activeTab === 'terminal' ? detailTab.active : detailTab.inactive
@@ -276,12 +293,13 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
         isCreating={isCreating}
         visible={isCreating || activeTab === 'logs'}
       />
-      {terminalMounted && !isCreating && (
+      {[...openTerminals].map(wtId => (
         <TerminalView
-          worktreeId={worktree.id}
-          visible={activeTab === 'terminal'}
+          key={wtId}
+          worktreeId={wtId}
+          visible={wtId === worktree.id && activeTab === 'terminal' && !isCreating}
         />
-      )}
+      ))}
 
       {showRemoveModal && (
         <ConfirmModal
