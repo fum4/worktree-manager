@@ -59,7 +59,7 @@ export interface JiraIssueDetail {
   created: string;
   updated: string;
   comments: Array<{ author: string; body: string; created: string }>;
-  attachments: Array<{ filename: string; mimeType: string; size: number }>;
+  attachments: Array<{ filename: string; mimeType: string; size: number; contentUrl?: string; thumbnail?: string | null }>;
   linkedWorktree: string | null;
   fetchedAt: string;
   url: string;

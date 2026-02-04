@@ -88,6 +88,7 @@ export async function fetchIssue(
   const rawAttachments = (fields.attachment ?? []) as Array<{
     filename: string;
     content: string;
+    thumbnail?: string;
     mimeType: string;
     size: number;
   }>;
@@ -110,6 +111,8 @@ export async function fetchIssue(
       localPath: '', // filled in after download
       mimeType: a.mimeType,
       size: a.size,
+      contentUrl: a.content,
+      thumbnail: a.thumbnail ?? null,
     })),
     linkedWorktree: null,
     fetchedAt: new Date().toISOString(),

@@ -190,6 +190,45 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
     }
   });
 
+  app.get('/api/jira/attachment', async (c) => {
+    try {
+      const configDir = manager.getConfigDir();
+      const creds = loadJiraCredentials(configDir);
+      if (!creds) {
+        return c.json({ error: 'Jira not configured' }, 400);
+      }
+
+      const url = c.req.query('url');
+      if (!url) {
+        return c.json({ error: 'url parameter is required' }, 400);
+      }
+
+      const headers = await getAuthHeaders(creds, configDir);
+      const resp = await fetch(url, {
+        headers: { Authorization: headers.Authorization },
+      });
+
+      if (!resp.ok) {
+        return c.json({ error: `Failed to fetch attachment: ${resp.status}` }, resp.status as 400);
+      }
+
+      const contentType = resp.headers.get('content-type') || 'application/octet-stream';
+      const body = await resp.arrayBuffer();
+
+      return new Response(body, {
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'private, max-age=3600',
+        },
+      });
+    } catch (error) {
+      return c.json(
+        { error: error instanceof Error ? error.message : 'Failed to fetch attachment' },
+        500,
+      );
+    }
+  });
+
   app.post('/api/jira/task', async (c) => {
     try {
       const body = await c.req.json<{ issueKey: string; branch?: string }>();

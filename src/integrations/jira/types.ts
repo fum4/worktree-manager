@@ -41,6 +41,8 @@ export interface JiraAttachment {
   localPath: string;
   mimeType: string;
   size: number;
+  contentUrl?: string;
+  thumbnail?: string | null;
 }
 
 export interface JiraTaskData {
