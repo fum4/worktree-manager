@@ -241,6 +241,53 @@ export async function fetchJiraIssueDetail(
   }
 }
 
+export async function createTerminalSession(
+  worktreeId: string,
+): Promise<{ success: boolean; sessionId?: string; error?: string }> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/worktrees/${encodeURIComponent(worktreeId)}/terminals`,
+      { method: 'POST' },
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { success: false, error: text || `HTTP ${res.status}` };
+      }
+    }
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create terminal',
+    };
+  }
+}
+
+export async function destroyTerminalSession(
+  sessionId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/terminals/${encodeURIComponent(sessionId)}`,
+      { method: 'DELETE' },
+    );
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to destroy terminal',
+    };
+  }
+}
+
+export function getTerminalWsUrl(sessionId: string): string {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}/api/terminals/${encodeURIComponent(sessionId)}/ws`;
+}
+
 export async function discoverPorts(): Promise<{
   success: boolean;
   ports: number[];

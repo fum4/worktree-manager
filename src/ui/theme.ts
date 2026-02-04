@@ -200,6 +200,12 @@ export const jiraType: Record<string, string> = {
   epic: 'text-purple-400 bg-purple-900/30',
 };
 
+// ─── Detail panel tabs (Logs / Terminal) ────────────────────────
+export const detailTab = {
+  active:          'text-white bg-white/[0.08]',
+  inactive:        'text-gray-500 hover:text-gray-300',
+} as const;
+
 // ─── Error banner ────────────────────────────────────────────────
 export const errorBanner = {
   bg:              'bg-red-900/30',

@@ -7,9 +7,10 @@ interface LogsViewerProps {
   worktree: WorktreeInfo;
   isRunning: boolean;
   isCreating: boolean;
+  visible?: boolean;
 }
 
-export function LogsViewer({ worktree, isRunning, isCreating }: LogsViewerProps) {
+export function LogsViewer({ worktree, isRunning, isCreating, visible = true }: LogsViewerProps) {
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLPreElement>(null);
   const userScrolledUp = useRef(false);
@@ -36,6 +37,7 @@ export function LogsViewer({ worktree, isRunning, isCreating }: LogsViewerProps)
         ref={logsContainerRef}
         onScroll={handleScroll}
         className={`flex-1 min-h-0 ${text.secondary} text-xs font-mono p-4 overflow-y-auto`}
+        style={{ display: visible ? undefined : 'none' }}
       >
         {worktree.logs?.length ? worktree.logs.join('\n') : 'No logs yet.'}
         <div ref={logsEndRef} />
@@ -44,7 +46,10 @@ export function LogsViewer({ worktree, isRunning, isCreating }: LogsViewerProps)
   }
 
   return (
-    <div className={`flex-1 flex items-center justify-center ${text.dimmed} text-xs`}>
+    <div
+      className={`flex-1 flex items-center justify-center ${text.dimmed} text-xs`}
+      style={{ display: visible ? undefined : 'none' }}
+    >
       Start this worktree to see logs
     </div>
   );

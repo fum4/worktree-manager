@@ -10,12 +10,13 @@ import {
   startWorktree,
   stopWorktree,
 } from '../../hooks/api';
-import { border, errorBanner, status, text } from '../../theme';
+import { border, detailTab, errorBanner, status, text } from '../../theme';
 import { ConfirmModal } from '../ConfirmModal';
 import { ActionToolbar } from './ActionToolbar';
 import { DetailHeader } from './DetailHeader';
 import { GitActionInputs } from './GitActionInputs';
 import { LogsViewer } from './LogsViewer';
+import { TerminalView } from './TerminalView';
 
 interface DetailPanelProps {
   worktree: WorktreeInfo | null;
@@ -37,6 +38,8 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
   const [isGitLoading, setIsGitLoading] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'logs' | 'terminal'>('logs');
+  const [terminalMounted, setTerminalMounted] = useState(false);
 
   // Reset state when worktree changes
   useEffect(() => {
@@ -46,6 +49,8 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
     setShowCreatePrInput(false);
     setCommitMessage('');
     setPrTitle('');
+    setActiveTab('logs');
+    setTerminalMounted(false);
   }, [worktree?.id]);
 
   if (!worktree) {
@@ -239,7 +244,44 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
         </div>
       )}
 
-      <LogsViewer worktree={worktree} isRunning={isRunning} isCreating={isCreating} />
+      {!isCreating && (
+        <div className={`flex-shrink-0 flex border-b ${border.section}`}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('logs')}
+            className={`px-4 py-1.5 text-xs font-medium transition-colors ${
+              activeTab === 'logs' ? detailTab.active : detailTab.inactive
+            }`}
+          >
+            Logs
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('terminal');
+              if (!terminalMounted) setTerminalMounted(true);
+            }}
+            className={`px-4 py-1.5 text-xs font-medium transition-colors ${
+              activeTab === 'terminal' ? detailTab.active : detailTab.inactive
+            }`}
+          >
+            Terminal
+          </button>
+        </div>
+      )}
+
+      <LogsViewer
+        worktree={worktree}
+        isRunning={isRunning}
+        isCreating={isCreating}
+        visible={isCreating || activeTab === 'logs'}
+      />
+      {terminalMounted && !isCreating && (
+        <TerminalView
+          worktreeId={worktree.id}
+          visible={activeTab === 'terminal'}
+        />
+      )}
 
       {showRemoveModal && (
         <ConfirmModal

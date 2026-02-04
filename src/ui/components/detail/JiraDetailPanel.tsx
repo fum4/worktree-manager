@@ -7,7 +7,9 @@ import { badge, border, button, jiraPriority, jiraType, surface, text } from '..
 
 interface JiraDetailPanelProps {
   issueKey: string;
+  linkedWorktreeId: string | null;
   onCreateWorktree: (key: string) => void;
+  onViewWorktree: (id: string) => void;
 }
 
 function formatDate(iso: string) {
@@ -146,7 +148,7 @@ function FileIcon({ mimeType }: { mimeType: string }) {
   );
 }
 
-export function JiraDetailPanel({ issueKey, onCreateWorktree }: JiraDetailPanelProps) {
+export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, onViewWorktree }: JiraDetailPanelProps) {
   const { issue, isLoading, error } = useJiraIssueDetail(issueKey);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -231,14 +233,24 @@ export function JiraDetailPanel({ issueKey, onCreateWorktree }: JiraDetailPanelP
               </div>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={isCreating}
-            className={`px-3 py-1.5 text-xs font-medium ${button.primary} rounded flex-shrink-0 disabled:opacity-50`}
-          >
-            {isCreating ? 'Creating...' : 'Create Worktree'}
-          </button>
+          {linkedWorktreeId ? (
+            <button
+              type="button"
+              onClick={() => onViewWorktree(linkedWorktreeId)}
+              className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded flex-shrink-0`}
+            >
+              View Worktree
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={isCreating}
+              className={`px-3 py-1.5 text-xs font-medium ${button.primary} rounded flex-shrink-0 disabled:opacity-50`}
+            >
+              {isCreating ? 'Creating...' : 'Create Worktree'}
+            </button>
+          )}
         </div>
         {createError && (
           <p className={`${text.error} text-[10px] mt-2`}>{createError}</p>

@@ -60,6 +60,17 @@ export default function App() {
     refetch();
   };
 
+  const handleViewWorktreeFromJira = (worktreeId: string) => {
+    setActiveCreateTab('branch');
+    setSelection({ type: 'worktree', id: worktreeId });
+  };
+
+  const findLinkedWorktree = (issueKey: string): string | null => {
+    const suffix = `/browse/${issueKey}`;
+    const wt = worktrees.find((w) => w.jiraUrl?.endsWith(suffix));
+    return wt?.id ?? null;
+  };
+
   return (
     <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
       <Header
@@ -112,7 +123,9 @@ export default function App() {
             {selection?.type === 'jira' ? (
               <JiraDetailPanel
                 issueKey={selection.key}
+                linkedWorktreeId={findLinkedWorktree(selection.key)}
                 onCreateWorktree={handleCreateWorktreeFromJira}
+                onViewWorktree={handleViewWorktreeFromJira}
               />
             ) : (
               <DetailPanel

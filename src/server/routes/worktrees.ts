@@ -1,9 +1,14 @@
 import type { Hono } from 'hono';
 
 import type { WorktreeManager } from '../manager';
+import type { TerminalManager } from '../terminal-manager';
 import type { WorktreeCreateRequest, WorktreeRenameRequest } from '../types';
 
-export function registerWorktreeRoutes(app: Hono, manager: WorktreeManager) {
+export function registerWorktreeRoutes(
+  app: Hono,
+  manager: WorktreeManager,
+  terminalManager?: TerminalManager,
+) {
   app.get('/api/worktrees', (c) => {
     const worktrees = manager.getWorktrees();
     return c.json({ worktrees });
@@ -64,6 +69,7 @@ export function registerWorktreeRoutes(app: Hono, manager: WorktreeManager) {
 
   app.delete('/api/worktrees/:id', async (c) => {
     const id = c.req.param('id');
+    terminalManager?.destroyAllForWorktree(id);
     const result = await manager.removeWorktree(id);
     return c.json(result, result.success ? 200 : 400);
   });

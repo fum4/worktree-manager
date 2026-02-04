@@ -1,5 +1,6 @@
-import { serve } from '@hono/node-server';
+import { createAdaptorServer } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
+import { createNodeWebSocket } from '@hono/node-ws';
 import { readFileSync } from 'fs';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -12,6 +13,8 @@ import { registerConfigRoutes } from './routes/config';
 import { registerGitHubRoutes } from './routes/github';
 import { registerJiraRoutes } from './routes/jira';
 import { registerEventRoutes } from './routes/events';
+import { registerTerminalRoutes } from './routes/terminal';
+import { TerminalManager } from './terminal-manager';
 import type { WorktreeConfig } from './types';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -29,14 +32,17 @@ const uiDir = currentDir.includes('src/server')
 
 export function createWorktreeServer(manager: WorktreeManager) {
   const app = new Hono();
+  const terminalManager = new TerminalManager();
+  const { upgradeWebSocket, injectWebSocket } = createNodeWebSocket({ app });
 
   app.use('*', cors());
 
-  registerWorktreeRoutes(app, manager);
+  registerWorktreeRoutes(app, manager, terminalManager);
   registerConfigRoutes(app, manager);
   registerGitHubRoutes(app, manager);
   registerJiraRoutes(app, manager);
   registerEventRoutes(app, manager);
+  registerTerminalRoutes(app, terminalManager, manager, upgradeWebSocket);
 
   app.use('/*', serveStatic({ root: uiDir }));
 
@@ -50,7 +56,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
     }
   });
 
-  return app;
+  return { app, injectWebSocket, terminalManager };
 }
 
 export async function startWorktreeServer(
@@ -59,22 +65,27 @@ export async function startWorktreeServer(
 ): Promise<{ manager: WorktreeManager; close: () => void }> {
   const manager = new WorktreeManager(config, configFilePath ?? null);
   await manager.initGitHub();
-  const app = createWorktreeServer(manager);
+  const { app, injectWebSocket, terminalManager } =
+    createWorktreeServer(manager);
 
-  const server = serve({
+  const server = createAdaptorServer({
     fetch: app.fetch,
-    port: config.serverPort,
   });
 
-  console.log(
-    `[wok3] Server running at http://localhost:${config.serverPort}`,
-  );
+  injectWebSocket(server);
+
+  server.listen(config.serverPort, () => {
+    console.log(
+      `[wok3] Server running at http://localhost:${config.serverPort}`,
+    );
+  });
 
   let closing = false;
   const close = async () => {
     if (closing) return;
     closing = true;
     console.log('\n[wok3] Shutting down...');
+    terminalManager.destroyAll();
     await manager.stopAll();
     server.close();
     process.exit(0);

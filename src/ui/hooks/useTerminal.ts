@@ -1,0 +1,127 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import {
+  createTerminalSession,
+  destroyTerminalSession,
+  getTerminalWsUrl,
+} from './api';
+
+interface UseTerminalOptions {
+  worktreeId: string;
+  onData?: (data: string) => void;
+  onExit?: (exitCode: number) => void;
+}
+
+interface UseTerminalReturn {
+  sessionId: string | null;
+  isConnected: boolean;
+  error: string | null;
+  sendData: (data: string) => void;
+  sendResize: (cols: number, rows: number) => void;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+}
+
+export function useTerminal({
+  worktreeId,
+  onData,
+  onExit,
+}: UseTerminalOptions): UseTerminalReturn {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+  const onDataRef = useRef(onData);
+  const onExitRef = useRef(onExit);
+
+  onDataRef.current = onData;
+  onExitRef.current = onExit;
+
+  const disconnect = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    if (sessionIdRef.current) {
+      destroyTerminalSession(sessionIdRef.current);
+      sessionIdRef.current = null;
+    }
+    setSessionId(null);
+    setIsConnected(false);
+  }, []);
+
+  const connect = useCallback(async () => {
+    disconnect();
+    setError(null);
+
+    const result = await createTerminalSession(worktreeId);
+    if (!result.success || !result.sessionId) {
+      setError(result.error || 'Failed to create terminal session');
+      return;
+    }
+
+    const sid = result.sessionId;
+    sessionIdRef.current = sid;
+    setSessionId(sid);
+
+    const ws = new WebSocket(getTerminalWsUrl(sid));
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setIsConnected(true);
+    };
+
+    ws.onmessage = (event) => {
+      if (typeof event.data === 'string') {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'exit') {
+            onExitRef.current?.(msg.exitCode);
+            setIsConnected(false);
+            return;
+          }
+        } catch {
+          // Not a control message
+        }
+        onDataRef.current?.(event.data);
+      }
+    };
+
+    ws.onclose = () => {
+      setIsConnected(false);
+    };
+
+    ws.onerror = () => {
+      setError('WebSocket connection failed');
+      setIsConnected(false);
+    };
+  }, [worktreeId, disconnect]);
+
+  const sendData = useCallback((data: string) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(data);
+    }
+  }, []);
+
+  const sendResize = useCallback((cols: number, rows: number) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (sessionIdRef.current) {
+        destroyTerminalSession(sessionIdRef.current);
+        sessionIdRef.current = null;
+      }
+    };
+  }, []);
+
+  return { sessionId, isConnected, error, sendData, sendResize, connect, disconnect };
+}
