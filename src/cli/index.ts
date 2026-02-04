@@ -1,9 +1,63 @@
 #!/usr/bin/env node
 
-import { execFile } from 'child_process';
+import { execFile, execFileSync, spawn } from 'child_process';
+import { existsSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { startWorktreeServer } from '../server/index';
 import { loadConfig } from './config';
+
+const cliDir = path.dirname(fileURLToPath(import.meta.url));
+
+function findElectron(): { type: 'app'; appPath: string } | { type: 'dev'; electronBin: string; projectRoot: string } | null {
+  if (process.platform !== 'darwin') return null;
+
+  // 1. Check for installed .app bundle
+  try {
+    const result = execFileSync('mdfind', [
+      'kMDItemCFBundleIdentifier == "com.wok3.app"',
+    ], { encoding: 'utf-8', timeout: 3000 });
+    const appPath = result.trim().split('\n')[0];
+    if (appPath && existsSync(appPath)) {
+      return { type: 'app', appPath };
+    }
+  } catch { /* ignore */ }
+
+  // 2. Check for electron binary in the wok3 project's node_modules
+  //    (dev mode — cliDir is dist/cli or src/cli)
+  const projectRoot = path.resolve(cliDir, '..', '..');
+  const electronBin = path.join(projectRoot, 'node_modules', '.bin', 'electron');
+  const electronMain = path.join(projectRoot, 'dist', 'electron', 'main.js');
+  if (existsSync(electronBin) && existsSync(electronMain)) {
+    return { type: 'dev', electronBin, projectRoot };
+  }
+
+  return null;
+}
+
+function openUI(port: number): void {
+  const electron = findElectron();
+
+  if (electron?.type === 'app') {
+    console.log(`  Opening in wok3 app...`);
+    execFile('open', [`wok3://open?port=${port}`], (err) => {
+      if (err) {
+        console.log(`  Falling back to browser...`);
+        openBrowser(`http://localhost:${port}`);
+      }
+    });
+  } else if (electron?.type === 'dev') {
+    console.log(`  Opening in wok3 electron (dev)...`);
+    const child = spawn(electron.electronBin, [electron.projectRoot, '--port', String(port)], {
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+  } else {
+    openBrowser(`http://localhost:${port}`);
+  }
+}
 
 function openBrowser(url: string): void {
   const cmd = process.platform === 'darwin' ? 'open' : 'xdg-open';
@@ -70,7 +124,7 @@ async function main() {
   console.log('');
   console.log(`  Opening ${url}`);
   console.log('');
-  openBrowser(url);
+  openUI(config.serverPort);
 }
 
 main().catch((error) => {

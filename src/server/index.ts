@@ -62,7 +62,9 @@ export function createWorktreeServer(manager: WorktreeManager) {
 export async function startWorktreeServer(
   config: WorktreeConfig,
   configFilePath?: string | null,
-): Promise<{ manager: WorktreeManager; close: () => void }> {
+  options?: { exitOnClose?: boolean },
+): Promise<{ manager: WorktreeManager; close: () => Promise<void>; port: number }> {
+  const exitOnClose = options?.exitOnClose ?? true;
   const manager = new WorktreeManager(config, configFilePath ?? null);
   await manager.initGitHub();
   const { app, injectWebSocket, terminalManager } =
@@ -88,13 +90,15 @@ export async function startWorktreeServer(
     terminalManager.destroyAll();
     await manager.stopAll();
     server.close();
-    process.exit(0);
+    if (exitOnClose) {
+      process.exit(0);
+    }
   };
 
   process.on('SIGINT', close);
   process.on('SIGTERM', close);
 
-  return { manager, close };
+  return { manager, close, port: config.serverPort };
 }
 
 export { WorktreeManager } from './manager';

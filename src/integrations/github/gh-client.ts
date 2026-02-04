@@ -159,21 +159,25 @@ export async function createPR(
     const args = ['pr', 'create', '--title', title];
     if (body) args.push('--body', body);
     if (baseBranch) args.push('--base', baseBranch);
-    args.push('--json', 'url,number,state,isDraft,title');
 
     const { stdout } = await execFile('gh', args, {
       cwd: worktreePath,
       encoding: 'utf-8',
     });
-    const data = JSON.parse(stdout);
+
+    // gh pr create outputs the PR URL on stdout
+    const url = stdout.trim();
+    const numberMatch = url.match(/\/pull\/(\d+)/);
+    const number = numberMatch ? parseInt(numberMatch[1], 10) : 0;
+
     return {
       success: true,
       pr: {
-        url: data.url,
-        number: data.number,
-        state: data.state,
-        isDraft: data.isDraft ?? false,
-        title: data.title,
+        url,
+        number,
+        state: 'OPEN',
+        isDraft: false,
+        title,
       },
     };
   } catch (err) {

@@ -3,13 +3,17 @@
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "wok3": "./dist/index.js"
+    "wok3": "./dist/cli/index.js"
   },
+  "main": "dist/electron/main.js",
   "scripts": {
-    "build": "tsup src/cli/index.ts --format esm --dts --clean --external node-pty && mkdir -p dist/runtime && cp src/runtime/port-hook.cjs dist/runtime/port-hook.cjs && vite build",
+    "build": "tsup src/cli/index.ts src/electron-entry.ts --format esm --dts --clean --external node-pty --external electron && mkdir -p dist/runtime && cp src/runtime/port-hook.cjs dist/runtime/port-hook.cjs && vite build",
     "dev": "concurrently \"vite build --watch\" \"cd test-project && tsx watch ../src/cli/index.ts\"",
     "start": "cd test-project && node ../dist/index.js",
     "init": "cd test-project && tsx ../src/cli/index.ts init",
+    "electron:dev": "pnpm build && pnpm electron:compile && electron .",
+    "electron:compile": "tsc -p electron/tsconfig.json",
+    "electron:build": "pnpm build && pnpm electron:compile && electron-builder --mac",
     "check-types": "tsc --noEmit",
     "check-lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.tsx .",
     "format-lint": "eslint --fix --no-error-on-unmatched-pattern --ext .js,.ts,.tsx ."
@@ -30,10 +34,13 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
+      "electron",
       "node-pty"
     ]
   },
   "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.0",
     "@types/node": "^22.10.2",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",

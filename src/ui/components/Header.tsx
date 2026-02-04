@@ -32,8 +32,16 @@ export function Header({
 
   const hasPorts = portsInfo.discovered.length > 0;
 
+  const isElectron = typeof navigator !== 'undefined' && navigator.userAgent.includes('Electron');
+
   return (
-    <header className={`h-10 flex-shrink-0 flex items-center justify-between px-4 ${header.bg}`}>
+    <header
+      className={`h-10 flex-shrink-0 flex items-center justify-between pr-4 ${header.bg}`}
+      style={{
+        ...({ WebkitAppRegion: 'drag' } as React.CSSProperties),
+        paddingLeft: isElectron ? '78px' : '16px',
+      }}
+    >
       <div className="flex items-center gap-3">
         <span className={`text-sm font-semibold ${text.primary}`}>{projectName || 'Worktree Manager'}</span>
         <span className={`text-xs ${text.muted}`}>wok3</span>
@@ -47,6 +55,7 @@ export function Header({
               onClick={handleDiscover}
               disabled={isDiscovering}
               className={`${header.rescan} transition-colors disabled:opacity-50`}
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
               title="Re-discover ports"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
@@ -61,6 +70,7 @@ export function Header({
             onClick={handleDiscover}
             disabled={isDiscovering}
             className={`text-[10px] ${header.portsDiscover} transition-colors disabled:opacity-50`}
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           >
             {isDiscovering ? 'Scanning...' : 'Discover Ports'}
           </button>
