@@ -40,7 +40,7 @@ export function WorktreeList({ worktrees, selectedId, onSelect }: WorktreeListPr
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter worktrees..."
-            className={`w-full px-2.5 py-1.5 bg-white/[0.04] border border-accent/0 rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-accent/30 transition-all duration-150`}
+            className={`w-full px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
           />
         </div>
       )}

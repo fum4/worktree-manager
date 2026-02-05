@@ -71,9 +71,9 @@ export const border = {
   /** Selected sidebar accent */
   accent:          'border-accent',
   /** Focus ring on inputs */
-  focusPrimary:    'border-accent',
-  focusCommit:     'border-accent',
-  focusPr:         'border-accent',
+  focusPrimary:    'border-white/[0.20]',
+  focusCommit:     'border-white/[0.20]',
+  focusPr:         'border-white/[0.20]',
 } as const;
 
 // ─── Input fields ────────────────────────────────────────────────
@@ -86,9 +86,9 @@ export const input = {
   text:            'text-white',
   placeholder:     'placeholder-gray-500',
   placeholderSubtle: 'placeholder-[#4b5563]',
-  ring:            'ring-accent/50',
-  ringCommit:      'ring-accent/50',
-  ringPr:          'ring-accent/50',
+  ring:            'ring-white/[0.15]',
+  ringCommit:      'ring-white/[0.15]',
+  ringPr:          'ring-white/[0.15]',
 } as const;
 
 // ─── Text hierarchy ──────────────────────────────────────────────
@@ -144,7 +144,7 @@ export const action = {
     text:          'text-[#9ca3af]',
     textActive:    'text-accent',
     hover:         'hover:bg-white/[0.06]',
-    bgActive:      'bg-accent/10',
+    bgActive:      'bg-white/[0.08]',
     bgSubmit:      'bg-accent/10',
     bgSubmitHover: 'hover:bg-accent/20',
   },

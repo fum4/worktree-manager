@@ -1,3 +1,4 @@
+import { Unplug } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { disconnectJira, setupJira, updateJiraConfig } from '../hooks/useConfig';
@@ -6,7 +7,7 @@ import { useGitHubStatus, useJiraStatus } from '../hooks/useWorktrees';
 import type { GitHubStatus, JiraStatus } from '../types';
 import { border, button, input, settings, surface, text } from '../theme';
 
-const integrationInput = `px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-accent/0 ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-accent/30 transition-all duration-150`;
+const integrationInput = `px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`;
 
 function StatusDot({ active }: { active: boolean }) {
   return (
@@ -285,9 +286,7 @@ function JiraCard({
               disabled={saving}
               className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
-                <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
-              </svg>
+              <Unplug className="w-3 h-3" />
               Disconnect
             </button>
           </div>

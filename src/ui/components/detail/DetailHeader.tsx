@@ -92,14 +92,14 @@ export function DetailHeader({
           <InlineEdit
             value={worktree.id}
             className={`text-[16px] font-semibold ${text.primary} truncate`}
-            editClassName={`text-[16px] font-semibold ${text.primary} bg-transparent border-b border-accent/30 focus:border-accent/60 outline-none w-44 pb-0.5 transition-colors duration-150`}
+            editClassName={`text-[16px] font-semibold ${text.primary} bg-transparent border-b border-white/[0.15] focus:border-white/[0.30] outline-none w-44 pb-0.5 transition-colors duration-150`}
             editable={editable}
             onSave={(v) => onRename({ name: v })}
           />
           <InlineEdit
             value={worktree.branch}
             className={`text-xs ${text.muted} truncate`}
-            editClassName={`text-xs ${text.muted} bg-transparent border-b border-accent/20 focus:border-accent/50 outline-none w-72 pb-0.5 transition-colors duration-150`}
+            editClassName={`text-xs ${text.muted} bg-transparent border-b border-white/[0.10] focus:border-white/[0.25] outline-none w-72 pb-0.5 transition-colors duration-150`}
             editable={editable}
             onSave={(v) => onRename({ branch: v })}
           />

@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { createFromJira, createWorktree } from '../hooks/api';
@@ -95,7 +96,7 @@ export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, activ
     }
   };
 
-  const inputClass = `w-full px-2.5 py-1.5 ${input.bgSidebar} border border-accent/0 rounded-md ${input.text} ${input.placeholderSubtle} text-xs focus:outline-none focus:bg-white/[0.06] focus:border-accent/30 transition-all duration-150`;
+  const inputClass = `w-full px-2.5 py-1.5 ${input.bgSidebar} rounded-md ${input.text} ${input.placeholderSubtle} text-xs focus:outline-none focus:bg-white/[0.06] transition-all duration-150`;
 
   return (
     <div className={`border-b ${border.subtle}`}>
@@ -129,24 +130,19 @@ export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, activ
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="text-accent hover:text-accent-muted transition-colors duration-150"
-          title={isExpanded ? 'Collapse' : 'New Worktree'}
+          className={`${text.muted} hover:${text.secondary} transition-colors duration-150`}
+          title={isExpanded ? 'Collapse' : 'Expand'}
         >
-          {isExpanded ? (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-              <path fillRule="evenodd" d="M4 10a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 10Z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-              <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-            </svg>
-          )}
+          <ChevronRight className={`w-4 h-4 transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''}`} />
         </button>
       </div>
 
       {/* Collapsible create form */}
       {isExpanded && (
         <div className="px-3 pb-3">
+          <p className={`text-[10px] ${text.dimmed} mb-2`}>
+            {activeTab === 'issues' ? 'Import a Jira issue into a new worktree' : 'Create a new worktree from a branch'}
+          </p>
           {activeTab === 'branch' ? (
             <form onSubmit={handleBranchSubmit} className="space-y-2">
               <input

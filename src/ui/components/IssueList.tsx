@@ -52,7 +52,7 @@ export function IssueList({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search issues..."
-            className={`flex-1 px-2.5 py-1.5 bg-white/[0.04] border border-accent/0 rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-accent/30 transition-all duration-150`}
+            className={`flex-1 px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
           />
           <button
             type="button"

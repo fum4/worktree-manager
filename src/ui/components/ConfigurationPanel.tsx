@@ -24,7 +24,7 @@ function Field({
   );
 }
 
-const fieldInputBase = `px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-accent/0 ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-accent/30 transition-all duration-150`;
+const fieldInputBase = `px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`;
 const fieldInputClass = `w-full ${fieldInputBase}`;
 
 function TextInput({

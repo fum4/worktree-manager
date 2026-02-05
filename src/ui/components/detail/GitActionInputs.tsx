@@ -40,8 +40,8 @@ export function GitActionInputs({
             className={`flex-1 px-2.5 py-1.5 ${input.bgDetail} border ${border.modal} rounded-lg ${input.text} text-xs focus:outline-none focus:${border.focusPrimary} focus-visible:ring-1 ${input.ring} transition-colors duration-150`}
             autoFocus
           />
-          <button type="button" onClick={onCommit} disabled={isGitLoading || !commitMessage.trim()} className={`px-3 py-1.5 text-xs font-medium ${action.commit.text} ${action.commit.bgSubmit} rounded-md ${action.commit.bgSubmitHover} disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}>
-            {isGitLoading ? 'Committing...' : 'Commit'}
+          <button type="button" onClick={onCommit} disabled={isGitLoading || !commitMessage.trim()} className={`px-3 py-1.5 text-xs font-medium ${action.commit.textActive} ${action.commit.bgSubmit} rounded-md ${action.commit.bgSubmitHover} disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}>
+            {isGitLoading ? 'Committing...' : 'Submit'}
           </button>
           <button type="button" onClick={onHideCommit} className={`px-2.5 py-1.5 text-xs ${action.cancel.text} ${action.cancel.textHover} transition-colors duration-150`}>
             Cancel

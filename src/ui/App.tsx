@@ -28,6 +28,7 @@ export default function App() {
   const runningCount = worktrees.filter((w) => w.status === 'running').length;
 
   const [activeView, setActiveView] = useState<View>('workspace');
+
   const [selection, setSelection] = useState<Selection>(null);
   const [activeCreateTab, setActiveCreateTab] = useState<'branch' | 'issues'>('branch');
 
@@ -107,22 +108,13 @@ export default function App() {
       )}
 
       <div className="flex-1 min-h-0 relative">
-        <AnimatePresence mode="wait">
           {activeView === 'workspace' && (
-            <motion.div
-              key="workspace"
+            <div
               className="absolute inset-0 flex gap-3 p-4"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12, ease: 'easeOut' }}
             >
               {/* Left sidebar */}
-              <motion.aside
+              <aside
                 className={`w-[300px] flex-shrink-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.15, delay: 0.04 }}
               >
                 <CreateForm
                   onCreated={refetch}
@@ -131,15 +123,15 @@ export default function App() {
                   activeTab={activeCreateTab}
                   onTabChange={setActiveCreateTab}
                 />
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="wait" initial={false}>
                   {activeCreateTab === 'branch' ? (
                     <motion.div
                       key="worktree-list"
                       className="flex-1 min-h-0 flex flex-col"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, transition: { duration: 0.05 } }}
-                      transition={{ duration: 0.1 }}
+                      initial={{ opacity: 0, x: -40 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -40 }}
+                      transition={{ duration: 0.075, ease: 'easeInOut' }}
                     >
                       <WorktreeList
                         worktrees={worktrees}
@@ -151,10 +143,10 @@ export default function App() {
                     <motion.div
                       key="issue-list"
                       className="flex-1 min-h-0 flex flex-col"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, transition: { duration: 0.05 } }}
-                      transition={{ duration: 0.1 }}
+                      initial={{ opacity: 0, x: 40 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 40 }}
+                      transition={{ duration: 0.075, ease: 'easeInOut' }}
                     >
                       <IssueList
                         issues={jiraIssues}
@@ -171,14 +163,11 @@ export default function App() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.aside>
+              </aside>
 
               {/* Right panel */}
-              <motion.main
+              <main
                 className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.15, delay: 0.08 }}
               >
                 {selection?.type === 'issue' ? (
                   <JiraDetailPanel
@@ -196,36 +185,21 @@ export default function App() {
                     onNavigateToIntegrations={() => setActiveView('integrations')}
                   />
                 )}
-              </motion.main>
-            </motion.div>
+              </main>
+            </div>
           )}
 
           {activeView === 'configuration' && (
-            <motion.div
-              key="configuration"
-              className="absolute inset-0 flex flex-col p-4"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12, ease: 'easeOut' }}
-            >
+            <div className="absolute inset-0 flex flex-col p-4">
               <ConfigurationPanel config={config} onSaved={refetchConfig} />
-            </motion.div>
+            </div>
           )}
 
           {activeView === 'integrations' && (
-            <motion.div
-              key="integrations"
-              className="absolute inset-0 flex flex-col p-4"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12, ease: 'easeOut' }}
-            >
+            <div className="absolute inset-0 flex flex-col p-4">
               <IntegrationsPanel />
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
       </div>
     </div>
   );
