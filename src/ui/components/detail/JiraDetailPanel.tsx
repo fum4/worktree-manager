@@ -4,6 +4,7 @@ import { useJiraIssueDetail } from '../../hooks/useJiraIssueDetail';
 import { createFromJira } from '../../hooks/api';
 import type { JiraIssueDetail } from '../../types';
 import { badge, border, button, jiraPriority, jiraType, surface, text } from '../../theme';
+import { MarkdownContent } from '../MarkdownContent';
 
 interface JiraDetailPanelProps {
   issueKey: string;
@@ -235,7 +236,7 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                 type="button"
                 onClick={() => refetch()}
                 title={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}
-                className={`p-0.5 rounded ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] transition-all duration-150`}
+                className={`ml-1 p-0.5 rounded ${text.muted} hover:text-[#c0c5cc] transition-colors duration-150 flex items-center gap-1`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -249,12 +250,12 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                     clipRule="evenodd"
                   />
                 </svg>
+                {dataUpdatedAt > 0 && (
+                  <span className="text-[10px]">
+                    {formatTimeAgo(dataUpdatedAt)}
+                  </span>
+                )}
               </button>
-              {dataUpdatedAt > 0 && (
-                <span className={`text-[10px] ${text.dimmed}`}>
-                  {formatTimeAgo(dataUpdatedAt)}
-                </span>
-              )}
             </div>
             {/* Summary — largest text, clear anchor */}
             <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.summary}</h2>
@@ -301,7 +302,6 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
         {issue.reporter && (
           <MetaRow label="Reporter">{issue.reporter}</MetaRow>
         )}
-        <MetaRow label="Updated">{formatDate(issue.updated)}</MetaRow>
         {issue.labels.length > 0 && (
           <MetaRow label="Labels">
             <span className="flex flex-wrap gap-1">
@@ -321,9 +321,7 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
           <section>
             <SectionLabel>Description</SectionLabel>
             <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-4 py-3">
-              <pre className={`text-xs ${text.secondary} whitespace-pre-wrap font-sans leading-relaxed`}>
-                {issue.description}
-              </pre>
+              <MarkdownContent content={issue.description} />
             </div>
           </section>
         )}
@@ -348,9 +346,7 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                     <span className={`text-[11px] font-medium ${text.primary}`}>{comment.author}</span>
                     <span className={`text-[10px] ${text.dimmed}`}>{formatDate(comment.created)}</span>
                   </div>
-                  <pre className={`text-xs ${text.secondary} whitespace-pre-wrap font-sans leading-relaxed`}>
-                    {comment.body}
-                  </pre>
+                  <MarkdownContent content={comment.body} />
                 </div>
               ))}
             </div>
