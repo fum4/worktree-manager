@@ -1,9 +1,17 @@
+import { existsSync } from 'fs';
+import path from 'path';
 import type { Hono } from 'hono';
 
 import type { WorktreeManager } from '../manager';
 
 export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
   app.get('/api/config', (c) => {
+    // Check if config file still exists (user may have deleted .wok3 folder)
+    const configPath = path.join(manager.getConfigDir(), '.wok3', 'config.json');
+    if (!existsSync(configPath)) {
+      return c.json({ config: null, projectName: null });
+    }
+
     const config = manager.getConfig();
     const projectName = manager.getProjectName();
     return c.json({ config, projectName });

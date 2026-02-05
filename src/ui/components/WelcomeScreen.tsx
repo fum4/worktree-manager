@@ -193,7 +193,7 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
             Welcome to <span className="text-accent">wok3</span>
           </h1>
           <p className="text-[13px] text-[#6b7280] max-w-sm mx-auto leading-relaxed">
-            A modern git worktree manager for parallel development workflows
+            Your brand new workspace manager
           </p>
         </div>
 
