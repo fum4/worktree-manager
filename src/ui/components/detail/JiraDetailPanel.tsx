@@ -34,11 +34,20 @@ function isImage(mimeType: string) {
   return mimeType.startsWith('image/');
 }
 
-function SectionHeader({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className={`text-[10px] font-semibold uppercase tracking-wider ${text.muted} mb-2`}>
+    <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>
       {children}
     </h3>
+  );
+}
+
+function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className={`text-[10px] ${text.dimmed}`}>{label}</span>
+      <span className={`text-[11px] ${text.secondary}`}>{children}</span>
+    </div>
   );
 }
 
@@ -81,7 +90,6 @@ function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail['att
 
   return (
     <div className="space-y-3">
-      {/* Image grid */}
       {images.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
           {images.map((att, i) => (
@@ -106,11 +114,10 @@ function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail['att
         </div>
       )}
 
-      {/* Non-image files */}
       {files.length > 0 && (
         <div className="space-y-1">
           {files.map((att, i) => (
-            <div key={i} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md ${surface.panelHover}`}>
+            <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/[0.03]">
               <FileIcon mimeType={att.mimeType} />
               <span className={`text-xs ${text.secondary} truncate flex-1`}>{att.filename}</span>
               <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>{formatSize(att.size)}</span>
@@ -118,7 +125,7 @@ function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail['att
                 <a
                   href={proxyUrl(att.contentUrl)}
                   download={att.filename}
-                  className={`text-[10px] ${badge.jira} ${badge.jiraHover} flex-shrink-0`}
+                  className="text-[10px] text-accent hover:text-accent-muted flex-shrink-0"
                   onClick={(e) => e.stopPropagation()}
                 >
                   Download
@@ -190,100 +197,121 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
   }
 
   const typeLower = issue.type.toLowerCase();
-  const typeClasses = jiraType[typeLower] ?? 'text-gray-400 bg-gray-800';
+  const typeClasses = jiraType[typeLower] ?? `${text.secondary} bg-white/[0.06]`;
   const priorityLower = issue.priority.toLowerCase();
   const priorityClass = jiraPriority[priorityLower] ?? text.secondary;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Header — fixed */}
-      <div className={`flex-shrink-0 p-4 border-b ${border.subtle}`}>
-        <div className="flex items-start justify-between gap-3">
+      {/* Header — compact key + title + action */}
+      <div className={`flex-shrink-0 px-5 py-4 border-b ${border.section}`}>
+        <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5">
+            {/* Issue key + type pill on one line */}
+            <div className="flex items-center gap-2 mb-2">
               <a
                 href={issue.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`text-xs font-semibold ${badge.jira} ${badge.jiraHover}`}
+                className={`text-xs font-semibold ${badge.jira} ${badge.jiraHover} transition-colors`}
               >
                 {issue.key}
               </a>
               <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${typeClasses}`}>
                 {issue.type}
               </span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded ${badge.jiraStatus}`}>
-                {issue.status}
-              </span>
-              <span className={`text-[10px] ${priorityClass}`}>{issue.priority}</span>
             </div>
-            <h2 className={`text-sm font-medium ${text.primary}`}>{issue.summary}</h2>
-            <div className={`flex items-center gap-4 mt-2 text-[10px] ${text.muted}`}>
-              {issue.assignee && <span>Assignee: <span className={text.secondary}>{issue.assignee}</span></span>}
-              {issue.reporter && <span>Reporter: <span className={text.secondary}>{issue.reporter}</span></span>}
-              <span>Updated: <span className={text.secondary}>{formatDate(issue.updated)}</span></span>
-            </div>
-            {issue.labels.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {issue.labels.map((label) => (
-                  <span key={label} className={`text-[9px] px-1.5 py-0.5 rounded ${badge.jiraStatus}`}>
-                    {label}
-                  </span>
-                ))}
-              </div>
+            {/* Summary — largest text, clear anchor */}
+            <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.summary}</h2>
+          </div>
+          <div className="flex-shrink-0 pt-1">
+            {linkedWorktreeId ? (
+              <button
+                type="button"
+                onClick={() => onViewWorktree(linkedWorktreeId)}
+                className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded-lg transition-colors duration-150`}
+              >
+                View Worktree
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={isCreating}
+                className={`px-3 py-1.5 text-xs font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}
+              >
+                {isCreating ? 'Creating...' : 'Create Worktree'}
+              </button>
             )}
           </div>
-          {linkedWorktreeId ? (
-            <button
-              type="button"
-              onClick={() => onViewWorktree(linkedWorktreeId)}
-              className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded flex-shrink-0`}
-            >
-              View Worktree
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleCreate}
-              disabled={isCreating}
-              className={`px-3 py-1.5 text-xs font-medium ${button.primary} rounded flex-shrink-0 disabled:opacity-50`}
-            >
-              {isCreating ? 'Creating...' : 'Create Worktree'}
-            </button>
-          )}
         </div>
         {createError && (
           <p className={`${text.error} text-[10px] mt-2`}>{createError}</p>
         )}
       </div>
 
-      {/* Body — scrollable, sections separated by dividers */}
-      <div className="flex-1 overflow-y-auto divide-y divide-white/[0.06]">
+      {/* Metadata bar — status, priority, people, dates — all in one calm row */}
+      <div className={`flex-shrink-0 px-5 py-3 border-b ${border.subtle} flex flex-wrap gap-x-5 gap-y-1.5`}>
+        <MetaRow label="Status">
+          <span className={`px-1.5 py-0.5 rounded text-[10px] ${badge.jiraStatus}`}>
+            {issue.status}
+          </span>
+        </MetaRow>
+        <MetaRow label="Priority">
+          <span className={`text-[11px] ${priorityClass}`}>{issue.priority}</span>
+        </MetaRow>
+        {issue.assignee && (
+          <MetaRow label="Assignee">{issue.assignee}</MetaRow>
+        )}
+        {issue.reporter && (
+          <MetaRow label="Reporter">{issue.reporter}</MetaRow>
+        )}
+        <MetaRow label="Updated">{formatDate(issue.updated)}</MetaRow>
+        {issue.labels.length > 0 && (
+          <MetaRow label="Labels">
+            <span className="flex flex-wrap gap-1">
+              {issue.labels.map((label) => (
+                <span key={label} className={`text-[9px] px-1.5 py-0.5 rounded bg-white/[0.06] ${text.secondary}`}>
+                  {label}
+                </span>
+              ))}
+            </span>
+          </MetaRow>
+        )}
+      </div>
+
+      {/* Scrollable body — each section gets its own visual container */}
+      <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {issue.description && (
-          <section className="px-4 py-4">
-            <SectionHeader>Description</SectionHeader>
-            <pre className={`text-xs ${text.secondary} whitespace-pre-wrap font-sans leading-relaxed`}>
-              {issue.description}
-            </pre>
+          <section>
+            <SectionLabel>Description</SectionLabel>
+            <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-4 py-3">
+              <pre className={`text-xs ${text.secondary} whitespace-pre-wrap font-sans leading-relaxed`}>
+                {issue.description}
+              </pre>
+            </div>
           </section>
         )}
 
         {issue.attachments.length > 0 && (
-          <section className="px-4 py-4">
-            <SectionHeader>Attachments ({issue.attachments.length})</SectionHeader>
+          <section>
+            <SectionLabel>Attachments ({issue.attachments.length})</SectionLabel>
             <AttachmentsSection attachments={issue.attachments} />
           </section>
         )}
 
         {issue.comments.length > 0 && (
-          <section className="px-4 py-4">
-            <SectionHeader>Comments ({issue.comments.length})</SectionHeader>
+          <section>
+            <SectionLabel>Comments ({issue.comments.length})</SectionLabel>
             <div className="space-y-3">
               {issue.comments.map((comment, i) => (
-                <div key={i} className={i > 0 ? `pt-3 border-t ${border.subtle}` : ''}>
-                  <div className={`flex items-center gap-2 text-[10px] mb-1`}>
-                    <span className={`font-medium ${text.secondary}`}>{comment.author}</span>
-                    <span className={text.dimmed}>{formatDate(comment.created)}</span>
+                <div
+                  key={i}
+                  className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-4 py-3"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-[11px] font-medium ${text.primary}`}>{comment.author}</span>
+                    <span className={`text-[10px] ${text.dimmed}`}>{formatDate(comment.created)}</span>
                   </div>
                   <pre className={`text-xs ${text.secondary} whitespace-pre-wrap font-sans leading-relaxed`}>
                     {comment.body}
@@ -294,10 +322,11 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
           </section>
         )}
 
-        <section className={`px-4 py-3 text-[10px] ${text.dimmed} flex gap-4`}>
-          <span>Created: {formatDate(issue.created)}</span>
-          <span>Updated: {formatDate(issue.updated)}</span>
-        </section>
+        {/* Footer timestamps */}
+        <div className={`text-[10px] ${text.dimmed} flex gap-4 pt-2`}>
+          <span>Created {formatDate(issue.created)}</span>
+          <span>Updated {formatDate(issue.updated)}</span>
+        </div>
       </div>
     </div>
   );

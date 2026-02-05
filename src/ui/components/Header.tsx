@@ -2,7 +2,14 @@ import { useState } from 'react';
 
 import { discoverPorts } from '../hooks/api';
 import type { PortsInfo } from '../types';
-import { badge, header, text } from '../theme';
+import type { View } from './NavBar';
+import { badge, header, nav, text } from '../theme';
+
+const tabs: { id: View; label: string }[] = [
+  { id: 'workspace', label: 'Workspace' },
+  { id: 'integrations', label: 'Integrations' },
+  { id: 'configuration', label: 'Settings' },
+];
 
 interface HeaderProps {
   projectName: string | null;
@@ -10,6 +17,8 @@ interface HeaderProps {
   isConnected: boolean;
   portsInfo: PortsInfo;
   onPortsDiscovered: () => void;
+  activeView: View;
+  onChangeView: (view: View) => void;
 }
 
 export function Header({
@@ -18,6 +27,8 @@ export function Header({
   isConnected,
   portsInfo,
   onPortsDiscovered,
+  activeView,
+  onChangeView,
 }: HeaderProps) {
   const [isDiscovering, setIsDiscovering] = useState(false);
 
@@ -36,15 +47,41 @@ export function Header({
 
   return (
     <header
-      className={`h-10 flex-shrink-0 flex items-center justify-between pr-4 ${header.bg}`}
+      className={`h-11 flex-shrink-0 flex items-center justify-between pr-4 ${header.bg}`}
       style={{
         ...({ WebkitAppRegion: 'drag' } as React.CSSProperties),
         paddingLeft: isElectron ? '78px' : '16px',
       }}
     >
-      <div className="flex items-center gap-3">
-        <span className={`text-sm font-semibold ${text.primary}`}>{projectName || 'Worktree Manager'}</span>
-        <span className={`text-xs ${text.muted}`}>wok3</span>
+      {/* Left: project name + nav tabs */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className={`text-sm font-semibold ${text.primary}`}>{projectName || 'wok3'}</span>
+        </div>
+
+        <div
+          className="flex items-center gap-0.5"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => onChangeView(t.id)}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors duration-150 ${
+                activeView === t.id ? nav.active : nav.inactive
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Right: ports + running count + connection */}
+      <div
+        className="flex items-center gap-3"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
         {hasPorts && (
           <div className="flex items-center gap-1.5">
             <span className={`text-[10px] font-mono ${header.ports}`}>
@@ -54,8 +91,7 @@ export function Header({
               type="button"
               onClick={handleDiscover}
               disabled={isDiscovering}
-              className={`${header.rescan} transition-colors disabled:opacity-50`}
-              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+              className={`${header.rescan} transition-colors duration-150 disabled:opacity-50`}
               title="Re-discover ports"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
@@ -69,16 +105,13 @@ export function Header({
             type="button"
             onClick={handleDiscover}
             disabled={isDiscovering}
-            className={`text-[10px] ${header.portsDiscover} transition-colors disabled:opacity-50`}
-            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            className={`text-[10px] ${header.portsDiscover} transition-colors duration-150 disabled:opacity-50`}
           >
             {isDiscovering ? 'Scanning...' : 'Discover Ports'}
           </button>
         )}
-      </div>
-      <div className="flex items-center gap-3">
         {runningCount > 0 && (
-          <span className={`px-1.5 py-0.5 text-[10px] font-medium ${badge.running} rounded-full`}>
+          <span className={`px-1.5 py-0.5 text-[10px] font-semibold ${badge.running} rounded-full`}>
             {runningCount} running
           </span>
         )}

@@ -45,10 +45,10 @@ export function TerminalView({ worktreeId, visible }: TerminalViewProps) {
       fontSize: 13,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
       theme: {
-        background: '#0d1117',
+        background: '#12151a',
         foreground: '#c9d1d9',
-        cursor: '#58a6ff',
-        selectionBackground: '#264f78',
+        cursor: '#2dd4bf',
+        selectionBackground: 'rgba(45,212,191,0.20)',
         black: '#484f58',
         red: '#ff7b72',
         green: '#3fb950',
@@ -143,7 +143,7 @@ export function TerminalView({ worktreeId, visible }: TerminalViewProps) {
       style={{ display: visible ? undefined : 'none' }}
     >
       {!isConnected && (
-        <div className={`px-4 py-1 text-[10px] ${text.muted}`}>
+        <div className={`px-4 py-1 text-[11px] ${text.muted}`}>
           Connecting...
         </div>
       )}

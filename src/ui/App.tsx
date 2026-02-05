@@ -7,7 +7,7 @@ import { JiraDetailPanel } from './components/detail/JiraDetailPanel';
 import { Header } from './components/Header';
 import { IntegrationsPanel } from './components/IntegrationsPanel';
 import { JiraIssueList } from './components/JiraIssueList';
-import { NavBar, type View } from './components/NavBar';
+import type { View } from './components/NavBar';
 import { WorktreeList } from './components/WorktreeList';
 import { useConfig } from './hooks/useConfig';
 import { useJiraIssues } from './hooks/useJiraIssues';
@@ -79,9 +79,9 @@ export default function App() {
         isConnected={isConnected}
         portsInfo={ports}
         onPortsDiscovered={refetchPorts}
+        activeView={activeView}
+        onChangeView={setActiveView}
       />
-
-      <NavBar activeView={activeView} onChangeView={setActiveView} />
 
       {error && (
         <div className={`flex-shrink-0 px-4 py-2 ${errorBanner.bg} ${text.errorBanner} text-xs`}>
@@ -97,6 +97,7 @@ export default function App() {
               onCreated={refetch}
               jiraConfigured={jiraStatus?.configured ?? false}
               defaultProjectKey={jiraStatus?.defaultProjectKey ?? null}
+              activeTab={activeCreateTab}
               onTabChange={setActiveCreateTab}
             />
             {activeCreateTab === 'branch' ? (

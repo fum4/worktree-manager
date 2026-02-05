@@ -6,8 +6,18 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Selection highlight with teal accent */
+::selection {
+  background: rgba(45, 212, 191, 0.25);
+}
+
+/* Smooth transitions on interactive elements */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Thin custom scrollbar for dark theme */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(45,212,191,0.25); }

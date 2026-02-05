@@ -6,6 +6,24 @@ import { useGitHubStatus, useJiraStatus } from '../hooks/useWorktrees';
 import type { GitHubStatus, JiraStatus } from '../types';
 import { border, button, input, settings, surface, text } from '../theme';
 
+const integrationInput = `px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-accent/0 ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-accent/30 transition-all duration-150`;
+
+function StatusDot({ active }: { active: boolean }) {
+  return (
+    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]' : 'bg-[#4b5563]'}`} />
+  );
+}
+
+function StatusRow({ label, ok, value }: { label: string; ok: boolean; value: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <StatusDot active={ok} />
+      <span className={`text-[11px] ${text.dimmed} w-10`}>{label}</span>
+      <span className={`text-[11px] ${ok ? text.secondary : text.muted}`}>{value}</span>
+    </div>
+  );
+}
+
 function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; onStatusChange: () => void }) {
   const isReady = status?.installed && status?.authenticated;
   const [loading, setLoading] = useState(false);
@@ -13,7 +31,6 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Poll for auth completion after triggering login
   useEffect(() => {
     if (!waitingForAuth) return;
     pollRef.current = setInterval(async () => {
@@ -35,7 +52,6 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
     };
   }, [waitingForAuth, onStatusChange]);
 
-  // Stop polling if status shows authenticated
   useEffect(() => {
     if (status?.authenticated && waitingForAuth) {
       setWaitingForAuth(false);
@@ -73,66 +89,58 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
   };
 
   return (
-    <div className={`rounded-lg border ${border.subtle} ${settings.card} p-4 flex flex-col gap-3`}>
-      <div className="flex items-center justify-between">
-        <h3 className={`text-xs font-semibold ${text.primary}`}>GitHub</h3>
-        <span
-          className={`text-[11px] px-2 py-0.5 rounded-full ${
-            isReady ? 'text-green-400 bg-green-900/30' : 'text-gray-400 bg-gray-800'
-          }`}
-        >
-          {isReady ? 'Connected' : 'Not connected'}
-        </span>
+    <div className="flex flex-col gap-4">
+      {/* Card header with icon */}
+      <div className="flex items-center gap-3">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isReady ? 'bg-accent/10' : 'bg-white/[0.04]'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className={`w-4 h-4 ${isReady ? 'text-accent' : text.muted}`}>
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className={`text-xs font-semibold ${text.primary}`}>GitHub</h3>
+          <span className={`text-[10px] ${isReady ? 'text-accent' : text.dimmed}`}>
+            {isReady ? 'Connected' : 'Not connected'}
+          </span>
+        </div>
       </div>
 
+      {/* Status rows */}
       {status === null ? (
         <span className={`text-xs ${text.muted}`}>Loading...</span>
       ) : (
         <div className="flex flex-col gap-1.5">
-          <div className="flex gap-2 text-xs">
-            <span className={text.muted}>CLI:</span>
-            <span className={status.installed ? 'text-green-400' : text.error}>
-              {status.installed ? 'Installed' : 'Not installed'}
-            </span>
-          </div>
-          <div className="flex gap-2 text-xs">
-            <span className={text.muted}>Auth:</span>
-            <span className={status.authenticated ? 'text-green-400' : text.error}>
-              {status.authenticated ? 'Authenticated' : 'Not authenticated'}
-            </span>
-          </div>
+          <StatusRow label="CLI" ok={status.installed} value={status.installed ? 'Installed' : 'Not installed'} />
+          <StatusRow label="Auth" ok={status.authenticated} value={status.authenticated ? 'Authenticated' : 'Not authenticated'} />
           {status.repo && (
-            <div className="flex gap-2 text-xs">
-              <span className={text.muted}>Repo:</span>
-              <span className={text.secondary}>{status.repo}</span>
-            </div>
-          )}
-          {!isReady && !status.installed && (
-            <p className={`text-[11px] ${text.muted} mt-1`}>
-              Install the GitHub CLI and authenticate to enable commits, pushes, and pull requests.
-            </p>
-          )}
-          {!isReady && status.installed && !status.authenticated && (
-            <p className={`text-[11px] ${text.muted} mt-1`}>
-              Authenticate with GitHub to enable commits, pushes, and pull requests.
-            </p>
+            <StatusRow label="Repo" ok={true} value={status.repo} />
           )}
         </div>
       )}
 
+      {/* Help text */}
+      {status && !isReady && (
+        <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
+          {!status.installed
+            ? 'Install the GitHub CLI to enable commits, pushes, and pull requests.'
+            : 'Authenticate with GitHub to enable git operations.'}
+        </p>
+      )}
+
       {feedback && (
-        <span className={`text-xs ${feedback.type === 'success' ? 'text-green-400' : text.error}`}>
+        <span className={`text-[11px] ${feedback.type === 'success' ? 'text-accent' : text.error}`}>
           {feedback.message}
         </span>
       )}
 
+      {/* Actions */}
       {status && !status.installed && !waitingForAuth && (
         <button
           onClick={handleConnect}
           disabled={loading}
-          className={`text-xs px-3 py-1.5 rounded font-medium ${button.primary} disabled:opacity-50 self-start`}
+          className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} disabled:opacity-50 self-start transition-all duration-150 active:scale-[0.98]`}
         >
-          {loading ? 'Installing...' : 'Connect'}
+          {loading ? 'Installing...' : 'Install & Connect'}
         </button>
       )}
 
@@ -140,9 +148,9 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
         <button
           onClick={handleLogin}
           disabled={waitingForAuth}
-          className={`text-xs px-3 py-1.5 rounded font-medium ${button.primary} disabled:opacity-50 self-start`}
+          className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} disabled:opacity-50 self-start transition-all duration-150 active:scale-[0.98]`}
         >
-          Login
+          Authenticate
         </button>
       )}
     </div>
@@ -215,40 +223,41 @@ function JiraCard({
   const isConfigured = status?.configured ?? false;
 
   return (
-    <div className={`rounded-lg border ${border.subtle} ${settings.card} p-4 flex flex-col gap-3`}>
-      <div className="flex items-center justify-between">
-        <h3 className={`text-xs font-semibold ${text.primary}`}>Jira</h3>
-        <span
-          className={`text-[11px] px-2 py-0.5 rounded-full ${
-            isConfigured ? 'text-green-400 bg-green-900/30' : 'text-gray-400 bg-gray-800'
-          }`}
-        >
-          {isConfigured ? 'Connected' : 'Not connected'}
-        </span>
+    <div className="flex flex-col gap-4">
+      {/* Card header with icon */}
+      <div className="flex items-center gap-3">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isConfigured ? 'bg-blue-500/10' : 'bg-white/[0.04]'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-4 h-4 ${isConfigured ? 'text-blue-400' : text.muted}`}>
+            <path d="M11.53 2.3A1 1 0 0 0 9.47 2.3L1.59 10.18a1 1 0 0 0 0 1.41l3.87 3.88a1 1 0 0 0 1.41 0L12 10.34l5.13 5.13a1 1 0 0 0 1.41 0l3.87-3.88a1 1 0 0 0 0-1.41L11.53 2.3ZM12 13.47L8.53 10 12 6.53 15.47 10 12 13.47Z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className={`text-xs font-semibold ${text.primary}`}>Jira</h3>
+          <span className={`text-[10px] ${isConfigured ? 'text-blue-400' : text.dimmed}`}>
+            {isConfigured ? 'Connected' : 'Not connected'}
+          </span>
+        </div>
       </div>
 
       {status === null ? (
         <span className={`text-xs ${text.muted}`}>Loading...</span>
       ) : isConfigured ? (
         <div className="flex flex-col gap-3">
-          <div className="flex gap-2 text-xs">
-            <span className={text.muted}>Auth:</span>
-            <span className="text-green-400">API Token</span>
-          </div>
+          <StatusRow label="Auth" ok={true} value="API Token" />
 
-          <div className="flex flex-col gap-1">
-            <label className={`text-[11px] ${settings.label}`}>Default Project Key</label>
+          <div className="flex flex-col gap-1.5">
+            <label className={`text-[10px] ${settings.label}`}>Default Project Key</label>
             <div className="flex gap-2">
               <input
                 value={projectKey}
                 onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
                 placeholder="PROJ"
-                className={`flex-1 px-2 py-1 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+                className={`flex-1 ${integrationInput}`}
               />
               <button
                 onClick={handleSaveProjectKey}
                 disabled={saving}
-                className={`text-xs px-2 py-1 rounded ${button.secondary} disabled:opacity-50`}
+                className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.secondary} disabled:opacity-50 transition-colors duration-150`}
               >
                 Save
               </button>
@@ -258,65 +267,65 @@ function JiraCard({
           <button
             onClick={handleDisconnect}
             disabled={saving}
-            className={`text-xs ${text.error} hover:underline text-left disabled:opacity-50`}
+            className={`text-[11px] ${text.muted} hover:text-red-400 text-left disabled:opacity-50 transition-colors duration-150`}
           >
-            Disconnect Jira
+            Disconnect
           </button>
         </div>
       ) : showSetup ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           <div className="flex flex-col gap-1">
-            <label className={`text-[11px] ${settings.label}`}>Jira Base URL</label>
+            <label className={`text-[10px] ${settings.label}`}>Base URL</label>
             <input
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://your-org.atlassian.net"
-              className={`px-2 py-1.5 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+              className={integrationInput}
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className={`text-[11px] ${settings.label}`}>Email</label>
+            <label className={`text-[10px] ${settings.label}`}>Email</label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
-              className={`px-2 py-1.5 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+              className={integrationInput}
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className={`text-[11px] ${settings.label}`}>API Token</label>
+            <label className={`text-[10px] ${settings.label}`}>API Token</label>
             <input
               type="password"
               value={token}
               onChange={(e) => setToken(e.target.value)}
               placeholder="Your Jira API token"
-              className={`px-2 py-1.5 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+              className={integrationInput}
             />
           </div>
           <div className="flex gap-2 pt-1">
             <button
               onClick={handleConnect}
               disabled={saving || !baseUrl || !email || !token}
-              className={`text-xs px-3 py-1.5 rounded font-medium ${button.primary} disabled:opacity-50`}
+              className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} disabled:opacity-50 transition-all duration-150 active:scale-[0.98]`}
             >
               {saving ? 'Connecting...' : 'Connect'}
             </button>
             <button
               onClick={() => setShowSetup(false)}
-              className={`text-xs px-3 py-1.5 rounded ${button.secondary}`}
+              className={`text-[11px] px-3 py-1.5 rounded-md ${button.secondary} transition-colors duration-150`}
             >
               Cancel
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          <p className={`text-[11px] ${text.muted}`}>
-            Connect Jira to create worktrees directly from issues.
+        <div className="flex flex-col gap-3">
+          <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
+            Connect Jira to create worktrees directly from issues and track status.
           </p>
           <button
             onClick={() => setShowSetup(true)}
-            className={`text-xs px-3 py-1.5 rounded font-medium ${button.primary} self-start`}
+            className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} self-start transition-all duration-150 active:scale-[0.98]`}
           >
             Set up Jira
           </button>
@@ -325,8 +334,8 @@ function JiraCard({
 
       {feedback && (
         <span
-          className={`text-xs ${
-            feedback.type === 'success' ? 'text-green-400' : text.error
+          className={`text-[11px] ${
+            feedback.type === 'success' ? 'text-accent' : text.error
           }`}
         >
           {feedback.message}
@@ -371,17 +380,24 @@ export function IntegrationsPanel() {
 
   return (
     <div className={`flex-1 ${surface.panel} rounded-xl overflow-auto`}>
-      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-5">
-        <h2 className={`text-sm font-semibold ${text.primary}`}>Integrations</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <GitHubCard
-            status={currentGithubStatus}
-            onStatusChange={() => setGithubRefreshKey((k) => k + 1)}
-          />
-          <JiraCard
-            status={currentJiraStatus}
-            onStatusChange={() => setJiraRefreshKey((k) => k + 1)}
-          />
+      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-6">
+        <div>
+          <h2 className={`text-sm font-semibold ${text.primary}`}>Integrations</h2>
+          <p className={`text-[11px] ${text.dimmed} mt-1`}>Connect external services to enhance your workflow.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-5">
+          <div className={`rounded-xl border ${border.subtle} bg-white/[0.02] p-5`}>
+            <GitHubCard
+              status={currentGithubStatus}
+              onStatusChange={() => setGithubRefreshKey((k) => k + 1)}
+            />
+          </div>
+          <div className={`rounded-xl border ${border.subtle} bg-white/[0.02] p-5`}>
+            <JiraCard
+              status={currentJiraStatus}
+              onStatusChange={() => setJiraRefreshKey((k) => k + 1)}
+            />
+          </div>
         </div>
       </div>
     </div>

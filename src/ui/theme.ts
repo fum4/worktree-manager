@@ -6,22 +6,56 @@
  * fragments — they get interpolated into className strings.
  */
 
+// ─── Color Palette ─────────────────────────────────────────────
+export const palette = {
+  // Backgrounds (neutral slate family)
+  bg0: '#0c0e12',       // deepest — page bg
+  bg1: '#12151a',       // panels
+  bg2: '#1a1e25',       // elevated surfaces (cards, modals, hovers)
+  bg3: '#242930',       // input fields, pressed states
+
+  // Borders
+  border0: 'rgba(255,255,255,0.06)',  // subtle dividers
+  border1: 'rgba(255,255,255,0.10)',  // input borders
+  border2: 'rgba(255,255,255,0.15)',  // hover/active borders
+
+  // Text
+  text0: '#f0f2f5',     // primary
+  text1: '#9ca3af',     // secondary
+  text2: '#6b7280',     // muted
+  text3: '#4b5563',     // dimmed/disabled
+
+  // Accent — teal/greenish-blue
+  accent: '#2dd4bf',       // primary accent (teal-400)
+  accentMuted: '#14b8a6',  // slightly deeper (teal-500)
+  accentBg: 'rgba(45,212,191,0.10)',  // accent tinted backgrounds
+  accentBgHover: 'rgba(45,212,191,0.18)',
+
+  // Semantic
+  green: '#34d399',
+  red: '#f87171',
+  orange: '#fb923c',
+  yellow: '#fbbf24',
+  purple: '#a78bfa',
+  cyan: '#22d3ee',
+} as const;
+
 // ─── Surface / Layout ────────────────────────────────────────────
 export const surface = {
   /** Page background (visible between panels & behind header) */
-  page:            'bg-gray-900',
+  page:            'bg-surface-page',
   /** Both panels (sidebar + detail) */
-  panel:           'bg-[#0d1117]',
-  /** Selected sidebar item — darker than panel */
-  panelSelected:   'bg-[#080b10]',
+  panel:           'bg-surface-panel',
+  /** Selected sidebar item */
+  panelSelected:   'bg-surface-raised',
   /** Sidebar item hover */
-  panelHover:      'bg-white/[0.03]',
+  panelHover:      'bg-white/[0.04]',
   /** Inline editable text hover */
-  editableHover:   'bg-gray-800/50',
+  editableHover:   'bg-surface-input',
   /** Modal overlay */
   overlay:         'bg-black/60',
   /** Modal card */
-  modal:           'bg-gray-800',
+  modal:           'bg-surface-raised',
 } as const;
 
 // ─── Borders ─────────────────────────────────────────────────────
@@ -29,38 +63,41 @@ export const border = {
   /** Default subtle divider inside panels */
   subtle:          'border-white/[0.06]',
   /** Panel section dividers (toolbar, header rows) */
-  section:         'border-gray-800',
+  section:         'border-white/[0.08]',
   /** Modal border */
-  modal:           'border-gray-700',
+  modal:           'border-white/[0.10]',
   /** Input borders */
-  input:           'border-white/[0.06]',
+  input:           'border-white/[0.10]',
   /** Selected sidebar accent */
-  accent:          'border-blue-500',
+  accent:          'border-accent',
   /** Focus ring on inputs */
-  focusPrimary:    'border-blue-500',
-  focusCommit:     'border-orange-500',
-  focusPr:         'border-purple-500',
+  focusPrimary:    'border-accent',
+  focusCommit:     'border-accent',
+  focusPr:         'border-accent',
 } as const;
 
 // ─── Input fields ────────────────────────────────────────────────
 export const input = {
-  bg:              'bg-white/[0.04]',
+  bg:              'bg-surface-input',
+  /** Sidebar inputs — borderless, ghost-like, blends into panel */
+  bgSidebar:       'bg-white/[0.04]',
   /** Inputs inside detail panel (edit mode, commit, PR) */
-  bgDetail:        'bg-gray-900',
+  bgDetail:        'bg-surface-input',
   text:            'text-white',
-  placeholder:     'placeholder-gray-600',
-  ring:            'ring-blue-500/50',
-  ringCommit:      'ring-orange-500/50',
-  ringPr:          'ring-purple-500/50',
+  placeholder:     'placeholder-gray-500',
+  placeholderSubtle: 'placeholder-[#4b5563]',
+  ring:            'ring-accent/50',
+  ringCommit:      'ring-accent/50',
+  ringPr:          'ring-accent/50',
 } as const;
 
 // ─── Text hierarchy ──────────────────────────────────────────────
 export const text = {
-  primary:         'text-white',
-  secondary:       'text-gray-400',
-  muted:           'text-gray-500',
-  dimmed:          'text-gray-600',
-  body:            'text-gray-100',
+  primary:         'text-[#f0f2f5]',
+  secondary:       'text-[#9ca3af]',
+  muted:           'text-[#6b7280]',
+  dimmed:          'text-[#4b5563]',
+  body:            'text-[#f0f2f5]',
   error:           'text-red-400',
   errorBanner:     'text-red-300',
 } as const;
@@ -68,20 +105,20 @@ export const text = {
 // ─── Status indicators ──────────────────────────────────────────
 export const status = {
   running: {
-    dot:           'bg-green-500',
-    glow:          'shadow-[0_0_6px_rgba(74,222,128,0.5)]',
-    badge:         'text-green-400 bg-green-900/30',
+    dot:           'bg-emerald-400',
+    glow:          'shadow-[0_0_6px_rgba(52,211,153,0.45)]',
+    badge:         'text-emerald-400 bg-emerald-900/30',
   },
   stopped: {
-    dot:           'bg-gray-600',
-    badge:         'text-gray-400 bg-gray-800',
+    dot:           'bg-[#4b5563]',
+    badge:         'text-[#9ca3af] bg-white/[0.06]',
   },
   creating: {
-    dot:           'bg-yellow-500',
+    dot:           'bg-yellow-400',
     badge:         'text-yellow-400 bg-yellow-900/30',
   },
   deleting: {
-    dot:           'bg-red-500',
+    dot:           'bg-red-400',
   },
   uncommitted: {
     dot:           'bg-orange-400',
@@ -89,70 +126,71 @@ export const status = {
 } as const;
 
 // ─── Action buttons (ghost style) ───────────────────────────────
+// Reduced palette: accent (teal) for constructive, red for destructive, neutral for rest
 export const action = {
   start: {
-    text:          'text-green-400',
-    hover:         'hover:bg-green-900/30',
+    text:          'text-accent',
+    hover:         'hover:bg-accent/10',
   },
   stop: {
     text:          'text-red-400',
     hover:         'hover:bg-red-900/30',
   },
   delete: {
-    text:          'text-red-400',
-    hover:         'hover:bg-red-900/30',
+    text:          'text-[#6b7280]',
+    hover:         'hover:bg-red-900/20 hover:text-red-400',
   },
   commit: {
-    text:          'text-orange-400',
-    textActive:    'text-orange-300',
-    hover:         'hover:bg-orange-900/30',
-    bgActive:      'bg-orange-900/40',
-    bgSubmit:      'bg-orange-900/30',
-    bgSubmitHover: 'hover:bg-orange-900/50',
+    text:          'text-[#9ca3af]',
+    textActive:    'text-accent',
+    hover:         'hover:bg-white/[0.06]',
+    bgActive:      'bg-accent/10',
+    bgSubmit:      'bg-accent/10',
+    bgSubmitHover: 'hover:bg-accent/20',
   },
   push: {
-    text:          'text-cyan-400',
-    hover:         'hover:bg-cyan-900/30',
+    text:          'text-[#9ca3af]',
+    hover:         'hover:bg-white/[0.06]',
   },
   pr: {
-    text:          'text-purple-400',
-    textActive:    'text-purple-300',
-    hover:         'hover:bg-purple-900/30',
-    bgActive:      'bg-purple-900/40',
-    bgSubmit:      'bg-purple-900/30',
-    bgSubmitHover: 'hover:bg-purple-900/50',
+    text:          'text-[#9ca3af]',
+    textActive:    'text-accent',
+    hover:         'hover:bg-white/[0.06]',
+    bgActive:      'bg-accent/10',
+    bgSubmit:      'bg-accent/10',
+    bgSubmitHover: 'hover:bg-accent/20',
   },
   rename: {
-    text:          'text-gray-400',
-    hover:         'hover:bg-gray-700',
+    text:          'text-[#9ca3af]',
+    hover:         'hover:bg-white/[0.06]',
   },
   cancel: {
-    text:          'text-gray-500',
-    textHover:     'hover:text-gray-300',
+    text:          'text-[#6b7280]',
+    textHover:     'hover:text-[#9ca3af]',
   },
 } as const;
 
 // ─── Primary button ─────────────────────────────────────────────
 export const button = {
-  primary:         'bg-blue-600 text-white hover:bg-blue-700',
-  secondary:       'bg-gray-700 text-gray-300 hover:bg-gray-600',
+  primary:         'bg-accent/15 text-accent hover:bg-accent/25 font-medium',
+  secondary:       'bg-white/[0.06] text-[#9ca3af] hover:bg-white/[0.10] hover:text-white',
   confirm:         'text-red-400 bg-red-900/30 hover:bg-red-900/50',
 } as const;
 
 // ─── Tabs (create form Branch / Jira) ───────────────────────────
 export const tab = {
   active:          'text-white bg-white/[0.08]',
-  inactive:        'text-gray-500 hover:text-gray-300',
+  inactive:        'text-[#6b7280] hover:text-[#9ca3af]',
 } as const;
 
 // ─── Integration badges ─────────────────────────────────────────
 export const badge = {
-  running:         'bg-blue-600 text-white',
+  running:         'bg-accent/20 text-accent',
   jira:            'text-blue-400',
   jiraHover:       'hover:text-blue-300',
   jiraStatus:      'bg-blue-900/30',
-  prOpen:          'text-green-400 bg-green-900/30',
-  prDraft:         'text-gray-300 bg-gray-700',
+  prOpen:          'text-emerald-400 bg-emerald-900/30',
+  prDraft:         'text-[#9ca3af] bg-white/[0.06]',
   prMerged:        'text-purple-400 bg-purple-900/30',
   prClosed:        'text-red-400 bg-red-900/30',
   unpushed:        'text-cyan-400',
@@ -160,50 +198,50 @@ export const badge = {
 
 // ─── Header bar ─────────────────────────────────────────────────
 export const header = {
-  bg:              'bg-gray-900',
-  ports:           'text-gray-600',
-  portsDiscover:   'text-yellow-400 hover:text-yellow-300',
-  rescan:          'text-gray-500 hover:text-gray-300',
-  connection:      'text-gray-500',
-  connectedDot:    'bg-green-500',
-  disconnectedDot: 'bg-gray-500',
+  bg:              'bg-surface-page',
+  ports:           'text-[#4b5563]',
+  portsDiscover:   'text-accent/70 hover:text-accent',
+  rescan:          'text-[#6b7280] hover:text-[#9ca3af]',
+  connection:      'text-[#6b7280]',
+  connectedDot:    'bg-emerald-400',
+  disconnectedDot: 'bg-[#4b5563]',
 } as const;
 
 // ─── Navigation bar ─────────────────────────────────────────────
 export const nav = {
-  bg:              'bg-gray-900',
+  bg:              'bg-surface-page',
   active:          'text-white bg-white/[0.08]',
-  inactive:        'text-gray-500 hover:text-gray-300',
+  inactive:        'text-[#6b7280] hover:text-[#9ca3af]',
 } as const;
 
 // ─── Settings / Configuration ───────────────────────────────────
 export const settings = {
-  label:           'text-gray-300',
-  description:     'text-gray-500',
+  label:           'text-[#9ca3af]',
+  description:     'text-[#6b7280]',
   card:            'bg-white/[0.03]',
 } as const;
 
 // ─── Jira priority / type ────────────────────────────────────────
 export const jiraPriority: Record<string, string> = {
-  highest: 'text-red-500',
+  highest: 'text-red-400',
   high: 'text-orange-400',
   medium: 'text-yellow-400',
-  low: 'text-green-400',
+  low: 'text-emerald-400',
   lowest: 'text-blue-400',
 };
 
 export const jiraType: Record<string, string> = {
   bug: 'text-red-400 bg-red-900/30',
-  story: 'text-green-400 bg-green-900/30',
+  story: 'text-emerald-400 bg-emerald-900/30',
   task: 'text-blue-400 bg-blue-900/30',
-  subtask: 'text-gray-400 bg-gray-800',
+  subtask: 'text-[#9ca3af] bg-white/[0.06]',
   epic: 'text-purple-400 bg-purple-900/30',
 };
 
 // ─── Detail panel tabs (Logs / Terminal) ────────────────────────
 export const detailTab = {
   active:          'text-white bg-white/[0.08]',
-  inactive:        'text-gray-500 hover:text-gray-300',
+  inactive:        'text-[#6b7280] hover:text-[#9ca3af]',
 } as const;
 
 // ─── Error banner ────────────────────────────────────────────────

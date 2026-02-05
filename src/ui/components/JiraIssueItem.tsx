@@ -9,7 +9,7 @@ interface JiraIssueItemProps {
 
 export function JiraIssueItem({ issue, isSelected, onSelect }: JiraIssueItemProps) {
   const typeLower = issue.type.toLowerCase();
-  const typeClasses = jiraType[typeLower] ?? 'text-gray-400 bg-gray-800';
+  const typeClasses = jiraType[typeLower] ?? `${text.secondary} bg-white/[0.06]`;
 
   return (
     <button
@@ -27,10 +27,10 @@ export function JiraIssueItem({ issue, isSelected, onSelect }: JiraIssueItemProp
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] font-semibold ${text.secondary} flex-shrink-0`}>
+          <span className={`text-[11px] font-semibold ${text.secondary} flex-shrink-0`}>
             {issue.key}
           </span>
-          <span className={`text-[10px] ${text.muted} truncate`}>
+          <span className={`text-[11px] ${text.muted} truncate`}>
             {issue.status}
           </span>
         </div>

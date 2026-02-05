@@ -29,7 +29,7 @@ export function JiraIssueList({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search issues..."
-          className={`w-full px-2 py-1.5 ${input.bg} border ${border.input} rounded ${input.text} ${input.placeholder} text-xs focus:outline-none focus:${border.focusPrimary} focus-visible:ring-1 ${input.ring}`}
+          className={`w-full px-2.5 py-1.5 bg-white/[0.04] border border-accent/0 rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-accent/30 transition-all duration-150`}
         />
       </div>
 
@@ -45,7 +45,7 @@ export function JiraIssueList({
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
             <p className={`${text.muted} text-xs`}>No issues found</p>
-            <p className={`${text.dimmed} text-[10px] mt-1`}>
+            <p className={`${text.dimmed} text-[11px] mt-1`}>
               {searchQuery ? 'Try a different search' : 'No issues assigned to you'}
             </p>
           </div>

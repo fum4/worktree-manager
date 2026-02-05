@@ -14,7 +14,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <label className={`text-xs font-medium ${settings.label}`}>{label}</label>
       {description && (
         <span className={`text-[11px] ${settings.description}`}>{description}</span>
@@ -23,6 +23,9 @@ function Field({
     </div>
   );
 }
+
+const fieldInputBase = `px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-accent/0 ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-accent/30 transition-all duration-150`;
+const fieldInputClass = `w-full ${fieldInputBase}`;
 
 function TextInput({
   value,
@@ -38,7 +41,7 @@ function TextInput({
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className={`w-full px-2.5 py-1.5 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+      className={fieldInputClass}
     />
   );
 }
@@ -55,7 +58,7 @@ function NumberInput({
       type="number"
       value={value}
       onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
-      className={`w-full px-2.5 py-1.5 rounded text-xs ${input.bg} ${input.text} border ${border.input} focus:border-blue-500 focus:outline-none`}
+      className={fieldInputClass}
     />
   );
 }
@@ -99,18 +102,18 @@ function EnvMappingEditor({
             value={key}
             onChange={(e) => updateKey(key, e.target.value)}
             placeholder="ENV_VAR"
-            className={`flex-1 px-2 py-1 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+            className={`flex-1 ${fieldInputBase}`}
           />
           <span className={`text-xs ${text.muted}`}>=</span>
           <input
             value={value}
             onChange={(e) => updateValue(key, e.target.value)}
             placeholder="http://localhost:${4000}"
-            className={`flex-[2] px-2 py-1 rounded text-xs ${input.bg} ${input.text} ${input.placeholder} border ${border.input} focus:border-blue-500 focus:outline-none`}
+            className={`flex-[2] ${fieldInputBase}`}
           />
           <button
             onClick={() => removeRow(key)}
-            className={`text-xs ${text.muted} hover:text-red-400 px-1`}
+            className={`text-xs ${text.muted} hover:text-red-400 px-1 transition-colors duration-150`}
           >
             x
           </button>
@@ -118,7 +121,7 @@ function EnvMappingEditor({
       ))}
       <button
         onClick={addRow}
-        className={`text-xs ${text.muted} hover:text-gray-300 text-left`}
+        className={`text-xs ${text.muted} hover:text-[#9ca3af] text-left transition-colors duration-150`}
       >
         + Add mapping
       </button>
@@ -180,7 +183,7 @@ export function ConfigurationPanel({
 
   return (
     <div className={`flex-1 ${surface.panel} rounded-xl overflow-auto`}>
-      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-5">
+      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-6">
         <h2 className={`text-sm font-semibold ${text.primary}`}>Settings</h2>
 
         <div className="grid grid-cols-2 gap-4">
@@ -240,7 +243,7 @@ export function ConfigurationPanel({
             <button
               onClick={handleDiscover}
               disabled={discovering}
-              className={`text-xs px-2 py-0.5 rounded ${button.secondary} disabled:opacity-50`}
+              className={`text-xs px-2.5 py-1 rounded-md ${button.secondary} disabled:opacity-50 transition-colors duration-150`}
             >
               {discovering ? 'Discovering...' : 'Discover'}
             </button>
@@ -258,14 +261,14 @@ export function ConfigurationPanel({
           <button
             onClick={handleSave}
             disabled={saving}
-            className={`px-4 py-1.5 rounded text-xs font-medium ${button.primary} disabled:opacity-50`}
+            className={`px-4 py-2 rounded-lg text-xs font-medium ${button.primary} disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}
           >
             {saving ? 'Saving...' : 'Save'}
           </button>
           {feedback && (
             <span
               className={`text-xs ${
-                feedback.type === 'success' ? 'text-green-400' : text.error
+                feedback.type === 'success' ? 'text-emerald-400' : text.error
               }`}
             >
               {feedback.message}

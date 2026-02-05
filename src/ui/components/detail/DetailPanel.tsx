@@ -28,9 +28,6 @@ interface DetailPanelProps {
 export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegrations }: DetailPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editBranch, setEditBranch] = useState('');
   const [showCommitInput, setShowCommitInput] = useState(false);
   const [commitMessage, setCommitMessage] = useState('');
   const [showCreatePrInput, setShowCreatePrInput] = useState(false);
@@ -51,7 +48,6 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
   // Reset form state when worktree changes (but NOT tab or terminal state)
   useEffect(() => {
     setError(null);
-    setIsEditing(false);
     setShowCommitInput(false);
     setShowCreatePrInput(false);
     setCommitMessage('');
@@ -113,35 +109,12 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
     onUpdate();
   };
 
-  const handleEditStart = () => {
-    setEditName(worktree.id);
-    setEditBranch(worktree.branch);
-    setIsEditing(true);
-    setError(null);
-  };
-
-  const handleEditCancel = () => {
-    setIsEditing(false);
-    setError(null);
-  };
-
-  const handleEditSave = async () => {
-    const changes: { name?: string; branch?: string } = {};
-    if (editName.trim() !== worktree.id) changes.name = editName.trim();
-    if (editBranch.trim() !== worktree.branch) changes.branch = editBranch.trim();
-
-    if (Object.keys(changes).length === 0) {
-      setIsEditing(false);
-      return;
-    }
-
-    setIsLoading(true);
+  const handleRename = async (changes: { name?: string; branch?: string }): Promise<boolean> => {
     setError(null);
     const result = await renameWorktree(worktree.id, changes);
-    setIsLoading(false);
-    if (result.success) setIsEditing(false);
-    else setError(result.error || 'Failed to rename');
+    if (!result.success) setError(result.error || 'Failed to rename');
     onUpdate();
+    return result.success;
   };
 
   const handleCommit = async () => {
@@ -198,21 +171,13 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
     <div className="flex-1 flex flex-col min-h-0">
       <DetailHeader
         worktree={worktree}
-        isEditing={isEditing}
-        editName={editName}
-        editBranch={editBranch}
-        isLoading={isLoading}
         isRunning={isRunning}
         isCreating={isCreating}
-        onEditNameChange={setEditName}
-        onEditBranchChange={setEditBranch}
-        onEditStart={handleEditStart}
-        onEditSave={handleEditSave}
-        onEditCancel={handleEditCancel}
+        onRename={handleRename}
       />
 
       {!isCreating && (
-        <div className={`flex-shrink-0 px-5 py-2 border-b ${border.section}`}>
+        <div className={`flex-shrink-0 px-5 py-2.5 border-b ${border.section}`}>
           <ActionToolbar
             worktree={worktree}
             isRunning={isRunning}
@@ -251,7 +216,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
             <button
               type="button"
               onClick={onNavigateToIntegrations}
-              className="px-2 py-0.5 text-[10px] font-medium text-blue-400 hover:text-blue-300 transition-colors flex-shrink-0"
+              className="px-2 py-0.5 text-[11px] font-medium text-accent hover:text-accent-muted transition-colors duration-150 flex-shrink-0"
             >
               Configure
             </button>
@@ -260,11 +225,11 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
       )}
 
       {!isCreating && (
-        <div className={`flex-shrink-0 flex border-b ${border.section}`}>
+        <div className={`flex-shrink-0 flex gap-1 px-4 py-2 border-b ${border.section}`}>
           <button
             type="button"
             onClick={() => setActiveTab('logs')}
-            className={`px-4 py-1.5 text-xs font-medium transition-colors ${
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors duration-150 ${
               activeTab === 'logs' ? detailTab.active : detailTab.inactive
             }`}
           >
@@ -278,7 +243,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
                 setOpenTerminals(prev => new Set(prev).add(worktree.id));
               }
             }}
-            className={`px-4 py-1.5 text-xs font-medium transition-colors ${
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors duration-150 ${
               activeTab === 'terminal' ? detailTab.active : detailTab.inactive
             }`}
           >
