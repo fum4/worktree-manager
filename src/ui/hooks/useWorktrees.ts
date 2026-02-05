@@ -101,15 +101,18 @@ export function usePorts() {
 
 export function useJiraStatus() {
   const [jiraStatus, setJiraStatus] = useState<JiraStatus | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/jira/status`)
       .then((res) => res.json())
       .then((data) => setJiraStatus(data))
       .catch(() => {});
-  }, []);
+  }, [refreshKey]);
 
-  return jiraStatus;
+  const refetch = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  return { jiraStatus, refetchJiraStatus: refetch };
 }
 
 export function useGitHubStatus() {

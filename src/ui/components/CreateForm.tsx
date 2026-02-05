@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { createFromJira, createWorktree } from '../hooks/api';
 import { border, button, input, tab, text } from '../theme';
+import { Spinner } from './Spinner';
+import { WorktreeExistsModal } from './WorktreeExistsModal';
 
 interface CreateFormProps {
   onCreated: () => void;
@@ -10,6 +12,10 @@ interface CreateFormProps {
   defaultProjectKey: string | null;
   activeTab: 'branch' | 'issues';
   onTabChange: (tab: 'branch' | 'issues') => void;
+  initialExpanded?: boolean;
+  onSetupNeeded?: () => void;
+  isExpanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 function deriveName(branch: string): string {
@@ -20,8 +26,15 @@ function deriveName(branch: string): string {
     .replace(/^-|-$/g, '');
 }
 
-export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, activeTab, onTabChange }: CreateFormProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, activeTab, onTabChange, initialExpanded = false, onSetupNeeded, isExpanded: controlledExpanded, onExpandedChange }: CreateFormProps) {
+  const [internalExpanded, setInternalExpanded] = useState(initialExpanded);
+
+  // Support both controlled and uncontrolled modes
+  const isExpanded = controlledExpanded ?? internalExpanded;
+  const setIsExpanded = (expanded: boolean) => {
+    setInternalExpanded(expanded);
+    onExpandedChange?.(expanded);
+  };
 
   // Branch form state
   const [branch, setBranch] = useState('');
@@ -36,6 +49,9 @@ export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, activ
   const [jiraBranch, setJiraBranch] = useState('');
   const [isJiraLoading, setIsJiraLoading] = useState(false);
   const [jiraError, setJiraError] = useState<string | null>(null);
+
+  // Worktree exists modal state
+  const [existingWorktree, setExistingWorktree] = useState<{ id: string; branch: string } | null>(null);
 
   useEffect(() => {
     if (!nameManuallyEdited) {
@@ -72,8 +88,21 @@ export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, activ
       resetForm();
       setIsExpanded(false);
       onCreated();
+    } else if (result.code === 'WORKTREE_EXISTS' && result.worktreeId) {
+      // Show modal to handle existing worktree
+      setExistingWorktree({ id: result.worktreeId, branch: branch.trim() });
     } else {
-      setError(result.error || 'Failed to create worktree');
+      const errorMsg = result.error || 'Failed to create worktree';
+      // Check if error indicates repository setup is needed
+      if (errorMsg.includes('no commits') || errorMsg.includes('invalid reference')) {
+        if (onSetupNeeded) {
+          onSetupNeeded();
+        } else {
+          setError(errorMsg);
+        }
+      } else {
+        setError(errorMsg);
+      }
     }
   };
 
@@ -91,8 +120,17 @@ export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, activ
       resetForm();
       setIsExpanded(false);
       onCreated();
+    } else if (result.code === 'WORKTREE_EXISTS' && result.worktreeId) {
+      // Show modal to handle existing worktree
+      setExistingWorktree({ id: result.worktreeId, branch: jiraBranch.trim() || taskId.trim() });
     } else {
-      setJiraError(result.error || 'Failed to create from Jira');
+      const errorMsg = result.error || 'Failed to create from Jira';
+      // Check if error indicates repository setup is needed
+      if (errorMsg.includes('no commits') || errorMsg.includes('invalid reference')) {
+        onSetupNeeded?.();
+      } else {
+        setJiraError(errorMsg);
+      }
     }
   };
 
@@ -168,7 +206,12 @@ export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, activ
                 disabled={!branch.trim() || isCreating}
                 className={`w-full px-2.5 py-1.5 text-[11px] font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}
               >
-                {isCreating ? 'Creating...' : 'Create'}
+                {isCreating ? (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <Spinner size="xs" />
+                    Creating...
+                  </span>
+                ) : 'Create'}
               </button>
             </form>
           ) : (
@@ -195,11 +238,30 @@ export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, activ
                 disabled={!taskId.trim() || isJiraLoading}
                 className={`w-full px-2.5 py-1.5 text-[11px] font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}
               >
-                {isJiraLoading ? 'Creating...' : 'Fetch & Create'}
+                {isJiraLoading ? (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <Spinner size="xs" />
+                    Creating...
+                  </span>
+                ) : 'Fetch & Create'}
               </button>
             </form>
           )}
         </div>
+      )}
+
+      {existingWorktree && (
+        <WorktreeExistsModal
+          worktreeId={existingWorktree.id}
+          branch={existingWorktree.branch}
+          onResolved={() => {
+            setExistingWorktree(null);
+            resetForm();
+            setIsExpanded(false);
+            onCreated();
+          }}
+          onCancel={() => setExistingWorktree(null)}
+        />
       )}
     </div>
   );

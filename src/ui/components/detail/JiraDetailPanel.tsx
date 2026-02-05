@@ -5,6 +5,8 @@ import { createFromJira } from '../../hooks/api';
 import type { JiraIssueDetail } from '../../types';
 import { badge, border, button, jiraPriority, jiraType, surface, text } from '../../theme';
 import { MarkdownContent } from '../MarkdownContent';
+import { Spinner } from '../Spinner';
+import { WorktreeExistsModal } from '../WorktreeExistsModal';
 
 interface JiraDetailPanelProps {
   issueKey: string;
@@ -12,6 +14,7 @@ interface JiraDetailPanelProps {
   onCreateWorktree: (key: string) => void;
   onViewWorktree: (id: string) => void;
   refreshIntervalMinutes?: number;
+  onSetupNeeded?: () => void;
 }
 
 function formatTimeAgo(timestamp: number): string {
@@ -167,26 +170,42 @@ function FileIcon({ mimeType }: { mimeType: string }) {
   );
 }
 
-export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, onViewWorktree, refreshIntervalMinutes }: JiraDetailPanelProps) {
+export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, onViewWorktree, refreshIntervalMinutes, onSetupNeeded }: JiraDetailPanelProps) {
   const { issue, isLoading, isFetching, error, refetch, dataUpdatedAt } = useJiraIssueDetail(issueKey, refreshIntervalMinutes);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [existingWorktree, setExistingWorktree] = useState<{ id: string; branch: string } | null>(null);
 
   const handleCreate = async () => {
     setIsCreating(true);
     setCreateError(null);
     const result = await createFromJira(issueKey);
+    console.log('createFromJira result:', result);
     setIsCreating(false);
     if (result.success) {
       onCreateWorktree(issueKey);
+    } else if (result.code === 'WORKTREE_EXISTS' && result.worktreeId) {
+      console.log('Showing WorktreeExistsModal for:', result.worktreeId);
+      setExistingWorktree({ id: result.worktreeId, branch: issueKey });
     } else {
-      setCreateError(result.error || 'Failed to create worktree');
+      const errorMsg = result.error || 'Failed to create worktree';
+      // Check if error indicates repository setup is needed
+      if (errorMsg.includes('no commits') || errorMsg.includes('invalid reference')) {
+        if (onSetupNeeded) {
+          onSetupNeeded();
+        } else {
+          setCreateError(errorMsg);
+        }
+      } else {
+        setCreateError(errorMsg);
+      }
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center gap-2">
+        <Spinner size="sm" className={text.muted} />
         <p className={`${text.muted} text-sm`}>Loading issue...</p>
       </div>
     );
@@ -359,6 +378,18 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
           <span>Updated {formatDate(issue.updated)}</span>
         </div>
       </div>
+
+      {existingWorktree && (
+        <WorktreeExistsModal
+          worktreeId={existingWorktree.id}
+          branch={existingWorktree.branch}
+          onResolved={() => {
+            setExistingWorktree(null);
+            onCreateWorktree(issueKey);
+          }}
+          onCancel={() => setExistingWorktree(null)}
+        />
+      )}
     </div>
   );
 }

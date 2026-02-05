@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { saveConfig, type WorktreeConfig } from '../hooks/useConfig';
 import { discoverPorts } from '../hooks/api';
 import { border, button, input, settings, surface, text } from '../theme';
+import { Spinner } from './Spinner';
 
 function Field({
   label,
@@ -149,7 +150,8 @@ export function ConfigurationPanel({
 
   if (!form) {
     return (
-      <div className={`flex-1 flex items-center justify-center ${text.muted} text-sm`}>
+      <div className={`flex-1 flex items-center justify-center gap-2 ${text.muted} text-sm`}>
+        <Spinner size="sm" />
         Loading configuration...
       </div>
     );

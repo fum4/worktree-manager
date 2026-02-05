@@ -1,3 +1,4 @@
+import { GitBranch } from 'lucide-react';
 import type { JiraIssueSummary } from '../types';
 import { border, jiraType, surface, text } from '../theme';
 
@@ -5,9 +6,11 @@ interface JiraIssueItemProps {
   issue: JiraIssueSummary;
   isSelected: boolean;
   onSelect: () => void;
+  linkedWorktreeId?: string;
+  onViewWorktree?: (worktreeId: string) => void;
 }
 
-export function JiraIssueItem({ issue, isSelected, onSelect }: JiraIssueItemProps) {
+export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, onViewWorktree }: JiraIssueItemProps) {
   const typeLower = issue.type.toLowerCase();
   const typeClasses = jiraType[typeLower] ?? `${text.secondary} bg-white/[0.06]`;
 
@@ -38,6 +41,20 @@ export function JiraIssueItem({ issue, isSelected, onSelect }: JiraIssueItemProp
           {issue.summary}
         </div>
       </div>
+
+      {linkedWorktreeId && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewWorktree?.(linkedWorktreeId);
+          }}
+          className="flex-shrink-0 p-1 rounded text-accent hover:text-accent-muted hover:bg-accent/10 transition-colors duration-150"
+          title="View linked worktree"
+        >
+          <GitBranch className="w-3.5 h-3.5" />
+        </button>
+      )}
     </button>
   );
 }

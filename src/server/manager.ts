@@ -134,7 +134,7 @@ export class WorktreeManager {
     this.eventListeners.forEach((listener) => listener(worktrees));
   }
 
-  private getGitRoot(): string {
+  getGitRoot(): string {
     return getGitRoot(this.getWorktreesAbsolutePath());
   }
 
@@ -196,8 +196,8 @@ export class WorktreeManager {
         const git = this.githubManager.getCachedGitStatus(entry.name);
         if (git) {
           info.hasUncommitted = git.hasUncommitted;
-          info.hasUnpushed = git.ahead > 0;
-          info.commitsAhead = git.ahead;
+          info.hasUnpushed = git.ahead > 0 || git.noUpstream;
+          info.commitsAhead = git.noUpstream ? 0 : git.ahead;
         }
       }
 
@@ -381,7 +381,7 @@ export class WorktreeManager {
 
   async createWorktree(
     request: WorktreeCreateRequest,
-  ): Promise<{ success: boolean; worktree?: WorktreeInfo; error?: string }> {
+  ): Promise<{ success: boolean; worktree?: WorktreeInfo; error?: string; code?: string; worktreeId?: string }> {
     const { branch, id } = request;
 
     if (!validateBranchName(branch)) {
@@ -402,10 +402,27 @@ export class WorktreeManager {
     const worktreesPath = this.getWorktreesAbsolutePath();
     const worktreePath = path.join(worktreesPath, worktreeId);
 
-    if (existsSync(worktreePath)) {
+    // Check if worktree directory exists OR if git has a stale worktree entry
+    const gitRoot = this.getGitRoot();
+    const worktreeExistsOnDisk = existsSync(worktreePath);
+    let gitWorktreeExists = false;
+
+    try {
+      const { stdout } = await execFile('git', ['worktree', 'list', '--porcelain'], {
+        cwd: gitRoot,
+        encoding: 'utf-8',
+      });
+      gitWorktreeExists = stdout.includes(worktreePath);
+    } catch {
+      // Ignore - assume no conflict
+    }
+
+    if (worktreeExistsOnDisk || gitWorktreeExists) {
       return {
         success: false,
         error: `Worktree "${worktreeId}" already exists`,
+        code: 'WORKTREE_EXISTS',
+        worktreeId,
       };
     }
 
@@ -413,6 +430,21 @@ export class WorktreeManager {
       return {
         success: false,
         error: `Worktree "${worktreeId}" is already being created`,
+      };
+    }
+
+    // Check if repo has any commits BEFORE starting async creation
+    // This allows the frontend to show the setup modal
+    try {
+      execFileSync('git', ['rev-parse', '--verify', 'HEAD'], {
+        cwd: gitRoot,
+        encoding: 'utf-8',
+        stdio: 'pipe',
+      });
+    } catch {
+      return {
+        success: false,
+        error: 'Repository has no commits yet. Create an initial commit from the Integrations panel or run: git add . && git commit -m "Initial commit"',
       };
     }
 
@@ -468,18 +500,47 @@ export class WorktreeManager {
       // Step 2: Create worktree
       updateStatus('Creating worktree...');
 
-      // TODO: revisit the priority/fallback order for worktree creation strategies.
-      // Current cascade:
-      //   1. Create new branch from baseBranch (-b)
-      //   2. Checkout existing local branch
-      //   3. Force-reset existing branch from baseBranch (-B)
-      // Edge cases: branch exists locally but not on remote, branch checked out
-      // elsewhere, detached HEAD states, etc.
+      // Determine the best base ref to use
+      let baseRef = this.config.baseBranch;
+      let baseRefValid = false;
       try {
-        // New branch from baseBranch (e.g. origin/develop)
+        // Check if configured baseBranch exists
+        await execFile('git', ['rev-parse', '--verify', baseRef], {
+          cwd: gitRoot,
+          encoding: 'utf-8',
+        });
+        baseRefValid = true;
+      } catch {
+        // baseBranch doesn't exist - try fallbacks
+      }
+
+      if (!baseRefValid) {
+        const fallbacks = ['main', 'master', 'HEAD'];
+        for (const fallback of fallbacks) {
+          try {
+            await execFile('git', ['rev-parse', '--verify', fallback], {
+              cwd: gitRoot,
+              encoding: 'utf-8',
+            });
+            baseRef = fallback;
+            baseRefValid = true;
+            break;
+          } catch {
+            // Try next fallback
+          }
+        }
+      }
+
+      if (!baseRefValid) {
+        throw new Error(`No valid base branch found. Configure baseBranch in settings.`);
+      }
+
+      // Try to create the worktree with various strategies
+      try {
+        // New branch from baseRef (e.g. origin/develop)
         await execFile(
           'git',
-          ['worktree', 'add', worktreePath, '-b', branch, this.config.baseBranch],
+          ['worktree', 'add', worktreePath, '-b', branch, baseRef],
           { cwd: gitRoot, encoding: 'utf-8' },
         );
       } catch {
@@ -490,10 +551,10 @@ export class WorktreeManager {
             encoding: 'utf-8',
           });
         } catch {
-          // Branch exists but is conflicting — force-reset from baseBranch
+          // Branch exists but is conflicting — force-reset from baseRef
           await execFile(
             'git',
-            ['worktree', 'add', worktreePath, '-B', branch, this.config.baseBranch],
+            ['worktree', 'add', worktreePath, '-B', branch, baseRef],
             { cwd: gitRoot, encoding: 'utf-8' },
           );
         }
@@ -671,6 +732,140 @@ export class WorktreeManager {
     }
   }
 
+  async recoverWorktree(
+    worktreeId: string,
+    action: 'reuse' | 'recreate',
+    branch?: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    const worktreesPath = this.getWorktreesAbsolutePath();
+    const worktreePath = path.join(worktreesPath, worktreeId);
+    const gitRoot = this.getGitRoot();
+    const branchName = branch || worktreeId;
+
+    try {
+      if (action === 'recreate') {
+        // First, forcefully remove the existing worktree
+        try {
+          execFileSync('git', ['worktree', 'remove', worktreePath, '--force'], {
+            cwd: gitRoot,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          });
+        } catch {
+          // Directory might not exist in git's view, try direct removal
+        }
+
+        // Remove the directory if it still exists
+        if (existsSync(worktreePath)) {
+          execFileSync('rm', ['-rf', worktreePath], {
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          });
+        }
+
+        // Prune stale worktree entries
+        try {
+          execFileSync('git', ['worktree', 'prune'], {
+            cwd: gitRoot,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          });
+        } catch {
+          // Ignore prune failures
+        }
+
+        // Delete the branch if it exists (start completely fresh)
+        try {
+          execFileSync('git', ['branch', '-D', branchName], {
+            cwd: gitRoot,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          });
+        } catch {
+          // Branch might not exist, that's fine
+        }
+
+        // Now create the worktree fresh
+        return this.createWorktree({ branch: branchName, name: worktreeId });
+      } else {
+        // Reuse: preserve existing branch and its commits
+
+        // Prune stale worktree entries first
+        try {
+          execFileSync('git', ['worktree', 'prune'], {
+            cwd: gitRoot,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          });
+        } catch {
+          // Ignore prune failures
+        }
+
+        // Check if the directory already exists and is valid
+        if (existsSync(worktreePath)) {
+          try {
+            execFileSync('git', ['rev-parse', '--git-dir'], {
+              cwd: worktreePath,
+              encoding: 'utf-8',
+              stdio: 'pipe',
+            });
+            // Directory exists and is valid, just notify and return
+            this.notifyListeners();
+            return { success: true };
+          } catch {
+            // Directory exists but is not a valid worktree, remove it
+            execFileSync('rm', ['-rf', worktreePath], {
+              encoding: 'utf-8',
+              stdio: 'pipe',
+            });
+          }
+        }
+
+        // Directory doesn't exist - check if branch exists so we can restore
+        let branchExists = false;
+        try {
+          execFileSync('git', ['rev-parse', '--verify', branchName], {
+            cwd: gitRoot,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          });
+          branchExists = true;
+        } catch {
+          branchExists = false;
+        }
+
+        if (!branchExists) {
+          return {
+            success: false,
+            error: `Branch "${branchName}" does not exist. Choose "Recreate" to create a new branch.`,
+          };
+        }
+
+        // Branch exists - create worktree directory pointing to it
+        try {
+          execFileSync('git', ['worktree', 'add', worktreePath, branchName], {
+            cwd: gitRoot,
+            encoding: 'utf-8',
+            stdio: 'pipe',
+          });
+        } catch (err) {
+          return {
+            success: false,
+            error: `Failed to restore worktree: ${err instanceof Error ? err.message : String(err)}`,
+          };
+        }
+
+        this.notifyListeners();
+        return { success: true };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to recover worktree',
+      };
+    }
+  }
+
   getLogs(id: string): string[] {
     const processInfo = this.runningProcesses.get(id);
     return processInfo?.logs ?? [];
@@ -755,6 +950,8 @@ export class WorktreeManager {
     success: boolean;
     task?: { key: string; summary: string; status: string; type: string; url: string };
     error?: string;
+    code?: string;
+    worktreeId?: string;
   }> {
     const creds = loadJiraCredentials(this.configDir);
     if (!creds) {
@@ -791,7 +988,7 @@ export class WorktreeManager {
     const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedKey });
 
     if (!result.success) {
-      return { success: false, error: result.error };
+      return { success: false, error: result.error, code: result.code, worktreeId: result.worktreeId };
     }
 
     return {

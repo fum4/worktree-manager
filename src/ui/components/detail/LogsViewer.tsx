@@ -1,7 +1,16 @@
-import { useEffect, useRef } from 'react';
+import AnsiToHtml from 'ansi-to-html';
+import { useEffect, useMemo, useRef } from 'react';
 
 import type { WorktreeInfo } from '../../types';
 import { text } from '../../theme';
+import { Spinner } from '../Spinner';
+
+const ansiConverter = new AnsiToHtml({
+  fg: '#d4d4d4',
+  bg: 'transparent',
+  newline: true,
+  escapeXML: true,
+});
 
 interface LogsViewerProps {
   worktree: WorktreeInfo;
@@ -31,6 +40,13 @@ export function LogsViewer({ worktree, isRunning, isCreating, visible = true }: 
     userScrolledUp.current = !atBottom;
   };
 
+  // Convert ANSI codes to HTML for colored log output
+  // Note: ansiConverter has escapeXML: true which sanitizes any HTML in the input
+  const logsHtml = useMemo(() => {
+    if (!worktree.logs?.length) return null;
+    return ansiConverter.toHtml(worktree.logs.join('\n'));
+  }, [worktree.logs]);
+
   if (isRunning || isCreating) {
     return (
       <pre
@@ -39,7 +55,17 @@ export function LogsViewer({ worktree, isRunning, isCreating, visible = true }: 
         className={`flex-1 min-h-0 ${text.secondary} text-xs font-mono p-4 overflow-y-auto`}
         style={{ display: visible ? undefined : 'none' }}
       >
-        {worktree.logs?.length ? worktree.logs.join('\n') : 'No logs yet.'}
+        {logsHtml ? (
+          // Safe: logs come from our own server process, and escapeXML sanitizes HTML
+          <span dangerouslySetInnerHTML={{ __html: logsHtml }} />
+        ) : isCreating ? (
+          <span className={`flex items-center gap-2 ${text.muted}`}>
+            <Spinner size="xs" />
+            Initializing worktree...
+          </span>
+        ) : (
+          'No logs yet.'
+        )}
         <div ref={logsEndRef} />
       </pre>
     );

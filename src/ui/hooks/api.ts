@@ -5,7 +5,7 @@ const API_BASE = '';
 export async function createWorktree(
   branch: string,
   name?: string,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; code?: string; worktreeId?: string }> {
   try {
     const body: { branch: string; name?: string } = { branch };
     if (name) body.name = name;
@@ -19,6 +19,26 @@ export async function createWorktree(
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to create worktree',
+    };
+  }
+}
+
+export async function recoverWorktree(
+  id: string,
+  action: 'reuse' | 'recreate',
+  branch?: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/worktrees/${encodeURIComponent(id)}/recover`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, branch }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to recover worktree',
     };
   }
 }
@@ -109,6 +129,8 @@ export async function createFromJira(
   success: boolean;
   task?: { key: string; summary: string; status: string; type: string; url: string };
   error?: string;
+  code?: string;
+  worktreeId?: string;
 }> {
   try {
     const res = await fetch(`${API_BASE}/api/jira/task`, {
@@ -209,6 +231,56 @@ export async function loginGitHub(): Promise<{ success: boolean; code?: string; 
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to authenticate with GitHub',
+    };
+  }
+}
+
+export async function logoutGitHub(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/github/logout`, { method: 'POST' });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { success: false, error: `Something went wrong (${res.status}: ${text.slice(0, 50)})` };
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to logout from GitHub',
+    };
+  }
+}
+
+export async function createInitialCommit(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/github/initial-commit`, { method: 'POST' });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { success: false, error: `Something went wrong (${res.status}: ${text.slice(0, 50)})` };
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create initial commit',
+    };
+  }
+}
+
+export async function createGitHubRepo(isPrivate: boolean): Promise<{ success: boolean; repo?: string; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/github/create-repo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ private: isPrivate }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create GitHub repository',
     };
   }
 }

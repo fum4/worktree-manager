@@ -2,6 +2,7 @@ import { execFile, spawn } from 'child_process';
 
 import type { Hono } from 'hono';
 
+import { configureGitUser } from '../../integrations/github/gh-client';
 import type { WorktreeManager } from '../manager';
 
 function runExecFile(cmd: string, args: string[]): Promise<void> {
@@ -15,7 +16,8 @@ function runExecFile(cmd: string, args: string[]): Promise<void> {
 
 function startGhAuthLogin(manager: WorktreeManager): Promise<{ code: string; url: string }> {
   return new Promise((resolve, reject) => {
-    const child = spawn('gh', ['auth', 'login', '--web', '-h', 'github.com', '-p', 'https'], {
+    // Include 'user' scope to allow fetching the user's email for git config
+    const child = spawn('gh', ['auth', 'login', '--web', '-h', 'github.com', '-p', 'https', '-s', 'user'], {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
@@ -45,6 +47,18 @@ function startGhAuthLogin(manager: WorktreeManager): Promise<{ code: string; url
 
     child.on('close', async (exitCode) => {
       if (exitCode === 0) {
+        // Configure gh as the git credential helper so git uses the same account
+        try {
+          await runExecFile('gh', ['auth', 'setup-git']);
+        } catch {
+          // Ignore errors - not critical
+        }
+        // Update local git user.name and user.email to match the GitHub account
+        try {
+          await configureGitUser(manager.getGitRoot());
+        } catch {
+          // Ignore errors - not critical
+        }
         await manager.initGitHub();
       }
     });
@@ -82,12 +96,50 @@ export function registerGitHubRoutes(app: Hono, manager: WorktreeManager) {
     }
   });
 
+  app.post('/api/github/logout', async (c) => {
+    const ghManager = manager.getGitHubManager();
+    if (!ghManager) {
+      return c.json({ success: false, error: 'GitHub integration not available' }, 400);
+    }
+    const result = await ghManager.logout();
+    return c.json(result, result.success ? 200 : 400);
+  });
+
   app.get('/api/github/status', (c) => {
     const ghManager = manager.getGitHubManager();
     if (!ghManager) {
-      return c.json({ installed: false, authenticated: false, repo: null });
+      return c.json({ installed: false, authenticated: false, repo: null, hasRemote: false, hasCommits: false });
     }
     return c.json(ghManager.getStatus());
+  });
+
+  app.post('/api/github/initial-commit', async (c) => {
+    const ghManager = manager.getGitHubManager();
+    if (!ghManager) {
+      return c.json({ success: false, error: 'GitHub integration not available' }, 400);
+    }
+    const result = await ghManager.createInitialCommit();
+    return c.json(result, result.success ? 200 : 400);
+  });
+
+  app.post('/api/github/create-repo', async (c) => {
+    const ghManager = manager.getGitHubManager();
+    if (!ghManager) {
+      return c.json({ success: false, error: 'GitHub integration not available' }, 400);
+    }
+    if (!ghManager.getStatus().authenticated) {
+      return c.json({ success: false, error: 'Not authenticated with GitHub' }, 400);
+    }
+    try {
+      const body = await c.req.json<{ private?: boolean }>();
+      const result = await ghManager.createRepo(body.private ?? true);
+      return c.json(result, result.success ? 200 : 400);
+    } catch (error) {
+      return c.json(
+        { success: false, error: error instanceof Error ? error.message : 'Failed to create repository' },
+        400,
+      );
+    }
   });
 
   app.post('/api/worktrees/:id/commit', async (c) => {

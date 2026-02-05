@@ -112,7 +112,7 @@ export async function runInit() {
   }
 
   const serverPort = parseInt(
-    (await prompt(rl, 'Manager UI port [3100]: ')) || '3100',
+    (await prompt(rl, 'Manager UI port [6969]: ')) || '6969',
     10,
   );
 
@@ -141,6 +141,25 @@ export async function runInit() {
   }
   const configPath = path.join(configDirPath, CONFIG_FILE_NAME);
   writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+  // Create .gitignore to protect local/sensitive files
+  // Use whitelist approach: ignore everything except config.json and .gitignore
+  const gitignorePath = path.join(configDirPath, '.gitignore');
+  if (!existsSync(gitignorePath)) {
+    writeFileSync(gitignorePath, `# Ignore everything in .wok3 by default
+*
+
+# Except these files (tracked/shared)
+!.gitignore
+!config.json
+`);
+    // Stage the gitignore so it gets committed
+    try {
+      execFileSync('git', ['add', gitignorePath], { cwd: resolvedProjectDir, stdio: 'pipe' });
+    } catch {
+      // Ignore - user can commit manually
+    }
+  }
 
   console.log(`\n[wok3] Config written to ${configPath}`);
 

@@ -45,7 +45,7 @@ export function loadConfig(): { config: WorktreeConfig; configPath: string | nul
       discovered: [],
       offsetStep: 1,
     },
-    serverPort: 3100,
+    serverPort: 6969,
   };
 
   if (!configPath) {

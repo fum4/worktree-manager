@@ -1,4 +1,5 @@
 import { action, border, input, text } from '../../theme';
+import { Spinner } from '../Spinner';
 
 interface GitActionInputsProps {
   showCommitInput: boolean;
@@ -41,7 +42,12 @@ export function GitActionInputs({
             autoFocus
           />
           <button type="button" onClick={onCommit} disabled={isGitLoading || !commitMessage.trim()} className={`px-3 py-1.5 text-xs font-medium ${action.commit.textActive} ${action.commit.bgSubmit} rounded-md ${action.commit.bgSubmitHover} disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}>
-            {isGitLoading ? 'Committing...' : 'Submit'}
+            {isGitLoading ? (
+              <span className="flex items-center gap-1.5">
+                <Spinner size="xs" />
+                Committing...
+              </span>
+            ) : 'Submit'}
           </button>
           <button type="button" onClick={onHideCommit} className={`px-2.5 py-1.5 text-xs ${action.cancel.text} ${action.cancel.textHover} transition-colors duration-150`}>
             Cancel
@@ -61,7 +67,12 @@ export function GitActionInputs({
             autoFocus
           />
           <button type="button" onClick={onCreatePr} disabled={isGitLoading || !prTitle.trim()} className={`px-3 py-1.5 text-xs font-medium ${action.pr.text} ${action.pr.bgSubmit} rounded-md ${action.pr.bgSubmitHover} disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}>
-            {isGitLoading ? 'Creating...' : 'Create PR'}
+            {isGitLoading ? (
+              <span className="flex items-center gap-1.5">
+                <Spinner size="xs" />
+                Creating...
+              </span>
+            ) : 'Create PR'}
           </button>
           <button type="button" onClick={onHidePr} className={`px-2.5 py-1.5 text-xs ${action.cancel.text} ${action.cancel.textHover} transition-colors duration-150`}>
             Cancel

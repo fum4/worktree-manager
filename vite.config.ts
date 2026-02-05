@@ -9,4 +9,14 @@ export default defineConfig({
     outDir: path.resolve(__dirname, 'dist/ui'),
     emptyDirBeforeWrite: true,
   },
+  server: {
+    port: 6969,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:6969',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
+  },
 });

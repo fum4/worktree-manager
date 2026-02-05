@@ -34,7 +34,6 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
   const [prTitle, setPrTitle] = useState('');
   const [isGitLoading, setIsGitLoading] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [tabPerWorktree, setTabPerWorktree] = useState<Record<string, 'logs' | 'terminal'>>({});
   const [openTerminals, setOpenTerminals] = useState<Set<string>>(new Set());
 
@@ -87,24 +86,28 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
 
   const handleConfirmRemove = async () => {
     setShowRemoveModal(false);
-    setIsDeleting(true);
     setError(null);
     const deletedId = worktree.id;
+
+    // Clean up state for this worktree
+    setOpenTerminals(prev => {
+      const next = new Set(prev);
+      next.delete(deletedId);
+      return next;
+    });
+    setTabPerWorktree(prev => {
+      const { [deletedId]: _, ...rest } = prev;
+      return rest;
+    });
+
+    // Switch away immediately so user isn't stuck on "deleting" screen
+    onDeleted();
+
+    // Delete in background - worktree will disappear from list via SSE update
     const result = await removeWorktree(deletedId);
     if (!result.success) {
-      setIsDeleting(false);
-      setError(result.error || 'Failed to remove');
-    } else {
-      setOpenTerminals(prev => {
-        const next = new Set(prev);
-        next.delete(deletedId);
-        return next;
-      });
-      setTabPerWorktree(prev => {
-        const { [deletedId]: _, ...rest } = prev;
-        return rest;
-      });
-      onDeleted();
+      // Show error somewhere? For now just log it
+      console.error('Failed to remove worktree:', result.error);
     }
     onUpdate();
   };
@@ -155,17 +158,6 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
     }
     onUpdate();
   };
-
-  if (isDeleting) {
-    return (
-      <div className={`flex-1 flex items-center justify-center ${text.muted} text-sm`}>
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${status.deleting.dot} animate-pulse`} />
-          Deleting {worktree.id}...
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 flex flex-col min-h-0">

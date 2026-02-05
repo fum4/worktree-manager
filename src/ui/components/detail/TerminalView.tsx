@@ -6,6 +6,7 @@ import '@xterm/xterm/css/xterm.css';
 
 import { useTerminal } from '../../hooks/useTerminal';
 import { text } from '../../theme';
+import { Spinner } from '../Spinner';
 
 interface TerminalViewProps {
   worktreeId: string;
@@ -143,7 +144,8 @@ export function TerminalView({ worktreeId, visible }: TerminalViewProps) {
       style={{ display: visible ? undefined : 'none' }}
     >
       {!isConnected && (
-        <div className={`px-4 py-1 text-[11px] ${text.muted}`}>
+        <div className={`flex items-center gap-2 px-4 py-1 text-[11px] ${text.muted}`}>
+          <Spinner size="xs" />
           Connecting...
         </div>
       )}

@@ -16,4 +16,5 @@ export interface GitStatusInfo {
   hasUncommitted: boolean;
   ahead: number;
   behind: number;
+  noUpstream: boolean;
 }

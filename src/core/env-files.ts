@@ -11,7 +11,7 @@ export function copyEnvFiles(sourceDir: string, targetDir: string, worktreesDir:
         const displayPath = relPath ? `${relPath}/${entry.name}` : entry.name;
 
         if (entry.isDirectory()) {
-          if (entry.name === 'node_modules' || entry.name === '.git') continue;
+          if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.wok3') continue;
           if (entry.name === path.basename(worktreesDir)) continue;
           copyEnvRecursive(srcPath, destPath, displayPath);
         } else if (entry.isFile() && entry.name.startsWith('.env')) {

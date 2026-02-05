@@ -1,17 +1,15 @@
-import { useState } from 'react';
-
 import type { WorktreeInfo } from '../types';
-import { border, input, text } from '../theme';
+import { text } from '../theme';
 import { WorktreeItem } from './WorktreeItem';
 
 interface WorktreeListProps {
   worktrees: WorktreeInfo[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  filter?: string;
 }
 
-export function WorktreeList({ worktrees, selectedId, onSelect }: WorktreeListProps) {
-  const [filter, setFilter] = useState('');
+export function WorktreeList({ worktrees, selectedId, onSelect, filter = '' }: WorktreeListProps) {
 
   const filtered = filter
     ? worktrees.filter((w) => {
@@ -33,17 +31,6 @@ export function WorktreeList({ worktrees, selectedId, onSelect }: WorktreeListPr
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {worktrees.length > 3 && (
-        <div className={`px-3 py-2 border-b ${border.subtle}`}>
-          <input
-            type="text"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter worktrees..."
-            className={`w-full px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
-          />
-        </div>
-      )}
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center p-4">

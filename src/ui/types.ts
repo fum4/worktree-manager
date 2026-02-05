@@ -34,6 +34,8 @@ export interface GitHubStatus {
   authenticated: boolean;
   username: string | null;
   repo: string | null;
+  hasRemote: boolean;
+  hasCommits: boolean;
 }
 
 export interface JiraIssueSummary {

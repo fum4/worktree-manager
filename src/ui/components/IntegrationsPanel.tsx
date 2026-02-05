@@ -1,11 +1,13 @@
-import { Unplug } from 'lucide-react';
+import { Check, Copy, Unplug } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { disconnectJira, setupJira, updateJiraConfig } from '../hooks/useConfig';
-import { installGitHubCli, loginGitHub } from '../hooks/api';
+import { createGitHubRepo, createInitialCommit, installGitHubCli, loginGitHub, logoutGitHub } from '../hooks/api';
 import { useGitHubStatus, useJiraStatus } from '../hooks/useWorktrees';
 import type { GitHubStatus, JiraStatus } from '../types';
 import { border, button, input, settings, surface, text } from '../theme';
+import { GitHubSetupModal } from './GitHubSetupModal';
+import { Spinner } from './Spinner';
 
 const integrationInput = `px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`;
 
@@ -26,11 +28,54 @@ function StatusRow({ label, ok, value }: { label: string; ok: boolean; value: st
 }
 
 function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; onStatusChange: () => void }) {
-  const isReady = status?.installed && status?.authenticated;
+  const isReady = status?.installed && status?.authenticated && status?.repo;
+  const needsRepo = status?.installed && status?.authenticated && !status?.repo && status?.hasCommits;
+  const needsCommit = status?.hasCommits === false;
+  const needsSetup = needsCommit || needsRepo;
   const [loading, setLoading] = useState(false);
+  const [settingUp, setSettingUp] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
   const [waitingForAuth, setWaitingForAuth] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleAutoSetup = async (options: { commitMessage: string; repoPrivate: boolean }) => {
+    setShowSetupModal(false);
+    setSettingUp(true);
+    setFeedback(null);
+
+    try {
+      // Step 1: Create initial commit if needed
+      if (needsCommit) {
+        setFeedback({ type: 'success', message: 'Creating initial commit...' });
+        const commitResult = await createInitialCommit();
+        if (!commitResult.success) {
+          setFeedback({ type: 'error', message: commitResult.error ?? 'Failed to create commit' });
+          setSettingUp(false);
+          return;
+        }
+      }
+
+      // Step 2: Create repo if needed
+      if (needsRepo || needsCommit) {
+        setFeedback({ type: 'success', message: 'Creating GitHub repository...' });
+        const repoResult = await createGitHubRepo(options.repoPrivate);
+        if (!repoResult.success) {
+          setFeedback({ type: 'error', message: repoResult.error ?? 'Failed to create repository' });
+          setSettingUp(false);
+          onStatusChange();
+          return;
+        }
+        setFeedback({ type: 'success', message: `Created ${repoResult.repo}` });
+      }
+
+      onStatusChange();
+      setTimeout(() => setFeedback(null), 4000);
+    } catch {
+      setFeedback({ type: 'error', message: 'Setup failed unexpectedly' });
+    }
+    setSettingUp(false);
+  };
 
   useEffect(() => {
     if (!waitingForAuth) return;
@@ -38,11 +83,11 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
       try {
         const res = await fetch('/api/github/status');
         const data = await res.json();
-        if (data.authenticated) {
+        // Wait for both authenticated AND username to be set (server finished initializing)
+        if (data.authenticated && data.username) {
           setWaitingForAuth(false);
-          setFeedback({ type: 'success', message: 'Authenticated with GitHub' });
+          setFeedback(null);
           onStatusChange();
-          setTimeout(() => setFeedback(null), 4000);
         }
       } catch {
         // ignore polling errors
@@ -59,17 +104,27 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
     }
   }, [status?.authenticated, waitingForAuth]);
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard API not available
+    }
+  };
+
   const handleConnect = async () => {
     setLoading(true);
     setFeedback(null);
     const result = await installGitHubCli();
     setLoading(false);
     if (result.success) {
-      const msg = result.code
-        ? `Enter code ${result.code} in your browser`
-        : 'gh CLI installed';
-      setFeedback({ type: 'success', message: msg });
-      if (result.code) setWaitingForAuth(true);
+      if (result.code) {
+        await copyToClipboard(result.code);
+        setFeedback({ type: 'success', message: `Code ${result.code} copied! Paste it in your browser.` });
+        setWaitingForAuth(true);
+      } else {
+        setFeedback({ type: 'success', message: 'gh CLI installed' });
+      }
       onStatusChange();
     } else {
       setFeedback({ type: 'error', message: result.error ?? 'Failed to install gh' });
@@ -81,7 +136,8 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
     setFeedback(null);
     const result = await loginGitHub();
     if (result.success && result.code) {
-      setFeedback({ type: 'success', message: `Enter code ${result.code} in your browser` });
+      await copyToClipboard(result.code);
+      setFeedback({ type: 'success', message: `Code ${result.code} copied! Paste it in your browser.` });
       setWaitingForAuth(true);
     } else if (!result.success) {
       setFeedback({ type: 'error', message: result.error ?? 'Failed to start login' });
@@ -108,24 +164,56 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
 
       {/* Status rows */}
       {status === null ? (
-        <span className={`text-xs ${text.muted}`}>Loading...</span>
+        <span className={`flex items-center gap-2 text-xs ${text.muted}`}>
+          <Spinner size="xs" />
+          Loading...
+        </span>
       ) : (
         <div className="flex flex-col gap-1.5">
           <StatusRow label="CLI" ok={status.installed} value={status.installed ? 'Installed' : 'Not installed'} />
           <StatusRow label="Auth" ok={status.authenticated} value={status.authenticated ? (status.username ?? 'Authenticated') : 'Not authenticated'} />
-          {status.repo && (
-            <StatusRow label="Repo" ok={true} value={status.repo} />
-          )}
+          <StatusRow
+            label="Repo"
+            ok={!!status.repo}
+            value={status.repo ?? (status.authenticated ? 'Not linked' : '—')}
+          />
         </div>
       )}
 
       {/* Help text */}
-      {status && !isReady && (
+      {status && !isReady && !needsSetup && (
         <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
           {!status.installed
             ? 'Install the GitHub CLI to enable commits, pushes, and pull requests.'
             : 'Authenticate with GitHub to enable git operations.'}
         </p>
+      )}
+
+      {/* Repository setup needed */}
+      {needsSetup && status?.authenticated && (
+        <div className="flex flex-col gap-2">
+          <p className={`text-[11px] text-orange-400 leading-relaxed`}>
+            {needsCommit && needsRepo
+              ? 'This project needs an initial commit and GitHub repository to enable worktrees.'
+              : needsCommit
+                ? 'This repository has no commits yet. Create an initial commit to enable worktrees.'
+                : 'This project is not linked to a GitHub repository.'}
+          </p>
+          {!settingUp && (
+            <button
+              onClick={() => setShowSetupModal(true)}
+              className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} self-start transition-all duration-150 active:scale-[0.98]`}
+            >
+              Set Up Repository
+            </button>
+          )}
+          {settingUp && (
+            <span className={`flex items-center gap-2 text-[11px] ${text.muted}`}>
+              <Spinner size="xs" />
+              Setting up...
+            </span>
+          )}
+        </div>
       )}
 
       {feedback && (
@@ -141,7 +229,12 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
           disabled={loading}
           className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} disabled:opacity-50 self-start transition-all duration-150 active:scale-[0.98]`}
         >
-          {loading ? 'Installing...' : 'Install & Connect'}
+          {loading ? (
+            <span className="flex items-center gap-1.5">
+              <Spinner size="xs" />
+              Installing...
+            </span>
+          ) : 'Install & Connect'}
         </button>
       )}
 
@@ -153,6 +246,40 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
         >
           Authenticate
         </button>
+      )}
+
+
+      {/* Logout option */}
+      {status?.authenticated && !waitingForAuth && !settingUp && (
+        <button
+          onClick={async () => {
+            setLoading(true);
+            setFeedback(null);
+            const result = await logoutGitHub();
+            setLoading(false);
+            if (result.success) {
+              onStatusChange();
+            } else {
+              setFeedback({ type: 'error', message: result.error ?? 'Failed to logout' });
+              setTimeout(() => setFeedback(null), 4000);
+            }
+          }}
+          disabled={loading}
+          className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150 self-start`}
+        >
+          <Unplug className="w-3 h-3" />
+          Disconnect
+        </button>
+      )}
+
+      {/* Setup modal */}
+      {showSetupModal && (
+        <GitHubSetupModal
+          needsCommit={needsCommit ?? false}
+          needsRepo={!status?.repo}
+          onAutoSetup={handleAutoSetup}
+          onManual={() => setShowSetupModal(false)}
+        />
       )}
     </div>
   );
@@ -245,13 +372,16 @@ function JiraCard({
       </div>
 
       {status === null ? (
-        <span className={`text-xs ${text.muted}`}>Loading...</span>
+        <span className={`flex items-center gap-2 text-xs ${text.muted}`}>
+          <Spinner size="xs" />
+          Loading...
+        </span>
       ) : isConfigured ? (
         <div className="flex flex-col gap-3">
           <StatusRow label="Auth" ok={true} value="API Token" />
 
-          <div className="flex gap-3 items-end">
-            <div className="flex flex-col gap-1.5 flex-1">
+          <div className="flex flex-col gap-2 w-28">
+            <div className="flex flex-col gap-1.5">
               <label className={`text-[10px] ${settings.label}`}>Project Key</label>
               <input
                 value={projectKey}
@@ -260,7 +390,7 @@ function JiraCard({
                 className={integrationInput}
               />
             </div>
-            <div className="flex flex-col gap-1.5 w-28">
+            <div className="flex flex-col gap-1.5">
               <label className={`text-[10px] ${settings.label}`}>Refresh (min)</label>
               <input
                 type="number"
@@ -271,25 +401,23 @@ function JiraCard({
                 className={integrationInput}
               />
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
             <button
               onClick={handleSaveConfig}
-              disabled={saving}
-              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.secondary} disabled:opacity-50 transition-colors duration-150`}
+              disabled={saving || (projectKey === (status.defaultProjectKey ?? '') && refreshInterval === (status.refreshIntervalMinutes ?? 5))}
+              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.primary} disabled:opacity-50 transition-colors duration-150 w-full`}
             >
               Apply
             </button>
-            <button
-              onClick={handleDisconnect}
-              disabled={saving}
-              className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150`}
-            >
-              <Unplug className="w-3 h-3" />
-              Disconnect
-            </button>
           </div>
+
+          <button
+            onClick={handleDisconnect}
+            disabled={saving}
+            className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150 self-start`}
+          >
+            <Unplug className="w-3 h-3" />
+            Disconnect
+          </button>
         </div>
       ) : showSetup ? (
         <div className="flex flex-col gap-2.5">
@@ -313,13 +441,23 @@ function JiraCard({
           </div>
           <div className="flex flex-col gap-1">
             <label className={`text-[10px] ${settings.label}`}>API Token</label>
-            <input
-              type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="Your Jira API token"
-              className={integrationInput}
-            />
+            <div className="relative">
+              <input
+                type="password"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder="Your Jira API token"
+                className={`${integrationInput} w-full pr-16`}
+              />
+              <a
+                href="https://id.atlassian.com/manage-profile/security/api-tokens"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 text-[10px] font-medium bg-white/[0.06] text-[#9ca3af] hover:bg-white/[0.10] hover:text-white rounded transition-colors"
+              >
+                Create
+              </a>
+            </div>
           </div>
           <div className="flex gap-2 pt-1">
             <button
@@ -327,7 +465,12 @@ function JiraCard({
               disabled={saving || !baseUrl || !email || !token}
               className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} disabled:opacity-50 transition-all duration-150 active:scale-[0.98]`}
             >
-              {saving ? 'Connecting...' : 'Connect'}
+              {saving ? (
+              <span className="flex items-center gap-1.5">
+                <Spinner size="xs" />
+                Connecting...
+              </span>
+            ) : 'Connect'}
             </button>
             <button
               onClick={() => setShowSetup(false)}
@@ -364,9 +507,206 @@ function JiraCard({
   );
 }
 
-export function IntegrationsPanel() {
+type AgentId = 'claude' | 'gemini' | 'codex' | 'cursor' | 'vscode';
+
+interface AgentConfig {
+  id: AgentId;
+  name: string;
+  config: string;
+  configPath: string;
+  docsUrl?: string;
+}
+
+const AGENT_CONFIGS: AgentConfig[] = [
+  {
+    id: 'claude',
+    name: 'Claude Code',
+    config: `{
+  "mcpServers": {
+    "wok3": {
+      "command": "wok3",
+      "args": ["mcp"]
+    }
+  }
+}`,
+    configPath: '~/.claude/settings.json',
+    docsUrl: 'https://docs.anthropic.com/en/docs/claude-code',
+  },
+  {
+    id: 'gemini',
+    name: 'Gemini CLI',
+    config: `{
+  "mcpServers": {
+    "wok3": {
+      "command": "wok3",
+      "args": ["mcp"]
+    }
+  }
+}`,
+    configPath: '~/.gemini/settings.json',
+    docsUrl: 'https://geminicli.com/docs/tools/mcp-server/',
+  },
+  {
+    id: 'codex',
+    name: 'OpenAI Codex',
+    config: `[mcp_servers.wok3]
+command = "wok3"
+args = ["mcp"]`,
+    configPath: '~/.codex/config.toml',
+    docsUrl: 'https://developers.openai.com/codex/mcp/',
+  },
+  {
+    id: 'cursor',
+    name: 'Cursor',
+    config: `{
+  "mcpServers": {
+    "wok3": {
+      "command": "wok3",
+      "args": ["mcp"]
+    }
+  }
+}`,
+    configPath: '~/.cursor/mcp.json',
+    docsUrl: 'https://docs.cursor.com/context/model-context-protocol',
+  },
+  {
+    id: 'vscode',
+    name: 'VS Code',
+    config: `{
+  "mcp": {
+    "servers": {
+      "wok3": {
+        "command": "wok3",
+        "args": ["mcp"]
+      }
+    }
+  }
+}`,
+    configPath: '.vscode/settings.json',
+    docsUrl: 'https://code.visualstudio.com/docs/copilot/chat/mcp-servers',
+  },
+];
+
+function CodingAgentsCard() {
+  const [selectedAgent, setSelectedAgent] = useState<AgentId>('claude');
+  const [copied, setCopied] = useState(false);
+
+  const agent = AGENT_CONFIGS.find((a) => a.id === selectedAgent)!;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(agent.config);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API not available
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Card header with icon */}
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-500/10">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-purple-400">
+            <path d="M12 8V4H8" />
+            <rect width="16" height="12" x="4" y="8" rx="2" />
+            <path d="M2 14h2" />
+            <path d="M20 14h2" />
+            <path d="M15 13v2" />
+            <path d="M9 13v2" />
+          </svg>
+        </div>
+        <div>
+          <h3 className={`text-xs font-semibold ${text.primary}`}>Coding Agents</h3>
+          <span className={`text-[10px] text-purple-400`}>MCP Integration</span>
+        </div>
+      </div>
+
+      <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
+        Connect wok3 with AI coding agents via the{' '}
+        <a
+          href="https://modelcontextprotocol.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-purple-400 hover:text-purple-300 underline underline-offset-2"
+        >
+          Model Context Protocol
+        </a>
+        . This lets your agent create worktrees, start/stop dev servers, commit, push, and create PRs.
+      </p>
+
+      {/* Agent tabs */}
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-1">
+          {AGENT_CONFIGS.map((a) => (
+            <button
+              key={a.id}
+              onClick={() => {
+                setSelectedAgent(a.id);
+                setCopied(false);
+              }}
+              className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors duration-150 ${
+                selectedAgent === a.id
+                  ? 'text-white bg-white/[0.08]'
+                  : `${text.muted} hover:text-[#9ca3af]`
+              }`}
+            >
+              {a.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className={`text-[10px] ${text.dimmed}`}>
+            {agent.configPath}
+          </span>
+          <button
+            onClick={handleCopy}
+            className={`flex items-center gap-1 text-[10px] ${copied ? 'text-accent' : `${text.muted} hover:text-[#9ca3af]`} transition-colors duration-150`}
+          >
+            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
+
+        <pre className={`text-[10px] font-mono ${text.secondary} bg-white/[0.04] border border-white/[0.06] rounded-md p-3 overflow-x-auto`}>
+          {agent.config}
+        </pre>
+
+        {agent.docsUrl && (
+          <a
+            href={agent.docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`text-[10px] ${text.muted} hover:text-purple-400 transition-colors duration-150 self-start`}
+          >
+            View {agent.name} MCP docs &rarr;
+          </a>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5 pt-1">
+        <span className={`text-[10px] font-medium ${settings.label}`}>Available Tools</span>
+        <div className="flex flex-wrap gap-1.5">
+          {['list_worktrees', 'create_worktree', 'start', 'stop', 'commit', 'push', 'create_pr', 'get_logs'].map((tool) => (
+            <span key={tool} className={`text-[9px] px-1.5 py-0.5 rounded ${text.secondary} bg-white/[0.06]`}>
+              {tool}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface IntegrationsPanelProps {
+  onJiraStatusChange?: () => void;
+}
+
+export function IntegrationsPanel({ onJiraStatusChange }: IntegrationsPanelProps) {
   const githubStatus = useGitHubStatus();
-  const jiraStatus = useJiraStatus();
+  const { jiraStatus } = useJiraStatus();
   const [githubRefreshKey, setGithubRefreshKey] = useState(0);
   const [jiraRefreshKey, setJiraRefreshKey] = useState(0);
 
@@ -393,9 +733,12 @@ export function IntegrationsPanel() {
     if (jiraRefreshKey === 0) return;
     fetch('/api/jira/status')
       .then((r) => r.json())
-      .then((d) => setCurrentJiraStatus(d))
+      .then((d) => {
+        setCurrentJiraStatus(d);
+        onJiraStatusChange?.();
+      })
       .catch(() => {});
-  }, [jiraRefreshKey]);
+  }, [jiraRefreshKey, onJiraStatusChange]);
 
   return (
     <div className={`flex-1 ${surface.panel} rounded-xl overflow-auto`}>
@@ -415,6 +758,9 @@ export function IntegrationsPanel() {
             status={currentJiraStatus}
             onStatusChange={() => setJiraRefreshKey((k) => k + 1)}
           />
+        </div>
+        <div className={`rounded-xl border ${border.subtle} bg-white/[0.02] p-5`}>
+          <CodingAgentsCard />
         </div>
       </div>
     </div>

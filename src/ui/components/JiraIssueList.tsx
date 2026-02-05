@@ -1,6 +1,7 @@
 import type { JiraIssueSummary } from '../types';
 import { text } from '../theme';
 import { JiraIssueItem } from './JiraIssueItem';
+import { Spinner } from './Spinner';
 
 interface JiraIssueListProps {
   issues: JiraIssueSummary[];
@@ -9,6 +10,8 @@ interface JiraIssueListProps {
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
+  linkedWorktrees?: Map<string, string>;
+  onViewWorktree?: (worktreeId: string) => void;
 }
 
 export function JiraIssueList({
@@ -17,11 +20,14 @@ export function JiraIssueList({
   onSelect,
   isLoading,
   error,
+  linkedWorktrees,
+  onViewWorktree,
 }: JiraIssueListProps) {
   return (
     <div className="flex flex-col">
       {isLoading && issues.length === 0 ? (
-        <div className="flex items-center justify-center p-4">
+        <div className="flex items-center justify-center gap-2 p-4">
+          <Spinner size="xs" className={text.muted} />
           <p className={`${text.muted} text-xs`}>Loading issues...</p>
         </div>
       ) : error && issues.length === 0 ? (
@@ -42,6 +48,8 @@ export function JiraIssueList({
               issue={issue}
               isSelected={issue.key === selectedKey}
               onSelect={() => onSelect(issue.key)}
+              linkedWorktreeId={linkedWorktrees?.get(issue.key)}
+              onViewWorktree={onViewWorktree}
             />
           ))}
         </div>

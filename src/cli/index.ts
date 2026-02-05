@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { startWorktreeServer } from '../server/index';
-import { loadConfig } from './config';
+import { findConfigFile, loadConfig } from './config';
 
 const cliDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -99,6 +99,14 @@ async function main() {
 
   console.log('[wok3] Starting...');
 
+  // Auto-run init if no config found
+  if (!findConfigFile()) {
+    console.log('[wok3] No configuration found. Starting setup wizard...');
+    console.log('');
+    const { runInit } = await import('./init');
+    await runInit();
+  }
+
   const { config, configPath } = loadConfig();
 
   console.log('[wok3] Configuration:');
@@ -120,11 +128,14 @@ async function main() {
 
   await startWorktreeServer(config, configPath);
 
-  const url = `http://localhost:${config.serverPort}`;
-  console.log('');
-  console.log(`  Opening ${url}`);
-  console.log('');
-  openUI(config.serverPort);
+  const noOpen = process.argv.includes('--no-open');
+  if (!noOpen) {
+    const url = `http://localhost:${config.serverPort}`;
+    console.log('');
+    console.log(`  Opening ${url}`);
+    console.log('');
+    openUI(config.serverPort);
+  }
 }
 
 main().catch((error) => {

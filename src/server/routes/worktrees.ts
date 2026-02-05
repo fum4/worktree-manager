@@ -79,4 +79,29 @@ export function registerWorktreeRoutes(
     const logs = manager.getLogs(id);
     return c.json({ logs });
   });
+
+  app.post('/api/worktrees/:id/recover', async (c) => {
+    try {
+      const id = c.req.param('id');
+      const body = await c.req.json<{ action: 'reuse' | 'recreate'; branch?: string }>();
+
+      if (!body.action || !['reuse', 'recreate'].includes(body.action)) {
+        return c.json(
+          { success: false, error: 'Invalid action. Must be "reuse" or "recreate".' },
+          400,
+        );
+      }
+
+      const result = await manager.recoverWorktree(id, body.action, body.branch);
+      return c.json(result, result.success ? 200 : 400);
+    } catch (error) {
+      return c.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : 'Invalid request',
+        },
+        400,
+      );
+    }
+  });
 }

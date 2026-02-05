@@ -4,11 +4,16 @@ import {
   checkGhAuth,
   checkGhInstalled,
   commitAll,
+  createGitHubRepo,
+  createInitialCommit,
   createPR,
   findPRForBranch,
   getGhUsername,
   getGitStatus,
   getRepoInfo,
+  hasGitCommits,
+  hasGitRemote,
+  logoutGh,
   pushBranch,
 } from './gh-client';
 import type { GitHubConfig, GitStatusInfo, PRInfo } from './types';
@@ -30,7 +35,17 @@ export class GitHubManager {
 
   private username: string | null = null;
 
+  private hasRemote = false;
+
+  private hasCommits = false;
+
+  private gitRoot: string | null = null;
+
   async initialize(gitRoot: string): Promise<void> {
+    this.gitRoot = gitRoot;
+    this.hasCommits = await hasGitCommits(gitRoot);
+    this.hasRemote = await hasGitRemote(gitRoot);
+
     this.installed = await checkGhInstalled();
     if (!this.installed) return;
 
@@ -45,13 +60,50 @@ export class GitHubManager {
     return this.installed && this.authenticated && this.config !== null;
   }
 
-  getStatus(): { installed: boolean; authenticated: boolean; username: string | null; repo: string | null } {
+  getStatus(): { installed: boolean; authenticated: boolean; username: string | null; repo: string | null; hasRemote: boolean; hasCommits: boolean } {
     return {
       installed: this.installed,
       authenticated: this.authenticated,
       username: this.username,
       repo: this.config ? `${this.config.owner}/${this.config.repo}` : null,
+      hasRemote: this.hasRemote,
+      hasCommits: this.hasCommits,
     };
+  }
+
+  async createRepo(isPrivate: boolean): Promise<{ success: boolean; repo?: string; error?: string }> {
+    if (!this.gitRoot) {
+      return { success: false, error: 'Git root not initialized' };
+    }
+    const result = await createGitHubRepo(this.gitRoot, isPrivate);
+    if (result.success) {
+      // Re-initialize to pick up the new repo
+      this.hasRemote = true;
+      this.config = await getRepoInfo(this.gitRoot);
+    }
+    return result;
+  }
+
+  async logout(): Promise<{ success: boolean; error?: string }> {
+    const result = await logoutGh();
+    if (result.success) {
+      this.authenticated = false;
+      this.username = null;
+      this.config = null;
+      this.stopPolling();
+    }
+    return result;
+  }
+
+  async createInitialCommit(): Promise<{ success: boolean; error?: string }> {
+    if (!this.gitRoot) {
+      return { success: false, error: 'Git root not initialized' };
+    }
+    const result = await createInitialCommit(this.gitRoot);
+    if (result.success) {
+      this.hasCommits = true;
+    }
+    return result;
   }
 
   getDefaultBranch(): string | null {
