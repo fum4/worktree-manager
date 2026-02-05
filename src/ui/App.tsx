@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 import { ConfigurationPanel } from './components/ConfigurationPanel';
@@ -6,7 +7,7 @@ import { DetailPanel } from './components/detail/DetailPanel';
 import { JiraDetailPanel } from './components/detail/JiraDetailPanel';
 import { Header } from './components/Header';
 import { IntegrationsPanel } from './components/IntegrationsPanel';
-import { JiraIssueList } from './components/JiraIssueList';
+import { IssueList } from './components/IssueList';
 import type { View } from './components/NavBar';
 import { WorktreeList } from './components/WorktreeList';
 import { useConfig } from './hooks/useConfig';
@@ -16,7 +17,7 @@ import { errorBanner, surface, text } from './theme';
 
 type Selection =
   | { type: 'worktree'; id: string }
-  | { type: 'jira'; key: string }
+  | { type: 'issue'; key: string }
   | null;
 
 export default function App() {
@@ -28,9 +29,9 @@ export default function App() {
 
   const [activeView, setActiveView] = useState<View>('workspace');
   const [selection, setSelection] = useState<Selection>(null);
-  const [activeCreateTab, setActiveCreateTab] = useState<'branch' | 'jira'>('branch');
+  const [activeCreateTab, setActiveCreateTab] = useState<'branch' | 'issues'>('branch');
 
-  const jiraEnabled = activeCreateTab === 'jira' && (jiraStatus?.configured ?? false);
+  const jiraEnabled = activeCreateTab === 'issues' && (jiraStatus?.configured ?? false);
   const refreshIntervalMinutes = jiraStatus?.refreshIntervalMinutes ?? 5;
   const {
     issues: jiraIssues,
@@ -83,15 +84,21 @@ export default function App() {
 
   return (
     <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
-      <Header
-        projectName={projectName}
-        runningCount={runningCount}
-        isConnected={isConnected}
-        portsInfo={ports}
-        onPortsDiscovered={refetchPorts}
-        activeView={activeView}
-        onChangeView={setActiveView}
-      />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.12 }}
+      >
+        <Header
+          projectName={projectName}
+          runningCount={runningCount}
+          isConnected={isConnected}
+          portsInfo={ports}
+          onPortsDiscovered={refetchPorts}
+          activeView={activeView}
+          onChangeView={setActiveView}
+        />
+      </motion.div>
 
       {error && (
         <div className={`flex-shrink-0 px-4 py-2 ${errorBanner.bg} ${text.errorBanner} text-xs`}>
@@ -99,72 +106,127 @@ export default function App() {
         </div>
       )}
 
-      {activeView === 'workspace' && (
-        <div className="flex-1 flex min-h-0 gap-3 p-4 pt-3">
-          {/* Left sidebar */}
-          <aside className={`w-[300px] flex-shrink-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}>
-            <CreateForm
-              onCreated={refetch}
-              jiraConfigured={jiraStatus?.configured ?? false}
-              defaultProjectKey={jiraStatus?.defaultProjectKey ?? null}
-              activeTab={activeCreateTab}
-              onTabChange={setActiveCreateTab}
-            />
-            {activeCreateTab === 'branch' ? (
-              <WorktreeList
-                worktrees={worktrees}
-                selectedId={selection?.type === 'worktree' ? selection.id : null}
-                onSelect={(id) => setSelection({ type: 'worktree', id })}
-              />
-            ) : (
-              <JiraIssueList
-                issues={jiraIssues}
-                selectedKey={selection?.type === 'jira' ? selection.key : null}
-                onSelect={(key) => setSelection({ type: 'jira', key })}
-                isLoading={jiraIssuesLoading}
-                isFetching={jiraIssuesFetching}
-                error={jiraError}
-                searchQuery={jiraSearchQuery}
-                onSearchChange={setJiraSearchQuery}
-                onRefresh={refetchJiraIssues}
-                dataUpdatedAt={jiraIssuesUpdatedAt}
-              />
-            )}
-          </aside>
+      <div className="flex-1 min-h-0 relative">
+        <AnimatePresence mode="wait">
+          {activeView === 'workspace' && (
+            <motion.div
+              key="workspace"
+              className="absolute inset-0 flex gap-3 p-4"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
+            >
+              {/* Left sidebar */}
+              <motion.aside
+                className={`w-[300px] flex-shrink-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.15, delay: 0.04 }}
+              >
+                <CreateForm
+                  onCreated={refetch}
+                  jiraConfigured={jiraStatus?.configured ?? false}
+                  defaultProjectKey={jiraStatus?.defaultProjectKey ?? null}
+                  activeTab={activeCreateTab}
+                  onTabChange={setActiveCreateTab}
+                />
+                <AnimatePresence mode="wait">
+                  {activeCreateTab === 'branch' ? (
+                    <motion.div
+                      key="worktree-list"
+                      className="flex-1 min-h-0 flex flex-col"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0, transition: { duration: 0.05 } }}
+                      transition={{ duration: 0.1 }}
+                    >
+                      <WorktreeList
+                        worktrees={worktrees}
+                        selectedId={selection?.type === 'worktree' ? selection.id : null}
+                        onSelect={(id) => setSelection({ type: 'worktree', id })}
+                      />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="issue-list"
+                      className="flex-1 min-h-0 flex flex-col"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0, transition: { duration: 0.05 } }}
+                      transition={{ duration: 0.1 }}
+                    >
+                      <IssueList
+                        issues={jiraIssues}
+                        selectedKey={selection?.type === 'issue' ? selection.key : null}
+                        onSelect={(key) => setSelection({ type: 'issue', key })}
+                        isLoading={jiraIssuesLoading}
+                        isFetching={jiraIssuesFetching}
+                        error={jiraError}
+                        searchQuery={jiraSearchQuery}
+                        onSearchChange={setJiraSearchQuery}
+                        onRefresh={refetchJiraIssues}
+                        dataUpdatedAt={jiraIssuesUpdatedAt}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.aside>
 
-          {/* Right panel */}
-          <main className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}>
-            {selection?.type === 'jira' ? (
-              <JiraDetailPanel
-                issueKey={selection.key}
-                linkedWorktreeId={findLinkedWorktree(selection.key)}
-                onCreateWorktree={handleCreateWorktreeFromJira}
-                onViewWorktree={handleViewWorktreeFromJira}
-                refreshIntervalMinutes={refreshIntervalMinutes}
-              />
-            ) : (
-              <DetailPanel
-                worktree={selectedWorktree}
-                onUpdate={refetch}
-                onDeleted={handleDeleted}
-                onNavigateToIntegrations={() => setActiveView('integrations')}
-              />
-            )}
-          </main>
-        </div>
-      )}
+              {/* Right panel */}
+              <motion.main
+                className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.15, delay: 0.08 }}
+              >
+                {selection?.type === 'issue' ? (
+                  <JiraDetailPanel
+                    issueKey={selection.key}
+                    linkedWorktreeId={findLinkedWorktree(selection.key)}
+                    onCreateWorktree={handleCreateWorktreeFromJira}
+                    onViewWorktree={handleViewWorktreeFromJira}
+                    refreshIntervalMinutes={refreshIntervalMinutes}
+                  />
+                ) : (
+                  <DetailPanel
+                    worktree={selectedWorktree}
+                    onUpdate={refetch}
+                    onDeleted={handleDeleted}
+                    onNavigateToIntegrations={() => setActiveView('integrations')}
+                  />
+                )}
+              </motion.main>
+            </motion.div>
+          )}
 
-      {activeView === 'configuration' && (
-        <div className="flex-1 flex flex-col min-h-0 p-4 pt-3">
-          <ConfigurationPanel config={config} onSaved={refetchConfig} />
-        </div>
-      )}
+          {activeView === 'configuration' && (
+            <motion.div
+              key="configuration"
+              className="absolute inset-0 flex flex-col p-4"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
+            >
+              <ConfigurationPanel config={config} onSaved={refetchConfig} />
+            </motion.div>
+          )}
 
-      {activeView === 'integrations' && (
-        <div className="flex-1 flex flex-col min-h-0 p-4 pt-3">
-          <IntegrationsPanel />
-        </div>
-      )}
+          {activeView === 'integrations' && (
+            <motion.div
+              key="integrations"
+              className="absolute inset-0 flex flex-col p-4"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
+            >
+              <IntegrationsPanel />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

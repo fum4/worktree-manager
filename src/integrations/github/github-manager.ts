@@ -6,6 +6,7 @@ import {
   commitAll,
   createPR,
   findPRForBranch,
+  getGhUsername,
   getGitStatus,
   getRepoInfo,
   pushBranch,
@@ -27,6 +28,8 @@ export class GitHubManager {
 
   private authenticated = false;
 
+  private username: string | null = null;
+
   async initialize(gitRoot: string): Promise<void> {
     this.installed = await checkGhInstalled();
     if (!this.installed) return;
@@ -34,6 +37,7 @@ export class GitHubManager {
     this.authenticated = await checkGhAuth();
     if (!this.authenticated) return;
 
+    this.username = await getGhUsername();
     this.config = await getRepoInfo(gitRoot);
   }
 
@@ -41,10 +45,11 @@ export class GitHubManager {
     return this.installed && this.authenticated && this.config !== null;
   }
 
-  getStatus(): { installed: boolean; authenticated: boolean; repo: string | null } {
+  getStatus(): { installed: boolean; authenticated: boolean; username: string | null; repo: string | null } {
     return {
       installed: this.installed,
       authenticated: this.authenticated,
+      username: this.username,
       repo: this.config ? `${this.config.owner}/${this.config.repo}` : null,
     };
   }

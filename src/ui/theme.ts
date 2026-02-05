@@ -193,7 +193,7 @@ export const badge = {
   prDraft:         'text-[#9ca3af] bg-white/[0.06]',
   prMerged:        'text-purple-400 bg-purple-900/30',
   prClosed:        'text-red-400 bg-red-900/30',
-  unpushed:        'text-cyan-400',
+  unpushed:        'text-white',
 } as const;
 
 // ─── Header bar ─────────────────────────────────────────────────

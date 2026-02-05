@@ -7,8 +7,8 @@ interface CreateFormProps {
   onCreated: () => void;
   jiraConfigured: boolean;
   defaultProjectKey: string | null;
-  activeTab: 'branch' | 'jira';
-  onTabChange: (tab: 'branch' | 'jira') => void;
+  activeTab: 'branch' | 'issues';
+  onTabChange: (tab: 'branch' | 'issues') => void;
 }
 
 function deriveName(branch: string): string {
@@ -114,12 +114,12 @@ export function CreateForm({ onCreated, jiraConfigured, defaultProjectKey, activ
             </button>
             <button
               type="button"
-              onClick={() => { onTabChange('jira'); setError(null); setJiraError(null); }}
+              onClick={() => { onTabChange('issues'); setError(null); setJiraError(null); }}
               className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors duration-150 ${
-                activeTab === 'jira' ? tab.active : tab.inactive
+                activeTab === 'issues' ? tab.active : tab.inactive
               }`}
             >
-              Jira
+              Issues
             </button>
           </div>
         ) : (

@@ -32,6 +32,7 @@ export interface JiraStatus {
 export interface GitHubStatus {
   installed: boolean;
   authenticated: boolean;
+  username: string | null;
   repo: string | null;
 }
 

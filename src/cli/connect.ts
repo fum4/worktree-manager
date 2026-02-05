@@ -218,7 +218,7 @@ async function runConnectJira() {
   }
 
   const defaultProjectKey = await input({
-    message: 'Default project key (e.g. PROJ, optional)',
+    message: 'Project key (e.g. PROJ, optional)',
   });
 
   saveJiraCredentials(configDir, creds);

@@ -47,7 +47,7 @@ export function Header({
 
   return (
     <header
-      className={`h-11 flex-shrink-0 flex items-center justify-between pr-4 ${header.bg}`}
+      className={`h-14 flex-shrink-0 flex items-center justify-between pr-4 ${header.bg}`}
       style={{
         ...({ WebkitAppRegion: 'drag' } as React.CSSProperties),
         paddingLeft: isElectron ? '78px' : '16px',

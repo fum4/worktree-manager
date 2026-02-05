@@ -111,7 +111,7 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
       ) : (
         <div className="flex flex-col gap-1.5">
           <StatusRow label="CLI" ok={status.installed} value={status.installed ? 'Installed' : 'Not installed'} />
-          <StatusRow label="Auth" ok={status.authenticated} value={status.authenticated ? 'Authenticated' : 'Not authenticated'} />
+          <StatusRow label="Auth" ok={status.authenticated} value={status.authenticated ? (status.username ?? 'Authenticated') : 'Not authenticated'} />
           {status.repo && (
             <StatusRow label="Repo" ok={true} value={status.repo} />
           )}
@@ -249,43 +249,48 @@ function JiraCard({
         <div className="flex flex-col gap-3">
           <StatusRow label="Auth" ok={true} value="API Token" />
 
-          <div className="flex flex-col gap-1.5">
-            <label className={`text-[10px] ${settings.label}`}>Default Project Key</label>
-            <input
-              value={projectKey}
-              onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
-              placeholder="PROJ"
-              className={integrationInput}
-            />
+          <div className="flex gap-3 items-end">
+            <div className="flex flex-col gap-1.5 flex-1">
+              <label className={`text-[10px] ${settings.label}`}>Project Key</label>
+              <input
+                value={projectKey}
+                onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
+                placeholder="PROJ"
+                className={integrationInput}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5 w-28">
+              <label className={`text-[10px] ${settings.label}`}>Refresh (min)</label>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={refreshInterval}
+                onChange={(e) => setRefreshInterval(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+                className={integrationInput}
+              />
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className={`text-[10px] ${settings.label}`}>Refresh interval (minutes)</label>
-            <input
-              type="number"
-              min={1}
-              max={60}
-              value={refreshInterval}
-              onChange={(e) => setRefreshInterval(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
-              className={`w-20 ${integrationInput}`}
-            />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSaveConfig}
+              disabled={saving}
+              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.secondary} disabled:opacity-50 transition-colors duration-150`}
+            >
+              Apply
+            </button>
+            <button
+              onClick={handleDisconnect}
+              disabled={saving}
+              className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+              </svg>
+              Disconnect
+            </button>
           </div>
-
-          <button
-            onClick={handleSaveConfig}
-            disabled={saving}
-            className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.secondary} disabled:opacity-50 transition-colors duration-150 self-start`}
-          >
-            Save
-          </button>
-
-          <button
-            onClick={handleDisconnect}
-            disabled={saving}
-            className={`text-[11px] ${text.muted} hover:text-red-400 text-left disabled:opacity-50 transition-colors duration-150`}
-          >
-            Disconnect
-          </button>
         </div>
       ) : showSetup ? (
         <div className="flex flex-col gap-2.5">
@@ -395,24 +400,22 @@ export function IntegrationsPanel() {
 
   return (
     <div className={`flex-1 ${surface.panel} rounded-xl overflow-auto`}>
-      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-6">
+      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-4">
         <div>
           <h2 className={`text-sm font-semibold ${text.primary}`}>Integrations</h2>
           <p className={`text-[11px] ${text.dimmed} mt-1`}>Connect external services to enhance your workflow.</p>
         </div>
-        <div className="grid grid-cols-2 gap-5">
-          <div className={`rounded-xl border ${border.subtle} bg-white/[0.02] p-5`}>
-            <GitHubCard
-              status={currentGithubStatus}
-              onStatusChange={() => setGithubRefreshKey((k) => k + 1)}
-            />
-          </div>
-          <div className={`rounded-xl border ${border.subtle} bg-white/[0.02] p-5`}>
-            <JiraCard
-              status={currentJiraStatus}
-              onStatusChange={() => setJiraRefreshKey((k) => k + 1)}
-            />
-          </div>
+        <div className={`rounded-xl border ${border.subtle} bg-white/[0.02] p-5`}>
+          <GitHubCard
+            status={currentGithubStatus}
+            onStatusChange={() => setGithubRefreshKey((k) => k + 1)}
+          />
+        </div>
+        <div className={`rounded-xl border ${border.subtle} bg-white/[0.02] p-5`}>
+          <JiraCard
+            status={currentJiraStatus}
+            onStatusChange={() => setJiraRefreshKey((k) => k + 1)}
+          />
         </div>
       </div>
     </div>

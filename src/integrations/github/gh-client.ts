@@ -23,6 +23,15 @@ export async function checkGhAuth(): Promise<boolean> {
   }
 }
 
+export async function getGhUsername(): Promise<string | null> {
+  try {
+    const { stdout } = await execFile('gh', ['api', 'user', '--jq', '.login'], { encoding: 'utf-8' });
+    return stdout.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getRepoInfo(cwd: string): Promise<GitHubConfig | null> {
   try {
     const { stdout } = await execFile(

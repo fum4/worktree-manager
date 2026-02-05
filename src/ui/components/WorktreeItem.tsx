@@ -68,7 +68,7 @@ export function WorktreeItem({ worktree, isSelected, onSelect }: WorktreeItemPro
           </span>
         )}
         {worktree.hasUnpushed && (
-          <span className={`text-[10px] font-medium ${badge.unpushed}`} title={`${worktree.commitsAhead || ''} unpushed`}>
+          <span className={`text-[10px] font-medium ${text.primary}`} title={`${worktree.commitsAhead || ''} unpushed`}>
             {worktree.commitsAhead ? `↑${worktree.commitsAhead}` : '↑'}
           </span>
         )}
