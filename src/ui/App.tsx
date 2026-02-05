@@ -31,7 +31,17 @@ export default function App() {
   const [activeCreateTab, setActiveCreateTab] = useState<'branch' | 'jira'>('branch');
 
   const jiraEnabled = activeCreateTab === 'jira' && (jiraStatus?.configured ?? false);
-  const { issues: jiraIssues, isLoading: jiraIssuesLoading, error: jiraError, searchQuery: jiraSearchQuery, setSearchQuery: setJiraSearchQuery } = useJiraIssues(jiraEnabled);
+  const refreshIntervalMinutes = jiraStatus?.refreshIntervalMinutes ?? 5;
+  const {
+    issues: jiraIssues,
+    isLoading: jiraIssuesLoading,
+    isFetching: jiraIssuesFetching,
+    error: jiraError,
+    searchQuery: jiraSearchQuery,
+    setSearchQuery: setJiraSearchQuery,
+    refetch: refetchJiraIssues,
+    dataUpdatedAt: jiraIssuesUpdatedAt,
+  } = useJiraIssues(jiraEnabled, refreshIntervalMinutes);
 
   // Auto-select first worktree when on branch tab, or fix stale selection
   useEffect(() => {
@@ -112,9 +122,12 @@ export default function App() {
                 selectedKey={selection?.type === 'jira' ? selection.key : null}
                 onSelect={(key) => setSelection({ type: 'jira', key })}
                 isLoading={jiraIssuesLoading}
+                isFetching={jiraIssuesFetching}
                 error={jiraError}
                 searchQuery={jiraSearchQuery}
                 onSearchChange={setJiraSearchQuery}
+                onRefresh={refetchJiraIssues}
+                dataUpdatedAt={jiraIssuesUpdatedAt}
               />
             )}
           </aside>
@@ -127,6 +140,7 @@ export default function App() {
                 linkedWorktreeId={findLinkedWorktree(selection.key)}
                 onCreateWorktree={handleCreateWorktreeFromJira}
                 onViewWorktree={handleViewWorktreeFromJira}
+                refreshIntervalMinutes={refreshIntervalMinutes}
               />
             ) : (
               <DetailPanel

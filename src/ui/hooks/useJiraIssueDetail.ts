@@ -1,34 +1,28 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import { fetchJiraIssueDetail } from './api';
 import type { JiraIssueDetail } from '../types';
 
-export function useJiraIssueDetail(issueKey: string | null) {
-  const [issue, setIssue] = useState<JiraIssueDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function useJiraIssueDetail(issueKey: string | null, refreshIntervalMinutes = 5) {
+  const staleTime = refreshIntervalMinutes * 60 * 1000;
 
-  const doFetch = useCallback(async (key: string) => {
-    setIsLoading(true);
-    setError(null);
-    const result = await fetchJiraIssueDetail(key);
-    setIsLoading(false);
-    if (result.error) {
-      setError(result.error);
-      setIssue(null);
-    } else if (result.issue) {
-      setIssue(result.issue);
-    }
-  }, []);
+  const { data, isLoading, error, dataUpdatedAt, refetch, isFetching } = useQuery<JiraIssueDetail | null>({
+    queryKey: ['jira-issue', issueKey],
+    queryFn: async () => {
+      const result = await fetchJiraIssueDetail(issueKey!);
+      if (result.error) throw new Error(result.error);
+      return result.issue ?? null;
+    },
+    enabled: !!issueKey,
+    staleTime,
+  });
 
-  useEffect(() => {
-    if (!issueKey) {
-      setIssue(null);
-      setError(null);
-      return;
-    }
-    doFetch(issueKey);
-  }, [issueKey, doFetch]);
-
-  return { issue, isLoading, error };
+  return {
+    issue: data ?? null,
+    isLoading,
+    isFetching,
+    error: error instanceof Error ? error.message : null,
+    refetch,
+    dataUpdatedAt,
+  };
 }

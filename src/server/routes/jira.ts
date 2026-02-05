@@ -21,6 +21,7 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
     return c.json({
       configured: creds !== null,
       defaultProjectKey: projectConfig.defaultProjectKey ?? null,
+      refreshIntervalMinutes: projectConfig.refreshIntervalMinutes ?? 5,
     });
   });
 
@@ -63,11 +64,14 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
 
   app.patch('/api/jira/config', async (c) => {
     try {
-      const body = await c.req.json<{ defaultProjectKey?: string }>();
+      const body = await c.req.json<{ defaultProjectKey?: string; refreshIntervalMinutes?: number }>();
       const configDir = manager.getConfigDir();
       const current = loadJiraProjectConfig(configDir);
       if (body.defaultProjectKey !== undefined) {
         current.defaultProjectKey = body.defaultProjectKey || undefined;
+      }
+      if (body.refreshIntervalMinutes !== undefined) {
+        current.refreshIntervalMinutes = Math.max(1, Math.min(60, body.refreshIntervalMinutes));
       }
       saveJiraProjectConfig(configDir, current);
       return c.json({ success: true });

@@ -10,6 +10,17 @@ interface JiraDetailPanelProps {
   linkedWorktreeId: string | null;
   onCreateWorktree: (key: string) => void;
   onViewWorktree: (id: string) => void;
+  refreshIntervalMinutes?: number;
+}
+
+function formatTimeAgo(timestamp: number): string {
+  if (!timestamp) return '';
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
 }
 
 function formatDate(iso: string) {
@@ -155,8 +166,8 @@ function FileIcon({ mimeType }: { mimeType: string }) {
   );
 }
 
-export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, onViewWorktree }: JiraDetailPanelProps) {
-  const { issue, isLoading, error } = useJiraIssueDetail(issueKey);
+export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, onViewWorktree, refreshIntervalMinutes }: JiraDetailPanelProps) {
+  const { issue, isLoading, isFetching, error, refetch, dataUpdatedAt } = useJiraIssueDetail(issueKey, refreshIntervalMinutes);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -207,7 +218,7 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
       <div className={`flex-shrink-0 px-5 py-4 border-b ${border.section}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            {/* Issue key + type pill on one line */}
+            {/* Issue key + type pill + refresh on one line */}
             <div className="flex items-center gap-2 mb-2">
               <a
                 href={issue.url}
@@ -220,6 +231,30 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
               <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${typeClasses}`}>
                 {issue.type}
               </span>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                title={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}
+                className={`p-0.5 rounded ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] transition-all duration-150`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  className={`w-3 h-3 ${isFetching && !isLoading ? 'animate-spin' : ''}`}
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37l-.84-.841a4.5 4.5 0 0 0-7.08.681.75.75 0 0 1-1.3-.75 6 6 0 0 1 9.44-.908l.84.84V3.227a.75.75 0 0 1 .75-.75Zm-.911 7.5A.75.75 0 0 1 13.199 11a6 6 0 0 1-9.44.908l-.84-.84v1.456a.75.75 0 0 1-1.5 0V9.341a.75.75 0 0 1 .75-.75h3.182a.75.75 0 0 1 0 1.5h-1.37l.84.841a4.5 4.5 0 0 0 7.08-.681.75.75 0 0 1 1.024-.274Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              {dataUpdatedAt > 0 && (
+                <span className={`text-[10px] ${text.dimmed}`}>
+                  {formatTimeAgo(dataUpdatedAt)}
+                </span>
+              )}
             </div>
             {/* Summary — largest text, clear anchor */}
             <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.summary}</h2>

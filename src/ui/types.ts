@@ -26,6 +26,7 @@ export interface PortsInfo {
 export interface JiraStatus {
   configured: boolean;
   defaultProjectKey: string | null;
+  refreshIntervalMinutes: number;
 }
 
 export interface GitHubStatus {

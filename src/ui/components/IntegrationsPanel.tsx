@@ -169,6 +169,7 @@ function JiraCard({
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [projectKey, setProjectKey] = useState('');
+  const [refreshInterval, setRefreshInterval] = useState(5);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -176,7 +177,10 @@ function JiraCard({
     if (status?.defaultProjectKey) {
       setProjectKey(status.defaultProjectKey);
     }
-  }, [status?.defaultProjectKey]);
+    if (status?.refreshIntervalMinutes) {
+      setRefreshInterval(status.refreshIntervalMinutes);
+    }
+  }, [status?.defaultProjectKey, status?.refreshIntervalMinutes]);
 
   const handleConnect = async () => {
     if (!baseUrl || !email || !token) return;
@@ -206,13 +210,13 @@ function JiraCard({
     }
   };
 
-  const handleSaveProjectKey = async () => {
+  const handleSaveConfig = async () => {
     setSaving(true);
     setFeedback(null);
-    const result = await updateJiraConfig(projectKey);
+    const result = await updateJiraConfig(projectKey, refreshInterval);
     setSaving(false);
     if (result.success) {
-      setFeedback({ type: 'success', message: 'Project key saved' });
+      setFeedback({ type: 'success', message: 'Settings saved' });
       onStatusChange();
     } else {
       setFeedback({ type: 'error', message: result.error ?? 'Failed to save' });
@@ -247,22 +251,33 @@ function JiraCard({
 
           <div className="flex flex-col gap-1.5">
             <label className={`text-[10px] ${settings.label}`}>Default Project Key</label>
-            <div className="flex gap-2">
-              <input
-                value={projectKey}
-                onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
-                placeholder="PROJ"
-                className={`flex-1 ${integrationInput}`}
-              />
-              <button
-                onClick={handleSaveProjectKey}
-                disabled={saving}
-                className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.secondary} disabled:opacity-50 transition-colors duration-150`}
-              >
-                Save
-              </button>
-            </div>
+            <input
+              value={projectKey}
+              onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
+              placeholder="PROJ"
+              className={integrationInput}
+            />
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className={`text-[10px] ${settings.label}`}>Refresh interval (minutes)</label>
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={refreshInterval}
+              onChange={(e) => setRefreshInterval(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+              className={`w-20 ${integrationInput}`}
+            />
+          </div>
+
+          <button
+            onClick={handleSaveConfig}
+            disabled={saving}
+            className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.secondary} disabled:opacity-50 transition-colors duration-150 self-start`}
+          >
+            Save
+          </button>
 
           <button
             onClick={handleDisconnect}

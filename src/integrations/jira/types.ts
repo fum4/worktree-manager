@@ -2,6 +2,7 @@
 
 export interface JiraProjectConfig {
   defaultProjectKey?: string;
+  refreshIntervalMinutes?: number;
 }
 
 export interface JiraOAuthCredentials {

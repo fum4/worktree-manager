@@ -99,7 +99,7 @@ export function DetailHeader({
           <InlineEdit
             value={worktree.branch}
             className={`text-xs ${text.muted} truncate`}
-            editClassName={`text-xs ${text.muted} bg-transparent border-b border-accent/20 focus:border-accent/50 outline-none w-48 pb-0.5 transition-colors duration-150`}
+            editClassName={`text-xs ${text.muted} bg-transparent border-b border-accent/20 focus:border-accent/50 outline-none w-72 pb-0.5 transition-colors duration-150`}
             editable={editable}
             onSave={(v) => onRename({ branch: v })}
           />

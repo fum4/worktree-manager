@@ -82,12 +82,15 @@ export async function setupJira(
 
 export async function updateJiraConfig(
   defaultProjectKey: string,
+  refreshIntervalMinutes?: number,
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const body: { defaultProjectKey: string; refreshIntervalMinutes?: number } = { defaultProjectKey };
+    if (refreshIntervalMinutes !== undefined) body.refreshIntervalMinutes = refreshIntervalMinutes;
     const res = await fetch(`${API_BASE}/api/jira/config`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ defaultProjectKey }),
+      body: JSON.stringify(body),
     });
     return await res.json();
   } catch (err) {
