@@ -18,10 +18,33 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
     const configDir = manager.getConfigDir();
     const creds = loadJiraCredentials(configDir);
     const projectConfig = loadJiraProjectConfig(configDir);
+
+    let email: string | null = null;
+    let domain: string | null = null;
+
+    if (creds) {
+      if (creds.authMethod === 'api-token') {
+        email = creds.apiToken.email;
+        try {
+          domain = new URL(creds.apiToken.baseUrl).hostname;
+        } catch {
+          domain = creds.apiToken.baseUrl;
+        }
+      } else if (creds.authMethod === 'oauth') {
+        try {
+          domain = new URL(creds.oauth.siteUrl).hostname;
+        } catch {
+          domain = creds.oauth.siteUrl;
+        }
+      }
+    }
+
     return c.json({
       configured: creds !== null,
       defaultProjectKey: projectConfig.defaultProjectKey ?? null,
       refreshIntervalMinutes: projectConfig.refreshIntervalMinutes ?? 5,
+      email,
+      domain,
     });
   });
 

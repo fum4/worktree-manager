@@ -378,10 +378,11 @@ function JiraCard({
         </span>
       ) : isConfigured ? (
         <div className="flex flex-col gap-3">
-          <StatusRow label="Auth" ok={true} value="API Token" />
+          {status.domain && <StatusRow label="Domain" ok={true} value={status.domain} />}
+          {status.email && <StatusRow label="Email" ok={true} value={status.email} />}
 
-          <div className="flex flex-col gap-2 w-28">
-            <div className="flex flex-col gap-1.5">
+          <div className="flex gap-3 items-end mt-2">
+            <div className="flex flex-col gap-1.5 w-28">
               <label className={`text-[10px] ${settings.label}`}>Project Key</label>
               <input
                 value={projectKey}
@@ -390,7 +391,7 @@ function JiraCard({
                 className={integrationInput}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 w-28">
               <label className={`text-[10px] ${settings.label}`}>Refresh (min)</label>
               <input
                 type="number"
@@ -404,7 +405,7 @@ function JiraCard({
             <button
               onClick={handleSaveConfig}
               disabled={saving || (projectKey === (status.defaultProjectKey ?? '') && refreshInterval === (status.refreshIntervalMinutes ?? 5))}
-              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.primary} disabled:opacity-50 transition-colors duration-150 w-full`}
+              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.primary} disabled:opacity-50 transition-colors duration-150 w-28`}
             >
               Apply
             </button>

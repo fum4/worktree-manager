@@ -43,12 +43,24 @@ function detectDefaultBranch(): string {
   return 'origin/main';
 }
 
-function detectInstallCommand(projectDir: string): string | null {
-  if (existsSync(path.join(projectDir, 'pnpm-lock.yaml'))) return 'pnpm install';
-  if (existsSync(path.join(projectDir, 'yarn.lock'))) return 'yarn install';
-  if (existsSync(path.join(projectDir, 'package-lock.json'))) return 'npm install';
-  if (existsSync(path.join(projectDir, 'bun.lockb'))) return 'bun install';
+function detectPackageManager(projectDir: string): string | null {
+  if (existsSync(path.join(projectDir, 'pnpm-lock.yaml'))) return 'pnpm';
+  if (existsSync(path.join(projectDir, 'yarn.lock'))) return 'yarn';
+  if (existsSync(path.join(projectDir, 'package-lock.json'))) return 'npm';
+  if (existsSync(path.join(projectDir, 'bun.lockb'))) return 'bun';
   return null;
+}
+
+function detectInstallCommand(projectDir: string): string | null {
+  const pm = detectPackageManager(projectDir);
+  return pm ? `${pm} install` : null;
+}
+
+function detectStartCommand(projectDir: string): string | null {
+  const pm = detectPackageManager(projectDir);
+  if (!pm) return null;
+  // yarn and pnpm can run scripts directly, npm needs "run"
+  return pm === 'npm' ? 'npm run dev' : `${pm} dev`;
 }
 
 export async function runInit() {
@@ -93,9 +105,15 @@ export async function runInit() {
     `Base branch for new worktrees [${detectedBranch}]: `,
   )) || detectedBranch;
 
+  const detectedStartCommand = detectStartCommand(resolvedProjectDir);
   let startCommand = '';
   while (!startCommand) {
-    startCommand = await prompt(rl, 'Dev start command: ');
+    startCommand = (await prompt(
+      rl,
+      detectedStartCommand
+        ? `Dev start command [${detectedStartCommand}]: `
+        : 'Dev start command: ',
+    )) || detectedStartCommand || '';
     if (!startCommand) console.log('  Start command is required.');
   }
 

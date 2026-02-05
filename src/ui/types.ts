@@ -27,6 +27,8 @@ export interface JiraStatus {
   configured: boolean;
   defaultProjectKey: string | null;
   refreshIntervalMinutes: number;
+  email: string | null;
+  domain: string | null;
 }
 
 export interface GitHubStatus {

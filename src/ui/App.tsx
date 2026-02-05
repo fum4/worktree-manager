@@ -20,6 +20,7 @@ import { Header } from './components/Header';
 import { IntegrationsPanel } from './components/IntegrationsPanel';
 import { IssueList } from './components/IssueList';
 import type { View } from './components/NavBar';
+import { WelcomeScreen } from './components/WelcomeScreen';
 import { WorktreeList } from './components/WorktreeList';
 import { createGitHubRepo, createInitialCommit } from './hooks/api';
 import { useConfig } from './hooks/useConfig';
@@ -35,10 +36,20 @@ type Selection =
 export default function App() {
   const { worktrees, isConnected, error, refetch } = useWorktrees();
   const { ports, refetchPorts } = usePorts();
-  const { config, projectName, refetch: refetchConfig } = useConfig();
+  const { config, projectName, isLoading: configLoading, refetch: refetchConfig } = useConfig();
   const { jiraStatus, refetchJiraStatus } = useJiraStatus();
   const githubStatus = useGitHubStatus();
   const runningCount = worktrees.filter((w) => w.status === 'running').length;
+
+  // Show welcome screen if no config is loaded (no .wok3 directory)
+  const showWelcomeScreen = !configLoading && !config;
+
+  const handleImportProject = () => {
+    // For now, redirect to configuration panel
+    // In the future, this could open a native folder picker (in Electron)
+    // or trigger an init flow
+    window.location.href = '/init';
+  };
 
   const [activeView, setActiveView] = useState<View>('workspace');
 
@@ -150,6 +161,15 @@ export default function App() {
     refetchPorts();
     refetchConfig();
   };
+
+  // Show welcome screen when no config
+  if (showWelcomeScreen) {
+    return (
+      <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
+        <WelcomeScreen onImportProject={handleImportProject} />
+      </div>
+    );
+  }
 
   return (
     <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
