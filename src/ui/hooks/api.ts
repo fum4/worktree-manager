@@ -581,15 +581,15 @@ export async function fetchGitHubStatus(serverUrl: string | null = null): Promis
   }
 }
 
-// Check if wok3 config files need to be committed
+// Check if wok3 config files need to be pushed
 export async function fetchSetupStatus(
   serverUrl: string | null = null,
-): Promise<{ needsCommit: boolean; files: string[] }> {
+): Promise<{ needsPush: boolean; files: string[] }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/setup-status`);
     return await res.json();
   } catch {
-    return { needsCommit: false, files: [] };
+    return { needsPush: false, files: [] };
   }
 }
 

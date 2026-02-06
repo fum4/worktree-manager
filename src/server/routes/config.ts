@@ -69,37 +69,73 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
     });
   });
 
-  // Check if .wok3 config files need to be committed
+  // Check if .wok3 config files need to be committed/pushed
   app.get('/api/config/setup-status', (c) => {
     const projectDir = manager.getConfigDir();
     const configPath = path.join(projectDir, '.wok3', 'config.json');
 
     if (!existsSync(configPath)) {
-      return c.json({ needsCommit: false, files: [] });
+      return c.json({ needsPush: false, files: [] });
     }
 
     try {
-      // Check if .wok3/config.json has ever been committed
-      // git log returns empty if file was never committed (even if staged)
-      const logResult = execFileSync('git', ['log', '-1', '--', '.wok3/config.json'], {
-        cwd: projectDir,
-        encoding: 'utf-8',
-        stdio: ['pipe', 'pipe', 'pipe'],
-      }).trim();
+      // Check if file has uncommitted changes (untracked, modified, or staged)
+      const statusResult = execFileSync(
+        'git',
+        ['status', '--porcelain', '.wok3/config.json', '.wok3/.gitignore'],
+        {
+          cwd: projectDir,
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        },
+      ).trim();
 
-      // If no commits found for this file, it needs to be committed
-      const needsCommit = logResult === '';
+      // If there are any uncommitted changes, needs commit and push
+      if (statusResult !== '') {
+        return c.json({
+          needsPush: true,
+          files: ['.wok3/config.json', '.wok3/.gitignore'],
+        });
+      }
 
+      // Files are committed - check if pushed to remote
+      // First check if we have an upstream branch
+      try {
+        execFileSync('git', ['rev-parse', '--abbrev-ref', '@{u}'], {
+          cwd: projectDir,
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch {
+        // No upstream - needs push
+        return c.json({
+          needsPush: true,
+          files: ['.wok3/config.json', '.wok3/.gitignore'],
+        });
+      }
+
+      // Has upstream - check for unpushed commits touching config files
+      const unpushedResult = execFileSync(
+        'git',
+        ['log', '@{u}..HEAD', '--oneline', '--', '.wok3/config.json', '.wok3/.gitignore'],
+        {
+          cwd: projectDir,
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        },
+      ).trim();
+
+      const needsPush = unpushedResult !== '';
       return c.json({
-        needsCommit,
-        files: needsCommit ? ['.wok3/config.json', '.wok3/.gitignore'] : [],
+        needsPush,
+        files: needsPush ? ['.wok3/config.json', '.wok3/.gitignore'] : [],
       });
     } catch {
-      return c.json({ needsCommit: false, files: [] });
+      return c.json({ needsPush: false, files: [] });
     }
   });
 
-  // Commit the .wok3 config files
+  // Commit and push the .wok3 config files
   app.post('/api/config/commit-setup', async (c) => {
     const projectDir = manager.getConfigDir();
     const configPath = path.join(projectDir, '.wok3', 'config.json');
@@ -133,6 +169,21 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
+
+      // Push to remote (so new worktrees will include the config)
+      try {
+        execFileSync('git', ['push'], {
+          cwd: projectDir,
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch (pushError) {
+        // Commit succeeded but push failed - return partial success
+        return c.json({
+          success: true,
+          warning: 'Committed but failed to push. Push manually to share config with worktrees.',
+        });
+      }
 
       return c.json({ success: true });
     } catch (error) {

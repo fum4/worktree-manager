@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GitCommit } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 import { input, text } from '../theme';
 import { Button } from './Button';
@@ -12,18 +12,18 @@ interface SetupCommitModalProps {
 
 export function SetupCommitModal({ onCommit, onSkip }: SetupCommitModalProps) {
   const [message, setMessage] = useState('chore: add wok3 configuration');
-  const [isCommitting, setIsCommitting] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleCommit = async () => {
+  const handleCommitAndPush = async () => {
     if (!message.trim()) return;
-    setIsCommitting(true);
+    setIsPushing(true);
     setError(null);
     try {
       await onCommit(message.trim());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to commit');
-      setIsCommitting(false);
+      setError(e instanceof Error ? e.message : 'Failed to commit and push');
+      setIsPushing(false);
     }
   };
 
@@ -31,28 +31,28 @@ export function SetupCommitModal({ onCommit, onSkip }: SetupCommitModalProps) {
 
   return (
     <Modal
-      title="Commit Configuration"
-      icon={<GitCommit className="w-5 h-5 text-[#9ca3af]" />}
+      title="Push Configuration"
+      icon={<Upload className="w-5 h-5 text-[#9ca3af]" />}
       onClose={onSkip}
       footer={
         <>
-          <Button onClick={onSkip} disabled={isCommitting}>
+          <Button onClick={onSkip} disabled={isPushing}>
             Later
           </Button>
           <Button
-            onClick={handleCommit}
+            onClick={handleCommitAndPush}
             variant="primary"
             disabled={!message.trim()}
-            loading={isCommitting}
+            loading={isPushing}
           >
-            Commit
+            Commit & Push
           </Button>
         </>
       }
     >
       <div className="space-y-3">
         <p className={`text-xs ${text.secondary} leading-relaxed`}>
-          Configuration files need to be committed for worktrees to work properly.
+          Configuration must be pushed to remote so new worktrees include it.
         </p>
 
         <div>
@@ -65,7 +65,7 @@ export function SetupCommitModal({ onCommit, onSkip }: SetupCommitModalProps) {
             onChange={(e) => setMessage(e.target.value)}
             className={inputClass}
             placeholder="Enter commit message..."
-            disabled={isCommitting}
+            disabled={isPushing}
           />
         </div>
 

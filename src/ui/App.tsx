@@ -176,14 +176,14 @@ export default function App() {
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [showSetupCommitModal, setShowSetupCommitModal] = useState(false);
-  const [configNeedsCommit, setConfigNeedsCommit] = useState(false);
+  const [configNeedsPush, setConfigNeedsPush] = useState(false);
 
   // Check if wok3 config files need to be committed when project loads
   useEffect(() => {
     if (!serverUrl || configLoading) return;
 
     api.fetchSetupStatus().then((status) => {
-      setConfigNeedsCommit(status.needsCommit);
+      setConfigNeedsPush(status.needsPush);
     }).catch(() => {
       // Ignore errors - this is a nice-to-have prompt
     });
@@ -192,7 +192,7 @@ export default function App() {
   const handleSetupCommit = async (message: string) => {
     await api.commitSetup(message);
     setShowSetupCommitModal(false);
-    setConfigNeedsCommit(false);
+    setConfigNeedsPush(false);
   };
 
   const needsCommit = githubStatus?.hasCommits === false;
@@ -355,7 +355,7 @@ export default function App() {
           runningCount={runningCount}
           activeView={activeView}
           onChangeView={setActiveView}
-          configNeedsCommit={configNeedsCommit}
+          configNeedsPush={configNeedsPush}
           onCommitConfig={() => setShowSetupCommitModal(true)}
         />
       </motion.div>

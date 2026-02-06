@@ -16,6 +16,17 @@ export interface ConfigFile {
   serverPort?: number;
 }
 
+/**
+ * Check if a path is inside a wok3 worktree directory.
+ * Worktrees are stored at .wok3/worktrees/<name>/, so any config found
+ * inside such a path belongs to the worktree's checkout, not the main project.
+ */
+function isInsideWorktree(configPath: string): boolean {
+  // Normalize and check if path contains .wok3/worktrees/
+  const normalized = configPath.replace(/\\/g, '/');
+  return normalized.includes('.wok3/worktrees/');
+}
+
 export function findConfigFile(): string | null {
   let currentDir = process.cwd();
   const { root } = path.parse(currentDir);
@@ -23,7 +34,10 @@ export function findConfigFile(): string | null {
   while (currentDir !== root) {
     const configPath = path.join(currentDir, CONFIG_DIR_NAME, CONFIG_FILE_NAME);
     if (existsSync(configPath)) {
-      return configPath;
+      // Skip configs inside worktree directories - they're checkouts, not the main config
+      if (!isInsideWorktree(configPath)) {
+        return configPath;
+      }
     }
     currentDir = path.dirname(currentDir);
   }

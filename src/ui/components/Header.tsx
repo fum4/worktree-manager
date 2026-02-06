@@ -11,7 +11,7 @@ interface HeaderProps {
   runningCount: number;
   activeView: View;
   onChangeView: (view: View) => void;
-  configNeedsCommit?: boolean;
+  configNeedsPush?: boolean;
   onCommitConfig?: () => void;
 }
 
@@ -19,7 +19,7 @@ export function Header({
   runningCount,
   activeView,
   onChangeView,
-  configNeedsCommit,
+  configNeedsPush,
   onCommitConfig,
 }: HeaderProps) {
   return (
@@ -53,7 +53,7 @@ export function Header({
       </div>
 
       {/* Right: config warning indicator */}
-      {configNeedsCommit && (
+      {configNeedsPush && (
         <div
           className="absolute right-4 bottom-2 flex items-center"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
@@ -83,15 +83,15 @@ export function Header({
             <div className="absolute -right-2 top-full pt-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
               <div className="w-72 p-3 rounded-lg bg-[#1a1d24] border border-white/[0.08] shadow-xl">
                 <p className={`text-xs ${text.secondary} mb-2`}>
-                  Configuration files are not committed yet.
+                  Configuration files are not pushed yet.
                   <br />
-                  This will cause git issues when creating worktrees.
+                  New worktrees won't have them until you push.
                 </p>
                 <button
                   onClick={onCommitConfig}
                   className="text-[11px] font-medium text-amber-400 hover:text-amber-300 transition-colors"
                 >
-                  Commit configuration →
+                  Push configuration →
                 </button>
               </div>
             </div>
