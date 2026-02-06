@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { fetchJiraIssues } from './api';
+import { useServerUrlOptional } from '../contexts/ServerContext';
 
 export function useJiraIssues(enabled: boolean, refreshIntervalMinutes = 5) {
+  const serverUrl = useServerUrlOptional();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -21,13 +23,13 @@ export function useJiraIssues(enabled: boolean, refreshIntervalMinutes = 5) {
   const staleTime = refreshIntervalMinutes * 60 * 1000;
 
   const { data, isLoading, error, dataUpdatedAt, refetch, isFetching } = useQuery({
-    queryKey: ['jira-issues', debouncedQuery],
+    queryKey: ['jira-issues', debouncedQuery, serverUrl],
     queryFn: async () => {
-      const result = await fetchJiraIssues(debouncedQuery || undefined);
+      const result = await fetchJiraIssues(debouncedQuery || undefined, serverUrl);
       if (result.error) throw new Error(result.error);
       return result.issues;
     },
-    enabled,
+    enabled: enabled && serverUrl !== null,
     staleTime,
     refetchInterval: staleTime,
   });

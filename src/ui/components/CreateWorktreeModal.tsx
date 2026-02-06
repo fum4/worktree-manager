@@ -1,0 +1,235 @@
+import { useEffect, useRef, useState } from 'react';
+import { GitBranch, Ticket } from 'lucide-react';
+
+import { useApi } from '../hooks/useApi';
+import { input, text } from '../theme';
+import { Button } from './Button';
+import { Modal } from './Modal';
+import { WorktreeExistsModal } from './WorktreeExistsModal';
+
+interface CreateWorktreeModalProps {
+  mode: 'branch' | 'jira';
+  onCreated: () => void;
+  onClose: () => void;
+  onSetupNeeded?: () => void;
+}
+
+function deriveBranch(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }: CreateWorktreeModalProps) {
+  const api = useApi();
+
+  // Branch form state
+  const [branch, setBranch] = useState('');
+  const [name, setName] = useState('');
+  const [branchManuallyEdited, setBranchManuallyEdited] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Jira form state
+  const [taskId, setTaskId] = useState('');
+  const [jiraBranch, setJiraBranch] = useState('');
+  const [jiraBranchManuallyEdited, setJiraBranchManuallyEdited] = useState(false);
+
+  // Worktree exists modal state
+  const [existingWorktree, setExistingWorktree] = useState<{ id: string; branch: string } | null>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'branch' && !branchManuallyEdited) {
+      setBranch(deriveBranch(name));
+    }
+  }, [name, branchManuallyEdited, mode]);
+
+  useEffect(() => {
+    if (mode === 'jira' && !jiraBranchManuallyEdited) {
+      setJiraBranch(taskId.trim());
+    }
+  }, [taskId, jiraBranchManuallyEdited, mode]);
+
+  const handleBranchChange = (value: string) => {
+    setBranch(value);
+    setBranchManuallyEdited(true);
+  };
+
+  const handleJiraBranchChange = (value: string) => {
+    setJiraBranch(value);
+    setJiraBranchManuallyEdited(true);
+  };
+
+  const handleBranchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || isCreating) return;
+
+    setIsCreating(true);
+    setError(null);
+
+    const result = await api.createWorktree(name.trim(), branch.trim() || undefined);
+    setIsCreating(false);
+
+    if (result.success) {
+      onCreated();
+      onClose();
+    } else if (result.code === 'WORKTREE_EXISTS' && result.worktreeId) {
+      setExistingWorktree({ id: result.worktreeId, branch: branch.trim() });
+    } else {
+      const errorMsg = result.error || 'Failed to create worktree';
+      if (errorMsg.includes('no commits') || errorMsg.includes('invalid reference')) {
+        onClose();
+        onSetupNeeded?.();
+      } else {
+        setError(errorMsg);
+      }
+    }
+  };
+
+  const handleJiraSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!taskId.trim() || isCreating) return;
+
+    setIsCreating(true);
+    setError(null);
+
+    const result = await api.createFromJira(taskId.trim(), jiraBranch.trim() || undefined);
+    setIsCreating(false);
+
+    if (result.success) {
+      onCreated();
+      onClose();
+    } else if (result.code === 'WORKTREE_EXISTS' && result.worktreeId) {
+      setExistingWorktree({ id: result.worktreeId, branch: jiraBranch.trim() || taskId.trim() });
+    } else {
+      const errorMsg = result.error || 'Failed to create from Jira';
+      if (errorMsg.includes('no commits') || errorMsg.includes('invalid reference')) {
+        onClose();
+        onSetupNeeded?.();
+      } else {
+        setError(errorMsg);
+      }
+    }
+  };
+
+  const inputClass = `w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`;
+
+  return (
+    <>
+      <Modal
+        title={mode === 'branch' ? 'Create Worktree' : 'Pull from Jira'}
+        icon={mode === 'branch'
+          ? <GitBranch className="w-5 h-5 text-[#9ca3af]" />
+          : <Ticket className="w-5 h-5 text-[#9ca3af]" />
+        }
+        onClose={onClose}
+        onSubmit={mode === 'branch' ? handleBranchSubmit : handleJiraSubmit}
+        footer={
+          <>
+            <Button onClick={onClose} disabled={isCreating}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={mode === 'branch' ? !name.trim() : !taskId.trim()}
+              loading={isCreating}
+            >
+              {mode === 'branch' ? 'Create' : 'Fetch & Create'}
+            </Button>
+          </>
+        }
+      >
+        {mode === 'branch' ? (
+          <div className="space-y-3">
+            <div>
+              <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
+                Worktree name
+              </label>
+              <input
+                ref={inputRef}
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="my-feature"
+                className={inputClass}
+                disabled={isCreating}
+              />
+            </div>
+            <div>
+              <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
+                Branch name
+              </label>
+              <input
+                type="text"
+                value={branch}
+                onChange={(e) => handleBranchChange(e.target.value)}
+                placeholder="Defaults to worktree name"
+                className={inputClass}
+                disabled={isCreating}
+              />
+              <p className={`mt-1 text-[11px] ${text.dimmed}`}>
+                Will be created from the base branch if it doesn't exist
+              </p>
+            </div>
+            {error && <p className={`text-[11px] ${text.error}`}>{error}</p>}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className={`text-xs ${text.secondary} leading-relaxed`}>
+              Pull a Jira issue into your workspace and create a linked worktree.
+            </p>
+            <div>
+              <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
+                Task ID
+              </label>
+              <input
+                ref={inputRef}
+                type="text"
+                value={taskId}
+                onChange={(e) => setTaskId(e.target.value)}
+                placeholder="PROJ-123"
+                className={inputClass}
+                disabled={isCreating}
+              />
+            </div>
+            <div>
+              <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
+                Branch name
+              </label>
+              <input
+                type="text"
+                value={jiraBranch}
+                onChange={(e) => handleJiraBranchChange(e.target.value)}
+                placeholder="Defaults to task ID"
+                className={inputClass}
+                disabled={isCreating}
+              />
+            </div>
+            {error && <p className={`text-[11px] ${text.error}`}>{error}</p>}
+          </div>
+        )}
+      </Modal>
+
+      {existingWorktree && (
+        <WorktreeExistsModal
+          worktreeId={existingWorktree.id}
+          branch={existingWorktree.branch}
+          onResolved={() => {
+            setExistingWorktree(null);
+            onCreated();
+            onClose();
+          }}
+          onCancel={() => setExistingWorktree(null)}
+        />
+      )}
+    </>
+  );
+}

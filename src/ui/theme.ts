@@ -250,3 +250,12 @@ export const errorBanner = {
   panelBg:         'bg-red-900/20',
   border:          'border-red-900/30',
 } as const;
+
+// ─── Info banner (teal accent) ───────────────────────────────────
+export const infoBanner = {
+  bg:              'bg-[#2dd4bf]/[0.04]',
+  border:          'border-[#2dd4bf]/[0.12]',
+  text:            'text-[#2dd4bf]',
+  textMuted:       'text-[#2dd4bf]/60',
+  hoverBg:         'hover:bg-[#2dd4bf]/10',
+} as const;

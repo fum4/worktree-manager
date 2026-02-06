@@ -5,6 +5,7 @@ import {
   destroyTerminalSession,
   getTerminalWsUrl,
 } from './api';
+import { useServerUrlOptional } from '../contexts/ServerContext';
 
 interface UseTerminalOptions {
   worktreeId: string;
@@ -27,6 +28,7 @@ export function useTerminal({
   onData,
   onExit,
 }: UseTerminalOptions): UseTerminalReturn {
+  const serverUrl = useServerUrlOptional();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,18 +46,23 @@ export function useTerminal({
       wsRef.current = null;
     }
     if (sessionIdRef.current) {
-      destroyTerminalSession(sessionIdRef.current);
+      destroyTerminalSession(sessionIdRef.current, serverUrl);
       sessionIdRef.current = null;
     }
     setSessionId(null);
     setIsConnected(false);
-  }, []);
+  }, [serverUrl]);
 
   const connect = useCallback(async () => {
+    if (serverUrl === null) {
+      setError('No active project');
+      return;
+    }
+
     disconnect();
     setError(null);
 
-    const result = await createTerminalSession(worktreeId);
+    const result = await createTerminalSession(worktreeId, serverUrl);
     if (!result.success || !result.sessionId) {
       setError(result.error || 'Failed to create terminal session');
       return;
@@ -65,7 +72,7 @@ export function useTerminal({
     sessionIdRef.current = sid;
     setSessionId(sid);
 
-    const ws = new WebSocket(getTerminalWsUrl(sid));
+    const ws = new WebSocket(getTerminalWsUrl(sid, serverUrl));
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -96,7 +103,7 @@ export function useTerminal({
       setError('WebSocket connection failed');
       setIsConnected(false);
     };
-  }, [worktreeId, disconnect]);
+  }, [worktreeId, disconnect, serverUrl]);
 
   const sendData = useCallback((data: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -117,11 +124,11 @@ export function useTerminal({
         wsRef.current = null;
       }
       if (sessionIdRef.current) {
-        destroyTerminalSession(sessionIdRef.current);
+        destroyTerminalSession(sessionIdRef.current, serverUrl);
         sessionIdRef.current = null;
       }
     };
-  }, []);
+  }, [serverUrl]);
 
   return { sessionId, isConnected, error, sendData, sendResize, connect, disconnect };
 }

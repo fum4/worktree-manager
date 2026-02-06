@@ -11,8 +11,6 @@ export interface PortConfig {
 export interface WorktreeConfig {
   /** Subdirectory to cd into before running command (e.g., "apps/storefront") */
   projectDir: string;
-  /** Directory where worktrees are stored (e.g., ".worktrees") */
-  worktreesDir: string;
   /** Command to start dev server in each worktree */
   startCommand: string;
   /** Command to install dependencies in each worktree (e.g., "pnpm install", "yarn install") */

@@ -130,7 +130,6 @@ Generate one with `wok3 init`, or create manually:
 
 ```json
 {
-  "worktreesDir": ".wok3/worktrees",
   "startCommand": "yarn dev",
   "installCommand": "yarn install",
   "baseBranch": "origin/develop",
@@ -145,10 +144,11 @@ Generate one with `wok3 init`, or create manually:
 }
 ```
 
+Worktrees are always stored in `.wok3/worktrees`.
+
 | Field | Description |
 |-------|-------------|
 | `projectDir` | Subdirectory to `cd` into before running `startCommand` (relative to worktree root). Omit or `"."` for repo root |
-| `worktreesDir` | Where worktrees are created (relative to repo root) |
 | `startCommand` | The dev command to run in each worktree |
 | `installCommand` | Command to install dependencies in new worktrees |
 | `baseBranch` | Git ref to branch worktrees from. Auto-detected by `init` |

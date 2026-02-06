@@ -1,32 +1,45 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type { WorktreeInfo, PortsInfo, JiraStatus, GitHubStatus } from '../types';
-
-const API_BASE = '';
+import { useServerUrlOptional } from '../contexts/ServerContext';
+import {
+  fetchWorktrees as apiFetchWorktrees,
+  getEventsUrl,
+  fetchPorts as apiFetchPorts,
+  fetchJiraStatus as apiFetchJiraStatus,
+  fetchGitHubStatus as apiFetchGitHubStatus,
+  fetchConfig as apiFetchConfig,
+} from './api';
 
 export function useWorktrees() {
+  const serverUrl = useServerUrlOptional();
   const [worktrees, setWorktrees] = useState<WorktreeInfo[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchWorktrees = useCallback(async () => {
+    if (serverUrl === null) return; // No active project in Electron mode
     try {
-      const res = await fetch(`${API_BASE}/api/worktrees`);
-      if (!res.ok) throw new Error('Failed to fetch worktrees');
-      const data = await res.json();
-      setWorktrees(data.worktrees || []);
+      const data = await apiFetchWorktrees(serverUrl);
+      setWorktrees((data.worktrees || []) as WorktreeInfo[]);
       setError(null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to fetch worktrees',
       );
     }
-  }, []);
+  }, [serverUrl]);
 
   useEffect(() => {
+    if (serverUrl === null) {
+      setWorktrees([]);
+      setIsConnected(false);
+      return;
+    }
+
     fetchWorktrees();
 
-    const eventSource = new EventSource(`${API_BASE}/api/events`);
+    const eventSource = new EventSource(getEventsUrl(serverUrl));
 
     eventSource.onopen = () => {
       setIsConnected(true);
@@ -55,42 +68,47 @@ export function useWorktrees() {
     return () => {
       eventSource.close();
     };
-  }, [fetchWorktrees]);
+  }, [fetchWorktrees, serverUrl]);
 
   return { worktrees, isConnected, error, refetch: fetchWorktrees };
 }
 
 export function useProjectName() {
+  const serverUrl = useServerUrlOptional();
   const [projectName, setProjectName] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/config`)
-      .then((res) => res.json())
+    if (serverUrl === null) {
+      setProjectName(null);
+      return;
+    }
+
+    apiFetchConfig(serverUrl)
       .then((data) => {
         if (data.projectName) setProjectName(data.projectName);
       })
       .catch(() => {});
-  }, []);
+  }, [serverUrl]);
 
   return projectName;
 }
 
 export function usePorts() {
+  const serverUrl = useServerUrlOptional();
   const [ports, setPorts] = useState<PortsInfo>({
     discovered: [],
     offsetStep: 1,
   });
 
   const fetchPorts = useCallback(async () => {
+    if (serverUrl === null) return;
     try {
-      const res = await fetch(`${API_BASE}/api/ports`);
-      if (!res.ok) throw new Error('Failed to fetch ports');
-      const data = await res.json();
+      const data = await apiFetchPorts(serverUrl);
       setPorts(data);
     } catch {
       // Ignore errors
     }
-  }, []);
+  }, [serverUrl]);
 
   useEffect(() => {
     fetchPorts();
@@ -100,15 +118,20 @@ export function usePorts() {
 }
 
 export function useJiraStatus() {
+  const serverUrl = useServerUrlOptional();
   const [jiraStatus, setJiraStatus] = useState<JiraStatus | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/jira/status`)
-      .then((res) => res.json())
+    if (serverUrl === null) {
+      setJiraStatus(null);
+      return;
+    }
+
+    apiFetchJiraStatus(serverUrl)
       .then((data) => setJiraStatus(data))
       .catch(() => {});
-  }, [refreshKey]);
+  }, [refreshKey, serverUrl]);
 
   const refetch = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -116,14 +139,19 @@ export function useJiraStatus() {
 }
 
 export function useGitHubStatus() {
+  const serverUrl = useServerUrlOptional();
   const [status, setStatus] = useState<GitHubStatus | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/github/status`)
-      .then((res) => res.json())
+    if (serverUrl === null) {
+      setStatus(null);
+      return;
+    }
+
+    apiFetchGitHubStatus(serverUrl)
       .then((data) => setStatus(data))
       .catch(() => {});
-  }, []);
+  }, [serverUrl]);
 
   return status;
 }

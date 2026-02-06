@@ -13,20 +13,26 @@ function formatTimeAgo(timestamp: number): string {
 
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { CreateForm } from './components/CreateForm';
+import { CreateWorktreeModal } from './components/CreateWorktreeModal';
 import { DetailPanel } from './components/detail/DetailPanel';
 import { GitHubSetupModal } from './components/GitHubSetupModal';
 import { JiraDetailPanel } from './components/detail/JiraDetailPanel';
 import { Header } from './components/Header';
 import { IntegrationsPanel } from './components/IntegrationsPanel';
 import { IssueList } from './components/IssueList';
+import { ProjectSetupScreen } from './components/ProjectSetupScreen';
+import { ResizableHandle } from './components/ResizableHandle';
+import { SetupCommitModal } from './components/SetupCommitModal';
 import type { View } from './components/NavBar';
+import { TabBar } from './components/TabBar';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { WorktreeList } from './components/WorktreeList';
-import { createGitHubRepo, createInitialCommit } from './hooks/api';
+import { useServer } from './contexts/ServerContext';
+import { useApi } from './hooks/useApi';
 import { useConfig } from './hooks/useConfig';
 import { useJiraIssues } from './hooks/useJiraIssues';
-import { useGitHubStatus, useJiraStatus, usePorts, useWorktrees } from './hooks/useWorktrees';
-import { border, errorBanner, input, surface, text } from './theme';
+import { useGitHubStatus, useJiraStatus, useWorktrees } from './hooks/useWorktrees';
+import { errorBanner, input, surface, text } from './theme';
 
 type Selection =
   | { type: 'worktree'; id: string }
@@ -34,40 +40,160 @@ type Selection =
   | null;
 
 export default function App() {
+  const api = useApi();
+  const { projects, activeProject, isElectron, selectFolder, openProject, serverUrl } = useServer();
   const { worktrees, isConnected, error, refetch } = useWorktrees();
-  const { ports, refetchPorts } = usePorts();
   const { config, projectName, isLoading: configLoading, refetch: refetchConfig } = useConfig();
   const { jiraStatus, refetchJiraStatus } = useJiraStatus();
   const githubStatus = useGitHubStatus();
   const runningCount = worktrees.filter((w) => w.status === 'running').length;
 
-  // Show welcome screen if no config is loaded (no .wok3 directory)
-  const showWelcomeScreen = !configLoading && !config;
+  // Track if config existed when we first connected (to detect "deleted while open")
+  const [hadConfigOnConnect, setHadConfigOnConnect] = useState<boolean | null>(null);
+  const [isAutoInitializing, setIsAutoInitializing] = useState(false);
 
-  const handleImportProject = () => {
-    // For now, redirect to configuration panel
-    // In the future, this could open a native folder picker (in Electron)
-    // or trigger an init flow
-    window.location.href = '/init';
+  // Track config state for setup screen logic
+  useEffect(() => {
+    if (configLoading || !serverUrl) return;
+
+    // First time we see config status for this connection
+    if (hadConfigOnConnect === null) {
+      setHadConfigOnConnect(!!config);
+
+      // If no config and this is Electron, check if we should auto-init
+      if (!config && isElectron) {
+        window.electronAPI?.getSetupPreference().then(async (pref) => {
+          if (pref === 'auto') {
+            setIsAutoInitializing(true);
+            try {
+              const result = await api.initConfig({});
+              if (result.success) {
+                refetchConfig();
+              }
+            } finally {
+              setIsAutoInitializing(false);
+            }
+          }
+        });
+      }
+    }
+  }, [configLoading, serverUrl, config, hadConfigOnConnect, isElectron]);
+
+  // Reset hadConfigOnConnect when serverUrl changes (switching projects)
+  useEffect(() => {
+    setHadConfigOnConnect(null);
+  }, [serverUrl]);
+
+  // Show setup screen when:
+  // - Config is missing AND we have a server connection (Electron mode)
+  // - AND we're not auto-initializing
+  // - AND (this is a new project without config OR config was deleted while open)
+  const needsSetup = isElectron && serverUrl && !configLoading && !config && !isAutoInitializing;
+
+  // In Electron mode with multi-project: show welcome when no projects
+  // In web/single-project mode: show welcome when no config
+  const showWelcomeScreen = isElectron
+    ? projects.length === 0
+    : !configLoading && !config;
+
+  // Don't show main UI if we have projects but none running yet (still loading)
+  const showLoadingState = isElectron && projects.length > 0 && !serverUrl;
+
+  const handleSetupComplete = () => {
+    refetchConfig();
+    setHadConfigOnConnect(true);
+  };
+
+  const handleRememberChoice = (choice: 'auto' | 'manual') => {
+    window.electronAPI?.setSetupPreference(choice);
+  };
+
+  const handleImportProject = async () => {
+    if (isElectron) {
+      const folderPath = await selectFolder();
+      if (folderPath) {
+        await openProject(folderPath);
+      }
+    } else {
+      // For web mode, redirect to init
+      window.location.href = '/init';
+    }
   };
 
   const [activeView, setActiveView] = useState<View>('workspace');
 
   const [selection, setSelection] = useState<Selection>(null);
   const [activeCreateTab, setActiveCreateTab] = useState<'branch' | 'issues'>('branch');
-  const [createFormExpanded, setCreateFormExpanded] = useState(() => {
-    const saved = localStorage.getItem('wok3:sidebarExpanded');
-    if (saved !== null) return saved === 'true';
-    return worktrees.length === 0;
-  });
   const [worktreeFilter, setWorktreeFilter] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createModalMode, setCreateModalMode] = useState<'branch' | 'jira'>('branch');
 
-  // Persist sidebar expanded state to localStorage
+  // Sidebar width state with persistence
+  const DEFAULT_SIDEBAR_WIDTH = 300;
+  const MIN_SIDEBAR_WIDTH = 200;
+  const MAX_SIDEBAR_WIDTH = 500;
+
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    // Try to load from localStorage first (works for both Electron and web)
+    const saved = localStorage.getItem('wok3:sidebarWidth');
+    if (saved) {
+      const width = parseInt(saved, 10);
+      if (!isNaN(width) && width >= MIN_SIDEBAR_WIDTH && width <= MAX_SIDEBAR_WIDTH) {
+        return width;
+      }
+    }
+    return DEFAULT_SIDEBAR_WIDTH;
+  });
+
+  // Load sidebar width from Electron preferences (overrides localStorage)
   useEffect(() => {
-    localStorage.setItem('wok3:sidebarExpanded', String(createFormExpanded));
-  }, [createFormExpanded]);
+    if (isElectron) {
+      window.electronAPI?.getSidebarWidth().then((width) => {
+        if (width >= MIN_SIDEBAR_WIDTH && width <= MAX_SIDEBAR_WIDTH) {
+          setSidebarWidth(width);
+        }
+      });
+    }
+  }, [isElectron]);
+
+  const handleSidebarResize = (delta: number) => {
+    setSidebarWidth((prev) => {
+      const newWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, prev + delta));
+      return newWidth;
+    });
+  };
+
+  const handleSidebarResizeEnd = () => {
+    // Persist to localStorage (always)
+    localStorage.setItem('wok3:sidebarWidth', String(sidebarWidth));
+
+    // Also persist to Electron preferences if available
+    if (isElectron) {
+      window.electronAPI?.setSidebarWidth(sidebarWidth);
+    }
+  };
+
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
+  const [showSetupCommitModal, setShowSetupCommitModal] = useState(false);
+  const [configNeedsCommit, setConfigNeedsCommit] = useState(false);
+
+  // Check if wok3 config files need to be committed when project loads
+  useEffect(() => {
+    if (!serverUrl || configLoading) return;
+
+    api.fetchSetupStatus().then((status) => {
+      setConfigNeedsCommit(status.needsCommit);
+    }).catch(() => {
+      // Ignore errors - this is a nice-to-have prompt
+    });
+  }, [serverUrl, configLoading]);
+
+  const handleSetupCommit = async (message: string) => {
+    await api.commitSetup(message);
+    setShowSetupCommitModal(false);
+    setConfigNeedsCommit(false);
+  };
 
   const needsCommit = githubStatus?.hasCommits === false;
   const needsRepo = githubStatus?.installed && githubStatus?.authenticated && !githubStatus?.repo;
@@ -83,7 +209,7 @@ export default function App() {
     try {
       // Step 1: Create initial commit if needed
       if (needsCommit) {
-        const commitResult = await createInitialCommit();
+        const commitResult = await api.createInitialCommit();
         if (!commitResult.success) {
           setSetupError(commitResult.error ?? 'Failed to create commit');
           return;
@@ -92,7 +218,7 @@ export default function App() {
 
       // Step 2: Create repo if needed
       if (needsRepo || needsCommit) {
-        const repoResult = await createGitHubRepo(options.repoPrivate);
+        const repoResult = await api.createGitHubRepo(options.repoPrivate);
         if (!repoResult.success) {
           setSetupError(repoResult.error ?? 'Failed to create repository');
           return;
@@ -157,16 +283,63 @@ export default function App() {
     return wt?.id ?? null;
   };
 
-  const handlePortsDiscovered = () => {
-    refetchPorts();
-    refetchConfig();
-  };
 
-  // Show welcome screen when no config
+  // Show welcome screen when no config (web mode) or no projects (Electron mode)
   if (showWelcomeScreen) {
     return (
       <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
-        <WelcomeScreen onImportProject={handleImportProject} />
+        <div className="flex-1 flex items-center justify-center">
+          <WelcomeScreen onImportProject={handleImportProject} />
+        </div>
+        <TabBar />
+      </div>
+    );
+  }
+
+  // Show loading state when we have projects but server isn't ready yet
+  if (showLoadingState) {
+    return (
+      <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-[#2dd4bf] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <span className={`text-sm ${text.muted}`}>
+              Starting {activeProject?.name ?? 'project'}...
+            </span>
+          </div>
+        </div>
+        <TabBar />
+      </div>
+    );
+  }
+
+  // Show setup screen when config is missing (Electron only)
+  if (needsSetup) {
+    return (
+      <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
+        <ProjectSetupScreen
+          projectName={projectName ?? activeProject?.name ?? null}
+          onSetupComplete={handleSetupComplete}
+          onRememberChoice={handleRememberChoice}
+        />
+        <TabBar />
+      </div>
+    );
+  }
+
+  // Show auto-init loading state
+  if (isAutoInitializing) {
+    return (
+      <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-[#2dd4bf] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <span className={`text-sm ${text.muted}`}>
+              Setting up {activeProject?.name ?? 'project'}...
+            </span>
+          </div>
+        </div>
+        <TabBar />
       </div>
     );
   }
@@ -179,13 +352,11 @@ export default function App() {
         transition={{ duration: 0.12 }}
       >
         <Header
-          projectName={projectName}
           runningCount={runningCount}
-          isConnected={isConnected}
-          portsInfo={ports}
-          onPortsDiscovered={handlePortsDiscovered}
           activeView={activeView}
           onChangeView={setActiveView}
+          configNeedsCommit={configNeedsCommit}
+          onCommitConfig={() => setShowSetupCommitModal(true)}
         />
       </motion.div>
 
@@ -198,26 +369,29 @@ export default function App() {
       <div className="flex-1 min-h-0 relative">
           {activeView === 'workspace' && (
             <div
-              className="absolute inset-0 flex gap-3 p-4"
+              className="absolute inset-0 flex p-5"
             >
               {/* Left sidebar */}
               <aside
-                className={`w-[300px] flex-shrink-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}
+                style={{ width: sidebarWidth }}
+                className={`flex-shrink-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}
               >
                 <CreateForm
-                  onCreated={refetch}
                   jiraConfigured={jiraStatus?.configured ?? false}
-                  defaultProjectKey={jiraStatus?.defaultProjectKey ?? null}
                   activeTab={activeCreateTab}
                   onTabChange={setActiveCreateTab}
-                  isExpanded={createFormExpanded}
-                  onExpandedChange={setCreateFormExpanded}
-                  onSetupNeeded={handleSetupNeeded}
+                  onCreateWorktree={() => {
+                    setCreateModalMode('branch');
+                    setShowCreateModal(true);
+                  }}
+                  onCreateFromJira={() => {
+                    setCreateModalMode('jira');
+                    setShowCreateModal(true);
+                  }}
                 />
 
-                {/* Shared search bar - outside AnimatePresence to prevent animation */}
-                {createFormExpanded && (
-                  <div className={`px-3 py-2 border-b ${border.subtle}`}>
+                {/* Shared search bar */}
+                <div className="px-3 py-2">
                     <div className="flex items-center gap-1.5">
                       <input
                         type="text"
@@ -252,8 +426,7 @@ export default function App() {
                         </button>
                       )}
                     </div>
-                  </div>
-                )}
+                </div>
 
                 <AnimatePresence mode="wait" initial={false}>
                   {activeCreateTab === 'branch' ? (
@@ -296,6 +469,14 @@ export default function App() {
                 </AnimatePresence>
               </aside>
 
+              {/* Resize handle */}
+              <div className="px-[9px]">
+                <ResizableHandle
+                  onResize={handleSidebarResize}
+                  onResizeEnd={handleSidebarResizeEnd}
+                />
+              </div>
+
               {/* Right panel */}
               <main
                 className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}
@@ -323,7 +504,7 @@ export default function App() {
 
           {activeView === 'configuration' && (
             <div className="absolute inset-0 flex flex-col p-4">
-              <ConfigurationPanel config={config} onSaved={refetchConfig} />
+              <ConfigurationPanel config={config} onSaved={refetchConfig} isConnected={isConnected} />
             </div>
           )}
 
@@ -350,6 +531,27 @@ export default function App() {
           onManual={() => setShowSetupModal(false)}
         />
       )}
+
+      {/* Setup commit modal for wok3 config files */}
+      {showSetupCommitModal && (
+        <SetupCommitModal
+          onCommit={handleSetupCommit}
+          onSkip={() => setShowSetupCommitModal(false)}
+        />
+      )}
+
+      {/* Create worktree modal */}
+      {showCreateModal && (
+        <CreateWorktreeModal
+          mode={createModalMode}
+          onCreated={refetch}
+          onClose={() => setShowCreateModal(false)}
+          onSetupNeeded={handleSetupNeeded}
+        />
+      )}
+
+      {/* Tab bar for multi-project (Electron only) */}
+      <TabBar />
     </div>
   );
 }

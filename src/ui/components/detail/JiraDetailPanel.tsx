@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { useJiraIssueDetail } from '../../hooks/useJiraIssueDetail';
-import { createFromJira } from '../../hooks/api';
+import { useApi } from '../../hooks/useApi';
 import type { JiraIssueDetail } from '../../types';
 import { badge, border, button, jiraPriority, jiraType, surface, text } from '../../theme';
 import { MarkdownContent } from '../MarkdownContent';
@@ -171,6 +171,7 @@ function FileIcon({ mimeType }: { mimeType: string }) {
 }
 
 export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, onViewWorktree, refreshIntervalMinutes, onSetupNeeded }: JiraDetailPanelProps) {
+  const api = useApi();
   const { issue, isLoading, isFetching, error, refetch, dataUpdatedAt } = useJiraIssueDetail(issueKey, refreshIntervalMinutes);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -179,7 +180,7 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
   const handleCreate = async () => {
     setIsCreating(true);
     setCreateError(null);
-    const result = await createFromJira(issueKey);
+    const result = await api.createFromJira(issueKey);
     console.log('createFromJira result:', result);
     setIsCreating(false);
     if (result.success) {

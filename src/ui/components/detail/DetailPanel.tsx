@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type { WorktreeInfo } from '../../types';
-import {
-  commitChanges,
-  createPullRequest,
-  pushChanges,
-  removeWorktree,
-  renameWorktree,
-  startWorktree,
-  stopWorktree,
-} from '../../hooks/api';
+import { useApi } from '../../hooks/useApi';
 import { border, detailTab, errorBanner, status, text } from '../../theme';
 import { ConfirmModal } from '../ConfirmModal';
 import { ActionToolbar } from './ActionToolbar';
@@ -26,6 +18,7 @@ interface DetailPanelProps {
 }
 
 export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegrations }: DetailPanelProps) {
+  const api = useApi();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCommitInput, setShowCommitInput] = useState(false);
@@ -67,7 +60,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
   const handleStart = async () => {
     setIsLoading(true);
     setError(null);
-    const result = await startWorktree(worktree.id);
+    const result = await api.startWorktree(worktree.id);
     setIsLoading(false);
     if (!result.success) setError(result.error || 'Failed to start');
     onUpdate();
@@ -76,7 +69,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
   const handleStop = async () => {
     setIsLoading(true);
     setError(null);
-    const result = await stopWorktree(worktree.id);
+    const result = await api.stopWorktree(worktree.id);
     setIsLoading(false);
     if (!result.success) setError(result.error || 'Failed to stop');
     onUpdate();
@@ -104,7 +97,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
     onDeleted();
 
     // Delete in background - worktree will disappear from list via SSE update
-    const result = await removeWorktree(deletedId);
+    const result = await api.removeWorktree(deletedId);
     if (!result.success) {
       // Show error somewhere? For now just log it
       console.error('Failed to remove worktree:', result.error);
@@ -114,7 +107,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
 
   const handleRename = async (changes: { name?: string; branch?: string }): Promise<boolean> => {
     setError(null);
-    const result = await renameWorktree(worktree.id, changes);
+    const result = await api.renameWorktree(worktree.id, changes);
     if (!result.success) setError(result.error || 'Failed to rename');
     onUpdate();
     return result.success;
@@ -124,7 +117,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
     if (!commitMessage.trim()) return;
     setIsGitLoading(true);
     setError(null);
-    const result = await commitChanges(worktree.id, commitMessage.trim());
+    const result = await api.commitChanges(worktree.id, commitMessage.trim());
     setIsGitLoading(false);
     if (result.success) {
       setShowCommitInput(false);
@@ -138,7 +131,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
   const handlePush = async () => {
     setIsGitLoading(true);
     setError(null);
-    const result = await pushChanges(worktree.id);
+    const result = await api.pushChanges(worktree.id);
     setIsGitLoading(false);
     if (!result.success) setError(result.error || 'Failed to push');
     onUpdate();
@@ -148,7 +141,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
     if (!prTitle.trim()) return;
     setIsGitLoading(true);
     setError(null);
-    const result = await createPullRequest(worktree.id, prTitle.trim());
+    const result = await api.createPullRequest(worktree.id, prTitle.trim());
     setIsGitLoading(false);
     if (result.success) {
       setShowCreatePrInput(false);

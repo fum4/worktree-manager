@@ -5,6 +5,11 @@ import path from 'path';
 
 import { PortManager } from '../server/port-manager';
 import type { PortConfig, WorktreeConfig } from '../server/types';
+import {
+  detectDefaultBranch,
+  detectInstallCommand,
+  detectStartCommand,
+} from '../shared/detect-config';
 import { findConfigFile, CONFIG_DIR_NAME, CONFIG_FILE_NAME, type ConfigFile } from './config';
 
 function prompt(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
@@ -13,54 +18,69 @@ function prompt(rl: ReturnType<typeof createInterface>, question: string): Promi
   });
 }
 
-function detectDefaultBranch(): string {
-  // Try to detect the default branch from the remote
+/**
+ * Auto-initialize config without prompts (for Electron spawned servers)
+ */
+export async function autoInitConfig(projectDir: string): Promise<void> {
+  const resolvedProjectDir = path.resolve(projectDir);
+
+  // Check we're in a git repo
   try {
-    const ref = execFileSync(
-      'git',
-      ['symbolic-ref', 'refs/remotes/origin/HEAD'],
-      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
-    ).trim();
-    // ref is like "refs/remotes/origin/main" → extract "origin/main"
-    const match = ref.match(/^refs\/remotes\/(.+)$/);
-    if (match) return match[1];
+    execFileSync('git', ['rev-parse', '--show-toplevel'], {
+      encoding: 'utf-8',
+      cwd: resolvedProjectDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
   } catch {
-    // Fallback: check which common branches exist
+    throw new Error('Not inside a git repository');
   }
 
-  for (const branch of ['origin/develop', 'origin/main', 'origin/master']) {
-    try {
-      execFileSync('git', ['rev-parse', '--verify', branch], {
-        encoding: 'utf-8',
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-      return branch;
-    } catch {
-      // Try next
-    }
+  const baseBranch = detectDefaultBranch(resolvedProjectDir);
+  const startCommand = detectStartCommand(resolvedProjectDir) || 'npm run dev';
+  const installCommand = detectInstallCommand(resolvedProjectDir) || 'npm install';
+
+  const config: ConfigFile = {
+    startCommand,
+    installCommand,
+    baseBranch,
+    serverPort: 6969,
+    ports: {
+      discovered: [],
+      offsetStep: 1,
+    },
+  };
+
+  const configDirPath = path.join(resolvedProjectDir, CONFIG_DIR_NAME);
+  if (!existsSync(configDirPath)) {
+    mkdirSync(configDirPath, { recursive: true });
+  }
+  const configPath = path.join(configDirPath, CONFIG_FILE_NAME);
+  writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+  // Create .gitignore
+  const gitignorePath = path.join(configDirPath, '.gitignore');
+  if (!existsSync(gitignorePath)) {
+    writeFileSync(gitignorePath, `# Ignore everything in .wok3 by default
+*
+
+# Except these files (tracked/shared)
+!.gitignore
+!config.json
+`);
   }
 
-  return 'origin/main';
-}
+  // Stage the files so they're ready to commit (and will be in worktrees once committed)
+  try {
+    execFileSync('git', ['add', gitignorePath, configPath], {
+      cwd: resolvedProjectDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+  } catch {
+    // Ignore - user can commit manually
+  }
 
-function detectPackageManager(projectDir: string): string | null {
-  if (existsSync(path.join(projectDir, 'pnpm-lock.yaml'))) return 'pnpm';
-  if (existsSync(path.join(projectDir, 'yarn.lock'))) return 'yarn';
-  if (existsSync(path.join(projectDir, 'package-lock.json'))) return 'npm';
-  if (existsSync(path.join(projectDir, 'bun.lockb'))) return 'bun';
-  return null;
-}
-
-function detectInstallCommand(projectDir: string): string | null {
-  const pm = detectPackageManager(projectDir);
-  return pm ? `${pm} install` : null;
-}
-
-function detectStartCommand(projectDir: string): string | null {
-  const pm = detectPackageManager(projectDir);
-  if (!pm) return null;
-  // yarn and pnpm can run scripts directly, npm needs "run"
-  return pm === 'npm' ? 'npm run dev' : `${pm} dev`;
+  console.log(`[wok3] Config auto-initialized at ${configPath}`);
+  console.log(`[wok3] Note: Commit .wok3/config.json and .wok3/.gitignore so they're available in worktrees.`);
 }
 
 export async function runInit() {
@@ -99,7 +119,7 @@ export async function runInit() {
     process.exit(1);
   }
 
-  const detectedBranch = detectDefaultBranch();
+  const detectedBranch = detectDefaultBranch(resolvedProjectDir);
   const baseBranch = (await prompt(
     rl,
     `Base branch for new worktrees [${detectedBranch}]: `,
@@ -134,15 +154,9 @@ export async function runInit() {
     10,
   );
 
-  const worktreesDir = (await prompt(
-    rl,
-    'Worktrees directory [.wok3/worktrees]: ',
-  )) || '.wok3/worktrees';
-
   rl.close();
 
   const config: ConfigFile = {
-    worktreesDir,
     startCommand,
     installCommand,
     baseBranch,
@@ -171,9 +185,9 @@ export async function runInit() {
 !.gitignore
 !config.json
 `);
-    // Stage the gitignore so it gets committed
+    // Stage the files so they're ready to commit
     try {
-      execFileSync('git', ['add', gitignorePath], { cwd: resolvedProjectDir, stdio: 'pipe' });
+      execFileSync('git', ['add', gitignorePath, configPath], { cwd: resolvedProjectDir, stdio: 'pipe' });
     } catch {
       // Ignore - user can commit manually
     }
@@ -185,7 +199,6 @@ export async function runInit() {
   if (config.ports?.discovered && config.ports.discovered.length > 0) {
     const tempConfig: WorktreeConfig = {
       projectDir: projectDir,
-      worktreesDir: worktreesDir,
       startCommand,
       installCommand,
       baseBranch,
@@ -207,8 +220,9 @@ export async function runInit() {
 
   console.log('');
   console.log('Next steps:');
-  console.log('  1. Run `wok3` to start the manager UI');
-  console.log('  2. Click "Discover Ports" in the UI to auto-detect all ports');
-  console.log('  3. Create worktrees and start them — ports are offset automatically');
+  console.log('  1. Commit .wok3/config.json and .wok3/.gitignore (staged and ready)');
+  console.log('  2. Run `wok3` to start the manager UI');
+  console.log('  3. Click "Discover Ports" in the UI to auto-detect all ports');
+  console.log('  4. Create worktrees and start them — ports are offset automatically');
   console.log('');
 }

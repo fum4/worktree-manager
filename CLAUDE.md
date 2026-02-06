@@ -99,4 +99,4 @@ There is no test runner configured.
 
 ### Configuration
 
-`.wok3/config.json` at project root defines: `projectDir`, `worktreesDir`, `startCommand`, `installCommand`, `baseBranch`, `serverPort`, discovered `ports` with `offsetStep`, `envMapping`, and integration settings.
+`.wok3/config.json` at project root defines: `projectDir`, `startCommand`, `installCommand`, `baseBranch`, `serverPort`, discovered `ports` with `offsetStep`, `envMapping`, and integration settings. Worktrees are always stored in `.wok3/worktrees`.

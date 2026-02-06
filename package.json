@@ -7,9 +7,15 @@
   },
   "main": "dist/electron/main.js",
   "scripts": {
-    "build": "tsup src/cli/index.ts src/electron-entry.ts --format esm --dts --clean --external node-pty --external electron && tsc -p electron/tsconfig.json && mkdir -p dist/runtime && cp src/runtime/port-hook.cjs dist/runtime/port-hook.cjs && vite build",
-    "dev": "pnpm build && concurrently -n ui,electron,server \"vite dev\" \"tsc -p electron/tsconfig.json --watch --preserveWatchOutput\" \"tsx watch src/cli/index.ts --no-open\"",
-    "electron:build": "pnpm build && electron-builder --mac",
+    "start": "node dist/cli/index.js",
+    "dev": "pnpm dev:all",
+    "dev:all": "concurrently -k -n ui,backend,electron:compile,electron:run -c blue,green,yellow,magenta \"pnpm dev:ui\" \"pnpm dev:backend\" \"pnpm dev:electron:compile\" \"pnpm dev:electron:run\"",
+    "dev:ui": "vite",
+    "dev:backend": "tsup src/cli/index.ts src/electron-entry.ts --format esm --watch --external node-pty --external electron",
+    "dev:electron:compile": "mkdir -p dist/electron && cp electron/preload.cjs dist/electron/preload.cjs && tsc -p electron/tsconfig.json --watch --preserveWatchOutput",
+    "dev:electron:run": "wait-on http://localhost:6969 dist/electron/main.js && UI_DEV_SERVER_URL=http://localhost:6969 VITE_DEV_SERVER=1 electronmon .",
+    "build": "tsup src/cli/index.ts src/electron-entry.ts --format esm --dts --clean --external node-pty --external electron && tsc -p electron/tsconfig.json && cp electron/preload.cjs dist/electron/preload.cjs && mkdir -p dist/runtime && cp src/runtime/port-hook.cjs dist/runtime/port-hook.cjs && vite build",
+    "build:app": "pnpm build && electron-builder --mac",
     "check-types": "tsc --noEmit",
     "check-lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.tsx .",
     "format-lint": "eslint --fix --no-error-on-unmatched-pattern --ext .js,.ts,.tsx ."
@@ -50,11 +56,13 @@
     "concurrently": "^8.2.2",
     "electron": "^33.0.0",
     "electron-builder": "^25.1.0",
+    "electronmon": "^2.0.4",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
     "tsup": "^8.3.5",
     "tsx": "^4.21.0",
     "typescript": "^5.5.4",
-    "vite": "^6.2.4"
+    "vite": "^6.2.4",
+    "wait-on": "^9.0.3"
   }
 }

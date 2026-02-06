@@ -1,11 +1,12 @@
-import { Check, Copy, Unplug } from 'lucide-react';
+import { Check, Copy, Unplug, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { disconnectJira, setupJira, updateJiraConfig } from '../hooks/useConfig';
-import { createGitHubRepo, createInitialCommit, installGitHubCli, loginGitHub, logoutGitHub } from '../hooks/api';
+import { useApi } from '../hooks/useApi';
+import { fetchGitHubStatus, fetchJiraStatus } from '../hooks/api';
 import { useGitHubStatus, useJiraStatus } from '../hooks/useWorktrees';
+import { useServerUrlOptional } from '../contexts/ServerContext';
 import type { GitHubStatus, JiraStatus } from '../types';
-import { border, button, input, settings, surface, text } from '../theme';
+import { button, infoBanner, input, settings, surface, text } from '../theme';
 import { GitHubSetupModal } from './GitHubSetupModal';
 import { Spinner } from './Spinner';
 
@@ -28,6 +29,8 @@ function StatusRow({ label, ok, value }: { label: string; ok: boolean; value: st
 }
 
 function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; onStatusChange: () => void }) {
+  const api = useApi();
+  const serverUrl = useServerUrlOptional();
   const isReady = status?.installed && status?.authenticated && status?.repo;
   const needsRepo = status?.installed && status?.authenticated && !status?.repo && status?.hasCommits;
   const needsCommit = status?.hasCommits === false;
@@ -48,7 +51,7 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
       // Step 1: Create initial commit if needed
       if (needsCommit) {
         setFeedback({ type: 'success', message: 'Creating initial commit...' });
-        const commitResult = await createInitialCommit();
+        const commitResult = await api.createInitialCommit();
         if (!commitResult.success) {
           setFeedback({ type: 'error', message: commitResult.error ?? 'Failed to create commit' });
           setSettingUp(false);
@@ -59,7 +62,7 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
       // Step 2: Create repo if needed
       if (needsRepo || needsCommit) {
         setFeedback({ type: 'success', message: 'Creating GitHub repository...' });
-        const repoResult = await createGitHubRepo(options.repoPrivate);
+        const repoResult = await api.createGitHubRepo(options.repoPrivate);
         if (!repoResult.success) {
           setFeedback({ type: 'error', message: repoResult.error ?? 'Failed to create repository' });
           setSettingUp(false);
@@ -81,10 +84,9 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
     if (!waitingForAuth) return;
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch('/api/github/status');
-        const data = await res.json();
+        const data = await fetchGitHubStatus(serverUrl);
         // Wait for both authenticated AND username to be set (server finished initializing)
-        if (data.authenticated && data.username) {
+        if (data?.authenticated && data.username) {
           setWaitingForAuth(false);
           setFeedback(null);
           onStatusChange();
@@ -96,7 +98,7 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [waitingForAuth, onStatusChange]);
+  }, [waitingForAuth, onStatusChange, serverUrl]);
 
   useEffect(() => {
     if (status?.authenticated && waitingForAuth) {
@@ -115,7 +117,7 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
   const handleConnect = async () => {
     setLoading(true);
     setFeedback(null);
-    const result = await installGitHubCli();
+    const result = await api.installGitHubCli();
     setLoading(false);
     if (result.success) {
       if (result.code) {
@@ -134,7 +136,7 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
 
   const handleLogin = async () => {
     setFeedback(null);
-    const result = await loginGitHub();
+    const result = await api.loginGitHub();
     if (result.success && result.code) {
       await copyToClipboard(result.code);
       setFeedback({ type: 'success', message: `Code ${result.code} copied! Paste it in your browser.` });
@@ -255,7 +257,7 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
           onClick={async () => {
             setLoading(true);
             setFeedback(null);
-            const result = await logoutGitHub();
+            const result = await api.logoutGitHub();
             setLoading(false);
             if (result.success) {
               onStatusChange();
@@ -292,6 +294,7 @@ function JiraCard({
   status: JiraStatus | null;
   onStatusChange: () => void;
 }) {
+  const api = useApi();
   const [showSetup, setShowSetup] = useState(false);
   const [baseUrl, setBaseUrl] = useState('');
   const [email, setEmail] = useState('');
@@ -314,10 +317,9 @@ function JiraCard({
     if (!baseUrl || !email || !token) return;
     setSaving(true);
     setFeedback(null);
-    const result = await setupJira(baseUrl, email, token);
+    const result = await api.setupJira(baseUrl, email, token);
     setSaving(false);
     if (result.success) {
-      setFeedback({ type: 'success', message: 'Connected to Jira' });
       setShowSetup(false);
       setBaseUrl('');
       setEmail('');
@@ -331,7 +333,7 @@ function JiraCard({
 
   const handleDisconnect = async () => {
     setSaving(true);
-    const result = await disconnectJira();
+    const result = await api.disconnectJira();
     setSaving(false);
     if (result.success) {
       onStatusChange();
@@ -341,7 +343,7 @@ function JiraCard({
   const handleSaveConfig = async () => {
     setSaving(true);
     setFeedback(null);
-    const result = await updateJiraConfig(projectKey, refreshInterval);
+    const result = await api.updateJiraConfig(projectKey, refreshInterval);
     setSaving(false);
     if (result.success) {
       setFeedback({ type: 'success', message: 'Settings saved' });
@@ -414,7 +416,7 @@ function JiraCard({
           <button
             onClick={handleDisconnect}
             disabled={saving}
-            className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150 self-start`}
+            className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150 self-start mt-2`}
           >
             <Unplug className="w-3 h-3" />
             Disconnect
@@ -625,16 +627,7 @@ function CodingAgentsCard() {
       </div>
 
       <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
-        Connect wok3 with AI coding agents via the{' '}
-        <a
-          href="https://modelcontextprotocol.io"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-purple-400 hover:text-purple-300 underline underline-offset-2"
-        >
-          Model Context Protocol
-        </a>
-        . This lets your agent create worktrees, start/stop dev servers, commit, push, and create PRs.
+        Connect your AI coding agents to manage issues & worktrees, start/stop dev servers, and more.
       </p>
 
       {/* Agent tabs */}
@@ -705,14 +698,25 @@ interface IntegrationsPanelProps {
   onJiraStatusChange?: () => void;
 }
 
+const BANNER_DISMISSED_KEY = 'wok3-integrations-banner-dismissed';
+
 export function IntegrationsPanel({ onJiraStatusChange }: IntegrationsPanelProps) {
+  const serverUrl = useServerUrlOptional();
   const githubStatus = useGitHubStatus();
   const { jiraStatus } = useJiraStatus();
   const [githubRefreshKey, setGithubRefreshKey] = useState(0);
   const [jiraRefreshKey, setJiraRefreshKey] = useState(0);
+  const [showBanner, setShowBanner] = useState(() => {
+    return localStorage.getItem(BANNER_DISMISSED_KEY) !== 'true';
+  });
 
   const [currentGithubStatus, setCurrentGithubStatus] = useState<GitHubStatus | null>(null);
   const [currentJiraStatus, setCurrentJiraStatus] = useState<JiraStatus | null>(null);
+
+  const dismissBanner = () => {
+    setShowBanner(false);
+    localStorage.setItem(BANNER_DISMISSED_KEY, 'true');
+  };
 
   useEffect(() => {
     setCurrentGithubStatus(githubStatus);
@@ -724,43 +728,50 @@ export function IntegrationsPanel({ onJiraStatusChange }: IntegrationsPanelProps
 
   useEffect(() => {
     if (githubRefreshKey === 0) return;
-    fetch('/api/github/status')
-      .then((r) => r.json())
+    fetchGitHubStatus(serverUrl)
       .then((d) => setCurrentGithubStatus(d))
       .catch(() => {});
-  }, [githubRefreshKey]);
+  }, [githubRefreshKey, serverUrl]);
 
   useEffect(() => {
     if (jiraRefreshKey === 0) return;
-    fetch('/api/jira/status')
-      .then((r) => r.json())
+    fetchJiraStatus(serverUrl)
       .then((d) => {
         setCurrentJiraStatus(d);
         onJiraStatusChange?.();
       })
       .catch(() => {});
-  }, [jiraRefreshKey, onJiraStatusChange]);
+  }, [jiraRefreshKey, onJiraStatusChange, serverUrl]);
 
   return (
-    <div className={`flex-1 ${surface.panel} rounded-xl overflow-auto`}>
-      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-4">
-        <div>
-          <h2 className={`text-sm font-semibold ${text.primary}`}>Integrations</h2>
-          <p className={`text-[11px] ${text.dimmed} mt-1`}>Connect external services to enhance your workflow.</p>
-        </div>
-        <div className={`rounded-xl border ${border.subtle} bg-white/[0.02] p-5`}>
+    <div className="flex-1 overflow-auto">
+      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-8">
+        {showBanner && (
+          <div className={`relative p-4 pl-5 pr-10 rounded-xl ${infoBanner.bg} border ${infoBanner.border}`}>
+            <button
+              onClick={dismissBanner}
+              className={`absolute top-1/2 -translate-y-1/2 right-4 p-1 rounded-md ${infoBanner.textMuted} hover:${infoBanner.text} ${infoBanner.hoverBg} transition-colors`}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+            <p className={`text-xs ${text.secondary} leading-relaxed`}>
+              Connect external services to enhance your workflow.
+            </p>
+          </div>
+        )}
+        <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
           <GitHubCard
             status={currentGithubStatus}
             onStatusChange={() => setGithubRefreshKey((k) => k + 1)}
           />
         </div>
-        <div className={`rounded-xl border ${border.subtle} bg-white/[0.02] p-5`}>
+        <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
           <JiraCard
             status={currentJiraStatus}
             onStatusChange={() => setJiraRefreshKey((k) => k + 1)}
           />
         </div>
-        <div className={`rounded-xl border ${border.subtle} bg-white/[0.02] p-5`}>
+        <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
           <CodingAgentsCard />
         </div>
       </div>

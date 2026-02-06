@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { recoverWorktree } from '../hooks/api';
+import { useApi } from '../hooks/useApi';
 import { border, button, surface, text } from '../theme';
 import { Spinner } from './Spinner';
 
@@ -17,13 +17,14 @@ export function WorktreeExistsModal({
   onResolved,
   onCancel,
 }: WorktreeExistsModalProps) {
+  const api = useApi();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleReuse = async () => {
     setIsLoading(true);
     setError(null);
-    const result = await recoverWorktree(worktreeId, 'reuse');
+    const result = await api.recoverWorktree(worktreeId, 'reuse');
     setIsLoading(false);
     if (result.success) {
       onResolved();
@@ -35,7 +36,7 @@ export function WorktreeExistsModal({
   const handleRecreate = async () => {
     setIsLoading(true);
     setError(null);
-    const result = await recoverWorktree(worktreeId, 'recreate', branch);
+    const result = await api.recoverWorktree(worktreeId, 'recreate', branch);
     setIsLoading(false);
     if (result.success) {
       onResolved();
@@ -58,7 +59,6 @@ export function WorktreeExistsModal({
         </h3>
         <p className={`text-xs ${text.secondary} mb-4 leading-relaxed`}>
           A worktree named <span className="font-medium text-white">"{worktreeId}"</span> already exists.
-          What would you like to do?
         </p>
 
         {error && (

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { useServerUrlOptional } from '../contexts/ServerContext';
+import { fetchConfig as apiFetchConfig } from './api';
+
 export interface WorktreeConfig {
   projectDir: string;
-  worktreesDir: string;
   startCommand: string;
   installCommand: string;
   baseBranch: string;
@@ -14,103 +16,38 @@ export interface WorktreeConfig {
   serverPort: number;
 }
 
-const API_BASE = '';
-
 export function useConfig() {
+  const serverUrl = useServerUrlOptional();
   const [config, setConfig] = useState<WorktreeConfig | null>(null);
   const [projectName, setProjectName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchConfig = useCallback(async () => {
+    if (serverUrl === null) {
+      setConfig(null);
+      setProjectName(null);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch(`${API_BASE}/api/config`);
-      if (!res.ok) throw new Error('Failed to fetch config');
-      const data = await res.json();
-      setConfig(data.config);
-      setProjectName(data.projectName);
+      const data = await apiFetchConfig(serverUrl);
+      setConfig(data.config || null);
+      setProjectName(data.projectName || null);
     } catch {
       // Ignore
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [serverUrl]);
 
   useEffect(() => {
+    setIsLoading(true);
     fetchConfig();
   }, [fetchConfig]);
 
   return { config, projectName, isLoading, refetch: fetchConfig };
 }
 
-export async function saveConfig(
-  updates: Partial<WorktreeConfig>,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const res = await fetch(`${API_BASE}/api/config`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    });
-    return await res.json();
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Failed to save config',
-    };
-  }
-}
-
-export async function setupJira(
-  baseUrl: string,
-  email: string,
-  token: string,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const res = await fetch(`${API_BASE}/api/jira/setup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ baseUrl, email, token }),
-    });
-    return await res.json();
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Failed to setup Jira',
-    };
-  }
-}
-
-export async function updateJiraConfig(
-  defaultProjectKey: string,
-  refreshIntervalMinutes?: number,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const body: { defaultProjectKey: string; refreshIntervalMinutes?: number } = { defaultProjectKey };
-    if (refreshIntervalMinutes !== undefined) body.refreshIntervalMinutes = refreshIntervalMinutes;
-    const res = await fetch(`${API_BASE}/api/jira/config`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return await res.json();
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Failed to update Jira config',
-    };
-  }
-}
-
-export async function disconnectJira(): Promise<{ success: boolean; error?: string }> {
-  try {
-    const res = await fetch(`${API_BASE}/api/jira/credentials`, {
-      method: 'DELETE',
-    });
-    return await res.json();
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Failed to disconnect Jira',
-    };
-  }
-}
+// Re-export API functions that components use directly
+export { saveConfig, setupJira, updateJiraConfig, disconnectJira } from './api';

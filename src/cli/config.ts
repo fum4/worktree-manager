@@ -8,7 +8,6 @@ export const CONFIG_FILE_NAME = 'config.json';
 
 export interface ConfigFile {
   projectDir?: string;
-  worktreesDir?: string;
   startCommand?: string;
   installCommand?: string;
   baseBranch?: string;
@@ -37,7 +36,6 @@ export function loadConfig(): { config: WorktreeConfig; configPath: string | nul
 
   const defaults: WorktreeConfig = {
     projectDir: '.',
-    worktreesDir: '.wok3/worktrees',
     startCommand: '',
     installCommand: '',
     baseBranch: 'origin/main',
@@ -73,7 +71,6 @@ export function loadConfig(): { config: WorktreeConfig; configPath: string | nul
 
     const config: WorktreeConfig = {
       projectDir: fileConfig.projectDir ?? defaults.projectDir,
-      worktreesDir: fileConfig.worktreesDir ?? defaults.worktreesDir,
       startCommand: fileConfig.startCommand ?? defaults.startCommand,
       installCommand: fileConfig.installCommand ?? defaults.installCommand,
       baseBranch: fileConfig.baseBranch ?? defaults.baseBranch,

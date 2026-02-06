@@ -1,92 +1,215 @@
-import { app, BrowserWindow, Menu, shell, Tray, nativeImage } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  nativeImage,
+  shell,
+  Tray,
+} from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { ProjectManager, type Project } from './project-manager.js';
+import { preferencesManager, type AppPreferences, type SetupPreference } from './preferences-manager.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
-// Custom protocol for opening projects: wok3://open?port=3100
+// Custom protocol for opening projects
 const PROTOCOL = 'wok3';
 
-// Track all open windows by their server URL
-const windows = new Map<string, BrowserWindow>();
-let tray: Tray | null = null;
 
-function createWindow(serverUrl: string): BrowserWindow {
-  // If a window for this URL already exists, focus it
-  const existing = windows.get(serverUrl);
-  if (existing && !existing.isDestroyed()) {
-    existing.show();
-    existing.focus();
-    return existing;
+// Single main window and project manager
+let mainWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+const projectManager = new ProjectManager();
+
+function getUiPath(): string {
+  // In prod: dist/electron/ -> look for dist/ui/index.html
+  return path.join(currentDir, '..', 'ui', 'index.html');
+}
+
+function createMainWindow(): BrowserWindow {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+    return mainWindow;
   }
 
-  const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+  // Get saved window bounds or use defaults
+  const savedBounds = preferencesManager.getWindowBounds();
+  const windowConfig = {
+    width: savedBounds?.width ?? 1200,
+    height: savedBounds?.height ?? 900,
+    x: savedBounds?.x,
+    y: savedBounds?.y,
     minWidth: 800,
-    minHeight: 600,
+    minHeight: 700,
     title: 'wok3',
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'hiddenInset' as const,
     trafficLightPosition: { x: 12, y: 12 },
     webPreferences: {
-      preload: path.join(currentDir, 'preload.js'),
+      preload: path.join(currentDir, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
     },
-  });
+  };
 
-  win.loadURL(serverUrl);
+  mainWindow = new BrowserWindow(windowConfig);
 
-  win.on('close', (event) => {
-    if (tray && windows.size <= 1) {
-      // Last window — hide to tray instead of closing
+  // Load the main UI - from dev server in dev mode, from file in prod
+  if (process.env.UI_DEV_SERVER_URL) {
+    mainWindow.loadURL(process.env.UI_DEV_SERVER_URL);
+  } else {
+    mainWindow.loadFile(getUiPath());
+  }
+
+  // Save window bounds when resized or moved
+  const saveBounds = () => {
+    if (mainWindow && !mainWindow.isMaximized() && !mainWindow.isMinimized()) {
+      const bounds = mainWindow.getBounds();
+      preferencesManager.setWindowBounds(bounds);
+    }
+  };
+
+  mainWindow.on('resize', saveBounds);
+  mainWindow.on('move', saveBounds);
+
+  mainWindow.on('close', (event) => {
+    if (tray) {
+      // Hide to tray instead of closing
       event.preventDefault();
-      win.hide();
+      mainWindow?.hide();
     }
   });
 
-  win.on('closed', () => {
-    windows.delete(serverUrl);
-    updateTrayMenu();
+  mainWindow.on('closed', () => {
+    mainWindow = null;
   });
 
   // Open external links in default browser
-  win.webContents.setWindowOpenHandler(({ url }) => {
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  windows.set(serverUrl, win);
-  updateTrayMenu();
-  return win;
+  return mainWindow;
 }
+
+function notifyProjectsChanged() {
+  const projects = projectManager.getProjects();
+  const activeId = projectManager.getActiveProjectId();
+
+  mainWindow?.webContents.send('projects-changed', projects);
+  mainWindow?.webContents.send('active-project-changed', activeId);
+  updateTrayMenu();
+}
+
+// IPC Handlers
+function setupIpcHandlers() {
+  ipcMain.handle('select-folder', async () => {
+    if (!mainWindow) return null;
+
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+      title: 'Select Project Directory',
+    });
+
+    return result.canceled ? null : result.filePaths[0];
+  });
+
+  ipcMain.handle('open-project', async (_, folderPath: string) => {
+    const result = await projectManager.openProject(folderPath);
+
+    if (result.success) {
+      notifyProjectsChanged();
+    }
+
+    return result;
+  });
+
+  ipcMain.handle('close-project', async (_, projectId: string) => {
+    await projectManager.closeProject(projectId);
+    notifyProjectsChanged();
+  });
+
+  ipcMain.handle('get-projects', () => {
+    return projectManager.getProjects();
+  });
+
+  ipcMain.handle('get-active-project', () => {
+    return projectManager.getActiveProjectId();
+  });
+
+  ipcMain.handle('switch-tab', (_, projectId: string) => {
+    projectManager.setActiveProject(projectId);
+    notifyProjectsChanged();
+    return true;
+  });
+
+  // Preferences handlers
+  ipcMain.handle('get-preferences', () => {
+    return preferencesManager.getPreferences();
+  });
+
+  ipcMain.handle('get-setup-preference', () => {
+    return preferencesManager.getSetupPreference();
+  });
+
+  ipcMain.handle('set-setup-preference', (_, preference: SetupPreference) => {
+    preferencesManager.setSetupPreference(preference);
+  });
+
+  ipcMain.handle('get-sidebar-width', () => {
+    return preferencesManager.getSidebarWidth();
+  });
+
+  ipcMain.handle('set-sidebar-width', (_, width: number) => {
+    preferencesManager.setSidebarWidth(width);
+  });
+
+  ipcMain.handle('update-preferences', (_, updates: Partial<AppPreferences>) => {
+    preferencesManager.updatePreferences(updates);
+  });
+}
+
+// Project manager change listener
+projectManager.onChange(() => {
+  notifyProjectsChanged();
+});
 
 function updateTrayMenu() {
   if (!tray) return;
 
-  const windowItems: Electron.MenuItemConstructorOptions[] = [];
-
-  for (const [url, win] of windows) {
-    const title = win.isDestroyed() ? url : (win.getTitle() || url);
-    windowItems.push({
-      label: title,
-      click: () => {
-        if (!win.isDestroyed()) {
-          win.show();
-          win.focus();
-        }
-      },
-    });
-  }
+  const projects = projectManager.getProjects();
+  const projectItems: Electron.MenuItemConstructorOptions[] = projects.map((project: Project) => ({
+    label: project.name,
+    click: () => {
+      projectManager.setActiveProject(project.id);
+      notifyProjectsChanged();
+      mainWindow?.show();
+      mainWindow?.focus();
+    },
+  }));
 
   const contextMenu = Menu.buildFromTemplate([
-    ...(windowItems.length > 0
-      ? [...windowItems, { type: 'separator' as const }]
+    ...(projectItems.length > 0
+      ? [...projectItems, { type: 'separator' as const }]
       : []),
     {
+      label: 'Open Project...',
+      click: async () => {
+        createMainWindow();
+        mainWindow?.show();
+      },
+    },
+    { type: 'separator' },
+    {
       label: 'Quit',
-      click: () => {
+      click: async () => {
         tray = null;
+        await projectManager.closeAllProjects();
+        projectManager.removeLockFile();
         app.quit();
       },
     },
@@ -108,15 +231,14 @@ function createTray() {
   tray.setToolTip('wok3 - Worktree Manager');
 
   tray.on('click', () => {
-    // Show the most recently focused window, or the first one
-    const allWindows = BrowserWindow.getAllWindows();
-    if (allWindows.length > 0) {
-      const win = allWindows[0];
-      if (win.isVisible()) {
-        win.focus();
+    if (mainWindow) {
+      if (mainWindow.isVisible()) {
+        mainWindow.focus();
       } else {
-        win.show();
+        mainWindow.show();
       }
+    } else {
+      createMainWindow();
     }
   });
 
@@ -124,15 +246,32 @@ function createTray() {
 }
 
 function handleProtocolUrl(url: string) {
-  // wok3://open?port=3100  or  wok3://open?url=http://localhost:3100
   try {
     const parsed = new URL(url);
+
     if (parsed.hostname === 'open') {
+      // Legacy: open by port (for backwards compatibility)
       const port = parsed.searchParams.get('port');
-      const serverUrl = parsed.searchParams.get('url')
-        || (port ? `http://localhost:${port}` : null);
-      if (serverUrl) {
-        createWindow(serverUrl);
+      if (port) {
+        createMainWindow();
+        mainWindow?.show();
+        mainWindow?.focus();
+      }
+    }
+
+    if (parsed.hostname === 'open-project') {
+      // New: open by directory
+      const dir = parsed.searchParams.get('dir');
+      if (dir) {
+        createMainWindow();
+        mainWindow?.show();
+        mainWindow?.focus();
+        // Open the project
+        projectManager.openProject(decodeURIComponent(dir)).then((result: { success: boolean }) => {
+          if (result.success) {
+            notifyProjectsChanged();
+          }
+        });
       }
     }
   } catch {
@@ -142,7 +281,6 @@ function handleProtocolUrl(url: string) {
 
 // Register as handler for wok3:// protocol
 if (process.defaultApp) {
-  // Dev mode: register with path to electron + script
   app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
     path.resolve(process.argv[1]),
   ]);
@@ -155,25 +293,31 @@ app.on('open-url', (_event, url) => {
   handleProtocolUrl(url);
 });
 
-// Ensure single instance — second instance forwards its args to the first
+// Ensure single instance
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
   app.on('second-instance', (_event, argv) => {
-    // On macOS, open-url fires instead. On other platforms, check argv.
     const urlArg = argv.find((arg) => arg.startsWith(`${PROTOCOL}://`));
     if (urlArg) {
       handleProtocolUrl(urlArg);
+    }
+
+    // Focus the window
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
     }
   });
 }
 
 app.whenReady().then(async () => {
+  setupIpcHandlers();
   createTray();
 
-  // Check if launched with a protocol URL (macOS passes via open-url event,
-  // but on first launch it may be in argv)
+  // Check if launched with a protocol URL
   const protocolArg = process.argv.find((arg) =>
     arg.startsWith(`${PROTOCOL}://`),
   );
@@ -181,28 +325,40 @@ app.whenReady().then(async () => {
     handleProtocolUrl(protocolArg);
   }
 
-  // If no windows were opened by protocol URL, check for --port flag
-  // (used by the CLI to open a window directly)
-  if (windows.size === 0) {
-    const portIdx = process.argv.indexOf('--port');
-    if (portIdx !== -1 && process.argv[portIdx + 1]) {
-      const port = process.argv[portIdx + 1];
-      createWindow(`http://localhost:${port}`);
+  // Check for --port flag (legacy CLI compatibility)
+  const portIdx = process.argv.indexOf('--port');
+  if (portIdx !== -1 && process.argv[portIdx + 1]) {
+    // Legacy mode not supported in new architecture - just show window
+    createMainWindow();
+  }
+
+  // Check for --project flag (new CLI mode)
+  const projectIdx = process.argv.indexOf('--project');
+  if (projectIdx !== -1 && process.argv[projectIdx + 1]) {
+    const projectDir = process.argv[projectIdx + 1];
+    createMainWindow();
+    const result = await projectManager.openProject(projectDir);
+    if (result.success) {
+      notifyProjectsChanged();
     }
   }
 
-  // If still no windows, show nothing — the app sits in the tray
-  // waiting for the CLI to request a window via protocol URL
+  // If nothing opened, try to restore previous state
+  if (projectManager.getProjects().length === 0) {
+    await projectManager.restoreProjects();
+    notifyProjectsChanged();
+  }
+
+  // Always show the main window
+  createMainWindow();
 
   app.on('activate', () => {
-    const allWindows = BrowserWindow.getAllWindows();
-    if (allWindows.length === 0) {
-      // No windows and no URL — nothing to show
-      return;
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    } else {
+      createMainWindow();
     }
-    const win = allWindows[0];
-    win.show();
-    win.focus();
   });
 });
 
@@ -213,6 +369,8 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
   tray = null;
+  await projectManager.closeAllProjects();
+  projectManager.removeLockFile();
 });

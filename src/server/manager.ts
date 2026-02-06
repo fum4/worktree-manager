@@ -66,6 +66,8 @@ export class WorktreeManager {
 
   private configDir: string;
 
+  private configFilePath: string | null;
+
   private portManager: PortManager;
 
   private runningProcesses: Map<string, RunningProcess> = new Map();
@@ -78,6 +80,7 @@ export class WorktreeManager {
 
   constructor(config: WorktreeConfig, configFilePath: string | null = null) {
     this.config = config;
+    this.configFilePath = configFilePath;
     this.configDir = configFilePath ? path.dirname(path.dirname(configFilePath)) : process.cwd();
     this.portManager = new PortManager(config, configFilePath);
 
@@ -87,11 +90,51 @@ export class WorktreeManager {
     }
   }
 
-  private getWorktreesAbsolutePath(): string {
-    if (path.isAbsolute(this.config.worktreesDir)) {
-      return this.config.worktreesDir;
+  // Reload config from disk (after initialization via UI)
+  reloadConfig(): void {
+    // Determine the config file path
+    const configPath = this.configFilePath ?? path.join(this.configDir, '.wok3', 'config.json');
+
+    if (!existsSync(configPath)) {
+      return;
     }
-    return path.join(this.configDir, this.config.worktreesDir);
+
+    try {
+      const content = readFileSync(configPath, 'utf-8');
+      const fileConfig = JSON.parse(content);
+
+      // Update the config
+      this.config = {
+        projectDir: fileConfig.projectDir ?? this.config.projectDir,
+        startCommand: fileConfig.startCommand ?? this.config.startCommand,
+        installCommand: fileConfig.installCommand ?? this.config.installCommand,
+        baseBranch: fileConfig.baseBranch ?? this.config.baseBranch,
+        ports: {
+          discovered: fileConfig.ports?.discovered ?? this.config.ports.discovered,
+          offsetStep: fileConfig.ports?.offsetStep ?? this.config.ports.offsetStep,
+        },
+        envMapping: fileConfig.envMapping ?? this.config.envMapping,
+        serverPort: fileConfig.serverPort ?? this.config.serverPort,
+      };
+
+      // Update the config file path for future reloads
+      this.configFilePath = configPath;
+
+      // Recreate port manager with new config
+      this.portManager = new PortManager(this.config, configPath);
+
+      // Ensure worktrees directory exists
+      const worktreesPath = this.getWorktreesAbsolutePath();
+      if (!existsSync(worktreesPath)) {
+        mkdirSync(worktreesPath, { recursive: true });
+      }
+    } catch (error) {
+      console.error('[wok3] Failed to reload config:', error);
+    }
+  }
+
+  private getWorktreesAbsolutePath(): string {
+    return path.join(this.configDir, '.wok3', 'worktrees');
   }
 
   getPortManager(): PortManager {
@@ -535,6 +578,13 @@ export class WorktreeManager {
         throw new Error(`No valid base branch found. Configure baseBranch in settings.`);
       }
 
+      // Prune stale worktree references before creating
+      try {
+        await execFile('git', ['worktree', 'prune'], { cwd: gitRoot, encoding: 'utf-8' });
+      } catch {
+        // Ignore prune errors - not critical
+      }
+
       // Try to create the worktree with various strategies
       try {
         // New branch from baseRef (e.g. origin/develop)
@@ -909,7 +959,7 @@ export class WorktreeManager {
       // Merge allowed top-level fields
       const allowedKeys = [
         'startCommand', 'installCommand', 'baseBranch',
-        'projectDir', 'worktreesDir', 'serverPort',
+        'projectDir', 'serverPort',
       ] as const;
 
       for (const key of allowedKeys) {

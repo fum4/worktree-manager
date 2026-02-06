@@ -15,7 +15,7 @@ export function WorktreeItem({ worktree, isSelected, onSelect }: WorktreeItemPro
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full px-3 py-2.5 flex items-center gap-2.5 text-left transition-colors duration-150 border-l-2 ${
+      className={`w-full px-3 py-2.5 flex items-center gap-2.5 text-left transition-colors duration-150 border-l ${
         isSelected
           ? `${surface.panelSelected} ${border.accent}`
           : `border-transparent hover:${surface.panelHover}`

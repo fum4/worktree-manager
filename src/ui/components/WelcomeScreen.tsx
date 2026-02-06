@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { GitBranch, Layers, Zap, Link2, Activity, FolderOpen, ChevronRight } from 'lucide-react';
 
 interface WelcomeScreenProps {

@@ -1,9 +1,12 @@
+import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { saveConfig, type WorktreeConfig } from '../hooks/useConfig';
-import { discoverPorts } from '../hooks/api';
-import { border, button, input, settings, surface, text } from '../theme';
+import { type WorktreeConfig } from '../hooks/useConfig';
+import { useApi } from '../hooks/useApi';
+import { button, infoBanner, input, settings, surface, text } from '../theme';
 import { Spinner } from './Spinner';
+
+const SETTINGS_BANNER_DISMISSED_KEY = 'wok3-settings-banner-dismissed';
 
 function Field({
   label,
@@ -133,20 +136,47 @@ function EnvMappingEditor({
 export function ConfigurationPanel({
   config,
   onSaved,
+  isConnected,
 }: {
   config: WorktreeConfig | null;
   onSaved: () => void;
+  isConnected: boolean;
 }) {
+  const api = useApi();
   const [form, setForm] = useState<WorktreeConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [discovering, setDiscovering] = useState(false);
+  const [showBanner, setShowBanner] = useState(() => {
+    return localStorage.getItem(SETTINGS_BANNER_DISMISSED_KEY) !== 'true';
+  });
+
+  // Electron-only: setup preference
+  const isElectron = !!window.electronAPI;
+  const [setupPreference, setSetupPreference] = useState<SetupPreference>('ask');
+
+  const dismissBanner = () => {
+    setShowBanner(false);
+    localStorage.setItem(SETTINGS_BANNER_DISMISSED_KEY, 'true');
+  };
 
   useEffect(() => {
     if (config) {
       setForm({ ...config, envMapping: { ...(config.envMapping ?? {}) } });
     }
   }, [config]);
+
+  // Load setup preference from Electron
+  useEffect(() => {
+    if (isElectron) {
+      window.electronAPI?.getSetupPreference().then(setSetupPreference);
+    }
+  }, [isElectron]);
+
+  const handleSetupPreferenceChange = (pref: SetupPreference) => {
+    setSetupPreference(pref);
+    window.electronAPI?.setSetupPreference(pref);
+  };
 
   if (!form) {
     return (
@@ -160,7 +190,7 @@ export function ConfigurationPanel({
   const handleSave = async () => {
     setSaving(true);
     setFeedback(null);
-    const result = await saveConfig(form);
+    const result = await api.saveConfig(form as unknown as Record<string, unknown>);
     setSaving(false);
     if (result.success) {
       setFeedback({ type: 'success', message: 'Configuration saved' });
@@ -173,109 +203,161 @@ export function ConfigurationPanel({
 
   const handleDiscover = async () => {
     setDiscovering(true);
-    const result = await discoverPorts();
+    const result = await api.discoverPorts();
     setDiscovering(false);
     if (result.success && result.ports.length > 0) {
       setForm({
-        ...form,
-        ports: { ...form.ports, discovered: result.ports },
+        ...form!,
+        ports: { ...form!.ports, discovered: result.ports },
       });
     }
   };
 
   return (
-    <div className={`flex-1 ${surface.panel} rounded-xl overflow-auto`}>
-      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-6">
-        <h2 className={`text-sm font-semibold ${text.primary}`}>Settings</h2>
+    <div className="flex-1 overflow-auto">
+      <div className="max-w-2xl mx-auto p-6 flex flex-col gap-8">
+        {/* Banner */}
+        {showBanner && (
+          <div className={`relative p-4 pl-5 pr-10 rounded-xl ${infoBanner.bg} border ${infoBanner.border}`}>
+            <button
+              onClick={dismissBanner}
+              className={`absolute top-1/2 -translate-y-1/2 right-4 p-1 rounded-md ${infoBanner.textMuted} hover:${infoBanner.text} ${infoBanner.hoverBg} transition-colors`}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+            <p className={`text-xs ${text.secondary} leading-relaxed`}>
+              Configure your project's dev commands, port settings, and environment mappings.
+            </p>
+          </div>
+        )}
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Start Command" description="Command to start dev server">
-            <TextInput
-              value={form.startCommand}
-              onChange={(v) => setForm({ ...form, startCommand: v })}
-            />
-          </Field>
-          <Field label="Install Command" description="Command to install dependencies">
-            <TextInput
-              value={form.installCommand}
-              onChange={(v) => setForm({ ...form, installCommand: v })}
-            />
-          </Field>
-          <Field label="Base Branch" description="Branch to create worktrees from">
-            <TextInput
-              value={form.baseBranch}
-              onChange={(v) => setForm({ ...form, baseBranch: v })}
-            />
-          </Field>
-          <Field label="Project Directory" description="Subdirectory to cd into before running">
-            <TextInput
-              value={form.projectDir}
-              onChange={(v) => setForm({ ...form, projectDir: v })}
-            />
-          </Field>
-          <Field label="Worktrees Directory" description="Where worktrees are stored">
-            <TextInput
-              value={form.worktreesDir}
-              onChange={(v) => setForm({ ...form, worktreesDir: v })}
-            />
-          </Field>
-          <Field label="Server Port" description="Port for the wok3 manager server">
-            <NumberInput
-              value={form.serverPort}
-              onChange={(v) => setForm({ ...form, serverPort: v })}
-            />
-          </Field>
-          <Field label="Port Offset Step" description="Increment per worktree instance">
-            <NumberInput
-              value={form.ports.offsetStep}
-              onChange={(v) =>
-                setForm({ ...form, ports: { ...form.ports, offsetStep: v } })
-              }
-            />
-          </Field>
+        {/* Project Configuration Card */}
+        <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>Project Configuration</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Start Command" description="Command to start dev server">
+              <TextInput
+                value={form.startCommand}
+                onChange={(v) => setForm({ ...form, startCommand: v })}
+              />
+            </Field>
+            <Field label="Install Command" description="Command to install dependencies">
+              <TextInput
+                value={form.installCommand}
+                onChange={(v) => setForm({ ...form, installCommand: v })}
+              />
+            </Field>
+            <Field label="Base Branch" description="Branch to create worktrees from">
+              <TextInput
+                value={form.baseBranch}
+                onChange={(v) => setForm({ ...form, baseBranch: v })}
+              />
+            </Field>
+            <Field label="Project Directory" description="Subdirectory to cd into before running">
+              <TextInput
+                value={form.projectDir}
+                onChange={(v) => setForm({ ...form, projectDir: v })}
+              />
+            </Field>
+          </div>
         </div>
 
-        <Field label="Discovered Ports" description="Ports detected from your dev server (read-only)">
-          <div className="flex items-center gap-2">
-            <span className={`text-xs ${text.secondary}`}>
-              {form.ports.discovered.length > 0
-                ? form.ports.discovered.join(', ')
-                : 'None discovered'}
-            </span>
-            <button
-              onClick={handleDiscover}
-              disabled={discovering}
-              className={`text-xs px-2.5 py-1 rounded-md ${button.secondary} disabled:opacity-50 transition-colors duration-150`}
+        {/* Port Configuration Card */}
+        <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>Port Configuration</h3>
+          <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Server Port" description="Port for the wok3 manager server">
+                <NumberInput
+                  value={form.serverPort}
+                  onChange={(v) => setForm({ ...form, serverPort: v })}
+                />
+              </Field>
+              <Field label="Port Offset Step" description="Increment per worktree instance">
+                <NumberInput
+                  value={form.ports.offsetStep}
+                  onChange={(v) =>
+                    setForm({ ...form, ports: { ...form.ports, offsetStep: v } })
+                  }
+                />
+              </Field>
+            </div>
+            <Field label="Discovered Ports" description="Ports detected from your dev server">
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${text.secondary}`}>
+                  {form.ports.discovered.length > 0
+                    ? form.ports.discovered.join(', ')
+                    : 'None discovered'}
+                </span>
+                <button
+                  onClick={handleDiscover}
+                  disabled={discovering}
+                  className={`text-xs px-2.5 py-1 rounded-md ${button.secondary} disabled:opacity-50 transition-colors duration-150`}
+                >
+                  {discovering ? 'Discovering...' : 'Discover'}
+                </button>
+              </div>
+            </Field>
+            <Field label="Env Mapping" description="Environment variable templates with port references (e.g. http://localhost:${4000})">
+              <EnvMappingEditor
+                mapping={form.envMapping ?? {}}
+                onChange={(m) => setForm({ ...form, envMapping: m })}
+              />
+            </Field>
+          </div>
+        </div>
+
+        {/* App Preferences Card (Electron only) */}
+        {isElectron && (
+          <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
+            <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>App Preferences</h3>
+            <Field
+              label="New Project Setup"
+              description="How to handle projects without wok3 configuration"
             >
-              {discovering ? 'Discovering...' : 'Discover'}
+              <select
+                value={setupPreference}
+                onChange={(e) => handleSetupPreferenceChange(e.target.value as SetupPreference)}
+                className={fieldInputClass}
+              >
+                <option value="ask">Ask every time</option>
+                <option value="auto">Auto-detect settings</option>
+                <option value="manual">Show setup form</option>
+              </select>
+            </Field>
+          </div>
+        )}
+
+        {/* Status & Save Button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 ml-3">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]' : 'bg-[#4b5563]'
+              }`}
+            />
+            <span className={`text-xs ${text.muted}`}>
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            {feedback && (
+              <span
+                className={`text-xs ${
+                  feedback.type === 'success' ? 'text-emerald-400' : text.error
+                }`}
+              >
+                {feedback.message}
+              </span>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={`px-4 py-2 rounded-lg text-xs font-medium ${button.primary} disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}
+            >
+              {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
-        </Field>
-
-        <Field label="Env Mapping" description="Environment variable templates with port references (e.g. http://localhost:${4000})">
-          <EnvMappingEditor
-            mapping={form.envMapping ?? {}}
-            onChange={(m) => setForm({ ...form, envMapping: m })}
-          />
-        </Field>
-
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`px-4 py-2 rounded-lg text-xs font-medium ${button.primary} disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-          {feedback && (
-            <span
-              className={`text-xs ${
-                feedback.type === 'success' ? 'text-emerald-400' : text.error
-              }`}
-            >
-              {feedback.message}
-            </span>
-          )}
         </div>
       </div>
     </div>

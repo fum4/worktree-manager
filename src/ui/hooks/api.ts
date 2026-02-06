@@ -1,15 +1,22 @@
-import type { JiraIssueDetail, JiraIssueSummary } from '../types';
+import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus } from '../types';
 
-const API_BASE = '';
+// API functions now accept an optional serverUrl parameter
+// When null/undefined, they use relative URLs (for single-project web mode)
+// When provided, they use the full URL (for multi-project Electron mode)
+
+function getBaseUrl(serverUrl: string | null): string {
+  return serverUrl ?? '';
+}
 
 export async function createWorktree(
   branch: string,
   name?: string,
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string; code?: string; worktreeId?: string }> {
   try {
     const body: { branch: string; name?: string } = { branch };
     if (name) body.name = name;
-    const res = await fetch(`${API_BASE}/api/worktrees`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -27,9 +34,10 @@ export async function recoverWorktree(
   id: string,
   action: 'reuse' | 'recreate',
   branch?: string,
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api/worktrees/${encodeURIComponent(id)}/recover`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/recover`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, branch }),
@@ -46,10 +54,11 @@ export async function recoverWorktree(
 export async function renameWorktree(
   id: string,
   request: { name?: string; branch?: string },
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}`,
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -67,10 +76,11 @@ export async function renameWorktree(
 
 export async function startWorktree(
   id: string,
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}/start`,
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/start`,
       {
         method: 'POST',
       },
@@ -86,10 +96,11 @@ export async function startWorktree(
 
 export async function stopWorktree(
   id: string,
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}/stop`,
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/stop`,
       {
         method: 'POST',
       },
@@ -105,10 +116,11 @@ export async function stopWorktree(
 
 export async function removeWorktree(
   id: string,
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}`,
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}`,
       {
         method: 'DELETE',
       },
@@ -125,6 +137,7 @@ export async function removeWorktree(
 export async function createFromJira(
   issueKey: string,
   branch?: string,
+  serverUrl: string | null = null,
 ): Promise<{
   success: boolean;
   task?: { key: string; summary: string; status: string; type: string; url: string };
@@ -133,7 +146,7 @@ export async function createFromJira(
   worktreeId?: string;
 }> {
   try {
-    const res = await fetch(`${API_BASE}/api/jira/task`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/task`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ issueKey, branch: branch || undefined }),
@@ -150,10 +163,11 @@ export async function createFromJira(
 export async function commitChanges(
   id: string,
   message: string,
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}/commit`,
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/commit`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -171,10 +185,11 @@ export async function commitChanges(
 
 export async function pushChanges(
   id: string,
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}/push`,
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/push`,
       {
         method: 'POST',
       },
@@ -192,10 +207,11 @@ export async function createPullRequest(
   id: string,
   title: string,
   body?: string,
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; pr?: { url: string }; error?: string }> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/worktrees/${encodeURIComponent(id)}/create-pr`,
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/create-pr`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -211,9 +227,11 @@ export async function createPullRequest(
   }
 }
 
-export async function installGitHubCli(): Promise<{ success: boolean; code?: string; error?: string }> {
+export async function installGitHubCli(
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; code?: string; error?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api/github/install`, { method: 'POST' });
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/install`, { method: 'POST' });
     return await res.json();
   } catch (err) {
     return {
@@ -223,9 +241,11 @@ export async function installGitHubCli(): Promise<{ success: boolean; code?: str
   }
 }
 
-export async function loginGitHub(): Promise<{ success: boolean; code?: string; error?: string }> {
+export async function loginGitHub(
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; code?: string; error?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api/github/login`, { method: 'POST' });
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/login`, { method: 'POST' });
     return await res.json();
   } catch (err) {
     return {
@@ -235,9 +255,11 @@ export async function loginGitHub(): Promise<{ success: boolean; code?: string; 
   }
 }
 
-export async function logoutGitHub(): Promise<{ success: boolean; error?: string }> {
+export async function logoutGitHub(
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api/github/logout`, { method: 'POST' });
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/logout`, { method: 'POST' });
     const text = await res.text();
     try {
       return JSON.parse(text);
@@ -252,9 +274,11 @@ export async function logoutGitHub(): Promise<{ success: boolean; error?: string
   }
 }
 
-export async function createInitialCommit(): Promise<{ success: boolean; error?: string }> {
+export async function createInitialCommit(
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api/github/initial-commit`, { method: 'POST' });
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/initial-commit`, { method: 'POST' });
     const text = await res.text();
     try {
       return JSON.parse(text);
@@ -269,9 +293,12 @@ export async function createInitialCommit(): Promise<{ success: boolean; error?:
   }
 }
 
-export async function createGitHubRepo(isPrivate: boolean): Promise<{ success: boolean; repo?: string; error?: string }> {
+export async function createGitHubRepo(
+  isPrivate: boolean,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; repo?: string; error?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api/github/create-repo`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/create-repo`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ private: isPrivate }),
@@ -287,10 +314,11 @@ export async function createGitHubRepo(isPrivate: boolean): Promise<{ success: b
 
 export async function fetchJiraIssues(
   query?: string,
+  serverUrl: string | null = null,
 ): Promise<{ issues: JiraIssueSummary[]; error?: string }> {
   try {
     const params = query ? `?query=${encodeURIComponent(query)}` : '';
-    const res = await fetch(`${API_BASE}/api/jira/issues${params}`);
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/issues${params}`);
     return await res.json();
   } catch (err) {
     return {
@@ -302,9 +330,10 @@ export async function fetchJiraIssues(
 
 export async function fetchJiraIssueDetail(
   key: string,
+  serverUrl: string | null = null,
 ): Promise<{ issue?: JiraIssueDetail; error?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/api/jira/issues/${encodeURIComponent(key)}`);
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/issues/${encodeURIComponent(key)}`);
     return await res.json();
   } catch (err) {
     return {
@@ -315,10 +344,11 @@ export async function fetchJiraIssueDetail(
 
 export async function createTerminalSession(
   worktreeId: string,
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; sessionId?: string; error?: string }> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/worktrees/${encodeURIComponent(worktreeId)}/terminals`,
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/terminals`,
       { method: 'POST' },
     );
     if (!res.ok) {
@@ -340,10 +370,11 @@ export async function createTerminalSession(
 
 export async function destroyTerminalSession(
   sessionId: string,
+  serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(
-      `${API_BASE}/api/terminals/${encodeURIComponent(sessionId)}`,
+      `${getBaseUrl(serverUrl)}/api/terminals/${encodeURIComponent(sessionId)}`,
       { method: 'DELETE' },
     );
     return await res.json();
@@ -355,19 +386,27 @@ export async function destroyTerminalSession(
   }
 }
 
-export function getTerminalWsUrl(sessionId: string): string {
+export function getTerminalWsUrl(sessionId: string, serverUrl: string | null = null): string {
+  if (serverUrl) {
+    // Convert http://localhost:6970 to ws://localhost:6970
+    const wsUrl = serverUrl.replace(/^http/, 'ws');
+    return `${wsUrl}/api/terminals/${encodeURIComponent(sessionId)}/ws`;
+  }
+  // Relative URL mode - use current window location
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${window.location.host}/api/terminals/${encodeURIComponent(sessionId)}/ws`;
 }
 
-export async function discoverPorts(): Promise<{
+export async function discoverPorts(
+  serverUrl: string | null = null,
+): Promise<{
   success: boolean;
   ports: number[];
   logs: string[];
   error?: string;
 }> {
   try {
-    const res = await fetch(`${API_BASE}/api/discover`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/discover`, {
       method: 'POST',
     });
     return await res.json();
@@ -378,5 +417,231 @@ export async function discoverPorts(): Promise<{
       logs: [],
       error: err instanceof Error ? err.message : 'Failed to discover ports',
     };
+  }
+}
+
+// Config-related API functions
+export async function fetchConfig(serverUrl: string | null = null): Promise<{
+  config?: {
+    projectDir: string;
+    worktreesDir: string;
+    startCommand: string;
+    installCommand: string;
+    baseBranch: string;
+    ports: { discovered: number[]; offsetStep: number };
+    envMapping?: Record<string, string>;
+    serverPort: number;
+  };
+  projectName?: string;
+  error?: string;
+}> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config`);
+    if (!res.ok) throw new Error('Failed to fetch config');
+    return await res.json();
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'Failed to fetch config',
+    };
+  }
+}
+
+export async function saveConfig(
+  updates: Record<string, unknown>,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to save config',
+    };
+  }
+}
+
+export async function setupJira(
+  baseUrl: string,
+  email: string,
+  token: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/setup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ baseUrl, email, token }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to setup Jira',
+    };
+  }
+}
+
+export async function updateJiraConfig(
+  defaultProjectKey: string,
+  refreshIntervalMinutes?: number,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const body: { defaultProjectKey: string; refreshIntervalMinutes?: number } = { defaultProjectKey };
+    if (refreshIntervalMinutes !== undefined) body.refreshIntervalMinutes = refreshIntervalMinutes;
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/config`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to update Jira config',
+    };
+  }
+}
+
+export async function disconnectJira(
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/credentials`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to disconnect Jira',
+    };
+  }
+}
+
+// Fetch worktrees
+export async function fetchWorktrees(serverUrl: string | null = null): Promise<{
+  worktrees: unknown[];
+  error?: string;
+}> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees`);
+    if (!res.ok) throw new Error('Failed to fetch worktrees');
+    const data = await res.json();
+    return { worktrees: data.worktrees || [] };
+  } catch (err) {
+    return {
+      worktrees: [],
+      error: err instanceof Error ? err.message : 'Failed to fetch worktrees',
+    };
+  }
+}
+
+// Get SSE URL for events
+export function getEventsUrl(serverUrl: string | null = null): string {
+  return `${getBaseUrl(serverUrl)}/api/events`;
+}
+
+// Fetch ports info
+export async function fetchPorts(serverUrl: string | null = null): Promise<{
+  discovered: number[];
+  offsetStep: number;
+}> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/ports`);
+    if (!res.ok) throw new Error('Failed to fetch ports');
+    return await res.json();
+  } catch {
+    return { discovered: [], offsetStep: 1 };
+  }
+}
+
+// Fetch Jira status
+export async function fetchJiraStatus(serverUrl: string | null = null): Promise<JiraStatus | null> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/status`);
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// Fetch GitHub status
+export async function fetchGitHubStatus(serverUrl: string | null = null): Promise<GitHubStatus | null> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/status`);
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// Check if wok3 config files need to be committed
+export async function fetchSetupStatus(
+  serverUrl: string | null = null,
+): Promise<{ needsCommit: boolean; files: string[] }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/setup-status`);
+    return await res.json();
+  } catch {
+    return { needsCommit: false, files: [] };
+  }
+}
+
+// Commit wok3 config files
+export async function commitSetup(
+  message: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/commit-setup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    return await res.json();
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to commit' };
+  }
+}
+
+// Detect config values without creating config
+export interface DetectedConfig {
+  baseBranch: string;
+  startCommand: string;
+  installCommand: string;
+  serverPort: number;
+}
+
+export async function detectConfig(
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; config?: DetectedConfig; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/detect`);
+    return await res.json();
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to detect config' };
+  }
+}
+
+// Initialize config with provided values
+export async function initConfig(
+  config: Partial<DetectedConfig>,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; config?: DetectedConfig; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/init`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    return await res.json();
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to initialize config' };
   }
 }

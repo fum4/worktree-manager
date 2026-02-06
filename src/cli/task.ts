@@ -106,9 +106,7 @@ async function createWorktreeForTask(
   const { config } = loadConfig();
   const branchName = taskData.key.toLowerCase();
 
-  const worktreesDir = path.isAbsolute(config.worktreesDir)
-    ? config.worktreesDir
-    : path.join(configDir, config.worktreesDir);
+  const worktreesDir = path.join(configDir, '.wok3', 'worktrees');
 
   if (!existsSync(worktreesDir)) {
     mkdirSync(worktreesDir, { recursive: true });
@@ -125,6 +123,13 @@ async function createWorktreeForTask(
   }
 
   console.log(`[wok3] Creating worktree at ${worktreePath} (branch: ${branchName})...`);
+
+  // Prune stale worktree references before creating
+  try {
+    execFileSync('git', ['worktree', 'prune'], { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch {
+    // Ignore prune errors
+  }
 
   // Try creating with -b (new branch), fallback to existing branch, fallback to -B
   try {
@@ -180,10 +185,7 @@ async function linkWorktreeToTask(
   configDir: string,
   tasksDir: string,
 ) {
-  const { config } = loadConfig();
-  const worktreesDir = path.isAbsolute(config.worktreesDir)
-    ? config.worktreesDir
-    : path.join(configDir, config.worktreesDir);
+  const worktreesDir = path.join(configDir, '.wok3', 'worktrees');
 
   if (!existsSync(worktreesDir)) {
     console.log('[wok3] No worktrees directory found.');
