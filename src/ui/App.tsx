@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
+import { APP_NAME } from '../constants';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { CreateForm } from './components/CreateForm';
 import { CreateWorktreeModal } from './components/CreateWorktreeModal';
@@ -129,7 +130,7 @@ export default function App() {
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     // Try to load from localStorage first (works for both Electron and web)
-    const saved = localStorage.getItem('wok3:sidebarWidth');
+    const saved = localStorage.getItem(`${APP_NAME}:sidebarWidth`);
     if (saved) {
       const width = parseInt(saved, 10);
       if (!isNaN(width) && width >= MIN_SIDEBAR_WIDTH && width <= MAX_SIDEBAR_WIDTH) {
@@ -159,7 +160,7 @@ export default function App() {
 
   const handleSidebarResizeEnd = () => {
     // Persist to localStorage (always)
-    localStorage.setItem('wok3:sidebarWidth', String(sidebarWidth));
+    localStorage.setItem(`${APP_NAME}:sidebarWidth`, String(sidebarWidth));
 
     // Also persist to Electron preferences if available
     if (isElectron) {

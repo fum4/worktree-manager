@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { GitBranch, Layers, Zap, Link2, Activity, FolderOpen, ChevronRight } from 'lucide-react';
 
+import { APP_NAME } from '../../constants';
+
 interface WelcomeScreenProps {
   onImportProject: () => void;
 }
@@ -190,7 +192,7 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
             <GitBranch className="w-8 h-8 text-accent" strokeWidth={1.5} />
           </div>
           <h1 className="text-2xl font-semibold text-[#f0f2f5] tracking-tight mb-2">
-            Welcome to <span className="text-accent">wok3</span>
+            Welcome to <span className="text-accent">{APP_NAME}</span>
           </h1>
           <p className="text-[13px] text-[#6b7280] max-w-sm mx-auto leading-relaxed">
             Your brand new workspace manager

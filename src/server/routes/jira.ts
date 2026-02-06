@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { Hono } from 'hono';
 import path from 'path';
 
+import { CONFIG_DIR_NAME } from '../../constants';
 import {
   loadJiraCredentials,
   loadJiraProjectConfig,
@@ -109,7 +110,7 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
   app.delete('/api/jira/credentials', (c) => {
     try {
       const configDir = manager.getConfigDir();
-      const credPath = path.join(configDir, '.wok3', 'credentials.json');
+      const credPath = path.join(configDir, CONFIG_DIR_NAME, 'credentials.json');
       if (existsSync(credPath)) {
         const data = JSON.parse(readFileSync(credPath, 'utf-8'));
         delete data.jira;

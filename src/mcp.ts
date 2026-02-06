@@ -1,8 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
-import { actions } from './actions';
+import { actions, MCP_INSTRUCTIONS } from './actions';
 import type { ActionContext } from './actions';
+import { APP_NAME } from './constants';
 import { WorktreeManager } from './server/manager';
 import type { WorktreeConfig } from './server/types';
 
@@ -20,7 +21,6 @@ function buildJsonSchema(params: Record<string, { type: string; description: str
 
 export async function startMcpServer(config: WorktreeConfig, configFilePath: string | null) {
   // MCP uses stdout for JSON-RPC — redirect console.log to stderr
-  const originalLog = console.log;
   console.log = console.error;
 
   const manager = new WorktreeManager(config, configFilePath);
@@ -28,10 +28,10 @@ export async function startMcpServer(config: WorktreeConfig, configFilePath: str
 
   const ctx: ActionContext = { manager };
 
-  const server = new McpServer({
-    name: 'wok3',
-    version: '0.1.0',
-  });
+  const server = new McpServer(
+    { name: APP_NAME, version: '0.1.0' },
+    { instructions: MCP_INSTRUCTIONS },
+  );
 
   for (const action of actions) {
     const schema = buildJsonSchema(action.params);

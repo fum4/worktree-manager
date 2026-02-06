@@ -6,11 +6,13 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { APP_NAME, CONFIG_DIR_NAME } from '../constants';
+import { log } from '../logger';
 import { startWorktreeServer } from '../server/index';
 import { findConfigFile, loadConfig } from './config';
 
 const cliDir = path.dirname(fileURLToPath(import.meta.url));
-const LOCK_FILE = path.join(os.homedir(), '.wok3', 'electron.lock');
+const LOCK_FILE = path.join(os.homedir(), CONFIG_DIR_NAME, 'electron.lock');
 
 function findElectron(): { type: 'app'; appPath: string } | { type: 'dev'; electronBin: string; projectRoot: string } | null {
   if (process.platform !== 'darwin') return null;
@@ -42,15 +44,15 @@ function openUI(port: number): void {
   const electron = findElectron();
 
   if (electron?.type === 'app') {
-    console.log(`  Opening in wok3 app...`);
+    log.info('Opening in app...');
     execFile('open', [`wok3://open?port=${port}`], (err) => {
       if (err) {
-        console.log(`  Falling back to browser...`);
+        log.info('Falling back to browser...');
         openBrowser(`http://localhost:${port}`);
       }
     });
   } else if (electron?.type === 'dev') {
-    console.log(`  Opening in wok3 electron (dev)...`);
+    log.info('Opening in electron (dev)...');
     const child = spawn(electron.electronBin, [electron.projectRoot, '--port', String(port)], {
       detached: true,
       stdio: 'ignore',
@@ -92,7 +94,7 @@ function openProjectInElectron(projectDir: string): void {
   if (process.platform === 'darwin') {
     execFile('open', [url], (err) => {
       if (err) {
-        console.error('[wok3] Failed to open in Electron:', err.message);
+        log.error('Failed to open in Electron:', err.message);
       }
     });
   } else {
@@ -126,7 +128,7 @@ async function main() {
   if (subcommand === 'task') {
     const taskId = process.argv[3];
     if (!taskId) {
-      console.error('[wok3] Usage: wok3 task <TASK_ID>');
+      log.error(`Usage: ${APP_NAME} task <TASK_ID>`);
       process.exit(1);
     }
     const { runTask } = await import('./task');
@@ -139,13 +141,13 @@ async function main() {
   const portOverride = process.env.WOK3_PORT ? parseInt(process.env.WOK3_PORT, 10) : null;
   const projectDir = process.cwd();
 
-  console.log('[wok3] Starting...');
+  log.info('Starting...');
 
   // Check if Electron app is already running
   // If so, open this project as a new tab instead of starting a new server
   if (!noOpen && isElectronRunning()) {
-    console.log('[wok3] Electron app is already running.');
-    console.log('[wok3] Opening project in existing window...');
+    log.info('Electron app is already running.');
+    log.info('Opening project in existing window...');
     openProjectInElectron(projectDir);
     return;
   }
@@ -154,12 +156,12 @@ async function main() {
   if (!findConfigFile()) {
     if (autoInit) {
       // Auto-initialize with default config for Electron spawned servers
-      console.log('[wok3] No configuration found. Auto-initializing...');
+      log.info('No configuration found. Auto-initializing...');
       const { autoInitConfig } = await import('./init');
       await autoInitConfig(projectDir);
     } else {
-      console.log('[wok3] No configuration found. Starting setup wizard...');
-      console.log('');
+      log.info('No configuration found. Starting setup wizard...');
+      log.plain('');
       const { runInit } = await import('./init');
       await runInit();
     }
@@ -172,34 +174,34 @@ async function main() {
     config.serverPort = portOverride;
   }
 
-  console.log('[wok3] Configuration:');
-  console.log(`  Project directory: ${config.projectDir}`);
-  console.log(`  Start command: ${config.startCommand || '(not set)'}`);
-  console.log(`  Install command: ${config.installCommand || '(not set)'}`);
-  console.log(`  Base branch: ${config.baseBranch}`);
-  console.log(
+  log.info('Configuration:');
+  log.plain(`  Project directory: ${config.projectDir}`);
+  log.plain(`  Start command: ${config.startCommand || '(not set)'}`);
+  log.plain(`  Install command: ${config.installCommand || '(not set)'}`);
+  log.plain(`  Base branch: ${config.baseBranch}`);
+  log.plain(
     `  Discovered ports: ${config.ports.discovered.length > 0 ? config.ports.discovered.join(', ') : '(none - run discovery)'}`,
   );
-  console.log(`  Offset step: ${config.ports.offsetStep}`);
+  log.plain(`  Offset step: ${config.ports.offsetStep}`);
   const envMappingKeys = config.envMapping ? Object.keys(config.envMapping) : [];
-  console.log(
+  log.plain(
     `  Env mappings: ${envMappingKeys.length > 0 ? envMappingKeys.join(', ') : '(none)'}`,
   );
-  console.log(`  Server port: ${config.serverPort}`);
-  console.log('');
+  log.plain(`  Server port: ${config.serverPort}`);
+  log.plain('');
 
   await startWorktreeServer(config, configPath);
 
   if (!noOpen) {
     const url = `http://localhost:${config.serverPort}`;
-    console.log('');
-    console.log(`  Opening ${url}`);
-    console.log('');
+    log.plain('');
+    log.info(`Opening ${url}`);
+    log.plain('');
     openUI(config.serverPort);
   }
 }
 
 main().catch((error) => {
-  console.error('[wok3] Fatal error:', error);
+  log.error('Fatal error:', error);
   process.exit(1);
 });

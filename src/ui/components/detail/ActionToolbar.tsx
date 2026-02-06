@@ -113,7 +113,7 @@ export function ActionToolbar({
             Push{worktree.commitsAhead ? ` (${worktree.commitsAhead})` : ''}
           </button>
         )}
-        {!worktree.githubPrUrl && !worktree.hasUnpushed && (
+        {!worktree.githubPrUrl && !worktree.hasUnpushed && worktree.commitsAheadOfBase !== 0 && (
           <button
             type="button"
             onClick={onTogglePr}

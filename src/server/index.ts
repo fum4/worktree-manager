@@ -7,6 +7,7 @@ import { cors } from 'hono/cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { log } from '../logger';
 import { WorktreeManager } from './manager';
 import { registerWorktreeRoutes } from './routes/worktrees';
 import { registerConfigRoutes } from './routes/config';
@@ -14,6 +15,7 @@ import { registerGitHubRoutes } from './routes/github';
 import { registerJiraRoutes } from './routes/jira';
 import { registerLinearRoutes } from './routes/linear';
 import { registerEventRoutes } from './routes/events';
+import { registerMcpRoutes } from './routes/mcp';
 import { registerTerminalRoutes } from './routes/terminal';
 import { TerminalManager } from './terminal-manager';
 import type { WorktreeConfig } from './types';
@@ -44,6 +46,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerJiraRoutes(app, manager);
   registerLinearRoutes(app, manager);
   registerEventRoutes(app, manager);
+  registerMcpRoutes(app, manager);
   registerTerminalRoutes(app, terminalManager, manager, upgradeWebSocket);
 
   app.use('/*', serveStatic({ root: uiDir }));
@@ -79,16 +82,14 @@ export async function startWorktreeServer(
   injectWebSocket(server);
 
   server.listen(config.serverPort, () => {
-    console.log(
-      `[wok3] Server running at http://localhost:${config.serverPort}`,
-    );
+    log.success(`Server running at http://localhost:${config.serverPort}`);
   });
 
   let closing = false;
   const close = async () => {
     if (closing) return;
     closing = true;
-    console.log('\n[wok3] Shutting down...');
+    log.info('\nShutting down...');
     terminalManager.destroyAll();
     await manager.stopAll();
     server.close();

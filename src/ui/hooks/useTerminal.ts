@@ -36,6 +36,7 @@ export function useTerminal({
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const lastSizeRef = useRef<{ cols: number; rows: number } | null>(null);
   const onDataRef = useRef(onData);
   const onExitRef = useRef(onExit);
   const getSizeRef = useRef(getSize);
@@ -67,6 +68,7 @@ export function useTerminal({
     setError(null);
 
     const size = getSizeRef.current?.();
+    lastSizeRef.current = size ?? null;
     const result = await createTerminalSession(worktreeId, size?.cols, size?.rows, serverUrl);
     if (!result.success || !result.sessionId) {
       setError(result.error || 'Failed to create terminal session');
@@ -118,6 +120,9 @@ export function useTerminal({
 
   const sendResize = useCallback((cols: number, rows: number) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      const last = lastSizeRef.current;
+      if (last && last.cols === cols && last.rows === rows) return;
+      lastSizeRef.current = { cols, rows };
       wsRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
     }
   }, []);

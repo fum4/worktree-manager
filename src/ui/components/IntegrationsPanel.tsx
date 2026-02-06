@@ -1,6 +1,7 @@
-import { Check, Copy, Unplug, X } from 'lucide-react';
+import { Check, Copy, ExternalLink, Unplug, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { APP_NAME } from '../../constants';
 import { useApi } from '../hooks/useApi';
 import { fetchGitHubStatus, fetchJiraStatus, fetchLinearStatus } from '../hooks/api';
 import { useGitHubStatus, useJiraStatus, useLinearStatus } from '../hooks/useWorktrees';
@@ -407,7 +408,7 @@ function JiraCard({
             <button
               onClick={handleSaveConfig}
               disabled={saving || (projectKey === (status.defaultProjectKey ?? '') && refreshInterval === (status.refreshIntervalMinutes ?? 5))}
-              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.primary} disabled:opacity-50 transition-colors duration-150 w-28`}
+              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.primary} disabled:opacity-50 transition-colors duration-150`}
             >
               Apply
             </button>
@@ -624,7 +625,7 @@ function LinearCard({
             <button
               onClick={handleSaveConfig}
               disabled={saving || (teamKey === (status.defaultTeamKey ?? '') && refreshInterval === (status.refreshIntervalMinutes ?? 5))}
-              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.primary} disabled:opacity-50 transition-colors duration-150 w-28`}
+              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.primary} disabled:opacity-50 transition-colors duration-150`}
             >
               Apply
             </button>
@@ -710,71 +711,71 @@ function LinearCard({
 }
 
 type AgentId = 'claude' | 'gemini' | 'codex' | 'cursor' | 'vscode';
+type McpScope = 'global' | 'project';
+
+interface ScopeConfig {
+  config: string;
+  configPath: string;
+}
 
 interface AgentConfig {
   id: AgentId;
   name: string;
-  config: string;
-  configPath: string;
   docsUrl?: string;
+  global?: ScopeConfig;
+  project?: ScopeConfig;
 }
+
+const MCP_JSON_SNIPPET = `{
+  "mcpServers": {
+    "wok3": {
+      "command": "wok3",
+      "args": ["mcp"]
+    }
+  }
+}`;
 
 const AGENT_CONFIGS: AgentConfig[] = [
   {
     id: 'claude',
     name: 'Claude Code',
-    config: `{
-  "mcpServers": {
-    "wok3": {
-      "command": "wok3",
-      "args": ["mcp"]
-    }
-  }
-}`,
-    configPath: '~/.claude/settings.json',
     docsUrl: 'https://docs.anthropic.com/en/docs/claude-code',
+    global: { config: MCP_JSON_SNIPPET, configPath: '~/.claude/settings.json' },
+    project: { config: MCP_JSON_SNIPPET, configPath: '.mcp.json' },
   },
   {
     id: 'gemini',
     name: 'Gemini CLI',
-    config: `{
-  "mcpServers": {
-    "wok3": {
-      "command": "wok3",
-      "args": ["mcp"]
-    }
-  }
-}`,
-    configPath: '~/.gemini/settings.json',
     docsUrl: 'https://geminicli.com/docs/tools/mcp-server/',
+    global: { config: MCP_JSON_SNIPPET, configPath: '~/.gemini/settings.json' },
+    project: { config: MCP_JSON_SNIPPET, configPath: '.gemini/settings.json' },
   },
   {
     id: 'codex',
     name: 'OpenAI Codex',
-    config: `[mcp_servers.wok3]
-command = "wok3"
-args = ["mcp"]`,
-    configPath: '~/.codex/config.toml',
     docsUrl: 'https://developers.openai.com/codex/mcp/',
+    global: {
+      config: `[mcp_servers.wok3]\ncommand = "wok3"\nargs = ["mcp"]`,
+      configPath: '~/.codex/config.toml',
+    },
+    project: {
+      config: `[mcp_servers.wok3]\ncommand = "wok3"\nargs = ["mcp"]`,
+      configPath: '.codex/config.toml',
+    },
   },
   {
     id: 'cursor',
     name: 'Cursor',
-    config: `{
-  "mcpServers": {
-    "wok3": {
-      "command": "wok3",
-      "args": ["mcp"]
-    }
-  }
-}`,
-    configPath: '~/.cursor/mcp.json',
     docsUrl: 'https://docs.cursor.com/context/model-context-protocol',
+    global: { config: MCP_JSON_SNIPPET, configPath: '~/.cursor/mcp.json' },
+    project: { config: MCP_JSON_SNIPPET, configPath: '.cursor/mcp.json' },
   },
   {
     id: 'vscode',
     name: 'VS Code',
-    config: `{
+    docsUrl: 'https://code.visualstudio.com/docs/copilot/chat/mcp-servers',
+    global: {
+      config: `{
   "mcp": {
     "servers": {
       "wok3": {
@@ -784,25 +785,96 @@ args = ["mcp"]`,
     }
   }
 }`,
-    configPath: '.vscode/settings.json',
-    docsUrl: 'https://code.visualstudio.com/docs/copilot/chat/mcp-servers',
+      configPath: '~/Library/Application Support/Code/User/settings.json',
+    },
+    project: {
+      config: `{
+  "mcp": {
+    "servers": {
+      "wok3": {
+        "command": "wok3",
+        "args": ["mcp"]
+      }
+    }
+  }
+}`,
+      configPath: '.vscode/settings.json',
+    },
   },
 ];
 
 function CodingAgentsCard() {
+  const api = useApi();
   const [selectedAgent, setSelectedAgent] = useState<AgentId>('claude');
+  const [scope, setScope] = useState<McpScope>('global');
   const [copied, setCopied] = useState(false);
+  const [statuses, setStatuses] = useState<Record<string, { global?: boolean; project?: boolean }>>({});
+  const [settingUp, setSettingUp] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const agent = AGENT_CONFIGS.find((a) => a.id === selectedAgent)!;
+  const scopeConfig = agent[scope];
+  const isConfigured = statuses[selectedAgent]?.[scope] === true;
+  const hasGlobal = !!agent.global;
+  const hasProject = !!agent.project;
+
+  // Pick a valid scope when agent changes
+  useEffect(() => {
+    const a = AGENT_CONFIGS.find((c) => c.id === selectedAgent)!;
+    if (!a[scope]) {
+      setScope(a.global ? 'global' : 'project');
+    }
+  }, [selectedAgent, scope]);
+
+  useEffect(() => {
+    api.fetchMcpStatus().then((result) => {
+      setStatuses(result.statuses);
+    });
+  }, [api]);
 
   const handleCopy = async () => {
+    if (!scopeConfig) return;
     try {
-      await navigator.clipboard.writeText(agent.config);
+      await navigator.clipboard.writeText(scopeConfig.config);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard API not available
     }
+  };
+
+  const handleSetup = async () => {
+    setSettingUp(true);
+    setFeedback(null);
+    const result = await api.setupMcpAgent(selectedAgent, scope);
+    setSettingUp(false);
+    if (result.success) {
+      setStatuses((prev) => ({
+        ...prev,
+        [selectedAgent]: { ...prev[selectedAgent], [scope]: true },
+      }));
+      setFeedback({ type: 'success', message: `Added to ${scopeConfig!.configPath}` });
+    } else {
+      setFeedback({ type: 'error', message: result.error ?? 'Setup failed' });
+    }
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
+  const handleRemove = async () => {
+    setSettingUp(true);
+    setFeedback(null);
+    const result = await api.removeMcpAgent(selectedAgent, scope);
+    setSettingUp(false);
+    if (result.success) {
+      setStatuses((prev) => ({
+        ...prev,
+        [selectedAgent]: { ...prev[selectedAgent], [scope]: false },
+      }));
+      setFeedback({ type: 'success', message: `Removed from ${scopeConfig!.configPath}` });
+    } else {
+      setFeedback({ type: 'error', message: result.error ?? 'Remove failed' });
+    }
+    setTimeout(() => setFeedback(null), 4000);
   };
 
   return (
@@ -838,44 +910,116 @@ function CodingAgentsCard() {
               onClick={() => {
                 setSelectedAgent(a.id);
                 setCopied(false);
+                setFeedback(null);
               }}
-              className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors duration-150 ${
+              className={`relative px-2.5 py-1 rounded text-[10px] font-medium transition-colors duration-150 ${
                 selectedAgent === a.id
                   ? 'text-white bg-white/[0.08]'
                   : `${text.muted} hover:text-[#9ca3af]`
               }`}
             >
               {a.name}
+              {(statuses[a.id]?.global || statuses[a.id]?.project) && (
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              )}
             </button>
           ))}
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className={`text-[10px] ${text.dimmed}`}>
-            {agent.configPath}
-          </span>
-          <button
-            onClick={handleCopy}
-            className={`flex items-center gap-1 text-[10px] ${copied ? 'text-accent' : `${text.muted} hover:text-[#9ca3af]`} transition-colors duration-150`}
-          >
-            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-            {copied ? 'Copied' : 'Copy'}
-          </button>
-        </div>
+        {/* Scope toggle */}
+        {hasGlobal && hasProject && <div className="border-t border-white/[0.06]" />}
+        {hasGlobal && hasProject && (
+          <div className="flex gap-1">
+            {(['global', 'project'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => { setScope(s); setCopied(false); setFeedback(null); }}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors duration-150 ${
+                  scope === s
+                    ? 'text-white bg-white/[0.08]'
+                    : `${text.muted} hover:text-[#9ca3af]`
+                }`}
+              >
+                {s === 'global' ? 'Global' : 'This project'}
+                {statuses[selectedAgent]?.[s] && (
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 ml-1.5 align-middle" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
-        <pre className={`text-[10px] font-mono ${text.secondary} bg-white/[0.04] border border-white/[0.06] rounded-md p-3 overflow-x-auto`}>
-          {agent.config}
-        </pre>
+        {scopeConfig && (
+          <>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] ${text.dimmed}`}>
+                  {scopeConfig.configPath}
+                </span>
+                {isConfigured && (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+                    <Check className="w-3 h-3" />
+                    Active
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={handleCopy}
+                className={`flex items-center gap-1 text-[10px] ${copied ? 'text-accent' : `${text.muted} hover:text-[#9ca3af]`} transition-colors duration-150`}
+              >
+                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
 
-        {agent.docsUrl && (
-          <a
-            href={agent.docsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`text-[10px] ${text.muted} hover:text-purple-400 transition-colors duration-150 self-start`}
-          >
-            View {agent.name} MCP docs &rarr;
-          </a>
+            <pre className={`text-[10px] font-mono ${text.secondary} bg-white/[0.04] border border-white/[0.06] rounded-md p-3 overflow-x-auto`}>
+              {scopeConfig.config}
+            </pre>
+
+            <div className="flex items-center gap-4">
+              {feedback && (
+                <span className={`text-[11px] ${feedback.type === 'success' ? 'text-accent' : text.error}`}>
+                  {feedback.message}
+                </span>
+              )}
+              <div className="flex items-center gap-4 ml-auto">
+                {agent.docsUrl && (
+                  <a
+                    href={agent.docsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-1 text-[10px] ${text.muted} hover:text-[#9ca3af] transition-colors duration-150`}
+                  >
+                    View Docs
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+                {!isConfigured ? (
+                  <button
+                    onClick={handleSetup}
+                    disabled={settingUp}
+                    className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} disabled:opacity-50 transition-all duration-150 active:scale-[0.98]`}
+                  >
+                    {settingUp ? (
+                      <span className="flex items-center gap-1.5">
+                        <Spinner size="xs" />
+                        Setting up...
+                      </span>
+                    ) : `Setup ${agent.name}`}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleRemove}
+                    disabled={settingUp}
+                    className={`flex items-center gap-1 text-[11px] px-3 py-1.5 rounded-md font-medium ${button.secondary} disabled:opacity-50 transition-all duration-150 active:scale-[0.98]`}
+                  >
+                    <Unplug className="w-3 h-3" />
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -898,7 +1042,7 @@ interface IntegrationsPanelProps {
   onLinearStatusChange?: () => void;
 }
 
-const BANNER_DISMISSED_KEY = 'wok3-integrations-banner-dismissed';
+const BANNER_DISMISSED_KEY = `${APP_NAME}-integrations-banner-dismissed`;
 
 export function IntegrationsPanel({ onJiraStatusChange, onLinearStatusChange }: IntegrationsPanelProps) {
   const serverUrl = useServerUrlOptional();

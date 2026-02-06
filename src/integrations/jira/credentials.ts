@@ -2,6 +2,7 @@ import { execFile } from 'child_process';
 import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
 import path from 'path';
 
+import { CONFIG_DIR_NAME } from '../../constants';
 import type { JiraCredentials, JiraProjectConfig } from './types';
 
 const CREDENTIALS_FILE = 'credentials.json';
@@ -35,7 +36,7 @@ function ensureCredentialsGitignored(configDir: string): void {
 }
 
 export function loadJiraCredentials(configDir: string): JiraCredentials | null {
-  const credPath = path.join(configDir, '.wok3', CREDENTIALS_FILE);
+  const credPath = path.join(configDir, CONFIG_DIR_NAME, CREDENTIALS_FILE);
   if (!existsSync(credPath)) return null;
   try {
     const data = JSON.parse(readFileSync(credPath, 'utf-8'));
@@ -66,7 +67,7 @@ export function saveJiraCredentials(configDir: string, creds: JiraCredentials): 
 }
 
 export function loadJiraProjectConfig(configDir: string): JiraProjectConfig {
-  const configPath = path.join(configDir, '.wok3', CONFIG_FILE);
+  const configPath = path.join(configDir, CONFIG_DIR_NAME, CONFIG_FILE);
   if (!existsSync(configPath)) return {};
   try {
     const data = JSON.parse(readFileSync(configPath, 'utf-8'));
@@ -77,7 +78,7 @@ export function loadJiraProjectConfig(configDir: string): JiraProjectConfig {
 }
 
 export function saveJiraProjectConfig(configDir: string, config: JiraProjectConfig): void {
-  const configPath = path.join(configDir, '.wok3', CONFIG_FILE);
+  const configPath = path.join(configDir, CONFIG_DIR_NAME, CONFIG_FILE);
 
   let existing: Record<string, unknown> = {};
   if (existsSync(configPath)) {

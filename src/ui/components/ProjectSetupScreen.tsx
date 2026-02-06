@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Settings, Sparkles } from 'lucide-react';
+import { Check, GitCommit, Loader2, Settings, Sparkles } from 'lucide-react';
 
+import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
 import { useApi } from '../hooks/useApi';
 import type { DetectedConfig } from '../hooks/api';
 import { button, input, surface, text } from '../theme';
@@ -11,7 +12,7 @@ interface ProjectSetupScreenProps {
   onRememberChoice?: (choice: 'auto' | 'manual') => void;
 }
 
-type SetupMode = 'choice' | 'manual';
+type SetupMode = 'choice' | 'manual' | 'commit-prompt';
 
 export function ProjectSetupScreen({
   projectName,
@@ -33,6 +34,9 @@ export function ProjectSetupScreen({
     serverPort: 6969,
   });
 
+  // Commit message for the commit prompt
+  const [commitMessage, setCommitMessage] = useState(`chore: initialize ${APP_NAME} configuration`);
+
   // Load detected config on mount
   useEffect(() => {
     api.detectConfig().then((result) => {
@@ -53,7 +57,7 @@ export function ProjectSetupScreen({
         if (rememberChoice) {
           onRememberChoice?.('auto');
         }
-        onSetupComplete();
+        setMode('commit-prompt');
       } else {
         setError(result.error ?? 'Failed to initialize config');
       }
@@ -78,7 +82,7 @@ export function ProjectSetupScreen({
         if (rememberChoice) {
           onRememberChoice?.('manual');
         }
-        onSetupComplete();
+        setMode('commit-prompt');
       } else {
         setError(result.error ?? 'Failed to initialize config');
       }
@@ -93,6 +97,110 @@ export function ProjectSetupScreen({
     setMode('choice');
     setError(null);
   };
+
+  const handleCommitConfig = async () => {
+    if (!commitMessage.trim()) {
+      setError('Commit message is required');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await api.commitSetup(commitMessage.trim());
+      if (result.success) {
+        onSetupComplete();
+      } else {
+        setError(result.error ?? 'Failed to commit config');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to commit config');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSkipCommit = () => {
+    onSetupComplete();
+  };
+
+  if (mode === 'commit-prompt') {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center max-w-md">
+          <div className="mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2dd4bf]/20 to-[#2dd4bf]/5 mb-4">
+              <Check className="w-8 h-8 text-[#2dd4bf]" />
+            </div>
+            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>
+              Configuration Created
+            </h1>
+            <p className={`text-sm ${text.secondary} leading-relaxed`}>
+              Your project is now configured. Commit the configuration files
+              <br />
+              so they're available in all worktrees.
+            </p>
+          </div>
+
+          <div className={`${surface.panel} rounded-xl border border-white/[0.08] p-4 mb-4 text-left`}>
+            <div className="flex items-center gap-2 mb-3">
+              <GitCommit className="w-4 h-4 text-[#2dd4bf]" />
+              <span className={`text-xs font-medium ${text.primary}`}>Files to commit:</span>
+            </div>
+            <div className={`text-xs ${text.muted} font-mono space-y-1`}>
+              <div>{CONFIG_DIR_NAME}/config.json</div>
+              <div>{CONFIG_DIR_NAME}/.gitignore</div>
+            </div>
+          </div>
+
+          <div className="mb-6 text-left">
+            <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
+              Commit message
+            </label>
+            <input
+              type="text"
+              value={commitMessage}
+              onChange={(e) => setCommitMessage(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && commitMessage.trim()) handleCommitConfig(); }}
+              className={`w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={handleCommitConfig}
+              disabled={isLoading || !commitMessage.trim()}
+              className={`w-full px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Committing...
+                </>
+              ) : (
+                <>
+                  <GitCommit className="w-4 h-4" />
+                  Commit
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleSkipCommit}
+              disabled={isLoading}
+              className={`w-full px-4 py-2 text-xs ${text.muted} hover:${text.secondary} transition-colors`}
+            >
+              Skip for now
+            </button>
+          </div>
+
+          {error && (
+            <p className={`mt-4 text-xs ${text.error}`}>{error}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (mode === 'manual') {
     return (
@@ -198,7 +306,7 @@ export function ProjectSetupScreen({
             Set up {projectName ?? 'this project'}
           </h1>
           <p className={`text-sm ${text.secondary} leading-relaxed`}>
-            This project doesn't have a wok3 configuration yet.
+            This project is not configured yet.
             <br />
             Choose how you'd like to set it up.
           </p>

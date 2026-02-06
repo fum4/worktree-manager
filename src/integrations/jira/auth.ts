@@ -1,6 +1,7 @@
 import { createServer } from 'http';
 import { execFile as execFileCb } from 'child_process';
 
+import { log } from '../../logger';
 import type { JiraCredentials, JiraOAuthCredentials } from './types';
 import { saveJiraCredentials } from './credentials';
 
@@ -152,8 +153,8 @@ export async function runOAuthFlow(
         `&response_type=code` +
         `&prompt=consent`;
 
-      console.log(`\n[wok3] Opening browser for Jira authorization...`);
-      console.log(`[wok3] If the browser doesn't open, visit:\n  ${authUrl}\n`);
+      log.info('Opening browser for Jira authorization...');
+      log.plain(`If the browser doesn't open, visit:\n  ${authUrl}\n`);
       openBrowser(authUrl);
     });
 
@@ -187,9 +188,9 @@ export async function discoverCloudId(
   }
 
   // Multiple sites — list them and pick the first, user can reconfigure
-  console.log('[wok3] Multiple Jira sites found:');
-  resources.forEach((r, i) => console.log(`  ${i + 1}. ${r.name} (${r.url})`));
-  console.log(`[wok3] Using: ${resources[0].name}`);
+  log.info('Multiple Jira sites found:');
+  resources.forEach((r, i) => log.plain(`  ${i + 1}. ${r.name} (${r.url})`));
+  log.info(`Using: ${resources[0].name}`);
 
   return { cloudId: resources[0].id, siteUrl: resources[0].url };
 }

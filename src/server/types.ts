@@ -69,6 +69,8 @@ export interface WorktreeInfo {
   hasUnpushed?: boolean;
   /** Number of commits ahead of upstream */
   commitsAhead?: number;
+  /** Number of commits ahead of base branch (for PR eligibility) */
+  commitsAheadOfBase?: number;
 }
 
 export interface WorktreeCreateRequest {

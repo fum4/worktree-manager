@@ -1,7 +1,9 @@
 import { execFileSync } from 'child_process';
 import { select, input, password } from '@inquirer/prompts';
 
+import { APP_NAME, CONFIG_DIR_NAME } from '../constants';
 import { checkGhAuth, checkGhInstalled, getRepoInfo } from '../integrations/github/gh-client';
+import { log } from '../logger';
 import {
   loadJiraCredentials,
   saveJiraCredentials,
@@ -48,7 +50,7 @@ const INTEGRATIONS: Integration[] = [
 export async function runConnect() {
   const configDir = findConfigDir();
   if (!configDir) {
-    console.error('[wok3] No config found. Run "wok3 init" first.');
+    log.error(`No config found. Run "${APP_NAME} init" first.`);
     process.exit(1);
   }
 
@@ -57,7 +59,7 @@ export async function runConnect() {
   if (integration) {
     const match = INTEGRATIONS.find((i) => i.name === integration);
     if (!match) {
-      console.error(`[wok3] Unknown integration: ${integration}`);
+      log.error(`Unknown integration: ${integration}`);
       console.log(`Available: ${INTEGRATIONS.map((i) => i.name).join(', ')}`);
       process.exit(1);
     }
@@ -86,7 +88,7 @@ export async function runConnect() {
 }
 
 async function runConnectGitHub() {
-  console.log('[wok3] GitHub Integration\n');
+  log.info('GitHub Integration\n');
 
   const installed = await checkGhInstalled();
   if (!installed) {
@@ -128,17 +130,17 @@ async function runConnectGitHub() {
     return;
   }
 
-  console.log('\n[wok3] GitHub is ready! PR detection, commit, and push will work automatically.');
+  log.success('\nGitHub is ready! PR detection, commit, and push will work automatically.');
 }
 
 async function runConnectJira() {
   const configDir = findConfigDir();
   if (!configDir) {
-    console.error('[wok3] No config found. Run "wok3 init" first.');
+    log.error(`No config found. Run "${APP_NAME} init" first.`);
     process.exit(1);
   }
 
-  console.log('[wok3] Connect to Jira\n');
+  log.info('Connect to Jira\n');
 
   const authMethod = await select({
     message: 'Authentication method',
@@ -159,7 +161,7 @@ async function runConnectJira() {
   let creds: JiraCredentials;
 
   if (authMethod === 'api-token') {
-    console.log('\n[wok3] API Token setup');
+    log.info('\nAPI Token setup');
     console.log('Create a token at: https://id.atlassian.com/manage-profile/security/api-tokens\n');
 
     const baseUrl = (await input({
@@ -184,7 +186,7 @@ async function runConnectJira() {
       apiToken: { baseUrl, email, token },
     };
   } else {
-    console.log('\n[wok3] OAuth 2.0 setup');
+    log.info('\nOAuth 2.0 setup');
     console.log('Create an OAuth app at: https://developer.atlassian.com/console\n');
 
     const clientId = await input({
@@ -198,7 +200,7 @@ async function runConnectJira() {
       validate: (v) => v.trim() ? true : 'Client Secret is required.',
     });
 
-    console.log('[wok3] Starting OAuth flow...');
+    log.info('Starting OAuth flow...');
 
     const tokens = await runOAuthFlow(clientId, clientSecret);
     const { cloudId, siteUrl } = await discoverCloudId(tokens.accessToken);
@@ -228,15 +230,15 @@ async function runConnectJira() {
   }
 
   // Test connection
-  console.log('\n[wok3] Testing connection...');
+  log.info('\nTesting connection...');
   try {
     const user = await testConnection(creds, configDir);
-    console.log(`[wok3] Connected as: ${user}`);
+    log.success(`Connected as: ${user}`);
   } catch (err) {
-    console.error(`[wok3] Connection test failed: ${err}`);
+    log.error(`Connection test failed: ${err}`);
     process.exit(1);
   }
 
-  console.log('\n[wok3] Jira connected successfully!');
-  console.log('[wok3] Credentials saved to .wok3/credentials.json (make sure it\'s gitignored)');
+  log.success('\nJira connected successfully!');
+  log.info(`Credentials saved to ${CONFIG_DIR_NAME}/credentials.json (make sure it's gitignored)`);
 }

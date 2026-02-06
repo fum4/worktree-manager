@@ -1,9 +1,11 @@
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 
+import { APP_NAME, CONFIG_DIR_NAME } from '../constants';
+import { log } from '../logger';
 import type { PortConfig, WorktreeConfig } from '../server/types';
 
-export const CONFIG_DIR_NAME = '.wok3';
+export { CONFIG_DIR_NAME };
 export const CONFIG_FILE_NAME = 'config.json';
 
 export interface ConfigFile {
@@ -24,7 +26,7 @@ export interface ConfigFile {
 function isInsideWorktree(configPath: string): boolean {
   // Normalize and check if path contains .wok3/worktrees/
   const normalized = configPath.replace(/\\/g, '/');
-  return normalized.includes('.wok3/worktrees/');
+  return normalized.includes(`${CONFIG_DIR_NAME}/worktrees/`);
 }
 
 export function findConfigFile(): string | null {
@@ -61,12 +63,8 @@ export function loadConfig(): { config: WorktreeConfig; configPath: string | nul
   };
 
   if (!configPath) {
-    console.log(
-      `[wok3] No ${CONFIG_DIR_NAME}/${CONFIG_FILE_NAME} found, using defaults`,
-    );
-    console.log(
-      `[wok3] Run "wok3 init" to create a config file`,
-    );
+    log.warn(`No ${CONFIG_DIR_NAME}/${CONFIG_FILE_NAME} found, using defaults`);
+    log.info(`Run "${APP_NAME} init" to create a config file`);
     return { config: defaults, configPath: null };
   }
 
@@ -76,11 +74,9 @@ export function loadConfig(): { config: WorktreeConfig; configPath: string | nul
 
     const configDir = path.dirname(path.dirname(configPath));
     if (configDir !== process.cwd()) {
-      console.log(`[wok3] Found config at ${configPath}`);
+      log.info(`Found config at ${configPath}`);
       process.chdir(configDir);
-      console.log(
-        `[wok3] Changed working directory to ${configDir}`,
-      );
+      log.info(`Changed working directory to ${configDir}`);
     }
 
     const config: WorktreeConfig = {
@@ -98,10 +94,7 @@ export function loadConfig(): { config: WorktreeConfig; configPath: string | nul
 
     return { config, configPath };
   } catch (error) {
-    console.error(
-      `[wok3] Failed to load config from ${configPath}:`,
-      error,
-    );
+    log.error(`Failed to load config from ${configPath}:`, error);
     return { config: defaults, configPath: null };
   }
 }

@@ -18,6 +18,7 @@ export interface WorktreeInfo {
   hasUncommitted?: boolean;
   hasUnpushed?: boolean;
   commitsAhead?: number;
+  commitsAheadOfBase?: number;
 }
 
 export interface PortsInfo {

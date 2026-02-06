@@ -1,12 +1,13 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { APP_NAME } from '../../constants';
 import { type WorktreeConfig } from '../hooks/useConfig';
 import { useApi } from '../hooks/useApi';
 import { button, infoBanner, input, settings, surface, text } from '../theme';
 import { Spinner } from './Spinner';
 
-const SETTINGS_BANNER_DISMISSED_KEY = 'wok3-settings-banner-dismissed';
+const SETTINGS_BANNER_DISMISSED_KEY = `${APP_NAME}-settings-banner-dismissed`;
 
 function Field({
   label,
@@ -267,7 +268,7 @@ export function ConfigurationPanel({
           <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>Port Configuration</h3>
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Server Port" description="Port for the wok3 manager server">
+              <Field label="Server Port" description={`Port for the ${APP_NAME} manager server`}>
                 <NumberInput
                   value={form.serverPort}
                   onChange={(v) => setForm({ ...form, serverPort: v })}
@@ -313,7 +314,7 @@ export function ConfigurationPanel({
             <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>App Preferences</h3>
             <Field
               label="New Project Setup"
-              description="How to handle projects without wok3 configuration"
+              description={`How to handle projects without ${APP_NAME} configuration`}
             >
               <select
                 value={setupPreference}

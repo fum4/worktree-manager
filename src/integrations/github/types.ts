@@ -17,4 +17,6 @@ export interface GitStatusInfo {
   ahead: number;
   behind: number;
   noUpstream: boolean;
+  /** Commits ahead of base branch (for PR eligibility) */
+  aheadOfBase: number;
 }

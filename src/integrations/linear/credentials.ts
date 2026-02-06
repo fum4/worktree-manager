@@ -1,13 +1,14 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 
+import { CONFIG_DIR_NAME } from '../../constants';
 import type { LinearCredentials, LinearProjectConfig } from './types';
 
 const CREDENTIALS_FILE = 'credentials.json';
 const CONFIG_FILE = 'config.json';
 
 export function loadLinearCredentials(configDir: string): LinearCredentials | null {
-  const credPath = path.join(configDir, '.wok3', CREDENTIALS_FILE);
+  const credPath = path.join(configDir, CONFIG_DIR_NAME, CREDENTIALS_FILE);
   if (!existsSync(credPath)) return null;
   try {
     const data = JSON.parse(readFileSync(credPath, 'utf-8'));
@@ -35,7 +36,7 @@ export function saveLinearCredentials(configDir: string, creds: LinearCredential
 }
 
 export function loadLinearProjectConfig(configDir: string): LinearProjectConfig {
-  const configPath = path.join(configDir, '.wok3', CONFIG_FILE);
+  const configPath = path.join(configDir, CONFIG_DIR_NAME, CONFIG_FILE);
   if (!existsSync(configPath)) return {};
   try {
     const data = JSON.parse(readFileSync(configPath, 'utf-8'));
@@ -46,7 +47,7 @@ export function loadLinearProjectConfig(configDir: string): LinearProjectConfig 
 }
 
 export function saveLinearProjectConfig(configDir: string, config: LinearProjectConfig): void {
-  const configPath = path.join(configDir, '.wok3', CONFIG_FILE);
+  const configPath = path.join(configDir, CONFIG_DIR_NAME, CONFIG_FILE);
 
   let existing: Record<string, unknown> = {};
   if (existsSync(configPath)) {

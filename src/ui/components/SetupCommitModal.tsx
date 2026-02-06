@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Upload } from 'lucide-react';
 
+import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
 import { input, text } from '../theme';
 import { Button } from './Button';
 import { Modal } from './Modal';
@@ -11,7 +12,7 @@ interface SetupCommitModalProps {
 }
 
 export function SetupCommitModal({ onCommit, onSkip }: SetupCommitModalProps) {
-  const [message, setMessage] = useState('chore: add wok3 configuration');
+  const [message, setMessage] = useState(`chore: add ${APP_NAME} configuration`);
   const [isPushing, setIsPushing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,7 +72,7 @@ export function SetupCommitModal({ onCommit, onSkip }: SetupCommitModalProps) {
 
         <div className={`text-[11px] ${text.dimmed}`}>
           <p className="mb-1">Files to commit:</p>
-          <p className="font-mono text-[10px]">.wok3/config.json, .wok3/.gitignore</p>
+          <p className="font-mono text-[10px]">{CONFIG_DIR_NAME}/config.json, {CONFIG_DIR_NAME}/.gitignore</p>
         </div>
 
         {error && <p className={`text-[11px] ${text.error}`}>{error}</p>}

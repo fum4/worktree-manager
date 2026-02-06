@@ -120,16 +120,19 @@ export class GitHubManager {
     const pollGitStatus = async () => {
       const worktrees = getWorktrees();
       let changed = false;
+      const baseBranch = this.config?.defaultBranch;
       for (const wt of worktrees) {
         if (wt.status === 'creating') continue;
         try {
-          const status = await getGitStatus(wt.path);
+          const status = await getGitStatus(wt.path, baseBranch);
           const prev = this.gitStatusCache.get(wt.id);
           if (
             !prev ||
             prev.hasUncommitted !== status.hasUncommitted ||
             prev.ahead !== status.ahead ||
-            prev.behind !== status.behind
+            prev.behind !== status.behind ||
+            prev.noUpstream !== status.noUpstream ||
+            prev.aheadOfBase !== status.aheadOfBase
           ) {
             this.gitStatusCache.set(wt.id, status);
             changed = true;
@@ -202,7 +205,7 @@ export class GitHubManager {
     if (result.success) {
       // Refresh git status cache
       try {
-        this.gitStatusCache.set(id, await getGitStatus(worktreePath));
+        this.gitStatusCache.set(id, await getGitStatus(worktreePath, this.config?.defaultBranch));
       } catch {
         // Ignore
       }
@@ -218,12 +221,11 @@ export class GitHubManager {
     if (result.success) {
       // Refresh both caches
       try {
-        this.gitStatusCache.set(id, await getGitStatus(worktreePath));
+        this.gitStatusCache.set(id, await getGitStatus(worktreePath, this.config?.defaultBranch));
       } catch {
         // Ignore
       }
       if (this.config) {
-        const worktrees = [{ id, path: worktreePath }];
         // Find the branch for this worktree path
         try {
           const { execFile: execFileCb } = await import('child_process');

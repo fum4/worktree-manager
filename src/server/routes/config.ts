@@ -3,13 +3,14 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
 import type { Hono } from 'hono';
 
+import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
 import { detectConfig } from '../../shared/detect-config';
 import type { WorktreeManager } from '../manager';
 
 export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
   app.get('/api/config', (c) => {
     // Check if config file still exists (user may have deleted .wok3 folder)
-    const configPath = path.join(manager.getConfigDir(), '.wok3', 'config.json');
+    const configPath = path.join(manager.getConfigDir(), CONFIG_DIR_NAME, 'config.json');
     if (!existsSync(configPath)) {
       return c.json({ config: null, projectName: null });
     }
@@ -72,7 +73,7 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
   // Check if .wok3 config files need to be committed/pushed
   app.get('/api/config/setup-status', (c) => {
     const projectDir = manager.getConfigDir();
-    const configPath = path.join(projectDir, '.wok3', 'config.json');
+    const configPath = path.join(projectDir, CONFIG_DIR_NAME, 'config.json');
 
     if (!existsSync(configPath)) {
       return c.json({ needsPush: false, files: [] });
@@ -82,7 +83,7 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
       // Check if file has uncommitted changes (untracked, modified, or staged)
       const statusResult = execFileSync(
         'git',
-        ['status', '--porcelain', '.wok3/config.json', '.wok3/.gitignore'],
+        ['status', '--porcelain', `${CONFIG_DIR_NAME}/config.json`, `${CONFIG_DIR_NAME}/.gitignore`],
         {
           cwd: projectDir,
           encoding: 'utf-8',
@@ -94,7 +95,7 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
       if (statusResult !== '') {
         return c.json({
           needsPush: true,
-          files: ['.wok3/config.json', '.wok3/.gitignore'],
+          files: [`${CONFIG_DIR_NAME}/config.json`, `${CONFIG_DIR_NAME}/.gitignore`],
         });
       }
 
@@ -110,14 +111,14 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
         // No upstream - needs push
         return c.json({
           needsPush: true,
-          files: ['.wok3/config.json', '.wok3/.gitignore'],
+          files: [`${CONFIG_DIR_NAME}/config.json`, `${CONFIG_DIR_NAME}/.gitignore`],
         });
       }
 
       // Has upstream - check for unpushed commits touching config files
       const unpushedResult = execFileSync(
         'git',
-        ['log', '@{u}..HEAD', '--oneline', '--', '.wok3/config.json', '.wok3/.gitignore'],
+        ['log', '@{u}..HEAD', '--oneline', '--', `${CONFIG_DIR_NAME}/config.json`, `${CONFIG_DIR_NAME}/.gitignore`],
         {
           cwd: projectDir,
           encoding: 'utf-8',
@@ -138,12 +139,12 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
   // Commit and push the .wok3 config files
   app.post('/api/config/commit-setup', async (c) => {
     const projectDir = manager.getConfigDir();
-    const configPath = path.join(projectDir, '.wok3', 'config.json');
-    const gitignorePath = path.join(projectDir, '.wok3', '.gitignore');
+    const configPath = path.join(projectDir, CONFIG_DIR_NAME, 'config.json');
+    const gitignorePath = path.join(projectDir, CONFIG_DIR_NAME, '.gitignore');
 
     try {
       const body = await c.req.json();
-      const message = body.message || 'chore: add wok3 configuration';
+      const message = body.message || `chore: add ${APP_NAME} configuration`;
 
       // Unstage all currently staged changes first
       try {
@@ -163,6 +164,24 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
+      // Check if there are any staged changes
+      // git diff --cached --quiet exits with 0 if no changes, 1 if there are changes
+      let hasStagedChanges = false;
+      try {
+        execFileSync('git', ['diff', '--cached', '--quiet'], {
+          cwd: projectDir,
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch {
+        hasStagedChanges = true;
+      }
+
+      if (!hasStagedChanges) {
+        // Nothing to commit - files already committed
+        return c.json({ success: true, alreadyCommitted: true });
+      }
+
       // Commit
       execFileSync('git', ['commit', '-m', message], {
         cwd: projectDir,
@@ -170,26 +189,24 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      // Push to remote (so new worktrees will include the config)
-      try {
-        execFileSync('git', ['push'], {
-          cwd: projectDir,
-          encoding: 'utf-8',
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-      } catch (pushError) {
-        // Commit succeeded but push failed - return partial success
-        return c.json({
-          success: true,
-          warning: 'Committed but failed to push. Push manually to share config with worktrees.',
-        });
-      }
-
       return c.json({ success: true });
     } catch (error) {
+      // Extract stderr from execFileSync error for better error messages
+      let errorMessage = 'Failed to commit';
+      if (error && typeof error === 'object') {
+        const execError = error as { stderr?: Buffer | string; message?: string };
+        if (execError.stderr) {
+          const stderr = typeof execError.stderr === 'string'
+            ? execError.stderr
+            : execError.stderr.toString();
+          errorMessage = stderr.trim() || execError.message || errorMessage;
+        } else if (execError.message) {
+          errorMessage = execError.message;
+        }
+      }
       return c.json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to commit',
+        error: errorMessage,
       });
     }
   });
@@ -211,7 +228,7 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
   // Initialize config with provided values (or auto-detected if not provided)
   app.post('/api/config/init', async (c) => {
     const projectDir = manager.getConfigDir();
-    const configDirPath = path.join(projectDir, '.wok3');
+    const configDirPath = path.join(projectDir, CONFIG_DIR_NAME);
     const configPath = path.join(configDirPath, 'config.json');
     const gitignorePath = path.join(configDirPath, '.gitignore');
 
@@ -246,7 +263,7 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
 
       // Create .gitignore
       if (!existsSync(gitignorePath)) {
-        writeFileSync(gitignorePath, `# Ignore everything in .wok3 by default
+        writeFileSync(gitignorePath, `# Ignore everything in ${CONFIG_DIR_NAME} by default
 *
 
 # Except these files (tracked/shared)

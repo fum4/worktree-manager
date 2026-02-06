@@ -5,7 +5,10 @@ import { promisify } from 'util';
 
 const execFile = promisify(execFileCb);
 
+import pc from 'picocolors';
+import { APP_NAME, CONFIG_DIR_NAME } from '../constants';
 import { copyEnvFiles } from '../core/env-files';
+import { log } from '../logger';
 import { getGitRoot, getWorktreeBranch, validateBranchName } from '../core/git';
 import { GitHubManager } from '../integrations/github/github-manager';
 import {
@@ -17,12 +20,14 @@ import {
   resolveTaskKey,
   saveTaskData,
 } from '../integrations/jira/api';
+import { getApiBase, getAuthHeaders } from '../integrations/jira/auth';
 import {
   loadLinearCredentials,
   loadLinearProjectConfig,
 } from '../integrations/linear/credentials';
 import {
   fetchIssue as fetchLinearIssue,
+  fetchIssues as fetchLinearIssues,
   resolveIdentifier as resolveLinearIdentifier,
   saveTaskData as saveLinearTaskData,
 } from '../integrations/linear/api';
@@ -39,29 +44,24 @@ import type {
 
 const MAX_LOG_LINES = 100;
 
-// ANSI color helpers for terminal log prefixes
-const RESET = '\x1b[0m';
-const BOLD = '\x1b[1m';
-const DIM = '\x1b[2m';
-
-// Distinct colors for worktree names (bright, easy to distinguish)
-const WORKTREE_COLORS = [
-  '\x1b[36m', // cyan
-  '\x1b[33m', // yellow
-  '\x1b[35m', // magenta
-  '\x1b[32m', // green
-  '\x1b[34m', // blue
-  '\x1b[91m', // bright red
-  '\x1b[96m', // bright cyan
-  '\x1b[93m', // bright yellow
-  '\x1b[95m', // bright magenta
-  '\x1b[92m', // bright green
+// Distinct color functions for worktree names (bright, easy to distinguish)
+const WORKTREE_COLORS: Array<(s: string) => string> = [
+  pc.cyan,
+  pc.yellow,
+  pc.magenta,
+  pc.green,
+  pc.blue,
+  (s: string) => pc.red(pc.bold(s)),    // bright red
+  (s: string) => pc.cyan(pc.bold(s)),    // bright cyan
+  (s: string) => pc.yellow(pc.bold(s)),  // bright yellow
+  (s: string) => pc.magenta(pc.bold(s)), // bright magenta
+  (s: string) => pc.green(pc.bold(s)),   // bright green
 ];
 
 let worktreeColorIndex = 0;
-const worktreeColorMap = new Map<string, string>();
+const worktreeColorMap = new Map<string, (s: string) => string>();
 
-function getWorktreeColor(id: string): string {
+function getWorktreeColor(id: string): (s: string) => string {
   let color = worktreeColorMap.get(id);
   if (!color) {
     color = WORKTREE_COLORS[worktreeColorIndex % WORKTREE_COLORS.length];
@@ -103,7 +103,7 @@ export class WorktreeManager {
   // Reload config from disk (after initialization via UI)
   reloadConfig(): void {
     // Determine the config file path
-    const configPath = this.configFilePath ?? path.join(this.configDir, '.wok3', 'config.json');
+    const configPath = this.configFilePath ?? path.join(this.configDir, CONFIG_DIR_NAME, 'config.json');
 
     if (!existsSync(configPath)) {
       return;
@@ -139,12 +139,12 @@ export class WorktreeManager {
         mkdirSync(worktreesPath, { recursive: true });
       }
     } catch (error) {
-      console.error('[wok3] Failed to reload config:', error);
+      log.error('Failed to reload config:', error);
     }
   }
 
   private getWorktreesAbsolutePath(): string {
-    return path.join(this.configDir, '.wok3', 'worktrees');
+    return path.join(this.configDir, CONFIG_DIR_NAME, 'worktrees');
   }
 
   getPortManager(): PortManager {
@@ -165,14 +165,14 @@ export class WorktreeManager {
       );
       const status = this.githubManager.getStatus();
       if (status.repo) {
-        console.log(`[wok3] GitHub: connected to ${status.repo}`);
+        log.info(`GitHub: connected to ${status.repo}`);
       } else if (!status.installed) {
-        console.log('[wok3] GitHub: gh CLI not found, GitHub features disabled');
+        log.warn('GitHub: gh CLI not found, GitHub features disabled');
       } else if (!status.authenticated) {
-        console.log('[wok3] GitHub: not authenticated, run "gh auth login"');
+        log.warn('GitHub: not authenticated, run "gh auth login"');
       }
     } catch {
-      console.log('[wok3] GitHub: initialization failed, features disabled');
+      log.warn('GitHub: initialization failed, features disabled');
       this.githubManager = null;
     }
   }
@@ -225,10 +225,12 @@ export class WorktreeManager {
         pid: runningInfo?.pid ?? null,
         lastActivity: runningInfo?.lastActivity,
         logs: runningInfo?.logs ?? [],
+        // Default to unpushed - will be overwritten if we have git status
+        hasUnpushed: true,
       };
 
       // Check for linked task (Jira or Linear)
-      const taskFile = path.join(this.configDir, '.wok3', 'tasks', entry.name, 'task.json');
+      const taskFile = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks', entry.name, 'task.json');
       if (existsSync(taskFile)) {
         try {
           const taskData = JSON.parse(readFileSync(taskFile, 'utf-8'));
@@ -257,6 +259,8 @@ export class WorktreeManager {
           info.hasUncommitted = git.hasUncommitted;
           info.hasUnpushed = git.ahead > 0 || git.noUpstream;
           info.commitsAhead = git.noUpstream ? 0 : git.ahead;
+          // -1 means we couldn't determine, treat as having commits (safer)
+          info.commitsAheadOfBase = git.aheadOfBase === -1 ? undefined : git.aheadOfBase;
         }
       }
 
@@ -316,9 +320,7 @@ export class WorktreeManager {
 
       const portsDisplay =
         ports.length > 0 ? ports.join(', ') : `offset=${offset}`;
-      console.log(
-        `[wok3] Starting ${id} at ${workingDir} (ports: ${portsDisplay})`,
-      );
+      log.info(`Starting ${id} at ${workingDir} (ports: ${portsDisplay})`);
 
       const childProcess = spawn(cmd, args, {
         cwd: workingDir,
@@ -341,9 +343,7 @@ export class WorktreeManager {
       });
 
       childProcess.on('exit', (code) => {
-        console.log(
-          `[wok3] Worktree "${id}" exited with code ${code}`,
-        );
+        log.info(`Worktree "${id}" exited with code ${code}`);
         const processInfo = this.runningProcesses.get(id);
         if (processInfo) {
           this.portManager.releaseOffset(processInfo.offset);
@@ -353,8 +353,8 @@ export class WorktreeManager {
       });
 
       const wtColor = getWorktreeColor(id);
-      const coloredName = `${BOLD}${wtColor}${id}${RESET}`;
-      const linePrefix = `${DIM}[${RESET}${coloredName}${DIM}]${RESET}`;
+      const coloredName = pc.bold(wtColor(id));
+      const linePrefix = `${pc.dim('[')}${coloredName}${pc.dim(']')}`;
 
       const scheduleLogNotify = () => {
         const info = this.runningProcesses.get(id);
@@ -517,6 +517,8 @@ export class WorktreeManager {
       ports: [],
       offset: null,
       pid: null,
+      // New branches haven't been pushed yet
+      hasUnpushed: true,
     };
 
     this.creatingWorktrees.set(worktreeId, placeholder);
@@ -631,9 +633,7 @@ export class WorktreeManager {
 
       // Step 3: Install dependencies
       updateStatus('Installing dependencies...');
-      console.log(
-        `[wok3] Installing dependencies in ${worktreeId}...`,
-      );
+      log.info(`Installing dependencies in ${worktreeId}...`);
       const [installCmd, ...installArgs] = this.config.installCommand.split(' ');
       await execFile(installCmd, installArgs, {
         cwd: worktreePath,
@@ -646,7 +646,7 @@ export class WorktreeManager {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to create worktree';
-      console.error(`[wok3] Failed to create ${worktreeId}: ${message}`);
+      log.error(`Failed to create ${worktreeId}: ${message}`);
       updateStatus(`Error: ${message}`);
 
       // Remove after a delay so the user can see the error
@@ -964,7 +964,7 @@ export class WorktreeManager {
   }
 
   updateConfig(partial: Partial<WorktreeConfig>): { success: boolean; error?: string } {
-    const configPath = path.join(this.configDir, '.wok3', 'config.json');
+    const configPath = path.join(this.configDir, CONFIG_DIR_NAME, 'config.json');
 
     try {
       let existing: Record<string, unknown> = {};
@@ -1009,6 +1009,148 @@ export class WorktreeManager {
     }
   }
 
+  async listJiraIssues(query?: string): Promise<{
+    issues: Array<{ key: string; summary: string; status: string; type: string; priority: string; assignee: string | null; url: string }>;
+    error?: string;
+  }> {
+    const creds = loadJiraCredentials(this.configDir);
+    if (!creds) return { issues: [], error: 'Jira not configured' };
+
+    const projectConfig = loadJiraProjectConfig(this.configDir);
+    const apiBase = getApiBase(creds);
+    const headers = await getAuthHeaders(creds, this.configDir);
+
+    let jql = 'assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC';
+    if (query) {
+      jql = `assignee = currentUser() AND resolution = Unresolved AND text ~ "${query}" ORDER BY updated DESC`;
+    }
+
+    const params = new URLSearchParams({
+      jql,
+      fields: 'summary,status,priority,issuetype,assignee,updated,labels',
+      maxResults: '50',
+    });
+
+    const resp = await fetch(`${apiBase}/search/jql?${params}`, { headers });
+    if (!resp.ok) {
+      const body = await resp.text();
+      return { issues: [], error: `Jira API error: ${resp.status} ${body}` };
+    }
+
+    const data = (await resp.json()) as {
+      issues: Array<{
+        key: string;
+        fields: {
+          summary: string;
+          status: { name: string };
+          priority: { name: string };
+          issuetype: { name: string };
+          assignee: { displayName: string } | null;
+        };
+      }>;
+    };
+
+    let siteUrl: string;
+    if (creds.authMethod === 'oauth') {
+      siteUrl = creds.oauth.siteUrl;
+    } else {
+      siteUrl = creds.apiToken.baseUrl;
+    }
+    const baseUrl = siteUrl.replace(/\/$/, '');
+
+    return {
+      issues: data.issues.map((issue) => ({
+        key: issue.key,
+        summary: issue.fields.summary ?? '',
+        status: issue.fields.status?.name ?? 'Unknown',
+        type: issue.fields.issuetype?.name ?? 'Unknown',
+        priority: issue.fields.priority?.name ?? 'None',
+        assignee: issue.fields.assignee?.displayName ?? null,
+        url: `${baseUrl}/browse/${issue.key}`,
+      })),
+    };
+  }
+
+  async getJiraIssue(issueKey: string): Promise<{
+    issue?: { key: string; summary: string; description: string; status: string; type: string; priority: string; assignee: string | null; url: string; comments: Array<{ author: string; body: string }> };
+    error?: string;
+  }> {
+    const creds = loadJiraCredentials(this.configDir);
+    if (!creds) return { error: 'Jira not configured' };
+
+    let resolvedKey: string;
+    try {
+      resolvedKey = resolveTaskKey(issueKey, loadJiraProjectConfig(this.configDir));
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Invalid issue key' };
+    }
+
+    const taskData = await fetchIssue(resolvedKey, creds, this.configDir);
+    return {
+      issue: {
+        key: taskData.key,
+        summary: taskData.summary,
+        description: taskData.description,
+        status: taskData.status,
+        type: taskData.type,
+        priority: taskData.priority,
+        assignee: taskData.assignee,
+        url: taskData.url,
+        comments: taskData.comments.slice(0, 10),
+      },
+    };
+  }
+
+  async listLinearIssues(query?: string): Promise<{
+    issues: Array<{ identifier: string; title: string; status: string; priority: number; assignee: string | null; url: string }>;
+    error?: string;
+  }> {
+    const creds = loadLinearCredentials(this.configDir);
+    if (!creds) return { issues: [], error: 'Linear not configured' };
+
+    const projectConfig = loadLinearProjectConfig(this.configDir);
+    const issues = await fetchLinearIssues(creds, projectConfig.defaultTeamKey, query);
+    return {
+      issues: issues.map((i) => ({
+        identifier: i.identifier,
+        title: i.title,
+        status: i.state.name,
+        priority: i.priority,
+        assignee: i.assignee,
+        url: i.url,
+      })),
+    };
+  }
+
+  async getLinearIssue(identifier: string): Promise<{
+    issue?: { identifier: string; title: string; description: string; status: string; priority: number; assignee: string | null; url: string };
+    error?: string;
+  }> {
+    const creds = loadLinearCredentials(this.configDir);
+    if (!creds) return { error: 'Linear not configured' };
+
+    const projectConfig = loadLinearProjectConfig(this.configDir);
+    let resolvedId: string;
+    try {
+      resolvedId = resolveLinearIdentifier(identifier, projectConfig);
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Invalid identifier' };
+    }
+
+    const issueDetail = await fetchLinearIssue(resolvedId, creds);
+    return {
+      issue: {
+        identifier: issueDetail.identifier,
+        title: issueDetail.title,
+        description: issueDetail.description ?? '',
+        status: issueDetail.state.name,
+        priority: issueDetail.priority,
+        assignee: issueDetail.assignee,
+        url: issueDetail.url,
+      },
+    };
+  }
+
   async createWorktreeFromJira(
     issueKey: string,
     branch?: string,
@@ -1046,7 +1188,7 @@ export class WorktreeManager {
     }
 
     // Save task data locally
-    const tasksDir = path.join(this.configDir, '.wok3', 'tasks');
+    const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
     saveTaskData(taskData, tasksDir);
 
     // Create worktree using custom branch or issue key as branch name
@@ -1106,7 +1248,7 @@ export class WorktreeManager {
     }
 
     // Save task data locally
-    const tasksDir = path.join(this.configDir, '.wok3', 'tasks');
+    const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
     const taskData: LinearTaskData = {
       source: 'linear',
       identifier: issueDetail.identifier,

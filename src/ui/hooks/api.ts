@@ -740,6 +740,58 @@ export async function commitSetup(
   }
 }
 
+// MCP agent setup
+export async function fetchMcpStatus(
+  serverUrl: string | null = null,
+): Promise<{ statuses: Record<string, { global?: boolean; project?: boolean }> }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp/status`);
+    return await res.json();
+  } catch {
+    return { statuses: {} };
+  }
+}
+
+export async function setupMcpAgent(
+  agent: string,
+  scope: 'global' | 'project',
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp/setup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent, scope }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to setup MCP',
+    };
+  }
+}
+
+export async function removeMcpAgent(
+  agent: string,
+  scope: 'global' | 'project',
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp/remove`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent, scope }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to remove MCP config',
+    };
+  }
+}
+
 // Detect config values without creating config
 export interface DetectedConfig {
   baseBranch: string;

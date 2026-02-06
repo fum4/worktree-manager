@@ -3,6 +3,8 @@ import { pipeline } from 'stream/promises';
 import { Readable } from 'stream';
 import path from 'path';
 
+import { APP_NAME } from '../../constants';
+import { log } from '../../logger';
 import { adfToMarkdown } from './adf-to-markdown';
 import { getApiBase, getAuthHeaders } from './auth';
 import type {
@@ -21,7 +23,7 @@ export function resolveTaskKey(taskId: string, projectConfig: JiraProjectConfig)
   if (!projectConfig.defaultProjectKey) {
     throw new Error(
       `Task ID "${taskId}" has no project prefix and no defaultProjectKey is configured.\n` +
-        `Either use the full key (e.g. PROJ-${taskId}) or set defaultProjectKey via "wok3 connect jira".`,
+        `Either use the full key (e.g. PROJ-${taskId}) or set defaultProjectKey via "${APP_NAME} connect jira".`,
     );
   }
 
@@ -159,7 +161,7 @@ export async function downloadAttachments(
       });
 
       if (!resp.ok || !resp.body) {
-        console.log(`[wok3] Warning: failed to download ${att.filename}`);
+        log.warn(`Failed to download ${att.filename}`);
         continue;
       }
 
@@ -173,7 +175,7 @@ export async function downloadAttachments(
         size: att.size,
       });
     } catch (err) {
-      console.log(`[wok3] Warning: failed to download ${att.filename}: ${err}`);
+      log.warn(`Failed to download ${att.filename}: ${err}`);
     }
   }
 

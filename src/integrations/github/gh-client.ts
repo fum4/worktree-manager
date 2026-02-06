@@ -247,11 +247,12 @@ export async function findPRForBranch(
   }
 }
 
-export async function getGitStatus(worktreePath: string): Promise<GitStatusInfo> {
+export async function getGitStatus(worktreePath: string, baseBranch?: string): Promise<GitStatusInfo> {
   let hasUncommitted = false;
   let ahead = 0;
   let behind = 0;
   let noUpstream = false;
+  let aheadOfBase = 0;
 
   try {
     const { stdout } = await execFile('git', ['status', '--porcelain'], {
@@ -277,7 +278,22 @@ export async function getGitStatus(worktreePath: string): Promise<GitStatusInfo>
     noUpstream = true;
   }
 
-  return { hasUncommitted, ahead, behind, noUpstream };
+  // Calculate commits ahead of base branch (for PR eligibility)
+  if (baseBranch) {
+    try {
+      const { stdout } = await execFile(
+        'git',
+        ['rev-list', '--count', `origin/${baseBranch}..HEAD`],
+        { cwd: worktreePath, encoding: 'utf-8' },
+      );
+      aheadOfBase = parseInt(stdout.trim(), 10) || 0;
+    } catch {
+      // If we can't compare to base, assume there are commits (safer default)
+      aheadOfBase = -1;
+    }
+  }
+
+  return { hasUncommitted, ahead, behind, noUpstream, aheadOfBase };
 }
 
 export async function commitAll(
@@ -326,8 +342,7 @@ export async function createPR(
   baseBranch?: string,
 ): Promise<{ success: boolean; pr?: PRInfo; error?: string }> {
   try {
-    const args = ['pr', 'create', '--title', title];
-    if (body) args.push('--body', body);
+    const args = ['pr', 'create', '--title', title, '--body', body || ''];
     if (baseBranch) args.push('--base', baseBranch);
 
     const { stdout } = await execFile('gh', args, {

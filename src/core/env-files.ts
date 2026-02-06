@@ -1,6 +1,9 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import path from 'path';
 
+import { CONFIG_DIR_NAME } from '../constants';
+import { log } from '../logger';
+
 export function copyEnvFiles(sourceDir: string, targetDir: string, worktreesDir: string): void {
   const copyEnvRecursive = (src: string, dest: string, relPath = '') => {
     try {
@@ -11,7 +14,7 @@ export function copyEnvFiles(sourceDir: string, targetDir: string, worktreesDir:
         const displayPath = relPath ? `${relPath}/${entry.name}` : entry.name;
 
         if (entry.isDirectory()) {
-          if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.wok3') continue;
+          if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === CONFIG_DIR_NAME) continue;
           if (entry.name === path.basename(worktreesDir)) continue;
           copyEnvRecursive(srcPath, destPath, displayPath);
         } else if (entry.isFile() && entry.name.startsWith('.env')) {
@@ -21,7 +24,7 @@ export function copyEnvFiles(sourceDir: string, targetDir: string, worktreesDir:
               mkdirSync(destDir, { recursive: true });
             }
             copyFileSync(srcPath, destPath);
-            console.log(`[wok3] Copied ${displayPath} to worktree`);
+            log.info(`Copied ${displayPath} to worktree`);
           }
         }
       }

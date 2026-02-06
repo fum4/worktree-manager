@@ -3,6 +3,8 @@ import { createInterface } from 'readline';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
 
+import { APP_NAME } from '../constants';
+import { log } from '../logger';
 import { PortManager } from '../server/port-manager';
 import type { PortConfig, WorktreeConfig } from '../server/types';
 import {
@@ -60,7 +62,7 @@ export async function autoInitConfig(projectDir: string): Promise<void> {
   // Create .gitignore
   const gitignorePath = path.join(configDirPath, '.gitignore');
   if (!existsSync(gitignorePath)) {
-    writeFileSync(gitignorePath, `# Ignore everything in .wok3 by default
+    writeFileSync(gitignorePath, `# Ignore everything in ${CONFIG_DIR_NAME} by default
 *
 
 # Except these files (tracked/shared)
@@ -79,15 +81,15 @@ export async function autoInitConfig(projectDir: string): Promise<void> {
     // Ignore - user can commit manually
   }
 
-  console.log(`[wok3] Config auto-initialized at ${configPath}`);
-  console.log(`[wok3] Note: Commit .wok3/config.json and .wok3/.gitignore so they're available in worktrees.`);
+  log.success(`Config auto-initialized at ${configPath}`);
+  log.info(`Note: Commit ${CONFIG_DIR_NAME}/config.json and ${CONFIG_DIR_NAME}/.gitignore so they're available in worktrees.`);
 }
 
 export async function runInit() {
   const existingConfig = findConfigFile();
   if (existingConfig) {
-    console.log(`[wok3] Config already exists at ${existingConfig}`);
-    console.log('Delete it first if you want to re-initialize.');
+    log.warn(`Config already exists at ${existingConfig}`);
+    log.plain('Delete it first if you want to re-initialize.');
     process.exit(1);
   }
 
@@ -98,11 +100,11 @@ export async function runInit() {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
   } catch {
-    console.error('[wok3] Not inside a git repository.');
+    log.error('Not inside a git repository.');
     process.exit(1);
   }
 
-  console.log('[wok3] Initializing configuration...\n');
+  log.info('Initializing configuration...\n');
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
@@ -114,7 +116,7 @@ export async function runInit() {
   const resolvedProjectDir = path.resolve(process.cwd(), projectDir);
 
   if (!existsSync(resolvedProjectDir)) {
-    console.error(`[wok3] Directory "${resolvedProjectDir}" does not exist.`);
+    log.error(`Directory "${resolvedProjectDir}" does not exist.`);
     rl.close();
     process.exit(1);
   }
@@ -178,7 +180,7 @@ export async function runInit() {
   // Use whitelist approach: ignore everything except config.json and .gitignore
   const gitignorePath = path.join(configDirPath, '.gitignore');
   if (!existsSync(gitignorePath)) {
-    writeFileSync(gitignorePath, `# Ignore everything in .wok3 by default
+    writeFileSync(gitignorePath, `# Ignore everything in ${CONFIG_DIR_NAME} by default
 *
 
 # Except these files (tracked/shared)
@@ -193,7 +195,7 @@ export async function runInit() {
     }
   }
 
-  console.log(`\n[wok3] Config written to ${configPath}`);
+  log.success(`\nConfig written to ${configPath}`);
 
   // Auto-detect env var mappings if ports are already known
   if (config.ports?.discovered && config.ports.discovered.length > 0) {
@@ -218,11 +220,11 @@ export async function runInit() {
     }
   }
 
-  console.log('');
-  console.log('Next steps:');
-  console.log('  1. Commit .wok3/config.json and .wok3/.gitignore (staged and ready)');
-  console.log('  2. Run `wok3` to start the manager UI');
-  console.log('  3. Click "Discover Ports" in the UI to auto-detect all ports');
-  console.log('  4. Create worktrees and start them — ports are offset automatically');
-  console.log('');
+  log.plain('');
+  log.plain('Next steps:');
+  log.plain(`  1. Commit ${CONFIG_DIR_NAME}/config.json and ${CONFIG_DIR_NAME}/.gitignore (staged and ready)`);
+  log.plain(`  2. Run \`${APP_NAME}\` to start the manager UI`);
+  log.plain('  3. Click "Discover Ports" in the UI to auto-detect all ports');
+  log.plain('  4. Create worktrees and start them — ports are offset automatically');
+  log.plain('');
 }
