@@ -24,17 +24,19 @@ export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, o
           : `border-transparent hover:${surface.panelHover}`
       }`}
     >
-      <div className="flex items-center gap-1.5">
-        <span className={`text-[11px] font-semibold ${text.secondary} flex-shrink-0`}>
-          {issue.key}
-        </span>
-        <span className={`ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>
-          {issue.status}
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5 mt-0.5">
-        <div className={`text-xs ${text.primary} truncate flex-1 min-w-0`}>
-          {issue.summary}
+      <div className="flex items-start gap-1.5">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className={`text-[11px] font-semibold ${text.secondary} flex-shrink-0`}>
+              {issue.key}
+            </span>
+            <span className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>
+              {issue.status}
+            </span>
+          </div>
+          <div className={`text-xs ${text.primary} truncate mt-0.5`}>
+            {issue.summary}
+          </div>
         </div>
         {linkedWorktreeId && (
           <button
@@ -43,7 +45,7 @@ export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, o
               e.stopPropagation();
               onViewWorktree?.(linkedWorktreeId);
             }}
-            className="flex-shrink-0 p-0.5 rounded text-accent hover:text-accent-muted hover:bg-accent/10 transition-colors duration-150"
+            className="flex-shrink-0 p-0.5 rounded text-accent hover:text-accent-muted hover:bg-accent/10 transition-colors duration-150 self-center"
             title="View linked worktree"
           >
             <GitBranch className="w-3.5 h-3.5" />
