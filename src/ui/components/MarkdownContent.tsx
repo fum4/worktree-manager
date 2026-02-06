@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 
 import { text } from '../theme';
@@ -8,11 +9,15 @@ interface MarkdownContentProps {
   className?: string;
 }
 
+function preserveBlankLines(src: string): string {
+  return src.replace(/\n{3,}/g, (m) => '\n\n' + '&nbsp;\n\n'.repeat(m.length - 2));
+}
+
 export function MarkdownContent({ content, className }: MarkdownContentProps) {
   return (
     <div className={className}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         components={{
           h1: ({ children }) => (
             <h1 className={`text-base font-semibold ${text.primary} mb-3 mt-4 first:mt-0`}>{children}</h1>
@@ -117,7 +122,7 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
           ),
         }}
       >
-        {content}
+        {preserveBlankLines(content)}
       </ReactMarkdown>
     </div>
   );

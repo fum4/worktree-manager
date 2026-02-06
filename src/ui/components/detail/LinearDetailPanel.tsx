@@ -115,25 +115,25 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
                 {issue.identifier}
               </a>
               <span
-                className="ml-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
+                className="ml-2 text-[11px] font-medium px-2 py-0.5 rounded"
                 style={{ backgroundColor: `${issue.state.color}20`, color: issue.state.color }}
               >
                 {issue.state.name}
               </span>
               {issue.labels.length > 0 && (
-                <span className={`text-[9px] ${text.dimmed}`}>·</span>
+                <span className={`text-[5px] ${text.dimmed}`}>●</span>
               )}
               {issue.labels.map((label) => (
                 <span
                   key={label.name}
-                  className="text-[9px] font-medium px-1.5 py-0.5 rounded"
+                  className="text-[11px] font-medium px-2 py-0.5 rounded"
                   style={{ backgroundColor: `${label.color}20`, color: label.color }}
                 >
                   {label.name}
                 </span>
               ))}
-              <span className={`text-[9px] ${text.dimmed}`}>·</span>
-              <span className={`text-[10px] ${priorityInfo.color}`}>{priorityInfo.label}</span>
+              <span className={`text-[5px] ${text.dimmed}`}>●</span>
+              <span className={`text-[11px] ${priorityInfo.color}`}>{priorityInfo.label}</span>
               <button
                 type="button"
                 onClick={() => refetch()}
@@ -153,7 +153,7 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
                   />
                 </svg>
                 {dataUpdatedAt > 0 && (
-                  <span className="text-[10px]">
+                  <span className="text-[11px]">
                     {formatTimeAgo(dataUpdatedAt)}
                   </span>
                 )}

@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react';
 
 import { APP_NAME } from '../constants';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
+import { CreateCustomTaskModal } from './components/CreateCustomTaskModal';
 import { CreateForm } from './components/CreateForm';
 import { CreateWorktreeModal } from './components/CreateWorktreeModal';
+import { CustomTaskDetailPanel } from './components/detail/CustomTaskDetailPanel';
 import { DetailPanel } from './components/detail/DetailPanel';
 import { GitHubSetupModal } from './components/GitHubSetupModal';
 import { JiraDetailPanel } from './components/detail/JiraDetailPanel';
@@ -22,6 +24,7 @@ import { WorktreeList } from './components/WorktreeList';
 import { useServer } from './contexts/ServerContext';
 import { useApi } from './hooks/useApi';
 import { useConfig } from './hooks/useConfig';
+import { useCustomTasks } from './hooks/useCustomTasks';
 import { useJiraIssues } from './hooks/useJiraIssues';
 import { useLinearIssues } from './hooks/useLinearIssues';
 import { useGitHubStatus, useJiraStatus, useLinearStatus, useWorktrees } from './hooks/useWorktrees';
@@ -31,6 +34,7 @@ type Selection =
   | { type: 'worktree'; id: string }
   | { type: 'issue'; key: string }
   | { type: 'linear-issue'; identifier: string }
+  | { type: 'custom-task'; id: string }
   | null;
 
 export default function App() {
@@ -41,6 +45,7 @@ export default function App() {
   const { jiraStatus, refetchJiraStatus } = useJiraStatus();
   const { linearStatus, refetchLinearStatus } = useLinearStatus();
   const githubStatus = useGitHubStatus();
+  const { tasks: customTasks, isLoading: customTasksLoading, error: customTasksError, refetch: refetchCustomTasks } = useCustomTasks();
   const runningCount = worktrees.filter((w) => w.status === 'running').length;
 
   // Track if config existed when we first connected (to detect "deleted while open")
@@ -121,7 +126,7 @@ export default function App() {
   const [activeCreateTab, setActiveCreateTab] = useState<'branch' | 'issues'>('branch');
   const [worktreeFilter, setWorktreeFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createModalMode, setCreateModalMode] = useState<'branch' | 'jira' | 'linear'>('branch');
+  const [createModalMode, setCreateModalMode] = useState<'branch' | 'jira' | 'linear' | 'custom'>('branch');
 
   // Sidebar width state with persistence
   const DEFAULT_SIDEBAR_WIDTH = 300;
@@ -307,6 +312,17 @@ export default function App() {
     return wt?.id ?? null;
   };
 
+  const handleCreateWorktreeFromCustomTask = () => {
+    setActiveCreateTab('branch');
+    setSelection(null);
+    refetch();
+    refetchCustomTasks();
+  };
+
+  const handleViewWorktreeFromCustomTask = (worktreeId: string) => {
+    setActiveCreateTab('branch');
+    setSelection({ type: 'worktree', id: worktreeId });
+  };
 
   // Show welcome screen when no config (web mode) or no projects (Electron mode)
   if (showWelcomeScreen) {
@@ -403,6 +419,7 @@ export default function App() {
                 <CreateForm
                   jiraConfigured={jiraStatus?.configured ?? false}
                   linearConfigured={linearStatus?.configured ?? false}
+                  hasCustomTasks={customTasks.length > 0}
                   activeTab={activeCreateTab}
                   onTabChange={setActiveCreateTab}
                   onCreateWorktree={() => {
@@ -415,6 +432,10 @@ export default function App() {
                   }}
                   onCreateFromLinear={() => {
                     setCreateModalMode('linear');
+                    setShowCreateModal(true);
+                  }}
+                  onCreateCustomTask={() => {
+                    setCreateModalMode('custom');
                     setShowCreateModal(true);
                   }}
                   onNavigateToIntegrations={() => setActiveView('integrations')}
@@ -482,6 +503,11 @@ export default function App() {
                         onSelectLinear={(identifier) => setSelection({ type: 'linear-issue', identifier })}
                         onRefreshLinear={() => refetchLinearIssues()}
                         linearUpdatedAt={linearIssuesUpdatedAt}
+                        customTasks={customTasks}
+                        customTasksLoading={customTasksLoading}
+                        customTasksError={customTasksError}
+                        selectedCustomTaskId={selection?.type === 'custom-task' ? selection.id : null}
+                        onSelectCustomTask={(id) => setSelection({ type: 'custom-task', id })}
                         worktrees={worktrees}
                         onViewWorktree={handleViewWorktreeFromJira}
                       />
@@ -519,6 +545,13 @@ export default function App() {
                     onViewWorktree={handleViewWorktreeFromLinear}
                     refreshIntervalMinutes={linearRefreshIntervalMinutes}
                     onSetupNeeded={handleSetupNeeded}
+                  />
+                ) : selection?.type === 'custom-task' ? (
+                  <CustomTaskDetailPanel
+                    taskId={selection.id}
+                    onDeleted={() => setSelection(null)}
+                    onCreateWorktree={handleCreateWorktreeFromCustomTask}
+                    onViewWorktree={handleViewWorktreeFromCustomTask}
                   />
                 ) : (
                   <DetailPanel
@@ -571,12 +604,24 @@ export default function App() {
       )}
 
       {/* Create worktree modal */}
-      {showCreateModal && (
+      {showCreateModal && createModalMode !== 'custom' && (
         <CreateWorktreeModal
-          mode={createModalMode}
+          mode={createModalMode as 'branch' | 'jira' | 'linear'}
           onCreated={refetch}
           onClose={() => setShowCreateModal(false)}
           onSetupNeeded={handleSetupNeeded}
+        />
+      )}
+
+      {/* Create custom task modal */}
+      {showCreateModal && createModalMode === 'custom' && (
+        <CreateCustomTaskModal
+          onCreate={(data) => api.createCustomTask(data)}
+          onCreated={() => {
+            refetchCustomTasks();
+            setActiveCreateTab('issues');
+          }}
+          onClose={() => setShowCreateModal(false)}
         />
       )}
 

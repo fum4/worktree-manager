@@ -280,6 +280,58 @@ export const jiraStatus: Record<string, string> = {
   'resolved': 'text-emerald-400 bg-emerald-900/30',
 };
 
+// ─── Custom tasks ───────────────────────────────────────────────
+export const customTask = {
+  accent:          'text-amber-400',
+  accentBg:        'bg-amber-400/10',
+  accentBorder:    'border-amber-400/30',
+  badge:           'text-amber-400 bg-amber-900/30',
+  button:          'bg-amber-400/15 text-amber-400 hover:bg-amber-400/25 font-medium',
+  status: {
+    todo:          'text-[#6b7280] bg-white/[0.06]',
+    'in-progress': 'text-amber-400 bg-amber-900/30',
+    done:          'text-emerald-400 bg-emerald-900/30',
+  } as Record<string, string>,
+  priority: {
+    high:          'text-red-400',
+    medium:        'text-yellow-400',
+    low:           'text-blue-400',
+  } as Record<string, string>,
+  priorityDot: {
+    high:          'bg-red-400',
+    medium:        'bg-yellow-400',
+    low:           'bg-blue-400',
+  } as Record<string, string>,
+  labelColors: [
+    { text: 'text-rose-300',    bg: 'bg-rose-900/30' },
+    { text: 'text-sky-300',     bg: 'bg-sky-900/30' },
+    { text: 'text-emerald-300', bg: 'bg-emerald-900/30' },
+    { text: 'text-amber-300',   bg: 'bg-amber-900/30' },
+    { text: 'text-violet-300',  bg: 'bg-violet-900/30' },
+    { text: 'text-teal-300',    bg: 'bg-teal-900/30' },
+    { text: 'text-pink-300',    bg: 'bg-pink-900/30' },
+    { text: 'text-lime-300',    bg: 'bg-lime-900/30' },
+    { text: 'text-indigo-300',  bg: 'bg-indigo-900/30' },
+    { text: 'text-orange-300',  bg: 'bg-orange-900/30' },
+    { text: 'text-cyan-300',    bg: 'bg-cyan-900/30' },
+    { text: 'text-fuchsia-300', bg: 'bg-fuchsia-900/30' },
+    { text: 'text-red-300',     bg: 'bg-red-900/30' },
+    { text: 'text-green-300',   bg: 'bg-green-900/30' },
+    { text: 'text-blue-300',    bg: 'bg-blue-900/30' },
+    { text: 'text-purple-300',  bg: 'bg-purple-900/30' },
+    { text: 'text-yellow-300',  bg: 'bg-yellow-900/30' },
+  ],
+} as const;
+
+export function getLabelColor(label: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < label.length; i++) {
+    hash ^= label.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return customTask.labelColors[((hash >>> 0) % customTask.labelColors.length)];
+}
+
 // ─── Detail panel tabs (Logs / Terminal) ────────────────────────
 export const detailTab = {
   active:          'text-white bg-white/[0.08]',

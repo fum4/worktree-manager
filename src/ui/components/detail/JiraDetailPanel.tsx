@@ -242,20 +242,20 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
               >
                 {issue.key}
               </a>
-              <span className={`ml-2 text-[9px] font-medium px-1.5 py-0.5 rounded ${statusClasses}`}>
+              <span className={`ml-2 text-[11px] font-medium px-2 py-0.5 rounded ${statusClasses}`}>
                 {issue.status}
               </span>
-              <span className={`text-[9px] ${text.dimmed}`}>·</span>
-              <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${typeClasses}`}>
+              <span className={`text-[5px] ${text.dimmed}`}>●</span>
+              <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${typeClasses}`}>
                 {issue.type}
               </span>
               {issue.labels.map((label) => (
-                <span key={label} className={`text-[9px] font-medium px-1.5 py-0.5 rounded bg-white/[0.06] ${text.secondary}`}>
+                <span key={label} className={`text-[11px] font-medium px-2 py-0.5 rounded bg-white/[0.06] ${text.secondary}`}>
                   {label}
                 </span>
               ))}
-              <span className={`text-[9px] ${text.dimmed}`}>·</span>
-              <span className={`text-[10px] ${priorityClass}`}>{issue.priority}</span>
+              <span className={`text-[5px] ${text.dimmed}`}>●</span>
+              <span className={`text-[11px] ${priorityClass}`}>{issue.priority}</span>
               <button
                 type="button"
                 onClick={() => refetch()}
@@ -275,7 +275,7 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                   />
                 </svg>
                 {dataUpdatedAt > 0 && (
-                  <span className="text-[10px]">
+                  <span className="text-[11px]">
                     {formatTimeAgo(dataUpdatedAt)}
                   </span>
                 )}

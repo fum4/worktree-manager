@@ -9,11 +9,13 @@ interface ModalProps {
   footer?: React.ReactNode;
   onClose: () => void;
   onSubmit?: (e: React.FormEvent) => void;
-  width?: 'sm' | 'md';
+  width?: 'sm' | 'md' | 'lg';
 }
 
+const widthMap = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' } as const;
+
 export function Modal({ title, icon, children, footer, onClose, onSubmit, width = 'md' }: ModalProps) {
-  const widthClass = width === 'sm' ? 'max-w-sm' : 'max-w-lg';
+  const widthClass = widthMap[width];
 
   const content = (
     <>

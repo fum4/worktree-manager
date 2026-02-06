@@ -12,6 +12,8 @@ interface TerminalSession {
   worktreeId: string;
   pty: IPty;
   ws: WebSocket | null;
+  outputBuffer: string[];
+  bufferHandler: { dispose(): void } | null;
 }
 
 export class TerminalManager {
@@ -46,11 +48,18 @@ export class TerminalManager {
       } as Record<string, string>,
     });
 
+    const outputBuffer: string[] = [];
+    const bufferHandler = ptyProcess.onData((data: string) => {
+      outputBuffer.push(data);
+    });
+
     this.sessions.set(sessionId, {
       id: sessionId,
       worktreeId,
       pty: ptyProcess,
       ws: null,
+      outputBuffer,
+      bufferHandler,
     });
 
     ptyProcess.onExit(({ exitCode }) => {
@@ -74,6 +83,20 @@ export class TerminalManager {
     if (!session) return false;
 
     session.ws = ws;
+
+    // Stop buffering and replay any output captured before WS connected
+    if (session.bufferHandler) {
+      session.bufferHandler.dispose();
+      session.bufferHandler = null;
+    }
+    for (const chunk of session.outputBuffer) {
+      try {
+        if (ws.readyState === ws.OPEN) {
+          ws.send(chunk);
+        }
+      } catch { /* ws closed */ }
+    }
+    session.outputBuffer.length = 0;
 
     const dataHandler = session.pty.onData((data: string) => {
       try {

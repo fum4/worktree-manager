@@ -119,6 +119,10 @@ async function main() {
   }
 
   if (subcommand === 'mcp') {
+    // MCP uses stdout for JSON-RPC — redirect console.log to stderr
+    // BEFORE anything else runs (loadConfig logs to stdout)
+    console.log = console.error;
+
     const { config, configPath } = loadConfig();
     const { startMcpServer } = await import('../mcp');
     await startMcpServer(config, configPath);

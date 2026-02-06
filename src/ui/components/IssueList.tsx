@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 
-import type { JiraIssueSummary, LinearIssueSummary, WorktreeInfo } from '../types';
+import type { CustomTaskSummary, JiraIssueSummary, LinearIssueSummary, WorktreeInfo } from '../types';
 import { text } from '../theme';
+import { CustomTaskList } from './CustomTaskList';
 import { JiraIssueList } from './JiraIssueList';
 import { LinearIssueList } from './LinearIssueList';
 
@@ -75,6 +76,12 @@ interface IssueListProps {
   onSelectLinear: (identifier: string) => void;
   onRefreshLinear: () => void;
   linearUpdatedAt: number;
+  // Custom tasks
+  customTasks: CustomTaskSummary[];
+  customTasksLoading: boolean;
+  customTasksError: string | null;
+  selectedCustomTaskId: string | null;
+  onSelectCustomTask: (id: string) => void;
   // Shared
   worktrees: WorktreeInfo[];
   onViewWorktree: (worktreeId: string) => void;
@@ -98,12 +105,18 @@ export function IssueList({
   onSelectLinear,
   onRefreshLinear,
   linearUpdatedAt,
+  customTasks,
+  customTasksLoading,
+  customTasksError,
+  selectedCustomTaskId,
+  onSelectCustomTask,
   worktrees,
   onViewWorktree,
 }: IssueListProps) {
   const [linkedCollapsed, setLinkedCollapsed] = useState(false);
   const [jiraCollapsed, setJiraCollapsed] = useState(false);
   const [linearCollapsed, setLinearCollapsed] = useState(false);
+  const [customCollapsed, setCustomCollapsed] = useState(false);
 
   // Build map of issueKey -> worktreeId (Jira)
   const linkedJiraWorktrees = useMemo(() => {
@@ -150,7 +163,16 @@ export function IssueList({
     [linearIssues, linkedLinearWorktrees]
   );
 
-  const allLinkedCount = linkedJiraIssues.length + linkedLinearIssues.length;
+  const linkedCustomTasks = useMemo(
+    () => customTasks.filter((t) => t.linkedWorktreeId !== null),
+    [customTasks]
+  );
+  const unlinkedCustomTasks = useMemo(
+    () => customTasks.filter((t) => t.linkedWorktreeId === null),
+    [customTasks]
+  );
+
+  const allLinkedCount = linkedJiraIssues.length + linkedLinearIssues.length + linkedCustomTasks.length;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -193,6 +215,16 @@ export function IssueList({
                     isFetching={false}
                     error={null}
                     linkedWorktrees={linkedLinearWorktrees}
+                    onViewWorktree={onViewWorktree}
+                  />
+                )}
+                {linkedCustomTasks.length > 0 && (
+                  <CustomTaskList
+                    tasks={linkedCustomTasks}
+                    selectedId={selectedCustomTaskId}
+                    onSelect={onSelectCustomTask}
+                    isLoading={false}
+                    error={null}
                     onViewWorktree={onViewWorktree}
                   />
                 )}
@@ -297,6 +329,35 @@ export function IssueList({
                 isFetching={linearFetching}
                 error={linearError}
                 linkedWorktrees={linkedLinearWorktrees}
+                onViewWorktree={onViewWorktree}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Custom tasks section */}
+        {(unlinkedCustomTasks.length > 0 || customTasksLoading || customTasksError) && (
+          <div>
+            <div
+              className="w-full px-3 py-1.5 mb-px flex items-center gap-2 hover:bg-white/[0.03] transition-colors duration-150 cursor-pointer"
+              onClick={() => setCustomCollapsed(!customCollapsed)}
+            >
+              <ChevronIcon collapsed={customCollapsed} />
+              <span className={`text-[11px] font-medium ${text.secondary}`}>Local</span>
+              {!customTasksLoading && unlinkedCustomTasks.length > 0 && (
+                <span className={`text-[10px] ${text.dimmed} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+                  {unlinkedCustomTasks.length}
+                </span>
+              )}
+            </div>
+
+            {!customCollapsed && (
+              <CustomTaskList
+                tasks={unlinkedCustomTasks}
+                selectedId={selectedCustomTaskId}
+                onSelect={onSelectCustomTask}
+                isLoading={customTasksLoading}
+                error={customTasksError}
                 onViewWorktree={onViewWorktree}
               />
             )}

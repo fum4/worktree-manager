@@ -20,9 +20,6 @@ function buildJsonSchema(params: Record<string, { type: string; description: str
 }
 
 export async function startMcpServer(config: WorktreeConfig, configFilePath: string | null) {
-  // MCP uses stdout for JSON-RPC — redirect console.log to stderr
-  console.log = console.error;
-
   const manager = new WorktreeManager(config, configFilePath);
   await manager.initGitHub();
 

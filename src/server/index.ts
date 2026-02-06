@@ -16,6 +16,7 @@ import { registerJiraRoutes } from './routes/jira';
 import { registerLinearRoutes } from './routes/linear';
 import { registerEventRoutes } from './routes/events';
 import { registerMcpRoutes } from './routes/mcp';
+import { registerTaskRoutes } from './routes/tasks';
 import { registerTerminalRoutes } from './routes/terminal';
 import { TerminalManager } from './terminal-manager';
 import type { WorktreeConfig } from './types';
@@ -47,6 +48,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerLinearRoutes(app, manager);
   registerEventRoutes(app, manager);
   registerMcpRoutes(app, manager);
+  registerTaskRoutes(app, manager);
   registerTerminalRoutes(app, terminalManager, manager, upgradeWebSocket);
 
   app.use('/*', serveStatic({ root: uiDir }));

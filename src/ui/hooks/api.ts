@@ -1,4 +1,4 @@
-import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail } from '../types';
+import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail } from '../types';
 
 // API functions now accept an optional serverUrl parameter
 // When null/undefined, they use relative URLs (for single-project web mode)
@@ -825,5 +825,111 @@ export async function initConfig(
     return await res.json();
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to initialize config' };
+  }
+}
+
+// -- Custom Tasks API --
+
+export async function fetchCustomTasks(
+  serverUrl: string | null = null,
+): Promise<{ tasks: CustomTaskSummary[]; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks`);
+    return await res.json();
+  } catch (err) {
+    return {
+      tasks: [],
+      error: err instanceof Error ? err.message : 'Failed to fetch tasks',
+    };
+  }
+}
+
+export async function fetchCustomTaskDetail(
+  id: string,
+  serverUrl: string | null = null,
+): Promise<{ task?: CustomTaskDetail; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(id)}`);
+    return await res.json();
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'Failed to fetch task detail',
+    };
+  }
+}
+
+export async function createCustomTask(
+  data: { title: string; description?: string; priority?: string; labels?: string[] },
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; task?: CustomTaskDetail; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create task',
+    };
+  }
+}
+
+export async function updateCustomTask(
+  id: string,
+  updates: Record<string, unknown>,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; task?: CustomTaskDetail; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to update task',
+    };
+  }
+}
+
+export async function deleteCustomTask(
+  id: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to delete task',
+    };
+  }
+}
+
+export async function createWorktreeFromCustomTask(
+  id: string,
+  branch?: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; worktreeId?: string; error?: string; code?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(id)}/create-worktree`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ branch }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create worktree from task',
+    };
   }
 }

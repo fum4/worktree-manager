@@ -37,14 +37,16 @@ export function WorktreeList({ worktrees, selectedId, onSelect, filter = '' }: W
             <p className={`${text.muted} text-xs`}>No matches</p>
           </div>
         ) : (
-          filtered.map((worktree) => (
+          <div className="space-y-px">
+          {filtered.map((worktree) => (
             <WorktreeItem
               key={worktree.id}
               worktree={worktree}
               isSelected={worktree.id === selectedId}
               onSelect={() => onSelect(worktree.id)}
             />
-          ))
+          ))}
+          </div>
         )}
       </div>
     </div>

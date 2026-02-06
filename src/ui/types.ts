@@ -90,6 +90,22 @@ export interface LinearIssueDetail extends LinearIssueSummary {
   comments: Array<{ author: string; body: string; createdAt: string }>;
 }
 
+export interface CustomTaskSummary {
+  id: string;
+  identifier: string;
+  title: string;
+  status: 'todo' | 'in-progress' | 'done';
+  priority: 'high' | 'medium' | 'low';
+  labels: string[];
+  linkedWorktreeId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomTaskDetail extends CustomTaskSummary {
+  description: string;
+}
+
 export interface JiraIssueDetail {
   key: string;
   summary: string;

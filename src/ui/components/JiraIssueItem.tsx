@@ -1,6 +1,6 @@
 import { GitBranch } from 'lucide-react';
 import type { JiraIssueSummary } from '../types';
-import { border, jiraStatus, surface, text } from '../theme';
+import { jiraPriority, jiraStatus, surface, text } from '../theme';
 
 interface JiraIssueItemProps {
   issue: JiraIssueSummary;
@@ -18,20 +18,23 @@ export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, o
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full px-3 py-2.5 text-left transition-colors duration-150 border-l ${
+      className={`w-full px-3 py-2.5 text-left transition-colors duration-150 border-l-2 ${
         isSelected
-          ? `${surface.panelSelected} ${border.accent}`
+          ? `${surface.panelSelected} border-blue-400/60`
           : `border-transparent hover:${surface.panelHover}`
       }`}
     >
       <div className="flex items-start gap-1.5">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className={`text-[11px] font-semibold ${text.secondary} flex-shrink-0`}>
+            <span className={`text-[11px] font-semibold text-blue-400 flex-shrink-0`}>
               {issue.key}
             </span>
             <span className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>
               {issue.status}
+            </span>
+            <span className={`text-[10px] ${jiraPriority[issue.priority.toLowerCase()] ?? text.muted}`}>
+              {issue.priority}
             </span>
           </div>
           <div className={`text-xs ${text.primary} truncate mt-0.5`}>

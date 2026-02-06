@@ -1,20 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import { GitBranch, Plus, Ticket } from 'lucide-react';
+import { FileText, GitBranch, Plus, Ticket } from 'lucide-react';
 
 import { surface, tab, text } from '../theme';
 
 interface CreateFormProps {
   jiraConfigured: boolean;
   linearConfigured: boolean;
+  hasCustomTasks: boolean;
   activeTab: 'branch' | 'issues';
   onTabChange: (tab: 'branch' | 'issues') => void;
   onCreateWorktree: () => void;
   onCreateFromJira: () => void;
   onCreateFromLinear: () => void;
+  onCreateCustomTask: () => void;
   onNavigateToIntegrations: () => void;
 }
 
-export function CreateForm({ jiraConfigured, linearConfigured, activeTab, onTabChange, onCreateWorktree, onCreateFromJira, onCreateFromLinear, onNavigateToIntegrations }: CreateFormProps) {
+export function CreateForm({ jiraConfigured, linearConfigured, hasCustomTasks, activeTab, onTabChange, onCreateWorktree, onCreateFromJira, onCreateFromLinear, onCreateCustomTask, onNavigateToIntegrations }: CreateFormProps) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -41,7 +43,7 @@ export function CreateForm({ jiraConfigured, linearConfigured, activeTab, onTabC
 
   return (
     <div className="px-3 pt-3.5 pb-2 flex items-center justify-between gap-2">
-      {(jiraConfigured || linearConfigured) ? (
+      {(jiraConfigured || linearConfigured || hasCustomTasks) ? (
         <div className="flex gap-1">
           <button
             type="button"
@@ -93,30 +95,83 @@ export function CreateForm({ jiraConfigured, linearConfigured, activeTab, onTabC
               <GitBranch className="w-4 h-4" />
               Create worktree
             </button>
+            <div className="border-t border-white/[0.06]" />
             <button
               type="button"
               onClick={() => {
                 setShowMenu(false);
-                jiraConfigured ? onCreateFromJira() : onNavigateToIntegrations();
+                onCreateCustomTask();
               }}
               className={menuItemClass}
             >
-              <Ticket className="w-4 h-4" />
-              {jiraConfigured ? 'Pull from Jira' : 'Configure Jira'}
+              <FileText className="w-4 h-4" />
+              Create task
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowMenu(false);
-                linearConfigured ? onCreateFromLinear() : onNavigateToIntegrations();
-              }}
-              className={menuItemClass}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              </svg>
-              {linearConfigured ? 'Pull from Linear' : 'Configure Linear'}
-            </button>
+            {(jiraConfigured || linearConfigured) && (
+              <>
+                {jiraConfigured && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onCreateFromJira();
+                    }}
+                    className={menuItemClass}
+                  >
+                    <Ticket className="w-4 h-4" />
+                    Pull from Jira
+                  </button>
+                )}
+                {linearConfigured && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onCreateFromLinear();
+                    }}
+                    className={menuItemClass}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                    Pull from Linear
+                  </button>
+                )}
+              </>
+            )}
+            {(!jiraConfigured || !linearConfigured) && (
+              <>
+                <div className="border-t border-white/[0.06]" />
+                {!jiraConfigured && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onNavigateToIntegrations();
+                    }}
+                    className={menuItemClass}
+                  >
+                    <Ticket className="w-4 h-4" />
+                    Configure Jira
+                  </button>
+                )}
+                {!linearConfigured && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onNavigateToIntegrations();
+                    }}
+                    className={menuItemClass}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                    Configure Linear
+                  </button>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

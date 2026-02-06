@@ -108,6 +108,24 @@ export function useApi() {
 
       initConfig: (config: Partial<api.DetectedConfig>) =>
         api.initConfig(config, serverUrl),
+
+      fetchCustomTasks: () =>
+        api.fetchCustomTasks(serverUrl),
+
+      fetchCustomTaskDetail: (id: string) =>
+        api.fetchCustomTaskDetail(id, serverUrl),
+
+      createCustomTask: (data: { title: string; description?: string; priority?: string; labels?: string[] }) =>
+        api.createCustomTask(data, serverUrl),
+
+      updateCustomTask: (id: string, updates: Record<string, unknown>) =>
+        api.updateCustomTask(id, updates, serverUrl),
+
+      deleteCustomTask: (id: string) =>
+        api.deleteCustomTask(id, serverUrl),
+
+      createWorktreeFromCustomTask: (id: string, branch?: string) =>
+        api.createWorktreeFromCustomTask(id, branch, serverUrl),
     }),
     [serverUrl],
   );

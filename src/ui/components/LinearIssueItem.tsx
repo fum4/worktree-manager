@@ -1,6 +1,6 @@
 import { GitBranch } from 'lucide-react';
 import type { LinearIssueSummary } from '../types';
-import { border, linearStateType, surface, text } from '../theme';
+import { linearPriority, linearStateType, surface, text } from '../theme';
 
 interface LinearIssueItemProps {
   issue: LinearIssueSummary;
@@ -18,21 +18,26 @@ export function LinearIssueItem({ issue, isSelected, onSelect, linkedWorktreeId,
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full px-3 py-2.5 text-left transition-colors duration-150 border-l ${
+      className={`w-full px-3 py-2.5 text-left transition-colors duration-150 border-l-2 ${
         isSelected
-          ? `${surface.panelSelected} ${border.accent}`
+          ? `${surface.panelSelected} border-[#5E6AD2]/60`
           : `border-transparent hover:${surface.panelHover}`
       }`}
     >
       <div className="flex items-start gap-1.5">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className={`text-[11px] font-semibold ${text.secondary} flex-shrink-0`}>
+            <span className={`text-[11px] font-semibold text-[#5E6AD2] flex-shrink-0`}>
               {issue.identifier}
             </span>
             <span className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${stateClasses}`}>
               {issue.state.name}
             </span>
+            {linearPriority[issue.priority] && (
+              <span className={`text-[10px] ${linearPriority[issue.priority].color}`}>
+                {linearPriority[issue.priority].label}
+              </span>
+            )}
           </div>
           <div className={`text-xs ${text.primary} truncate mt-0.5`}>
             {issue.title}

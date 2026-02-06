@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Notes
+
+- **No backwards compatibility needed.** There are no users — data gets deleted and recreated from scratch. Don't add migration code, backfill logic, or compatibility shims.
+
 ## What This Is
 
 wok3 is a CLI tool + web UI (with optional Electron app) for managing multiple git worktrees with automatic port offsetting and Jira/GitHub integrations. It solves port conflicts when running multiple dev server instances concurrently by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime via `--require`.
