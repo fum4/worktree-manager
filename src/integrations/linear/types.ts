@@ -1,0 +1,63 @@
+// -- Config types (split across config.json and credentials.json) --
+
+export interface LinearProjectConfig {
+  defaultTeamKey?: string;
+  refreshIntervalMinutes?: number;
+}
+
+export interface LinearCredentials {
+  apiKey: string;
+}
+
+// -- Data types --
+
+export interface LinearState {
+  name: string;
+  type: string;
+  color: string;
+}
+
+export interface LinearLabel {
+  name: string;
+  color: string;
+}
+
+export interface LinearComment {
+  author: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface LinearIssueSummary {
+  identifier: string;
+  title: string;
+  state: LinearState;
+  priority: number;
+  assignee: string | null;
+  updatedAt: string;
+  labels: LinearLabel[];
+  url: string;
+}
+
+export interface LinearIssueDetail extends LinearIssueSummary {
+  description: string | null;
+  createdAt: string;
+  comments: LinearComment[];
+}
+
+export interface LinearTaskData {
+  source: 'linear';
+  identifier: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: number;
+  assignee: string | null;
+  labels: LinearLabel[];
+  createdAt: string;
+  updatedAt: string;
+  comments: LinearComment[];
+  linkedWorktree: string | null;
+  fetchedAt: string;
+  url: string;
+}

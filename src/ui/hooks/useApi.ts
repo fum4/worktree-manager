@@ -76,6 +76,18 @@ export function useApi() {
       disconnectJira: () =>
         api.disconnectJira(serverUrl),
 
+      createFromLinear: (identifier: string, branch?: string) =>
+        api.createFromLinear(identifier, branch, serverUrl),
+
+      setupLinear: (apiKey: string) =>
+        api.setupLinear(apiKey, serverUrl),
+
+      updateLinearConfig: (defaultTeamKey: string, refreshIntervalMinutes?: number) =>
+        api.updateLinearConfig(defaultTeamKey, refreshIntervalMinutes, serverUrl),
+
+      disconnectLinear: () =>
+        api.disconnectLinear(serverUrl),
+
       fetchSetupStatus: () =>
         api.fetchSetupStatus(serverUrl),
 

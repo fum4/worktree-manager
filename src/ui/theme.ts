@@ -189,6 +189,9 @@ export const badge = {
   jira:            'text-blue-400',
   jiraHover:       'hover:text-blue-300',
   jiraStatus:      'bg-blue-900/30',
+  linear:          'text-[#5E6AD2]',
+  linearHover:     'hover:text-[#7B85E0]',
+  linearStatus:    'bg-[#5E6AD2]/20',
   prOpen:          'text-emerald-400 bg-emerald-900/30',
   prDraft:         'text-[#9ca3af] bg-white/[0.06]',
   prMerged:        'text-purple-400 bg-purple-900/30',
@@ -230,12 +233,51 @@ export const jiraPriority: Record<string, string> = {
   lowest: 'text-blue-400',
 };
 
+// ─── Linear priority / state type ───────────────────────────────
+export const linearPriority: Record<number, { label: string; color: string }> = {
+  0: { label: 'None', color: 'text-[#6b7280]' },
+  1: { label: 'Urgent', color: 'text-red-400' },
+  2: { label: 'High', color: 'text-orange-400' },
+  3: { label: 'Medium', color: 'text-yellow-400' },
+  4: { label: 'Low', color: 'text-blue-400' },
+};
+
+export const linearStateType: Record<string, string> = {
+  backlog: 'text-[#6b7280] bg-white/[0.06]',
+  unstarted: 'text-[#6b7280] bg-white/[0.06]',
+  started: 'text-yellow-400 bg-yellow-900/30',
+  completed: 'text-emerald-400 bg-emerald-900/30',
+  cancelled: 'text-red-400 bg-red-900/30',
+  canceled: 'text-red-400 bg-red-900/30',
+};
+
 export const jiraType: Record<string, string> = {
   bug: 'text-red-400 bg-red-900/30',
   story: 'text-emerald-400 bg-emerald-900/30',
   task: 'text-blue-400 bg-blue-900/30',
   subtask: 'text-[#9ca3af] bg-white/[0.06]',
   epic: 'text-purple-400 bg-purple-900/30',
+};
+
+export const jiraTypeColor: Record<string, string> = {
+  bug: 'text-red-400',
+  story: 'text-emerald-400',
+  task: 'text-blue-400',
+  subtask: 'text-[#9ca3af]',
+  epic: 'text-purple-400',
+};
+
+export const jiraStatus: Record<string, string> = {
+  'to do': 'text-[#6b7280] bg-white/[0.06]',
+  'open': 'text-[#6b7280] bg-white/[0.06]',
+  'backlog': 'text-[#6b7280] bg-white/[0.06]',
+  'reopened': 'text-[#6b7280] bg-white/[0.06]',
+  'in progress': 'text-yellow-400 bg-yellow-900/30',
+  'in review': 'text-blue-400 bg-blue-900/30',
+  'review': 'text-blue-400 bg-blue-900/30',
+  'done': 'text-emerald-400 bg-emerald-900/30',
+  'closed': 'text-emerald-400 bg-emerald-900/30',
+  'resolved': 'text-emerald-400 bg-emerald-900/30',
 };
 
 // ─── Detail panel tabs (Logs / Terminal) ────────────────────────

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import type { WorktreeInfo, PortsInfo, JiraStatus, GitHubStatus } from '../types';
+import type { WorktreeInfo, PortsInfo, JiraStatus, GitHubStatus, LinearStatus } from '../types';
 import { useServerUrlOptional } from '../contexts/ServerContext';
 import {
   fetchWorktrees as apiFetchWorktrees,
@@ -8,6 +8,7 @@ import {
   fetchPorts as apiFetchPorts,
   fetchJiraStatus as apiFetchJiraStatus,
   fetchGitHubStatus as apiFetchGitHubStatus,
+  fetchLinearStatus as apiFetchLinearStatus,
   fetchConfig as apiFetchConfig,
 } from './api';
 
@@ -136,6 +137,27 @@ export function useJiraStatus() {
   const refetch = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   return { jiraStatus, refetchJiraStatus: refetch };
+}
+
+export function useLinearStatus() {
+  const serverUrl = useServerUrlOptional();
+  const [linearStatus, setLinearStatus] = useState<LinearStatus | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    if (serverUrl === null) {
+      setLinearStatus(null);
+      return;
+    }
+
+    apiFetchLinearStatus(serverUrl)
+      .then((data) => setLinearStatus(data))
+      .catch(() => {});
+  }, [refreshKey, serverUrl]);
+
+  const refetch = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  return { linearStatus, refetchLinearStatus: refetch };
 }
 
 export function useGitHubStatus() {

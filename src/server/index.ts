@@ -12,6 +12,7 @@ import { registerWorktreeRoutes } from './routes/worktrees';
 import { registerConfigRoutes } from './routes/config';
 import { registerGitHubRoutes } from './routes/github';
 import { registerJiraRoutes } from './routes/jira';
+import { registerLinearRoutes } from './routes/linear';
 import { registerEventRoutes } from './routes/events';
 import { registerTerminalRoutes } from './routes/terminal';
 import { TerminalManager } from './terminal-manager';
@@ -41,6 +42,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerConfigRoutes(app, manager);
   registerGitHubRoutes(app, manager);
   registerJiraRoutes(app, manager);
+  registerLinearRoutes(app, manager);
   registerEventRoutes(app, manager);
   registerTerminalRoutes(app, terminalManager, manager, upgradeWebSocket);
 

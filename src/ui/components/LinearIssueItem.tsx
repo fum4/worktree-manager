@@ -1,18 +1,18 @@
 import { GitBranch } from 'lucide-react';
-import type { JiraIssueSummary } from '../types';
-import { border, jiraStatus, surface, text } from '../theme';
+import type { LinearIssueSummary } from '../types';
+import { border, linearStateType, surface, text } from '../theme';
 
-interface JiraIssueItemProps {
-  issue: JiraIssueSummary;
+interface LinearIssueItemProps {
+  issue: LinearIssueSummary;
   isSelected: boolean;
   onSelect: () => void;
   linkedWorktreeId?: string;
   onViewWorktree?: (worktreeId: string) => void;
 }
 
-export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, onViewWorktree }: JiraIssueItemProps) {
-  const statusLower = issue.status.toLowerCase();
-  const statusClasses = jiraStatus[statusLower] ?? `${text.secondary} bg-white/[0.06]`;
+export function LinearIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, onViewWorktree }: LinearIssueItemProps) {
+  const stateTypeLower = issue.state.type.toLowerCase();
+  const stateClasses = linearStateType[stateTypeLower] ?? `${text.secondary} bg-white/[0.06]`;
 
   return (
     <button
@@ -26,15 +26,15 @@ export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, o
     >
       <div className="flex items-center gap-1.5">
         <span className={`text-[11px] font-semibold ${text.secondary} flex-shrink-0`}>
-          {issue.key}
+          {issue.identifier}
         </span>
-        <span className={`ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>
-          {issue.status}
+        <span className={`ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${stateClasses}`}>
+          {issue.state.name}
         </span>
       </div>
       <div className="flex items-center gap-1.5 mt-0.5">
         <div className={`text-xs ${text.primary} truncate flex-1 min-w-0`}>
-          {issue.summary}
+          {issue.title}
         </div>
         {linkedWorktreeId && (
           <button

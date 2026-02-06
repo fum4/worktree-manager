@@ -2,10 +2,10 @@ import { Check, Copy, Unplug, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useApi } from '../hooks/useApi';
-import { fetchGitHubStatus, fetchJiraStatus } from '../hooks/api';
-import { useGitHubStatus, useJiraStatus } from '../hooks/useWorktrees';
+import { fetchGitHubStatus, fetchJiraStatus, fetchLinearStatus } from '../hooks/api';
+import { useGitHubStatus, useJiraStatus, useLinearStatus } from '../hooks/useWorktrees';
 import { useServerUrlOptional } from '../contexts/ServerContext';
-import type { GitHubStatus, JiraStatus } from '../types';
+import type { GitHubStatus, JiraStatus, LinearStatus } from '../types';
 import { button, infoBanner, input, settings, surface, text } from '../theme';
 import { GitHubSetupModal } from './GitHubSetupModal';
 import { Spinner } from './Spinner';
@@ -510,6 +510,205 @@ function JiraCard({
   );
 }
 
+function LinearCard({
+  status,
+  onStatusChange,
+}: {
+  status: LinearStatus | null;
+  onStatusChange: () => void;
+}) {
+  const api = useApi();
+  const [showSetup, setShowSetup] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [teamKey, setTeamKey] = useState('');
+  const [refreshInterval, setRefreshInterval] = useState(5);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    if (status?.defaultTeamKey) {
+      setTeamKey(status.defaultTeamKey);
+    }
+    if (status?.refreshIntervalMinutes) {
+      setRefreshInterval(status.refreshIntervalMinutes);
+    }
+  }, [status?.defaultTeamKey, status?.refreshIntervalMinutes]);
+
+  const handleConnect = async () => {
+    if (!apiKey) return;
+    setSaving(true);
+    setFeedback(null);
+    const result = await api.setupLinear(apiKey);
+    setSaving(false);
+    if (result.success) {
+      setShowSetup(false);
+      setApiKey('');
+      onStatusChange();
+    } else {
+      setFeedback({ type: 'error', message: result.error ?? 'Failed to connect' });
+    }
+    setTimeout(() => setFeedback(null), 4000);
+  };
+
+  const handleDisconnect = async () => {
+    setSaving(true);
+    const result = await api.disconnectLinear();
+    setSaving(false);
+    if (result.success) {
+      onStatusChange();
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    setSaving(true);
+    setFeedback(null);
+    const result = await api.updateLinearConfig(teamKey, refreshInterval);
+    setSaving(false);
+    if (result.success) {
+      setFeedback({ type: 'success', message: 'Settings saved' });
+      onStatusChange();
+    } else {
+      setFeedback({ type: 'error', message: result.error ?? 'Failed to save' });
+    }
+    setTimeout(() => setFeedback(null), 3000);
+  };
+
+  const isConfigured = status?.configured ?? false;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isConfigured ? 'bg-[#5E6AD2]/10' : 'bg-white/[0.04]'}`}>
+          <svg className={`w-4 h-4 ${isConfigured ? 'text-[#5E6AD2]' : text.muted}`} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </svg>
+        </div>
+        <div>
+          <h3 className={`text-xs font-semibold ${text.primary}`}>Linear</h3>
+          <span className={`text-[10px] ${isConfigured ? 'text-[#5E6AD2]' : text.dimmed}`}>
+            {isConfigured ? 'Connected' : 'Not connected'}
+          </span>
+        </div>
+      </div>
+
+      {status === null ? (
+        <span className={`flex items-center gap-2 text-xs ${text.muted}`}>
+          <Spinner size="xs" />
+          Loading...
+        </span>
+      ) : isConfigured ? (
+        <div className="flex flex-col gap-3">
+          {status.displayName && <StatusRow label="User" ok={true} value={status.displayName} />}
+
+          <div className="flex gap-3 items-end mt-2">
+            <div className="flex flex-col gap-1.5 w-28">
+              <label className={`text-[10px] ${settings.label}`}>Team Key</label>
+              <input
+                value={teamKey}
+                onChange={(e) => setTeamKey(e.target.value.toUpperCase())}
+                placeholder="ENG"
+                className={integrationInput}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5 w-28">
+              <label className={`text-[10px] ${settings.label}`}>Refresh (min)</label>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={refreshInterval}
+                onChange={(e) => setRefreshInterval(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+                className={integrationInput}
+              />
+            </div>
+            <button
+              onClick={handleSaveConfig}
+              disabled={saving || (teamKey === (status.defaultTeamKey ?? '') && refreshInterval === (status.refreshIntervalMinutes ?? 5))}
+              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.primary} disabled:opacity-50 transition-colors duration-150 w-28`}
+            >
+              Apply
+            </button>
+          </div>
+
+          <button
+            onClick={handleDisconnect}
+            disabled={saving}
+            className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150 self-start mt-2`}
+          >
+            <Unplug className="w-3 h-3" />
+            Disconnect
+          </button>
+        </div>
+      ) : showSetup ? (
+        <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-1">
+            <label className={`text-[10px] ${settings.label}`}>API Key</label>
+            <div className="relative">
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="lin_api_..."
+                className={`${integrationInput} w-full pr-16`}
+              />
+              <a
+                href="https://linear.app/settings/account/security/api-keys/new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 text-[10px] font-medium bg-white/[0.06] text-[#9ca3af] hover:bg-white/[0.10] hover:text-white rounded transition-colors"
+              >
+                Create
+              </a>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleConnect}
+              disabled={saving || !apiKey}
+              className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} disabled:opacity-50 transition-all duration-150 active:scale-[0.98]`}
+            >
+              {saving ? (
+                <span className="flex items-center gap-1.5">
+                  <Spinner size="xs" />
+                  Connecting...
+                </span>
+              ) : 'Connect'}
+            </button>
+            <button
+              onClick={() => setShowSetup(false)}
+              className={`text-[11px] px-3 py-1.5 rounded-md ${button.secondary} transition-colors duration-150`}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
+            Connect Linear to create worktrees directly from issues and track status.
+          </p>
+          <button
+            onClick={() => setShowSetup(true)}
+            className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} self-start transition-all duration-150 active:scale-[0.98]`}
+          >
+            Set up Linear
+          </button>
+        </div>
+      )}
+
+      {feedback && (
+        <span
+          className={`text-[11px] ${
+            feedback.type === 'success' ? 'text-accent' : text.error
+          }`}
+        >
+          {feedback.message}
+        </span>
+      )}
+    </div>
+  );
+}
+
 type AgentId = 'claude' | 'gemini' | 'codex' | 'cursor' | 'vscode';
 
 interface AgentConfig {
@@ -696,22 +895,26 @@ function CodingAgentsCard() {
 
 interface IntegrationsPanelProps {
   onJiraStatusChange?: () => void;
+  onLinearStatusChange?: () => void;
 }
 
 const BANNER_DISMISSED_KEY = 'wok3-integrations-banner-dismissed';
 
-export function IntegrationsPanel({ onJiraStatusChange }: IntegrationsPanelProps) {
+export function IntegrationsPanel({ onJiraStatusChange, onLinearStatusChange }: IntegrationsPanelProps) {
   const serverUrl = useServerUrlOptional();
   const githubStatus = useGitHubStatus();
   const { jiraStatus } = useJiraStatus();
+  const { linearStatus } = useLinearStatus();
   const [githubRefreshKey, setGithubRefreshKey] = useState(0);
   const [jiraRefreshKey, setJiraRefreshKey] = useState(0);
+  const [linearRefreshKey, setLinearRefreshKey] = useState(0);
   const [showBanner, setShowBanner] = useState(() => {
     return localStorage.getItem(BANNER_DISMISSED_KEY) !== 'true';
   });
 
   const [currentGithubStatus, setCurrentGithubStatus] = useState<GitHubStatus | null>(null);
   const [currentJiraStatus, setCurrentJiraStatus] = useState<JiraStatus | null>(null);
+  const [currentLinearStatus, setCurrentLinearStatus] = useState<LinearStatus | null>(null);
 
   const dismissBanner = () => {
     setShowBanner(false);
@@ -725,6 +928,10 @@ export function IntegrationsPanel({ onJiraStatusChange }: IntegrationsPanelProps
   useEffect(() => {
     setCurrentJiraStatus(jiraStatus);
   }, [jiraStatus]);
+
+  useEffect(() => {
+    setCurrentLinearStatus(linearStatus);
+  }, [linearStatus]);
 
   useEffect(() => {
     if (githubRefreshKey === 0) return;
@@ -742,6 +949,16 @@ export function IntegrationsPanel({ onJiraStatusChange }: IntegrationsPanelProps
       })
       .catch(() => {});
   }, [jiraRefreshKey, onJiraStatusChange, serverUrl]);
+
+  useEffect(() => {
+    if (linearRefreshKey === 0) return;
+    fetchLinearStatus(serverUrl)
+      .then((d) => {
+        setCurrentLinearStatus(d);
+        onLinearStatusChange?.();
+      })
+      .catch(() => {});
+  }, [linearRefreshKey, onLinearStatusChange, serverUrl]);
 
   return (
     <div className="flex-1 overflow-auto">
@@ -769,6 +986,12 @@ export function IntegrationsPanel({ onJiraStatusChange }: IntegrationsPanelProps
           <JiraCard
             status={currentJiraStatus}
             onStatusChange={() => setJiraRefreshKey((k) => k + 1)}
+          />
+        </div>
+        <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
+          <LinearCard
+            status={currentLinearStatus}
+            onStatusChange={() => setLinearRefreshKey((k) => k + 1)}
           />
         </div>
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>

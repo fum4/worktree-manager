@@ -163,4 +163,15 @@ export const actions: Action[] = [
       return ctx.manager.createWorktreeFromJira(issueKey);
     },
   },
+  {
+    name: 'create_from_linear',
+    description: 'Create a worktree from a Linear issue identifier (fetches issue, saves task data, creates worktree)',
+    params: {
+      identifier: { type: 'string', description: 'Linear issue identifier (e.g. ENG-123 or just 123 if default team is configured)', required: true },
+    },
+    handler: async (ctx, params) => {
+      const identifier = params.identifier as string;
+      return ctx.manager.createWorktreeFromLinear(identifier);
+    },
+  },
 ];

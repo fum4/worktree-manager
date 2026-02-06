@@ -8,7 +8,7 @@ import { Modal } from './Modal';
 import { WorktreeExistsModal } from './WorktreeExistsModal';
 
 interface CreateWorktreeModalProps {
-  mode: 'branch' | 'jira';
+  mode: 'branch' | 'jira' | 'linear';
   onCreated: () => void;
   onClose: () => void;
   onSetupNeeded?: () => void;
@@ -38,6 +38,11 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
   const [jiraBranch, setJiraBranch] = useState('');
   const [jiraBranchManuallyEdited, setJiraBranchManuallyEdited] = useState(false);
 
+  // Linear form state
+  const [linearId, setLinearId] = useState('');
+  const [linearBranch, setLinearBranch] = useState('');
+  const [linearBranchManuallyEdited, setLinearBranchManuallyEdited] = useState(false);
+
   // Worktree exists modal state
   const [existingWorktree, setExistingWorktree] = useState<{ id: string; branch: string } | null>(null);
 
@@ -57,6 +62,12 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
     }
   }, [taskId, jiraBranchManuallyEdited, mode]);
 
+  useEffect(() => {
+    if (mode === 'linear' && !linearBranchManuallyEdited) {
+      setLinearBranch(linearId.trim());
+    }
+  }, [linearId, linearBranchManuallyEdited, mode]);
+
   const handleBranchChange = (value: string) => {
     setBranch(value);
     setBranchManuallyEdited(true);
@@ -65,6 +76,11 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
   const handleJiraBranchChange = (value: string) => {
     setJiraBranch(value);
     setJiraBranchManuallyEdited(true);
+  };
+
+  const handleLinearBranchChange = (value: string) => {
+    setLinearBranch(value);
+    setLinearBranchManuallyEdited(true);
   };
 
   const handleBranchSubmit = async (e: React.FormEvent) => {
@@ -119,18 +135,44 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
     }
   };
 
+  const handleLinearSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linearId.trim() || isCreating) return;
+
+    setIsCreating(true);
+    setError(null);
+
+    const result = await api.createFromLinear(linearId.trim(), linearBranch.trim() || undefined);
+    setIsCreating(false);
+
+    if (result.success) {
+      onCreated();
+      onClose();
+    } else if (result.code === 'WORKTREE_EXISTS' && result.worktreeId) {
+      setExistingWorktree({ id: result.worktreeId, branch: linearBranch.trim() || linearId.trim() });
+    } else {
+      const errorMsg = result.error || 'Failed to create from Linear';
+      if (errorMsg.includes('no commits') || errorMsg.includes('invalid reference')) {
+        onClose();
+        onSetupNeeded?.();
+      } else {
+        setError(errorMsg);
+      }
+    }
+  };
+
   const inputClass = `w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`;
 
   return (
     <>
       <Modal
-        title={mode === 'branch' ? 'Create Worktree' : 'Pull from Jira'}
+        title={mode === 'branch' ? 'Create Worktree' : mode === 'jira' ? 'Pull from Jira' : 'Pull from Linear'}
         icon={mode === 'branch'
           ? <GitBranch className="w-5 h-5 text-[#9ca3af]" />
           : <Ticket className="w-5 h-5 text-[#9ca3af]" />
         }
         onClose={onClose}
-        onSubmit={mode === 'branch' ? handleBranchSubmit : handleJiraSubmit}
+        onSubmit={mode === 'branch' ? handleBranchSubmit : mode === 'jira' ? handleJiraSubmit : handleLinearSubmit}
         footer={
           <>
             <Button onClick={onClose} disabled={isCreating}>
@@ -139,7 +181,7 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
             <Button
               type="submit"
               variant="primary"
-              disabled={mode === 'branch' ? !name.trim() : !taskId.trim()}
+              disabled={mode === 'branch' ? !name.trim() : mode === 'jira' ? !taskId.trim() : !linearId.trim()}
               loading={isCreating}
             >
               {mode === 'branch' ? 'Create' : 'Fetch & Create'}
@@ -181,7 +223,7 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
             </div>
             {error && <p className={`text-[11px] ${text.error}`}>{error}</p>}
           </div>
-        ) : (
+        ) : mode === 'jira' ? (
           <div className="space-y-3">
             <p className={`text-xs ${text.secondary} leading-relaxed`}>
               Pull a Jira issue into your workspace and create a linked worktree.
@@ -209,6 +251,40 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
                 value={jiraBranch}
                 onChange={(e) => handleJiraBranchChange(e.target.value)}
                 placeholder="Defaults to task ID"
+                className={inputClass}
+                disabled={isCreating}
+              />
+            </div>
+            {error && <p className={`text-[11px] ${text.error}`}>{error}</p>}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className={`text-xs ${text.secondary} leading-relaxed`}>
+              Pull a Linear issue into your workspace and create a linked worktree.
+            </p>
+            <div>
+              <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
+                Issue ID
+              </label>
+              <input
+                ref={inputRef}
+                type="text"
+                value={linearId}
+                onChange={(e) => setLinearId(e.target.value)}
+                placeholder="ENG-123"
+                className={inputClass}
+                disabled={isCreating}
+              />
+            </div>
+            <div>
+              <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
+                Branch name
+              </label>
+              <input
+                type="text"
+                value={linearBranch}
+                onChange={(e) => handleLinearBranchChange(e.target.value)}
+                placeholder="Defaults to issue ID"
                 className={inputClass}
                 disabled={isCreating}
               />

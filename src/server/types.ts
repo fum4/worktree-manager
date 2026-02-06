@@ -1,5 +1,6 @@
 import type { ChildProcess } from 'child_process';
 import type { JiraProjectConfig } from '../integrations/jira/types';
+import type { LinearProjectConfig } from '../integrations/linear/types';
 
 export interface PortConfig {
   /** Ports discovered by running the dev command and monitoring with lsof */
@@ -25,6 +26,8 @@ export interface WorktreeConfig {
   serverPort: number;
   /** Jira integration config (shared with team) */
   jira?: JiraProjectConfig;
+  /** Linear integration config (shared with team) */
+  linear?: LinearProjectConfig;
 }
 
 export interface WorktreeInfo {
@@ -56,6 +59,10 @@ export interface WorktreeInfo {
   githubPrUrl?: string;
   /** GitHub PR state: 'open', 'closed', 'merged', or 'draft' */
   githubPrState?: string;
+  /** Linear issue URL if this worktree was created from a Linear issue */
+  linearUrl?: string;
+  /** Linear issue state name (e.g. "In Progress", "Todo") */
+  linearStatus?: string;
   /** Whether there are uncommitted changes in the worktree */
   hasUncommitted?: boolean;
   /** Whether there are unpushed commits */

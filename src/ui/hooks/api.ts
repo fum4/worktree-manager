@@ -1,4 +1,4 @@
-import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus } from '../types';
+import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail } from '../types';
 
 // API functions now accept an optional serverUrl parameter
 // When null/undefined, they use relative URLs (for single-project web mode)
@@ -344,12 +344,18 @@ export async function fetchJiraIssueDetail(
 
 export async function createTerminalSession(
   worktreeId: string,
+  cols?: number,
+  rows?: number,
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; sessionId?: string; error?: string }> {
   try {
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/terminals`,
-      { method: 'POST' },
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cols, rows }),
+      },
     );
     if (!res.ok) {
       const text = await res.text();
@@ -520,6 +526,130 @@ export async function disconnectJira(
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to disconnect Jira',
+    };
+  }
+}
+
+// -- Linear API functions --
+
+export async function fetchLinearStatus(serverUrl: string | null = null): Promise<LinearStatus | null> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/status`);
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchLinearIssues(
+  query?: string,
+  serverUrl: string | null = null,
+): Promise<{ issues: LinearIssueSummary[]; error?: string }> {
+  try {
+    const params = query ? `?query=${encodeURIComponent(query)}` : '';
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/issues${params}`);
+    return await res.json();
+  } catch (err) {
+    return {
+      issues: [],
+      error: err instanceof Error ? err.message : 'Failed to fetch Linear issues',
+    };
+  }
+}
+
+export async function fetchLinearIssueDetail(
+  identifier: string,
+  serverUrl: string | null = null,
+): Promise<{ issue?: LinearIssueDetail; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/issues/${encodeURIComponent(identifier)}`);
+    return await res.json();
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'Failed to fetch issue detail',
+    };
+  }
+}
+
+export async function createFromLinear(
+  identifier: string,
+  branch?: string,
+  serverUrl: string | null = null,
+): Promise<{
+  success: boolean;
+  task?: { identifier: string; title: string; status: string; url: string };
+  error?: string;
+  code?: string;
+  worktreeId?: string;
+}> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/task`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier, branch: branch || undefined }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create from Linear',
+    };
+  }
+}
+
+export async function setupLinear(
+  apiKey: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/setup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to setup Linear',
+    };
+  }
+}
+
+export async function updateLinearConfig(
+  defaultTeamKey: string,
+  refreshIntervalMinutes?: number,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const body: { defaultTeamKey: string; refreshIntervalMinutes?: number } = { defaultTeamKey };
+    if (refreshIntervalMinutes !== undefined) body.refreshIntervalMinutes = refreshIntervalMinutes;
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/config`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to update Linear config',
+    };
+  }
+}
+
+export async function disconnectLinear(
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/credentials`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to disconnect Linear',
     };
   }
 }

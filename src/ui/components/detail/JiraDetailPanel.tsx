@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useJiraIssueDetail } from '../../hooks/useJiraIssueDetail';
 import { useApi } from '../../hooks/useApi';
 import type { JiraIssueDetail } from '../../types';
-import { badge, border, button, jiraPriority, jiraType, surface, text } from '../../theme';
+import { badge, border, button, jiraPriority, jiraStatus, jiraType, surface, text } from '../../theme';
 import { MarkdownContent } from '../MarkdownContent';
 import { Spinner } from '../Spinner';
 import { WorktreeExistsModal } from '../WorktreeExistsModal';
@@ -54,15 +54,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>
       {children}
     </h3>
-  );
-}
-
-function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline gap-2">
-      <span className={`text-[10px] ${text.dimmed}`}>{label}</span>
-      <span className={`text-[11px] ${text.secondary}`}>{children}</span>
-    </div>
   );
 }
 
@@ -228,6 +219,8 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
     );
   }
 
+  const statusLower = issue.status.toLowerCase();
+  const statusClasses = jiraStatus[statusLower] ?? `${text.secondary} bg-white/[0.06]`;
   const typeLower = issue.type.toLowerCase();
   const typeClasses = jiraType[typeLower] ?? `${text.secondary} bg-white/[0.06]`;
   const priorityLower = issue.priority.toLowerCase();
@@ -239,7 +232,7 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
       <div className={`flex-shrink-0 px-5 py-4 border-b ${border.section}`}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            {/* Issue key + type pill + refresh on one line */}
+            {/* Issue key + status + refresh on one line */}
             <div className="flex items-center gap-2 mb-2">
               <a
                 href={issue.url}
@@ -249,14 +242,25 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
               >
                 {issue.key}
               </a>
+              <span className={`ml-2 text-[9px] font-medium px-1.5 py-0.5 rounded ${statusClasses}`}>
+                {issue.status}
+              </span>
+              <span className={`text-[9px] ${text.dimmed}`}>·</span>
               <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${typeClasses}`}>
                 {issue.type}
               </span>
+              {issue.labels.map((label) => (
+                <span key={label} className={`text-[9px] font-medium px-1.5 py-0.5 rounded bg-white/[0.06] ${text.secondary}`}>
+                  {label}
+                </span>
+              ))}
+              <span className={`text-[9px] ${text.dimmed}`}>·</span>
+              <span className={`text-[10px] ${priorityClass}`}>{issue.priority}</span>
               <button
                 type="button"
                 onClick={() => refetch()}
                 title={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}
-                className={`ml-1 p-0.5 rounded ${text.muted} hover:text-[#c0c5cc] transition-colors duration-150 flex items-center gap-1`}
+                className={`ml-2 p-0.5 rounded ${text.muted} hover:text-[#c0c5cc] transition-colors duration-150 flex items-center gap-1`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -280,7 +284,15 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
             {/* Summary — largest text, clear anchor */}
             <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.summary}</h2>
           </div>
-          <div className="flex-shrink-0 pt-1">
+          <div className="flex-shrink-0 pt-1 flex items-center gap-2">
+            <a
+              href={issue.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded-lg transition-colors duration-150`}
+            >
+              View in Jira
+            </a>
             {linkedWorktreeId ? (
               <button
                 type="button"
@@ -303,35 +315,6 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
         </div>
         {createError && (
           <p className={`${text.error} text-[10px] mt-2`}>{createError}</p>
-        )}
-      </div>
-
-      {/* Metadata bar — status, priority, people, dates — all in one calm row */}
-      <div className={`flex-shrink-0 px-5 py-3 border-b ${border.subtle} flex flex-wrap gap-x-5 gap-y-1.5`}>
-        <MetaRow label="Status">
-          <span className={`px-1.5 py-0.5 rounded text-[10px] ${badge.jiraStatus}`}>
-            {issue.status}
-          </span>
-        </MetaRow>
-        <MetaRow label="Priority">
-          <span className={`text-[11px] ${priorityClass}`}>{issue.priority}</span>
-        </MetaRow>
-        {issue.assignee && (
-          <MetaRow label="Assignee">{issue.assignee}</MetaRow>
-        )}
-        {issue.reporter && (
-          <MetaRow label="Reporter">{issue.reporter}</MetaRow>
-        )}
-        {issue.labels.length > 0 && (
-          <MetaRow label="Labels">
-            <span className="flex flex-wrap gap-1">
-              {issue.labels.map((label) => (
-                <span key={label} className={`text-[9px] px-1.5 py-0.5 rounded bg-white/[0.06] ${text.secondary}`}>
-                  {label}
-                </span>
-              ))}
-            </span>
-          </MetaRow>
         )}
       </div>
 
@@ -373,8 +356,9 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
           </section>
         )}
 
-        {/* Footer timestamps */}
-        <div className={`text-[10px] ${text.dimmed} flex gap-4 pt-2`}>
+        {/* Footer */}
+        <div className={`text-[10px] ${text.dimmed} flex flex-wrap gap-4 pt-2`}>
+          {issue.reporter && <span>Reported by {issue.reporter}</span>}
           <span>Created {formatDate(issue.created)}</span>
           <span>Updated {formatDate(issue.updated)}</span>
         </div>

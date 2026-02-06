@@ -11,7 +11,7 @@ export function registerTerminalRoutes(
   worktreeManager: WorktreeManager,
   upgradeWebSocket: UpgradeWebSocket<WebSocket>,
 ) {
-  app.post('/api/worktrees/:id/terminals', (c) => {
+  app.post('/api/worktrees/:id/terminals', async (c) => {
     const worktreeId = c.req.param('id');
     const worktree = worktreeManager
       .getWorktrees()
@@ -22,9 +22,15 @@ export function registerTerminalRoutes(
     }
 
     try {
+      const body = await c.req.json().catch(() => ({}));
+      const cols = body.cols ?? 80;
+      const rows = body.rows ?? 24;
+
       const sessionId = terminalManager.createSession(
         worktreeId,
         worktree.path,
+        cols,
+        rows,
       );
       return c.json({ success: true, sessionId });
     } catch (error) {

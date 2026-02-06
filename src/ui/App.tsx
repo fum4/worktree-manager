@@ -1,22 +1,13 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
-function formatTimeAgo(timestamp: number): string {
-  if (!timestamp) return '';
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
-}
-
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { CreateForm } from './components/CreateForm';
 import { CreateWorktreeModal } from './components/CreateWorktreeModal';
 import { DetailPanel } from './components/detail/DetailPanel';
 import { GitHubSetupModal } from './components/GitHubSetupModal';
 import { JiraDetailPanel } from './components/detail/JiraDetailPanel';
+import { LinearDetailPanel } from './components/detail/LinearDetailPanel';
 import { Header } from './components/Header';
 import { IntegrationsPanel } from './components/IntegrationsPanel';
 import { IssueList } from './components/IssueList';
@@ -31,12 +22,14 @@ import { useServer } from './contexts/ServerContext';
 import { useApi } from './hooks/useApi';
 import { useConfig } from './hooks/useConfig';
 import { useJiraIssues } from './hooks/useJiraIssues';
-import { useGitHubStatus, useJiraStatus, useWorktrees } from './hooks/useWorktrees';
+import { useLinearIssues } from './hooks/useLinearIssues';
+import { useGitHubStatus, useJiraStatus, useLinearStatus, useWorktrees } from './hooks/useWorktrees';
 import { errorBanner, input, surface, text } from './theme';
 
 type Selection =
   | { type: 'worktree'; id: string }
   | { type: 'issue'; key: string }
+  | { type: 'linear-issue'; identifier: string }
   | null;
 
 export default function App() {
@@ -45,6 +38,7 @@ export default function App() {
   const { worktrees, isConnected, error, refetch } = useWorktrees();
   const { config, projectName, isLoading: configLoading, refetch: refetchConfig } = useConfig();
   const { jiraStatus, refetchJiraStatus } = useJiraStatus();
+  const { linearStatus, refetchLinearStatus } = useLinearStatus();
   const githubStatus = useGitHubStatus();
   const runningCount = worktrees.filter((w) => w.status === 'running').length;
 
@@ -126,7 +120,7 @@ export default function App() {
   const [activeCreateTab, setActiveCreateTab] = useState<'branch' | 'issues'>('branch');
   const [worktreeFilter, setWorktreeFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createModalMode, setCreateModalMode] = useState<'branch' | 'jira'>('branch');
+  const [createModalMode, setCreateModalMode] = useState<'branch' | 'jira' | 'linear'>('branch');
 
   // Sidebar width state with persistence
   const DEFAULT_SIDEBAR_WIDTH = 300;
@@ -245,6 +239,18 @@ export default function App() {
     dataUpdatedAt: jiraIssuesUpdatedAt,
   } = useJiraIssues(jiraEnabled, refreshIntervalMinutes);
 
+  const linearEnabled = activeCreateTab === 'issues' && (linearStatus?.configured ?? false);
+  const linearRefreshIntervalMinutes = linearStatus?.refreshIntervalMinutes ?? 5;
+  const {
+    issues: linearIssues,
+    isLoading: linearIssuesLoading,
+    isFetching: linearIssuesFetching,
+    error: linearError,
+    setSearchQuery: setLinearSearchQuery,
+    refetch: refetchLinearIssues,
+    dataUpdatedAt: linearIssuesUpdatedAt,
+  } = useLinearIssues(linearEnabled, linearRefreshIntervalMinutes);
+
   // Auto-select first worktree when on branch tab, or fix stale selection
   useEffect(() => {
     if (activeCreateTab !== 'branch') return;
@@ -280,6 +286,23 @@ export default function App() {
   const findLinkedWorktree = (issueKey: string): string | null => {
     const suffix = `/browse/${issueKey}`;
     const wt = worktrees.find((w) => w.jiraUrl?.endsWith(suffix));
+    return wt?.id ?? null;
+  };
+
+  const handleCreateWorktreeFromLinear = () => {
+    setActiveCreateTab('branch');
+    setSelection(null);
+    refetch();
+  };
+
+  const handleViewWorktreeFromLinear = (worktreeId: string) => {
+    setActiveCreateTab('branch');
+    setSelection({ type: 'worktree', id: worktreeId });
+  };
+
+  const findLinkedLinearWorktree = (identifier: string): string | null => {
+    const suffix = `/issue/${identifier}`;
+    const wt = worktrees.find((w) => w.linearUrl?.includes(suffix));
     return wt?.id ?? null;
   };
 
@@ -378,6 +401,7 @@ export default function App() {
               >
                 <CreateForm
                   jiraConfigured={jiraStatus?.configured ?? false}
+                  linearConfigured={linearStatus?.configured ?? false}
                   activeTab={activeCreateTab}
                   onTabChange={setActiveCreateTab}
                   onCreateWorktree={() => {
@@ -388,44 +412,29 @@ export default function App() {
                     setCreateModalMode('jira');
                     setShowCreateModal(true);
                   }}
+                  onCreateFromLinear={() => {
+                    setCreateModalMode('linear');
+                    setShowCreateModal(true);
+                  }}
+                  onNavigateToIntegrations={() => setActiveView('integrations')}
                 />
 
                 {/* Shared search bar */}
                 <div className="px-3 py-2">
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={activeCreateTab === 'branch' ? worktreeFilter : jiraSearchQuery}
-                        onChange={(e) =>
-                          activeCreateTab === 'branch'
-                            ? setWorktreeFilter(e.target.value)
-                            : setJiraSearchQuery(e.target.value)
+                    <input
+                      type="text"
+                      value={activeCreateTab === 'branch' ? worktreeFilter : jiraSearchQuery}
+                      onChange={(e) => {
+                        if (activeCreateTab === 'branch') {
+                          setWorktreeFilter(e.target.value);
+                        } else {
+                          setJiraSearchQuery(e.target.value);
+                          setLinearSearchQuery(e.target.value);
                         }
-                        placeholder={activeCreateTab === 'branch' ? 'Filter worktrees...' : 'Search issues...'}
-                        className={`flex-1 px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
-                      />
-                      {activeCreateTab === 'issues' && (
-                        <button
-                          type="button"
-                          onClick={() => refetchJiraIssues()}
-                          title={jiraIssuesUpdatedAt ? `Last refreshed: ${formatTimeAgo(jiraIssuesUpdatedAt)}` : 'Refresh'}
-                          className={`flex-shrink-0 p-1.5 rounded-md ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] transition-all duration-150`}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 16 16"
-                            fill="currentColor"
-                            className={`w-3.5 h-3.5 ${jiraIssuesFetching && jiraIssues.length > 0 ? 'animate-spin' : ''}`}
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37l-.84-.841a4.5 4.5 0 0 0-7.08.681.75.75 0 0 1-1.3-.75 6 6 0 0 1 9.44-.908l.84.84V3.227a.75.75 0 0 1 .75-.75Zm-.911 7.5A.75.75 0 0 1 13.199 11a6 6 0 0 1-9.44.908l-.84-.84v1.456a.75.75 0 0 1-1.5 0V9.341a.75.75 0 0 1 .75-.75h3.182a.75.75 0 0 1 0 1.5h-1.37l.84.841a4.5 4.5 0 0 0 7.08-.681.75.75 0 0 1 1.024-.274Z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
+                      }}
+                      placeholder={activeCreateTab === 'branch' ? 'Filter worktrees...' : 'Search issues...'}
+                      className={`w-full px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
+                    />
                 </div>
 
                 <AnimatePresence mode="wait" initial={false}>
@@ -461,6 +470,17 @@ export default function App() {
                         isLoading={jiraIssuesLoading}
                         isFetching={jiraIssuesFetching}
                         error={jiraError}
+                        onRefreshJira={() => refetchJiraIssues()}
+                        jiraUpdatedAt={jiraIssuesUpdatedAt}
+                        linearIssues={linearIssues}
+                        linearConfigured={linearStatus?.configured ?? false}
+                        linearLoading={linearIssuesLoading}
+                        linearFetching={linearIssuesFetching}
+                        linearError={linearError}
+                        selectedLinearIdentifier={selection?.type === 'linear-issue' ? selection.identifier : null}
+                        onSelectLinear={(identifier) => setSelection({ type: 'linear-issue', identifier })}
+                        onRefreshLinear={() => refetchLinearIssues()}
+                        linearUpdatedAt={linearIssuesUpdatedAt}
                         worktrees={worktrees}
                         onViewWorktree={handleViewWorktreeFromJira}
                       />
@@ -490,6 +510,15 @@ export default function App() {
                     refreshIntervalMinutes={refreshIntervalMinutes}
                     onSetupNeeded={handleSetupNeeded}
                   />
+                ) : selection?.type === 'linear-issue' ? (
+                  <LinearDetailPanel
+                    identifier={selection.identifier}
+                    linkedWorktreeId={findLinkedLinearWorktree(selection.identifier)}
+                    onCreateWorktree={handleCreateWorktreeFromLinear}
+                    onViewWorktree={handleViewWorktreeFromLinear}
+                    refreshIntervalMinutes={linearRefreshIntervalMinutes}
+                    onSetupNeeded={handleSetupNeeded}
+                  />
                 ) : (
                   <DetailPanel
                     worktree={selectedWorktree}
@@ -510,7 +539,7 @@ export default function App() {
 
           {activeView === 'integrations' && (
             <div className="absolute inset-0 flex flex-col p-4">
-              <IntegrationsPanel onJiraStatusChange={refetchJiraStatus} />
+              <IntegrationsPanel onJiraStatusChange={refetchJiraStatus} onLinearStatusChange={refetchLinearStatus} />
             </div>
           )}
       </div>

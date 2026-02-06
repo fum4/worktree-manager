@@ -5,13 +5,16 @@ import { surface, tab, text } from '../theme';
 
 interface CreateFormProps {
   jiraConfigured: boolean;
+  linearConfigured: boolean;
   activeTab: 'branch' | 'issues';
   onTabChange: (tab: 'branch' | 'issues') => void;
   onCreateWorktree: () => void;
   onCreateFromJira: () => void;
+  onCreateFromLinear: () => void;
+  onNavigateToIntegrations: () => void;
 }
 
-export function CreateForm({ jiraConfigured, activeTab, onTabChange, onCreateWorktree, onCreateFromJira }: CreateFormProps) {
+export function CreateForm({ jiraConfigured, linearConfigured, activeTab, onTabChange, onCreateWorktree, onCreateFromJira, onCreateFromLinear, onNavigateToIntegrations }: CreateFormProps) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -35,11 +38,10 @@ export function CreateForm({ jiraConfigured, activeTab, onTabChange, onCreateWor
   }, [showMenu]);
 
   const menuItemClass = `w-full flex items-center gap-2.5 px-3 py-2 text-xs ${text.secondary} hover:bg-white/[0.06] transition-colors`;
-  const disabledMenuItemClass = `w-full flex items-center gap-2.5 px-3 py-2 text-xs ${text.dimmed} cursor-not-allowed`;
 
   return (
     <div className="px-3 pt-3.5 pb-2 flex items-center justify-between gap-2">
-      {jiraConfigured ? (
+      {(jiraConfigured || linearConfigured) ? (
         <div className="flex gap-1">
           <button
             type="button"
@@ -95,22 +97,25 @@ export function CreateForm({ jiraConfigured, activeTab, onTabChange, onCreateWor
               type="button"
               onClick={() => {
                 setShowMenu(false);
-                onCreateFromJira();
+                jiraConfigured ? onCreateFromJira() : onNavigateToIntegrations();
               }}
               className={menuItemClass}
             >
               <Ticket className="w-4 h-4" />
-              Pull from Jira
+              {jiraConfigured ? 'Pull from Jira' : 'Configure Jira'}
             </button>
             <button
               type="button"
-              disabled
-              className={disabledMenuItemClass}
+              onClick={() => {
+                setShowMenu(false);
+                linearConfigured ? onCreateFromLinear() : onNavigateToIntegrations();
+              }}
+              className={menuItemClass}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </svg>
-              Pull from Linear
+              {linearConfigured ? 'Pull from Linear' : 'Configure Linear'}
             </button>
           </div>
         )}

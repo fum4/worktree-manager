@@ -11,6 +11,7 @@ interface UseTerminalOptions {
   worktreeId: string;
   onData?: (data: string) => void;
   onExit?: (exitCode: number) => void;
+  getSize?: () => { cols: number; rows: number } | null;
 }
 
 interface UseTerminalReturn {
@@ -27,6 +28,7 @@ export function useTerminal({
   worktreeId,
   onData,
   onExit,
+  getSize,
 }: UseTerminalOptions): UseTerminalReturn {
   const serverUrl = useServerUrlOptional();
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -36,9 +38,11 @@ export function useTerminal({
   const sessionIdRef = useRef<string | null>(null);
   const onDataRef = useRef(onData);
   const onExitRef = useRef(onExit);
+  const getSizeRef = useRef(getSize);
 
   onDataRef.current = onData;
   onExitRef.current = onExit;
+  getSizeRef.current = getSize;
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {
@@ -62,7 +66,8 @@ export function useTerminal({
     disconnect();
     setError(null);
 
-    const result = await createTerminalSession(worktreeId, serverUrl);
+    const size = getSizeRef.current?.();
+    const result = await createTerminalSession(worktreeId, size?.cols, size?.rows, serverUrl);
     if (!result.success || !result.sessionId) {
       setError(result.error || 'Failed to create terminal session');
       return;

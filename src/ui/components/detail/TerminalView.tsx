@@ -29,11 +29,18 @@ export function TerminalView({ worktreeId, visible }: TerminalViewProps) {
     );
   }, []);
 
+  const getSize = useCallback(() => {
+    const terminal = terminalRef.current;
+    if (!terminal) return null;
+    return { cols: terminal.cols, rows: terminal.rows };
+  }, []);
+
   const { isConnected, error, sendData, sendResize, connect, disconnect } =
     useTerminal({
       worktreeId,
       onData: handleData,
       onExit: handleExit,
+      getSize,
     });
 
   // Initialize xterm and connect on first mount

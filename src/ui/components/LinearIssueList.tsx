@@ -1,12 +1,12 @@
-import type { JiraIssueSummary } from '../types';
+import type { LinearIssueSummary } from '../types';
 import { text } from '../theme';
-import { JiraIssueItem } from './JiraIssueItem';
+import { LinearIssueItem } from './LinearIssueItem';
 import { Spinner } from './Spinner';
 
-interface JiraIssueListProps {
-  issues: JiraIssueSummary[];
-  selectedKey: string | null;
-  onSelect: (key: string) => void;
+interface LinearIssueListProps {
+  issues: LinearIssueSummary[];
+  selectedIdentifier: string | null;
+  onSelect: (identifier: string) => void;
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
@@ -14,15 +14,15 @@ interface JiraIssueListProps {
   onViewWorktree?: (worktreeId: string) => void;
 }
 
-export function JiraIssueList({
+export function LinearIssueList({
   issues,
-  selectedKey,
+  selectedIdentifier,
   onSelect,
   isLoading,
   error,
   linkedWorktrees,
   onViewWorktree,
-}: JiraIssueListProps) {
+}: LinearIssueListProps) {
   return (
     <div className="flex flex-col">
       {isLoading && issues.length === 0 ? (
@@ -43,12 +43,12 @@ export function JiraIssueList({
       ) : (
         <div className="space-y-px">
           {issues.map((issue) => (
-            <JiraIssueItem
-              key={issue.key}
+            <LinearIssueItem
+              key={issue.identifier}
               issue={issue}
-              isSelected={issue.key === selectedKey}
-              onSelect={() => onSelect(issue.key)}
-              linkedWorktreeId={linkedWorktrees?.get(issue.key)}
+              isSelected={issue.identifier === selectedIdentifier}
+              onSelect={() => onSelect(issue.identifier)}
+              linkedWorktreeId={linkedWorktrees?.get(issue.identifier)}
               onViewWorktree={onViewWorktree}
             />
           ))}

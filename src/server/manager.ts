@@ -17,6 +17,16 @@ import {
   resolveTaskKey,
   saveTaskData,
 } from '../integrations/jira/api';
+import {
+  loadLinearCredentials,
+  loadLinearProjectConfig,
+} from '../integrations/linear/credentials';
+import {
+  fetchIssue as fetchLinearIssue,
+  resolveIdentifier as resolveLinearIdentifier,
+  saveTaskData as saveLinearTaskData,
+} from '../integrations/linear/api';
+import type { LinearTaskData } from '../integrations/linear/types';
 
 import { PortManager } from './port-manager';
 import type {
@@ -217,13 +227,19 @@ export class WorktreeManager {
         logs: runningInfo?.logs ?? [],
       };
 
-      // Check for linked Jira task
+      // Check for linked task (Jira or Linear)
       const taskFile = path.join(this.configDir, '.wok3', 'tasks', entry.name, 'task.json');
       if (existsSync(taskFile)) {
         try {
           const taskData = JSON.parse(readFileSync(taskFile, 'utf-8'));
-          if (taskData.url) info.jiraUrl = taskData.url;
-          if (taskData.status) info.jiraStatus = taskData.status;
+          if (taskData.source === 'linear') {
+            if (taskData.url) info.linearUrl = taskData.url;
+            if (taskData.status) info.linearStatus = taskData.status;
+          } else {
+            // Jira (default for backward compat)
+            if (taskData.url) info.jiraUrl = taskData.url;
+            if (taskData.status) info.jiraStatus = taskData.status;
+          }
         } catch {
           // Ignore corrupt task files
         }
@@ -1049,6 +1065,81 @@ export class WorktreeManager {
         status: taskData.status,
         type: taskData.type,
         url: taskData.url,
+      },
+    };
+  }
+
+  async createWorktreeFromLinear(
+    identifier: string,
+    branch?: string,
+  ): Promise<{
+    success: boolean;
+    task?: { identifier: string; title: string; status: string; url: string };
+    error?: string;
+    code?: string;
+    worktreeId?: string;
+  }> {
+    const creds = loadLinearCredentials(this.configDir);
+    if (!creds) {
+      return { success: false, error: 'Linear credentials not configured' };
+    }
+
+    const projectConfig = loadLinearProjectConfig(this.configDir);
+    let resolvedId: string;
+    try {
+      resolvedId = resolveLinearIdentifier(identifier, projectConfig);
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Invalid identifier',
+      };
+    }
+
+    let issueDetail;
+    try {
+      issueDetail = await fetchLinearIssue(resolvedId, creds);
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to fetch issue',
+      };
+    }
+
+    // Save task data locally
+    const tasksDir = path.join(this.configDir, '.wok3', 'tasks');
+    const taskData: LinearTaskData = {
+      source: 'linear',
+      identifier: issueDetail.identifier,
+      title: issueDetail.title,
+      description: issueDetail.description,
+      status: issueDetail.state.name,
+      priority: issueDetail.priority,
+      assignee: issueDetail.assignee,
+      labels: issueDetail.labels,
+      createdAt: issueDetail.createdAt,
+      updatedAt: issueDetail.updatedAt,
+      comments: issueDetail.comments,
+      linkedWorktree: null,
+      fetchedAt: new Date().toISOString(),
+      url: issueDetail.url,
+    };
+    saveLinearTaskData(taskData, tasksDir);
+
+    // Create worktree using custom branch or identifier as branch name
+    const worktreeBranch = branch?.trim() || resolvedId;
+    const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedId });
+
+    if (!result.success) {
+      return { success: false, error: result.error, code: result.code, worktreeId: result.worktreeId };
+    }
+
+    return {
+      success: true,
+      task: {
+        identifier: issueDetail.identifier,
+        title: issueDetail.title,
+        status: issueDetail.state.name,
+        url: issueDetail.url,
       },
     };
   }

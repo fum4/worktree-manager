@@ -11,6 +11,8 @@ export interface WorktreeInfo {
   logs?: string[];
   jiraUrl?: string;
   jiraStatus?: string;
+  linearUrl?: string;
+  linearStatus?: string;
   githubPrUrl?: string;
   githubPrState?: string;
   hasUncommitted?: boolean;
@@ -50,6 +52,41 @@ export interface JiraIssueSummary {
   updated: string;
   labels: string[];
   url: string;
+}
+
+export interface LinearStatus {
+  configured: boolean;
+  defaultTeamKey: string | null;
+  refreshIntervalMinutes: number;
+  displayName: string | null;
+}
+
+export interface LinearState {
+  name: string;
+  type: string;
+  color: string;
+}
+
+export interface LinearLabel {
+  name: string;
+  color: string;
+}
+
+export interface LinearIssueSummary {
+  identifier: string;
+  title: string;
+  state: LinearState;
+  priority: number;
+  assignee: string | null;
+  updatedAt: string;
+  labels: LinearLabel[];
+  url: string;
+}
+
+export interface LinearIssueDetail extends LinearIssueSummary {
+  description: string | null;
+  createdAt: string;
+  comments: Array<{ author: string; body: string; createdAt: string }>;
 }
 
 export interface JiraIssueDetail {
