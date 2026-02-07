@@ -712,6 +712,22 @@ export async function fetchGitHubStatus(serverUrl: string | null = null): Promis
   }
 }
 
+// Verify all integration connections in background
+export interface IntegrationsVerifyResult {
+  github: { ok: boolean } | null;
+  jira: { ok: boolean } | null;
+  linear: { ok: boolean } | null;
+}
+
+export async function verifyIntegrations(serverUrl: string | null = null): Promise<IntegrationsVerifyResult | null> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/integrations/verify`);
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 // Check if wok3 config files need to be pushed
 export async function fetchSetupStatus(
   serverUrl: string | null = null,

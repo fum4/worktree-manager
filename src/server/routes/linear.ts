@@ -13,26 +13,16 @@ import { testConnection, fetchIssues, fetchIssue } from '../../integrations/line
 import type { WorktreeManager } from '../manager';
 
 export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
-  app.get('/api/linear/status', async (c) => {
+  app.get('/api/linear/status', (c) => {
     const configDir = manager.getConfigDir();
     const creds = loadLinearCredentials(configDir);
     const projectConfig = loadLinearProjectConfig(configDir);
-
-    let displayName: string | null = null;
-    if (creds) {
-      try {
-        const viewer = await testConnection(creds);
-        displayName = viewer.name;
-      } catch {
-        // Credentials may be invalid
-      }
-    }
 
     return c.json({
       configured: creds !== null,
       defaultTeamKey: projectConfig.defaultTeamKey ?? null,
       refreshIntervalMinutes: projectConfig.refreshIntervalMinutes ?? 5,
-      displayName,
+      displayName: creds?.displayName ?? null,
     });
   });
 
@@ -44,11 +34,12 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
       }
 
       const configDir = manager.getConfigDir();
-      const creds = { apiKey: body.apiKey };
+      const creds: { apiKey: string; displayName?: string } = { apiKey: body.apiKey };
 
       // Validate by making a test API call
       try {
-        await testConnection(creds);
+        const viewer = await testConnection(creds);
+        creds.displayName = viewer.name;
       } catch (err) {
         return c.json({
           success: false,

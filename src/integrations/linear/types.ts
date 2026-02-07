@@ -7,6 +7,7 @@ export interface LinearProjectConfig {
 
 export interface LinearCredentials {
   apiKey: string;
+  displayName?: string;
 }
 
 // -- Data types --

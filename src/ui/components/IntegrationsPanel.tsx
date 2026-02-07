@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { APP_NAME } from '../../constants';
 import { useApi } from '../hooks/useApi';
-import { fetchGitHubStatus, fetchJiraStatus, fetchLinearStatus } from '../hooks/api';
+import { fetchGitHubStatus, fetchJiraStatus, fetchLinearStatus, verifyIntegrations } from '../hooks/api';
 import { useGitHubStatus, useJiraStatus, useLinearStatus } from '../hooks/useWorktrees';
 import { useServerUrlOptional } from '../contexts/ServerContext';
 import type { GitHubStatus, JiraStatus, LinearStatus } from '../types';
@@ -1076,6 +1076,23 @@ export function IntegrationsPanel({ onJiraStatusChange, onLinearStatusChange }: 
   useEffect(() => {
     setCurrentLinearStatus(linearStatus);
   }, [linearStatus]);
+
+  // Background-verify all configured integrations on mount
+  useEffect(() => {
+    if (serverUrl === null) return;
+    verifyIntegrations(serverUrl).then((result) => {
+      if (!result) return;
+      if (result.github?.ok === false) {
+        setCurrentGithubStatus((prev) => prev ? { ...prev, authenticated: false } : prev);
+      }
+      if (result.jira?.ok === false) {
+        setCurrentJiraStatus((prev) => prev ? { ...prev, configured: false } : prev);
+      }
+      if (result.linear?.ok === false) {
+        setCurrentLinearStatus((prev) => prev ? { ...prev, configured: false } : prev);
+      }
+    });
+  }, [serverUrl]);
 
   useEffect(() => {
     if (githubRefreshKey === 0) return;

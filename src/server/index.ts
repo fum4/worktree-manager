@@ -8,6 +8,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { log } from '../logger';
+import { checkGhAuth } from '../integrations/github/gh-client';
+import { testConnection as testJiraConnection } from '../integrations/jira/auth';
+import { loadJiraCredentials } from '../integrations/jira/credentials';
+import { testConnection as testLinearConnection } from '../integrations/linear/api';
+import { loadLinearCredentials } from '../integrations/linear/credentials';
 import { WorktreeManager } from './manager';
 import { registerWorktreeRoutes } from './routes/worktrees';
 import { registerConfigRoutes } from './routes/config';
@@ -63,6 +68,47 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerTaskRoutes(app, manager, notesManager);
   registerNotesRoutes(app, notesManager);
   registerTerminalRoutes(app, terminalManager, manager, upgradeWebSocket);
+
+  // Background verification of all integration connections
+  app.get('/api/integrations/verify', async (c) => {
+    const configDir = manager.getConfigDir();
+
+    const [github, jira, linear] = await Promise.all([
+      // GitHub: re-check gh CLI auth
+      (async () => {
+        const ghManager = manager.getGitHubManager();
+        if (!ghManager) return null;
+        const status = ghManager.getStatus();
+        if (!status.authenticated) return null;
+        const ok = await checkGhAuth();
+        return { ok };
+      })(),
+      // Jira: test API connection
+      (async () => {
+        const creds = loadJiraCredentials(configDir);
+        if (!creds) return null;
+        try {
+          await testJiraConnection(creds, configDir);
+          return { ok: true };
+        } catch {
+          return { ok: false };
+        }
+      })(),
+      // Linear: test GraphQL connection
+      (async () => {
+        const creds = loadLinearCredentials(configDir);
+        if (!creds) return null;
+        try {
+          await testLinearConnection(creds);
+          return { ok: true };
+        } catch {
+          return { ok: false };
+        }
+      })(),
+    ]);
+
+    return c.json({ github, jira, linear });
+  });
 
   app.use('/*', serveStatic({ root: uiDir }));
 
