@@ -259,17 +259,22 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
               ))}
               <span className={`text-[5px] ${text.dimmed}`}>●</span>
               <span className={`text-[11px] ${priorityClass}`}>{issue.priority}</span>
-              <Tooltip position="right" text={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}>
+            </div>
+            {/* Summary — largest text, clear anchor */}
+            <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.summary}</h2>
+          </div>
+          <div className="flex-shrink-0 pt-1 flex items-center gap-2">
+            <Tooltip position="left" text={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}>
               <button
                 type="button"
                 onClick={() => refetch()}
-                className={`ml-2 p-0.5 rounded ${text.muted} hover:text-[#c0c5cc] transition-colors duration-150 flex items-center gap-1`}
+                className={`p-1.5 rounded-lg ${text.muted} hover:text-[#c0c5cc] hover:bg-white/[0.06] transition-colors duration-150 flex items-center gap-1`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 16 16"
                   fill="currentColor"
-                  className={`w-3 h-3 ${isFetching && !isLoading ? 'animate-spin' : ''}`}
+                  className={`w-3.5 h-3.5 ${isFetching && !isLoading ? 'animate-spin' : ''}`}
                 >
                   <path
                     fillRule="evenodd"
@@ -277,28 +282,16 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                     clipRule="evenodd"
                   />
                 </svg>
-                {dataUpdatedAt > 0 && (
-                  <span className="text-[11px]">
-                    {formatTimeAgo(dataUpdatedAt)}
-                  </span>
-                )}
               </button>
-              </Tooltip>
-            </div>
-            {/* Summary — largest text, clear anchor */}
-            <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.summary}</h2>
-          </div>
-          <div className="flex-shrink-0 pt-1 flex items-center gap-2">
-            <Tooltip position="right" text="Open in Jira">
-              <a
-                href={issue.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded-lg transition-colors duration-150`}
-              >
-                View in Jira
-              </a>
             </Tooltip>
+            <a
+              href={issue.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded-lg transition-colors duration-150`}
+            >
+              Open in Jira
+            </a>
             {linkedWorktreeId ? (
               <button
                 type="button"

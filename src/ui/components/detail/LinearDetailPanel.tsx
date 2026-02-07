@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { useLinearIssueDetail } from '../../hooks/useLinearIssueDetail';
 import { useApi } from '../../hooks/useApi';
-import { badge, border, button, linearPriority, text } from '../../theme';
+import { badge, border, button, linearPriority, linearStateType, text } from '../../theme';
 import { Tooltip } from '../Tooltip';
 import { MarkdownContent } from '../MarkdownContent';
 import { Spinner } from '../Spinner';
@@ -118,8 +118,8 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
                 </a>
               </Tooltip>
               <span
-                className="ml-2 text-[11px] font-medium px-2 py-0.5 rounded"
-                style={{ backgroundColor: `${issue.state.color}20`, color: issue.state.color }}
+                className={`ml-2 text-[11px] font-medium px-2 py-0.5 rounded ${linearStateType[issue.state.type.toLowerCase()] ?? ''}`}
+                style={!linearStateType[issue.state.type.toLowerCase()] ? { backgroundColor: `${issue.state.color}20`, color: issue.state.color } : undefined}
               >
                 {issue.state.name}
               </span>
@@ -137,17 +137,21 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
               ))}
               <span className={`text-[5px] ${text.dimmed}`}>●</span>
               <span className={`text-[11px] ${priorityInfo.color}`}>{priorityInfo.label}</span>
-              <Tooltip position="right" text={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}>
+            </div>
+            <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.title}</h2>
+          </div>
+          <div className="flex-shrink-0 pt-1 flex items-center gap-2">
+            <Tooltip position="left" text={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}>
               <button
                 type="button"
                 onClick={() => refetch()}
-                className={`ml-2 p-0.5 rounded ${text.muted} hover:text-[#c0c5cc] transition-colors duration-150 flex items-center gap-1`}
+                className={`p-1.5 rounded-lg ${text.muted} hover:text-[#c0c5cc] hover:bg-white/[0.06] transition-colors duration-150 flex items-center gap-1`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 16 16"
                   fill="currentColor"
-                  className={`w-3 h-3 ${isFetching && !isLoading ? 'animate-spin' : ''}`}
+                  className={`w-3.5 h-3.5 ${isFetching && !isLoading ? 'animate-spin' : ''}`}
                 >
                   <path
                     fillRule="evenodd"
@@ -155,27 +159,16 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
                     clipRule="evenodd"
                   />
                 </svg>
-                {dataUpdatedAt > 0 && (
-                  <span className="text-[11px]">
-                    {formatTimeAgo(dataUpdatedAt)}
-                  </span>
-                )}
               </button>
-              </Tooltip>
-            </div>
-            <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.title}</h2>
-          </div>
-          <div className="flex-shrink-0 pt-1 flex items-center gap-2">
-            <Tooltip position="right" text="Open in Linear">
-              <a
-                href={issue.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded-lg transition-colors duration-150`}
-              >
-                View in Linear
-              </a>
             </Tooltip>
+            <a
+              href={issue.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded-lg transition-colors duration-150`}
+            >
+              Open in Linear
+            </a>
             {linkedWorktreeId ? (
               <button
                 type="button"
