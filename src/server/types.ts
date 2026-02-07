@@ -24,6 +24,8 @@ export interface WorktreeConfig {
   envMapping?: Record<string, string>;
   /** Port for the manager server (default: 3100) */
   serverPort: number;
+  /** Whether to auto-install dependencies when creating a worktree (default: true) */
+  autoInstall?: boolean;
   /** Jira integration config (shared with team) */
   jira?: JiraProjectConfig;
   /** Linear integration config (shared with team) */

@@ -369,11 +369,11 @@ export const notes = {
   tabActive:     'text-white bg-white/[0.08]',
   tabInactive:   'text-[#6b7280] hover:text-[#9ca3af]',
   personalIcon:    'text-[#9ca3af]',
-  personalAccent:  'bg-amber-400/[0.04]',
-  personalBorder:  'border-amber-400/[0.08]',
+  personalAccent:  'bg-white/[0.02]',
+  personalBorder:  'border-white/[0.06]',
   aiIcon:          'text-purple-400',
-  aiAccent:        'bg-purple-400/[0.04]',
-  aiBorder:        'border-purple-400/[0.08]',
+  aiAccent:        'bg-white/[0.02]',
+  aiBorder:        'border-white/[0.06]',
   emptyText:     'text-[#4b5563]',
 } as const;
 

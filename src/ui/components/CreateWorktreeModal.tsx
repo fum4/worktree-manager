@@ -9,6 +9,7 @@ import { WorktreeExistsModal } from './WorktreeExistsModal';
 
 interface CreateWorktreeModalProps {
   mode: 'branch' | 'jira' | 'linear';
+  hasBranchNameRule?: boolean;
   onCreated: () => void;
   onClose: () => void;
   onSetupNeeded?: () => void;
@@ -22,7 +23,7 @@ function deriveBranch(name: string): string {
     .replace(/^-|-$/g, '');
 }
 
-export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }: CreateWorktreeModalProps) {
+export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClose, onSetupNeeded }: CreateWorktreeModalProps) {
   const api = useApi();
 
   // Branch form state
@@ -57,16 +58,16 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
   }, [name, branchManuallyEdited, mode]);
 
   useEffect(() => {
-    if (mode === 'jira' && !jiraBranchManuallyEdited) {
+    if (mode === 'jira' && !jiraBranchManuallyEdited && !hasBranchNameRule) {
       setJiraBranch(taskId.trim());
     }
-  }, [taskId, jiraBranchManuallyEdited, mode]);
+  }, [taskId, jiraBranchManuallyEdited, mode, hasBranchNameRule]);
 
   useEffect(() => {
-    if (mode === 'linear' && !linearBranchManuallyEdited) {
+    if (mode === 'linear' && !linearBranchManuallyEdited && !hasBranchNameRule) {
       setLinearBranch(linearId.trim());
     }
-  }, [linearId, linearBranchManuallyEdited, mode]);
+  }, [linearId, linearBranchManuallyEdited, mode, hasBranchNameRule]);
 
   const handleBranchChange = (value: string) => {
     setBranch(value);
@@ -253,10 +254,15 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
                 type="text"
                 value={jiraBranch}
                 onChange={(e) => handleJiraBranchChange(e.target.value)}
-                placeholder="Defaults to task ID"
+                placeholder={hasBranchNameRule ? 'Leave empty to auto-generate' : 'Defaults to task ID'}
                 className={inputClass}
                 disabled={isCreating}
               />
+              {hasBranchNameRule && (
+                <p className={`mt-1 text-[11px] ${text.dimmed}`}>
+                  Branch name will be generated from issue details
+                </p>
+              )}
             </div>
             {error && <p className={`text-[11px] ${text.error}`}>{error}</p>}
           </div>
@@ -287,10 +293,15 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
                 type="text"
                 value={linearBranch}
                 onChange={(e) => handleLinearBranchChange(e.target.value)}
-                placeholder="Defaults to issue ID"
+                placeholder={hasBranchNameRule ? 'Leave empty to auto-generate' : 'Defaults to issue ID'}
                 className={inputClass}
                 disabled={isCreating}
               />
+              {hasBranchNameRule && (
+                <p className={`mt-1 text-[11px] ${text.dimmed}`}>
+                  Branch name will be generated from issue details
+                </p>
+              )}
             </div>
             {error && <p className={`text-[11px] ${text.error}`}>{error}</p>}
           </div>

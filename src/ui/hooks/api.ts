@@ -439,6 +439,7 @@ export async function fetchConfig(serverUrl: string | null = null): Promise<{
     serverPort: number;
   };
   projectName?: string;
+  hasBranchNameRule?: boolean;
   error?: string;
 }> {
   try {
@@ -825,6 +826,52 @@ export async function initConfig(
     return await res.json();
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to initialize config' };
+  }
+}
+
+// -- Branch Name Rule API --
+
+export async function fetchBranchNameRule(
+  source?: string,
+  serverUrl: string | null = null,
+): Promise<{ content: string; hasOverride?: boolean }> {
+  try {
+    const params = source ? `?source=${encodeURIComponent(source)}` : '';
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/branch-name-rule${params}`);
+    return await res.json();
+  } catch {
+    return { content: '' };
+  }
+}
+
+export async function saveBranchNameRule(
+  content: string | null,
+  source?: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/branch-name-rule`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, source: source || undefined }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to save branch name rule',
+    };
+  }
+}
+
+export async function fetchBranchRuleStatus(
+  serverUrl: string | null = null,
+): Promise<{ overrides: { jira: boolean; linear: boolean; local: boolean } }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/branch-name-rule/status`);
+    return await res.json();
+  } catch {
+    return { overrides: { jira: false, linear: false, local: false } };
   }
 }
 

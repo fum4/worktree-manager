@@ -127,6 +127,16 @@ export function useApi() {
       createWorktreeFromCustomTask: (id: string, branch?: string) =>
         api.createWorktreeFromCustomTask(id, branch, serverUrl),
 
+      // Branch name rule
+      fetchBranchNameRule: (source?: string) =>
+        api.fetchBranchNameRule(source, serverUrl),
+
+      saveBranchNameRule: (content: string | null, source?: string) =>
+        api.saveBranchNameRule(content, source, serverUrl),
+
+      fetchBranchRuleStatus: () =>
+        api.fetchBranchRuleStatus(serverUrl),
+
       // Notes
       fetchNotes: (source: string, id: string) =>
         api.fetchNotes(source, id, serverUrl),

@@ -5,6 +5,7 @@ import path from 'path';
 
 import type { WorktreeManager } from '../manager';
 import type { NotesManager } from '../notes-manager';
+import { generateBranchName } from '../branch-name';
 
 interface CustomTask {
   id: string;
@@ -171,8 +172,9 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
 
     const body = await c.req.json<{ branch?: string }>().catch(() => ({ branch: undefined }));
 
-    // Use identifier (e.g. LOCAL-5) as default branch name
-    const branchName = body.branch || task.identifier.toLowerCase();
+    // Use custom branch or generated name from rule
+    const branchName = body.branch
+      || await generateBranchName(configDir, { id: task.identifier, name: task.title, type: 'local' });
 
     try {
       const result = await manager.createWorktree({ branch: branchName, name: task.identifier });

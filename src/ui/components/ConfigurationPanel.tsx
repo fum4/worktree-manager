@@ -1,10 +1,11 @@
-import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import Editor from '@monaco-editor/react';
+import { RotateCcw, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { APP_NAME } from '../../constants';
 import { type WorktreeConfig } from '../hooks/useConfig';
 import { useApi } from '../hooks/useApi';
-import { button, infoBanner, input, settings, surface, text } from '../theme';
+import { button, infoBanner, input, settings, surface, tab, text } from '../theme';
 import { Spinner } from './Spinner';
 
 const SETTINGS_BANNER_DISMISSED_KEY = `${APP_NAME}-settings-banner-dismissed`;
@@ -138,16 +139,37 @@ export function ConfigurationPanel({
   config,
   onSaved,
   isConnected,
+  jiraConfigured,
+  linearConfigured,
+  onNavigateToIntegrations,
 }: {
   config: WorktreeConfig | null;
   onSaved: () => void;
   isConnected: boolean;
+  jiraConfigured: boolean;
+  linearConfigured: boolean;
+  onNavigateToIntegrations: () => void;
 }) {
   const api = useApi();
   const [form, setForm] = useState<WorktreeConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [discovering, setDiscovering] = useState(false);
+
+  // Branch name rule state — per-tab
+  type BranchTab = 'default' | 'jira' | 'linear' | 'local';
+  const BRANCH_TABS: { key: BranchTab; label: string; dotColor: string }[] = [
+    { key: 'default', label: 'Default', dotColor: '' },
+    { key: 'jira', label: 'Jira', dotColor: 'bg-blue-400' },
+    { key: 'linear', label: 'Linear', dotColor: 'bg-[#5E6AD2]' },
+    { key: 'local', label: 'Local', dotColor: 'bg-amber-400' },
+  ];
+  const [branchTab, setBranchTab] = useState<BranchTab>('default');
+  const [branchRules, setBranchRules] = useState<Record<string, { content: string; original: string }>>({});
+  const [branchOverrides, setBranchOverrides] = useState<{ jira: boolean; linear: boolean; local: boolean }>({ jira: false, linear: false, local: false });
+  const [branchRuleLoading, setBranchRuleLoading] = useState(true);
+  const loadedTabs = useRef(new Set<string>());
+
   const [showBanner, setShowBanner] = useState(() => {
     return localStorage.getItem(SETTINGS_BANNER_DISMISSED_KEY) !== 'true';
   });
@@ -166,6 +188,33 @@ export function ConfigurationPanel({
       setForm({ ...config, envMapping: { ...(config.envMapping ?? {}) } });
     }
   }, [config]);
+
+  // Load a specific branch tab's content
+  const loadBranchTab = useCallback(async (tabKey: BranchTab) => {
+    if (loadedTabs.current.has(tabKey)) return;
+    loadedTabs.current.add(tabKey);
+    const source = tabKey === 'default' ? undefined : tabKey;
+    const data = await api.fetchBranchNameRule(source);
+    const content = data.content ?? '';
+    setBranchRules((prev) => ({ ...prev, [tabKey]: { content, original: content } }));
+  }, [api]);
+
+  // Load default tab + override status on mount
+  useEffect(() => {
+    setBranchRuleLoading(true);
+    Promise.all([
+      loadBranchTab('default'),
+      api.fetchBranchRuleStatus(),
+    ]).then(([, status]) => {
+      setBranchOverrides(status.overrides);
+      setBranchRuleLoading(false);
+    });
+  }, []);
+
+  // Lazy-load tab content when switching
+  useEffect(() => {
+    loadBranchTab(branchTab);
+  }, [branchTab, loadBranchTab]);
 
   // Load setup preference from Electron
   useEffect(() => {
@@ -188,18 +237,50 @@ export function ConfigurationPanel({
     );
   }
 
-  const hasChanges = JSON.stringify(form) !== JSON.stringify(config);
+  const branchRuleChanged = Object.entries(branchRules).some(
+    ([, v]) => v.content !== v.original,
+  );
+  const hasChanges = JSON.stringify(form) !== JSON.stringify(config) || branchRuleChanged;
 
   const handleSave = async () => {
     setSaving(true);
     setFeedback(null);
-    const result = await api.saveConfig(form as unknown as Record<string, unknown>);
+
+    // Build save promises for all changed branch tabs
+    const branchSaves = Object.entries(branchRules)
+      .filter(([, v]) => v.content !== v.original)
+      .map(([tabKey, v]) => {
+        const source = tabKey === 'default' ? undefined : tabKey;
+        return api.saveBranchNameRule(v.content.trim() || null, source);
+      });
+
+    const results = await Promise.all([
+      api.saveConfig(form as unknown as Record<string, unknown>),
+      ...branchSaves,
+    ]);
+
     setSaving(false);
-    if (result.success) {
+    const failed = results.find((r) => !r.success);
+    if (failed) {
+      setFeedback({ type: 'error', message: failed.error ?? 'Failed to save' });
+    } else {
+      // Reload changed tabs to get effective content
+      const changedTabs = Object.entries(branchRules)
+        .filter(([, v]) => v.content !== v.original)
+        .map(([k]) => k);
+      for (const tabKey of changedTabs) {
+        const source = tabKey === 'default' ? undefined : tabKey;
+        const fresh = await api.fetchBranchNameRule(source);
+        setBranchRules((prev) => ({
+          ...prev,
+          [tabKey]: { content: fresh.content, original: fresh.content },
+        }));
+      }
+      // Refresh override status
+      const status = await api.fetchBranchRuleStatus();
+      setBranchOverrides(status.overrides);
       setFeedback({ type: 'success', message: 'Configuration saved' });
       onSaved();
-    } else {
-      setFeedback({ type: 'error', message: result.error ?? 'Failed to save' });
     }
     setTimeout(() => setFeedback(null), 3000);
   };
@@ -263,6 +344,24 @@ export function ConfigurationPanel({
               />
             </Field>
           </div>
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
+            <div className="flex flex-col gap-0.5">
+              <span className={`text-xs font-medium ${settings.label}`}>Auto-install dependencies</span>
+              <span className={`text-[11px] ${settings.description}`}>Run install command when creating a new worktree</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, autoInstall: !(form.autoInstall !== false) })}
+              className="relative w-8 h-[18px] rounded-full transition-colors duration-200 focus:outline-none"
+              style={{ backgroundColor: form.autoInstall !== false ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
+            >
+              <span
+                className={`absolute top-[3px] w-3 h-3 rounded-full transition-all duration-200 ${
+                  form.autoInstall !== false ? 'left-4 bg-teal-400' : 'left-0.5 bg-white/40'
+                }`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Port Configuration Card */}
@@ -308,6 +407,115 @@ export function ConfigurationPanel({
               />
             </Field>
           </div>
+        </div>
+
+        {/* Branch Naming Card */}
+        <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-xs font-semibold ${text.primary}`}>Branch Naming</h3>
+            <div className="flex gap-1">
+              {BRANCH_TABS.map((t) => {
+                const isActive = branchTab === t.key;
+                const hasOverride = t.key !== 'default' && branchOverrides[t.key as keyof typeof branchOverrides];
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setBranchTab(t.key)}
+                    className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors duration-150 flex items-center gap-1.5 ${
+                      isActive ? tab.active : tab.inactive
+                    }`}
+                  >
+                    {t.label}
+                    {hasOverride && (
+                      <span className={`w-1.5 h-1.5 rounded-full ${t.dotColor}`} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {branchRuleLoading ? (
+            <div className={`flex items-center gap-2 ${text.muted} text-xs`}>
+              <Spinner size="sm" />
+              Loading...
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
+                {branchTab === 'default'
+                  ? <>JavaScript function that generates branch names from issue details. Receives <code className="text-[10px] bg-white/[0.06] px-1 py-0.5 rounded">{'{ id, name, type }'}</code> and should return a branch name string.</>
+                  : <>Override for <span className="font-medium capitalize">{branchTab}</span> issues. Leave empty to use the default rule.</>
+                }
+              </p>
+              {((branchTab === 'jira' && !jiraConfigured) || (branchTab === 'linear' && !linearConfigured)) && (
+                <div className="flex items-center justify-between px-3 py-2 rounded-md bg-amber-500/[0.08] border border-amber-500/20">
+                  <span className={`text-[11px] text-amber-400/90`}>
+                    {branchTab === 'jira' ? 'Jira' : 'Linear'} is not connected.
+                  </span>
+                  <button
+                    onClick={onNavigateToIntegrations}
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-md text-amber-400 bg-amber-500/[0.12] hover:bg-amber-500/[0.20] transition-colors duration-150 shrink-0"
+                  >
+                    Setup {branchTab === 'jira' ? 'Jira' : 'Linear'}
+                  </button>
+                </div>
+              )}
+              <div className="relative rounded-md border border-white/[0.06]">
+                {branchRules[branchTab] && branchRules[branchTab].content !== branchRules[branchTab].original && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBranchRules((prev) => ({
+                        ...prev,
+                        [branchTab]: { ...prev[branchTab], content: prev[branchTab].original },
+                      }));
+                    }}
+                    className={`absolute top-1.5 right-1.5 z-10 p-1 rounded ${text.dimmed} hover:${text.muted} hover:bg-white/[0.06] transition-colors`}
+                    title="Reset to saved"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                  </button>
+                )}
+                <Editor
+                  height="160px"
+                  defaultLanguage="javascript"
+                  value={branchRules[branchTab]?.content ?? ''}
+                  onChange={(value) => {
+                    setBranchRules((prev) => ({
+                      ...prev,
+                      [branchTab]: { ...prev[branchTab], content: value ?? '' },
+                    }));
+                  }}
+                  theme="vs-dark"
+                  options={{
+                    fixedOverflowWidgets: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 12,
+                    lineNumbers: 'off',
+                    glyphMargin: false,
+                    folding: false,
+                    lineDecorationsWidth: 8,
+                    lineNumbersMinChars: 0,
+                    padding: { top: 8, bottom: 8 },
+                    overviewRulerLanes: 0,
+                    hideCursorInOverviewRuler: true,
+                    overviewRulerBorder: false,
+                    scrollbar: { vertical: 'hidden', horizontal: 'auto' },
+                    renderLineHighlight: 'none',
+                    tabSize: 2,
+                  }}
+                />
+                {branchTab !== 'default' && !branchRules[branchTab]?.content && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className={`text-[11px] ${text.dimmed}`}>
+                      Using default rule. Edit to override for {branchTab} issues.
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* App Preferences Card (Electron only) */}

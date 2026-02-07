@@ -43,7 +43,7 @@ export default function App() {
   const api = useApi();
   const { projects, activeProject, isElectron, selectFolder, openProject, serverUrl } = useServer();
   const { worktrees, isConnected, error, refetch } = useWorktrees();
-  const { config, projectName, isLoading: configLoading, refetch: refetchConfig } = useConfig();
+  const { config, projectName, hasBranchNameRule, isLoading: configLoading, refetch: refetchConfig } = useConfig();
   const { jiraStatus, refetchJiraStatus } = useJiraStatus();
   const { linearStatus, refetchLinearStatus } = useLinearStatus();
   const githubStatus = useGitHubStatus();
@@ -670,7 +670,14 @@ export default function App() {
 
           {activeView === 'configuration' && (
             <div className="absolute inset-0 flex flex-col p-4">
-              <ConfigurationPanel config={config} onSaved={refetchConfig} isConnected={isConnected} />
+              <ConfigurationPanel
+                config={config}
+                onSaved={refetchConfig}
+                isConnected={isConnected}
+                jiraConfigured={jiraStatus?.configured ?? false}
+                linearConfigured={linearStatus?.configured ?? false}
+                onNavigateToIntegrations={() => setActiveView('integrations')}
+              />
             </div>
           )}
 
@@ -710,6 +717,7 @@ export default function App() {
       {showCreateModal && createModalMode !== 'custom' && (
         <CreateWorktreeModal
           mode={createModalMode as 'branch' | 'jira' | 'linear'}
+          hasBranchNameRule={hasBranchNameRule}
           onCreated={refetch}
           onClose={() => setShowCreateModal(false)}
           onSetupNeeded={handleSetupNeeded}

@@ -14,18 +14,21 @@ export interface WorktreeConfig {
   };
   envMapping?: Record<string, string>;
   serverPort: number;
+  autoInstall?: boolean;
 }
 
 export function useConfig() {
   const serverUrl = useServerUrlOptional();
   const [config, setConfig] = useState<WorktreeConfig | null>(null);
   const [projectName, setProjectName] = useState<string | null>(null);
+  const [hasBranchNameRule, setHasBranchNameRule] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchConfig = useCallback(async () => {
     if (serverUrl === null) {
       setConfig(null);
       setProjectName(null);
+      setHasBranchNameRule(false);
       setIsLoading(false);
       return;
     }
@@ -34,6 +37,7 @@ export function useConfig() {
       const data = await apiFetchConfig(serverUrl);
       setConfig(data.config || null);
       setProjectName(data.projectName || null);
+      setHasBranchNameRule(data.hasBranchNameRule ?? false);
     } catch {
       // Ignore
     } finally {
@@ -46,7 +50,7 @@ export function useConfig() {
     fetchConfig();
   }, [fetchConfig]);
 
-  return { config, projectName, isLoading, refetch: fetchConfig };
+  return { config, projectName, hasBranchNameRule, isLoading, refetch: fetchConfig };
 }
 
 // Re-export API functions that components use directly

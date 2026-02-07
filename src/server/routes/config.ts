@@ -1,10 +1,11 @@
 import { execFileSync } from 'child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import path from 'path';
 import type { Hono } from 'hono';
 
 import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
 import { detectConfig } from '../../shared/detect-config';
+import { type BranchSource, hasCustomBranchNameRule, readBranchNameRuleContent, wrapWithExportDefault } from '../branch-name';
 import type { WorktreeManager } from '../manager';
 
 export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
@@ -17,7 +18,7 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
 
     const config = manager.getConfig();
     const projectName = manager.getProjectName();
-    return c.json({ config, projectName });
+    return c.json({ config, projectName, hasBranchNameRule: true });
   });
 
   app.patch('/api/config', async (c) => {
@@ -293,5 +294,52 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
         error: error instanceof Error ? error.message : 'Failed to initialize config',
       }, 500);
     }
+  });
+
+  // Get branch name rule content — optional ?source=jira|linear|local
+  app.get('/api/config/branch-name-rule', (c) => {
+    const source = c.req.query('source') as BranchSource | undefined;
+    const content = readBranchNameRuleContent(manager.getConfigDir(), source);
+    const hasOverride = source ? hasCustomBranchNameRule(manager.getConfigDir(), source) : undefined;
+    return c.json({ content, ...(hasOverride !== undefined && { hasOverride }) });
+  });
+
+  // Save or delete branch name rule — body: { content, source? }
+  app.put('/api/config/branch-name-rule', async (c) => {
+    try {
+      const body = await c.req.json<{ content?: string | null; source?: BranchSource }>();
+      const filename = body.source ? `branch-name.${body.source}.mjs` : 'branch-name.mjs';
+      const rulePath = path.join(manager.getConfigDir(), CONFIG_DIR_NAME, filename);
+
+      if (!body.content?.trim()) {
+        // Delete the rule file
+        if (existsSync(rulePath)) unlinkSync(rulePath);
+        return c.json({ success: true });
+      }
+
+      // Ensure directory exists
+      const dir = path.join(manager.getConfigDir(), CONFIG_DIR_NAME);
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+      writeFileSync(rulePath, wrapWithExportDefault(body.content));
+      return c.json({ success: true });
+    } catch (error) {
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to save branch name rule',
+      }, 500);
+    }
+  });
+
+  // Get which per-integration overrides exist
+  app.get('/api/config/branch-name-rule/status', (c) => {
+    const configDir = manager.getConfigDir();
+    return c.json({
+      overrides: {
+        jira: hasCustomBranchNameRule(configDir, 'jira'),
+        linear: hasCustomBranchNameRule(configDir, 'linear'),
+        local: hasCustomBranchNameRule(configDir, 'local'),
+      },
+    });
   });
 }

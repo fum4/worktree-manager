@@ -291,6 +291,7 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
             content={skill.referenceMd ?? ''}
             rows={12}
             onSave={(v) => saveUpdate({ referenceMd: v })}
+            onDelete={async () => { await saveUpdate({ referenceMd: '' }); setEditingRef(false); }}
             startEditing={!skill.hasReference}
           />
         ) : (
@@ -315,6 +316,7 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
             content={skill.examplesMd ?? ''}
             rows={12}
             onSave={(v) => saveUpdate({ examplesMd: v })}
+            onDelete={async () => { await saveUpdate({ examplesMd: '' }); setEditingExamples(false); }}
             startEditing={!skill.hasExamples}
           />
         ) : (
@@ -421,13 +423,13 @@ function DeployToggle({ active, onToggle, title, disabled }: { active: boolean; 
       type="button"
       onClick={disabled ? undefined : onToggle}
       className={`relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
-      style={{ backgroundColor: active ? 'rgba(212,165,116,0.35)' : 'rgba(255,255,255,0.08)' }}
+      style={{ backgroundColor: active ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
       title={title}
       disabled={disabled}
     >
       <span
         className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
-          active ? 'left-3.5 bg-[#D4A574]' : 'left-0.5 bg-white/40'
+          active ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'
         }`}
       />
     </button>
@@ -444,7 +446,7 @@ function LocationSwitch({ value, onChange }: { value: 'global' | 'project'; onCh
           onClick={() => onChange(loc)}
           className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
             value === loc
-              ? `${claudeSkill.accent} bg-white/[0.06]`
+              ? 'text-[#d1d5db] bg-white/[0.06]'
               : `${text.dimmed} hover:${text.muted}`
           }`}
         >
@@ -463,11 +465,11 @@ function ToggleConfigRow({ label, value, onToggle }: { label: string; value: boo
         type="button"
         onClick={() => onToggle(!value)}
         className="relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none"
-        style={{ backgroundColor: value ? 'rgba(212,165,116,0.35)' : 'rgba(255,255,255,0.08)' }}
+        style={{ backgroundColor: value ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
       >
         <span
           className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
-            value ? 'left-3.5 bg-[#D4A574]' : 'left-0.5 bg-white/40'
+            value ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'
           }`}
         />
       </button>
@@ -635,12 +637,14 @@ function AutoSaveFileSection({
   content,
   rows,
   onSave,
+  onDelete,
   startEditing,
 }: {
   title: string;
   content: string;
   rows: number;
   onSave: (value: string) => Promise<unknown>;
+  onDelete?: () => void;
   startEditing?: boolean;
 }) {
   const [editing, setEditing] = useState(!!startEditing);
@@ -667,7 +671,19 @@ function AutoSaveFileSection({
 
   return (
     <section>
-      <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>{title}</h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className={`text-[11px] font-medium ${text.muted}`}>{title}</h3>
+        {onDelete && !startEditing && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className={`p-0.5 rounded ${text.dimmed} hover:text-red-400 transition-colors`}
+            title={`Delete ${title}`}
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
+      </div>
       {editing ? (
         <textarea
           value={draft}

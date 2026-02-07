@@ -9,6 +9,7 @@ import pc from 'picocolors';
 import { APP_NAME, CONFIG_DIR_NAME } from '../constants';
 import { copyEnvFiles } from '../core/env-files';
 import { log } from '../logger';
+import { generateBranchName } from './branch-name';
 import { getGitRoot, getWorktreeBranch, validateBranchName } from '../core/git';
 import { GitHubManager } from '../integrations/github/github-manager';
 import {
@@ -129,6 +130,7 @@ export class WorktreeManager {
         },
         envMapping: fileConfig.envMapping ?? this.config.envMapping,
         serverPort: fileConfig.serverPort ?? this.config.serverPort,
+        autoInstall: fileConfig.autoInstall,
       };
 
       // Update the config file path for future reloads
@@ -659,14 +661,16 @@ export class WorktreeManager {
       // Step 2.5: Copy .env* files from main project to worktree
       this.copyWorktreeEnvFiles(worktreePath);
 
-      // Step 3: Install dependencies
-      updateStatus('Installing dependencies...');
-      log.info(`Installing dependencies in ${worktreeId}...`);
-      const [installCmd, ...installArgs] = this.config.installCommand.split(' ');
-      await execFile(installCmd, installArgs, {
-        cwd: worktreePath,
-        encoding: 'utf-8',
-      });
+      // Step 3: Install dependencies (unless disabled)
+      if (this.config.autoInstall !== false) {
+        updateStatus('Installing dependencies...');
+        log.info(`Installing dependencies in ${worktreeId}...`);
+        const [installCmd, ...installArgs] = this.config.installCommand.split(' ');
+        await execFile(installCmd, installArgs, {
+          cwd: worktreePath,
+          encoding: 'utf-8',
+        });
+      }
 
       // Done — remove from creating map; getWorktrees() will pick it up from filesystem
       this.creatingWorktrees.delete(worktreeId);
@@ -1003,7 +1007,7 @@ export class WorktreeManager {
       // Merge allowed top-level fields
       const allowedKeys = [
         'startCommand', 'installCommand', 'baseBranch',
-        'projectDir', 'serverPort',
+        'projectDir', 'serverPort', 'autoInstall',
       ] as const;
 
       for (const key of allowedKeys) {
@@ -1219,8 +1223,9 @@ export class WorktreeManager {
     const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
     saveTaskData(taskData, tasksDir);
 
-    // Create worktree using custom branch or issue key as branch name
-    const worktreeBranch = branch?.trim() || resolvedKey;
+    // Create worktree using custom branch or generated name from rule
+    const worktreeBranch = branch?.trim()
+      || await generateBranchName(this.configDir, { id: resolvedKey, name: taskData.summary, type: 'jira' });
     const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedKey });
 
     if (!result.success) {
@@ -1298,8 +1303,9 @@ export class WorktreeManager {
     };
     saveLinearTaskData(taskData, tasksDir);
 
-    // Create worktree using custom branch or identifier as branch name
-    const worktreeBranch = branch?.trim() || resolvedId;
+    // Create worktree using custom branch or generated name from rule
+    const worktreeBranch = branch?.trim()
+      || await generateBranchName(this.configDir, { id: resolvedId, name: issueDetail.title, type: 'linear' });
     const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedId });
 
     if (!result.success) {

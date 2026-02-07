@@ -161,7 +161,7 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
               <span className={`text-[10px] font-mono ${mcpServer.accent}`}>
                 {server.id}
               </span>
-              {server.tags.map((tag) => (
+              {server.tags.filter((tag) => tag !== 'built-in').map((tag) => (
                 <span key={tag} className={`text-[10px] ${mcpServer.badge} px-1.5 py-0.5 rounded`}>
                   {tag}
                 </span>
@@ -490,12 +490,12 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
                               type="button"
                               onClick={() => handleDeploy(tool.id, scope, !!isDeployed)}
                               className="relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none"
-                              style={{ backgroundColor: isDeployed ? 'rgba(168,85,247,0.35)' : 'rgba(255,255,255,0.08)' }}
+                              style={{ backgroundColor: isDeployed ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
                               title={isDeployed ? `Remove from ${tool.label} (${scope})` : `Deploy to ${tool.label} (${scope})`}
                             >
                               <span
                                 className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
-                                  isDeployed ? 'left-3.5 bg-purple-400' : 'left-0.5 bg-white/40'
+                                  isDeployed ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'
                                 }`}
                               />
                             </button>
