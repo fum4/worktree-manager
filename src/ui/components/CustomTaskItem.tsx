@@ -2,6 +2,7 @@ import { GitBranch } from 'lucide-react';
 
 import type { CustomTaskSummary } from '../types';
 import { customTask, surface, text } from '../theme';
+import { Tooltip } from './Tooltip';
 
 interface CustomTaskItemProps {
   task: CustomTaskSummary;
@@ -49,17 +50,18 @@ export function CustomTaskItem({ task, isSelected, onSelect, onViewWorktree, sho
           </div>
         </div>
         {task.linkedWorktreeId && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewWorktree?.(task.linkedWorktreeId!);
-            }}
-            className="flex-shrink-0 p-0.5 rounded text-accent hover:text-accent-muted hover:bg-accent/10 transition-colors duration-150 self-center"
-            title="View linked worktree"
-          >
-            <GitBranch className="w-3.5 h-3.5" />
-          </button>
+          <Tooltip position="right" text="View worktree">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewWorktree?.(task.linkedWorktreeId!);
+              }}
+              className="flex-shrink-0 p-0.5 rounded text-accent hover:text-accent-muted hover:bg-accent/10 transition-colors duration-150 self-center"
+            >
+              <GitBranch className="w-3.5 h-3.5" />
+            </button>
+          </Tooltip>
         )}
       </div>
     </button>

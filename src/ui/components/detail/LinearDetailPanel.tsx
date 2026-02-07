@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useLinearIssueDetail } from '../../hooks/useLinearIssueDetail';
 import { useApi } from '../../hooks/useApi';
 import { badge, border, button, linearPriority, text } from '../../theme';
+import { Tooltip } from '../Tooltip';
 import { MarkdownContent } from '../MarkdownContent';
 import { Spinner } from '../Spinner';
 import { WorktreeExistsModal } from '../WorktreeExistsModal';
@@ -106,14 +107,16 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <a
-                href={issue.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`text-xs font-semibold ${badge.linear} ${badge.linearHover} transition-colors`}
-              >
-                {issue.identifier}
-              </a>
+              <Tooltip position="right" text="Open in Linear">
+                <a
+                  href={issue.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`text-xs font-semibold ${badge.linear} ${badge.linearHover} transition-colors`}
+                >
+                  {issue.identifier}
+                </a>
+              </Tooltip>
               <span
                 className="ml-2 text-[11px] font-medium px-2 py-0.5 rounded"
                 style={{ backgroundColor: `${issue.state.color}20`, color: issue.state.color }}
@@ -134,10 +137,10 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
               ))}
               <span className={`text-[5px] ${text.dimmed}`}>●</span>
               <span className={`text-[11px] ${priorityInfo.color}`}>{priorityInfo.label}</span>
+              <Tooltip position="right" text={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}>
               <button
                 type="button"
                 onClick={() => refetch()}
-                title={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}
                 className={`ml-2 p-0.5 rounded ${text.muted} hover:text-[#c0c5cc] transition-colors duration-150 flex items-center gap-1`}
               >
                 <svg
@@ -158,18 +161,21 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
                   </span>
                 )}
               </button>
+              </Tooltip>
             </div>
             <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.title}</h2>
           </div>
           <div className="flex-shrink-0 pt-1 flex items-center gap-2">
-            <a
-              href={issue.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded-lg transition-colors duration-150`}
-            >
-              View in Linear
-            </a>
+            <Tooltip position="right" text="Open in Linear">
+              <a
+                href={issue.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded-lg transition-colors duration-150`}
+              >
+                View in Linear
+              </a>
+            </Tooltip>
             {linkedWorktreeId ? (
               <button
                 type="button"

@@ -3,6 +3,7 @@ import { Settings } from 'lucide-react';
 
 import type { CustomTaskSummary, JiraIssueSummary, LinearIssueSummary, WorktreeInfo } from '../types';
 import { border, text } from '../theme';
+import { Tooltip } from './Tooltip';
 import { CustomTaskList } from './CustomTaskList';
 import { JiraIssueList } from './JiraIssueList';
 import { LinearIssueList } from './LinearIssueList';
@@ -20,30 +21,31 @@ function ChevronIcon({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-function RefreshIcon({ spinning, onClick, title }: { spinning: boolean; onClick: () => void; title: string }) {
+function RefreshIcon({ spinning, onClick, tooltip }: { spinning: boolean; onClick: () => void; tooltip: string }) {
   return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      title={title}
-      className={`ml-auto p-0.5 rounded ${text.muted} hover:text-[#c0c5cc] transition-colors duration-150`}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 16 16"
-        fill="currentColor"
-        className={`w-3 h-3 ${spinning ? 'animate-spin' : ''}`}
+    <Tooltip position="right" text={tooltip}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        className={`ml-auto p-0.5 rounded ${text.muted} hover:text-[#c0c5cc] transition-colors duration-150`}
       >
-        <path
-          fillRule="evenodd"
-          d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37l-.84-.841a4.5 4.5 0 0 0-7.08.681.75.75 0 0 1-1.3-.75 6 6 0 0 1 9.44-.908l.84.84V3.227a.75.75 0 0 1 .75-.75Zm-.911 7.5A.75.75 0 0 1 13.199 11a6 6 0 0 1-9.44.908l-.84-.84v1.456a.75.75 0 0 1-1.5 0V9.341a.75.75 0 0 1 .75-.75h3.182a.75.75 0 0 1 0 1.5h-1.37l.84.841a4.5 4.5 0 0 0 7.08-.681.75.75 0 0 1 1.024-.274Z"
-          clipRule="evenodd"
-        />
-      </svg>
-    </button>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          className={`w-3 h-3 ${spinning ? 'animate-spin' : ''}`}
+        >
+          <path
+            fillRule="evenodd"
+            d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37l-.84-.841a4.5 4.5 0 0 0-7.08.681.75.75 0 0 1-1.3-.75 6 6 0 0 1 9.44-.908l.84.84V3.227a.75.75 0 0 1 .75-.75Zm-.911 7.5A.75.75 0 0 1 13.199 11a6 6 0 0 1-9.44.908l-.84-.84v1.456a.75.75 0 0 1-1.5 0V9.341a.75.75 0 0 1 .75-.75h3.182a.75.75 0 0 1 0 1.5h-1.37l.84.841a4.5 4.5 0 0 0 7.08-.681.75.75 0 0 1 1.024-.274Z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
+    </Tooltip>
   );
 }
 
@@ -296,7 +298,7 @@ export function IssueList({
               <RefreshIcon
                 spinning={isFetching && issues.length > 0}
                 onClick={onRefreshJira}
-                title={jiraUpdatedAt ? `Last refreshed: ${formatTimeAgo(jiraUpdatedAt)}` : 'Refresh'}
+                tooltip={jiraUpdatedAt ? `Last refreshed: ${formatTimeAgo(jiraUpdatedAt)}` : 'Refresh'}
               />
             </div>
 
@@ -330,7 +332,7 @@ export function IssueList({
               <RefreshIcon
                 spinning={isFetching}
                 onClick={onRefreshJira}
-                title={jiraUpdatedAt ? `Last refreshed: ${formatTimeAgo(jiraUpdatedAt)}` : 'Refresh'}
+                tooltip={jiraUpdatedAt ? `Last refreshed: ${formatTimeAgo(jiraUpdatedAt)}` : 'Refresh'}
               />
             </div>
 
@@ -372,7 +374,7 @@ export function IssueList({
               <RefreshIcon
                 spinning={linearFetching && linearIssues.length > 0}
                 onClick={onRefreshLinear}
-                title={linearUpdatedAt ? `Last refreshed: ${formatTimeAgo(linearUpdatedAt)}` : 'Refresh'}
+                tooltip={linearUpdatedAt ? `Last refreshed: ${formatTimeAgo(linearUpdatedAt)}` : 'Refresh'}
               />
             </div>
 

@@ -225,7 +225,7 @@ function Wok3Item({ isSelected, onSelect, isNew, deploymentStatus }: { isSelecte
           </div>
         </div>
         {isActive && (
-          <span className={`w-1.5 h-1.5 rounded-full ${mcpServer.deployed} flex-shrink-0 mt-1`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${mcpServer.deployed} flex-shrink-0 mt-1 mr-2`} />
         )}
       </div>
     </button>

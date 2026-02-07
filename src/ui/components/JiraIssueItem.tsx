@@ -1,6 +1,7 @@
 import { GitBranch } from 'lucide-react';
 import type { JiraIssueSummary } from '../types';
 import { jiraPriority, jiraStatus, surface, text } from '../theme';
+import { Tooltip } from './Tooltip';
 
 interface JiraIssueItemProps {
   issue: JiraIssueSummary;
@@ -48,17 +49,18 @@ export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, o
           </div>
         </div>
         {linkedWorktreeId && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewWorktree?.(linkedWorktreeId);
-            }}
-            className="flex-shrink-0 p-0.5 rounded text-accent hover:text-accent-muted hover:bg-accent/10 transition-colors duration-150 self-center"
-            title="View linked worktree"
-          >
-            <GitBranch className="w-3.5 h-3.5" />
-          </button>
+          <Tooltip position="right" text="View worktree">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewWorktree?.(linkedWorktreeId);
+              }}
+              className="flex-shrink-0 p-0.5 rounded text-accent hover:text-accent-muted hover:bg-accent/10 transition-colors duration-150 self-center"
+            >
+              <GitBranch className="w-3.5 h-3.5" />
+            </button>
+          </Tooltip>
         )}
       </div>
     </button>

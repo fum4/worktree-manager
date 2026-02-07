@@ -2,6 +2,7 @@ import { FileText, Ticket } from 'lucide-react';
 
 import type { WorktreeInfo } from '../types';
 import { border, status, surface, text } from '../theme';
+import { Tooltip } from './Tooltip';
 
 interface WorktreeItemProps {
   worktree: WorktreeInfo;
@@ -43,7 +44,9 @@ export function WorktreeItem({ worktree, isSelected, onSelect, hasLocalIssue, on
             {worktree.id}
           </span>
           {worktree.hasUncommitted && (
-            <span className={`w-1.5 h-1.5 rounded-full ${status.uncommitted.dot} flex-shrink-0`} title="Uncommitted changes" />
+            <Tooltip position="right" text="Uncommitted changes">
+              <span className={`w-1.5 h-1.5 rounded-full ${status.uncommitted.dot} flex-shrink-0`} />
+            </Tooltip>
           )}
         </div>
         <div className={`text-[11px] ${text.muted} truncate mt-0.5`}>
@@ -57,51 +60,58 @@ export function WorktreeItem({ worktree, isSelected, onSelect, hasLocalIssue, on
         {worktree.jiraUrl && (() => {
           const key = worktree.jiraUrl!.match(/\/browse\/([A-Z]+-\d+)/)?.[1];
           return (
-            <span
-              title="Jira linked"
-              className="cursor-pointer p-1 -m-1 rounded text-blue-400 hover:bg-blue-400/10 transition-colors duration-150"
-              onClick={(e) => { e.stopPropagation(); if (key) onSelectJiraIssue?.(key); }}
-            >
-              <Ticket className="w-3.5 h-3.5" />
-            </span>
+            <Tooltip position="right" text="View issue">
+              <span
+                className="cursor-pointer p-1 -m-1 rounded text-blue-400 hover:bg-blue-400/10 transition-colors duration-150"
+                onClick={(e) => { e.stopPropagation(); if (key) onSelectJiraIssue?.(key); }}
+              >
+                <Ticket className="w-3.5 h-3.5" />
+              </span>
+            </Tooltip>
           );
         })()}
         {worktree.linearUrl && (() => {
           const id = worktree.linearUrl!.match(/\/issue\/([A-Z]+-\d+)/)?.[1];
           return (
-            <span
-              title="Linear linked"
-              className="cursor-pointer p-1 -m-1 rounded text-[#5E6AD2] hover:bg-[#5E6AD2]/10 transition-colors duration-150"
-              onClick={(e) => { e.stopPropagation(); if (id) onSelectLinearIssue?.(id); }}
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
-            </span>
+            <Tooltip position="right" text="View issue">
+              <span
+                className="cursor-pointer p-1 -m-1 rounded text-[#5E6AD2] hover:bg-[#5E6AD2]/10 transition-colors duration-150"
+                onClick={(e) => { e.stopPropagation(); if (id) onSelectLinearIssue?.(id); }}
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
+              </span>
+            </Tooltip>
           );
         })()}
         {hasLocalIssue && worktree.localIssueId && (
-          <span
-            title="Local issue linked"
-            className="cursor-pointer p-1 -m-1 rounded text-amber-400 hover:bg-amber-400/10 transition-colors duration-150"
-            onClick={(e) => { e.stopPropagation(); onSelectLocalIssue?.(worktree.localIssueId!); }}
-          >
-            <FileText className="w-3.5 h-3.5" />
-          </span>
+          <Tooltip position="right" text="View issue">
+            <span
+              className="cursor-pointer p-1 -m-1 rounded text-amber-400 hover:bg-amber-400/10 transition-colors duration-150"
+              onClick={(e) => { e.stopPropagation(); onSelectLocalIssue?.(worktree.localIssueId!); }}
+            >
+              <FileText className="w-3.5 h-3.5" />
+            </span>
+          </Tooltip>
         )}
         {worktree.githubPrUrl && (
-          <span className={`${
-            worktree.githubPrState === 'merged' ? 'text-purple-400' :
-            worktree.githubPrState === 'open' ? 'text-emerald-400' :
-            text.secondary
-          }`} title={`PR: ${worktree.githubPrState}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
-              <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
-            </svg>
-          </span>
+          <Tooltip position="right" text={`PR: ${worktree.githubPrState}`}>
+            <span className={`${
+              worktree.githubPrState === 'merged' ? 'text-purple-400' :
+              worktree.githubPrState === 'open' ? 'text-emerald-400' :
+              text.secondary
+            }`}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
+              </svg>
+            </span>
+          </Tooltip>
         )}
         {worktree.hasUnpushed && (
-          <span className={`text-[10px] font-medium ${text.primary}`} title={`${worktree.commitsAhead || ''} unpushed`}>
-            {worktree.commitsAhead ? `↑${worktree.commitsAhead}` : '↑'}
-          </span>
+          <Tooltip position="right" text={`${worktree.commitsAhead || ''} unpushed`}>
+            <span className={`text-[10px] font-medium ${text.primary}`}>
+              {worktree.commitsAhead ? `↑${worktree.commitsAhead}` : '↑'}
+            </span>
+          </Tooltip>
         )}
       </div>
     </button>

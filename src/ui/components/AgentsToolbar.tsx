@@ -38,7 +38,7 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
   return (
     <>
       <div className="flex-shrink-0 px-3 pt-3.5 pb-2 flex items-center justify-between gap-2">
-        <span className={`text-xs font-medium ${text.secondary} ml-2`}>Agents</span>
+        <span className="text-xs font-medium text-[#6b7280] ml-2">Agents</span>
         <div className="relative">
           <button
             ref={buttonRef}
@@ -91,7 +91,7 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Filter agents..."
+            placeholder="Filter servers, skills..."
             className={`w-full pl-8 pr-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
           />
         </div>

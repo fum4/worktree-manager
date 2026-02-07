@@ -4,6 +4,7 @@ import { useJiraIssueDetail } from '../../hooks/useJiraIssueDetail';
 import { useApi } from '../../hooks/useApi';
 import type { JiraIssueDetail } from '../../types';
 import { badge, border, button, jiraPriority, jiraStatus, jiraType, surface, text } from '../../theme';
+import { Tooltip } from '../Tooltip';
 import { MarkdownContent } from '../MarkdownContent';
 import { Spinner } from '../Spinner';
 import { WorktreeExistsModal } from '../WorktreeExistsModal';
@@ -234,14 +235,16 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
           <div className="flex-1 min-w-0">
             {/* Issue key + status + refresh on one line */}
             <div className="flex items-center gap-2 mb-2">
-              <a
-                href={issue.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`text-xs font-semibold ${badge.jira} ${badge.jiraHover} transition-colors`}
-              >
-                {issue.key}
-              </a>
+              <Tooltip position="right" text="Open in Jira">
+                <a
+                  href={issue.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`text-xs font-semibold ${badge.jira} ${badge.jiraHover} transition-colors`}
+                >
+                  {issue.key}
+                </a>
+              </Tooltip>
               <span className={`ml-2 text-[11px] font-medium px-2 py-0.5 rounded ${statusClasses}`}>
                 {issue.status}
               </span>
@@ -256,10 +259,10 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
               ))}
               <span className={`text-[5px] ${text.dimmed}`}>●</span>
               <span className={`text-[11px] ${priorityClass}`}>{issue.priority}</span>
+              <Tooltip position="right" text={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}>
               <button
                 type="button"
                 onClick={() => refetch()}
-                title={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}
                 className={`ml-2 p-0.5 rounded ${text.muted} hover:text-[#c0c5cc] transition-colors duration-150 flex items-center gap-1`}
               >
                 <svg
@@ -280,19 +283,22 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                   </span>
                 )}
               </button>
+              </Tooltip>
             </div>
             {/* Summary — largest text, clear anchor */}
             <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.summary}</h2>
           </div>
           <div className="flex-shrink-0 pt-1 flex items-center gap-2">
-            <a
-              href={issue.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded-lg transition-colors duration-150`}
-            >
-              View in Jira
-            </a>
+            <Tooltip position="right" text="Open in Jira">
+              <a
+                href={issue.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`px-3 py-1.5 text-xs font-medium ${button.secondary} rounded-lg transition-colors duration-150`}
+              >
+                View in Jira
+              </a>
+            </Tooltip>
             {linkedWorktreeId ? (
               <button
                 type="button"
