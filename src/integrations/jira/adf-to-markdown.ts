@@ -6,26 +6,28 @@ interface AdfNode {
   attrs?: Record<string, unknown>;
 }
 
-export function adfToMarkdown(adf: unknown): string {
+type AttachmentMap = Map<string, { url: string; mimeType: string }>;
+
+export function adfToMarkdown(adf: unknown, attachments?: AttachmentMap): string {
   if (!adf || typeof adf !== 'object') return '';
   const doc = adf as AdfNode;
   if (doc.type !== 'doc' || !doc.content) return '';
-  return convertNodes(doc.content).trim();
+  return convertNodes(doc.content, 0, attachments).trim();
 }
 
-function convertNodes(nodes: AdfNode[], listDepth = 0): string {
-  return nodes.map((node) => convertNode(node, listDepth)).join('');
+function convertNodes(nodes: AdfNode[], listDepth = 0, attachments?: AttachmentMap): string {
+  return nodes.map((node) => convertNode(node, listDepth, attachments)).join('');
 }
 
-function convertNode(node: AdfNode, listDepth: number): string {
+function convertNode(node: AdfNode, listDepth: number, attachments?: AttachmentMap): string {
   switch (node.type) {
     case 'paragraph':
-      return convertInline(node.content) + '\n\n';
+      return convertInline(node.content, attachments) + '\n\n';
 
     case 'heading': {
       const level = (node.attrs?.level as number) ?? 1;
       const prefix = '#'.repeat(Math.min(level, 6));
-      return `${prefix} ${convertInline(node.content)}\n\n`;
+      return `${prefix} ${convertInline(node.content, attachments)}\n\n`;
     }
 
     case 'text':
@@ -44,7 +46,7 @@ function convertNode(node: AdfNode, listDepth: number): string {
     }
 
     case 'blockquote': {
-      const inner = convertNodes(node.content ?? [], listDepth)
+      const inner = convertNodes(node.content ?? [], listDepth, attachments)
         .trim()
         .split('\n')
         .map((line) => `> ${line}`)
@@ -55,20 +57,20 @@ function convertNode(node: AdfNode, listDepth: number): string {
     case 'bulletList':
       return (
         (node.content ?? [])
-          .map((item) => convertListItem(item, listDepth, '- '))
+          .map((item) => convertListItem(item, listDepth, '- ', attachments))
           .join('') + (listDepth === 0 ? '\n' : '')
       );
 
     case 'orderedList':
       return (
         (node.content ?? [])
-          .map((item, i) => convertListItem(item, listDepth, `${i + 1}. `))
+          .map((item, i) => convertListItem(item, listDepth, `${i + 1}. `, attachments))
           .join('') + (listDepth === 0 ? '\n' : '')
       );
 
     case 'listItem': {
       // Handled by bulletList/orderedList via convertListItem
-      return convertNodes(node.content ?? [], listDepth);
+      return convertNodes(node.content ?? [], listDepth, attachments);
     }
 
     case 'mention': {
@@ -78,10 +80,18 @@ function convertNode(node: AdfNode, listDepth: number): string {
 
     case 'mediaSingle':
     case 'mediaGroup':
-      return (node.content ?? []).map((child) => convertNode(child, listDepth)).join('');
+      return (node.content ?? []).map((child) => convertNode(child, listDepth, attachments)).join('');
 
     case 'media': {
       const filename = (node.attrs?.alt as string) ?? (node.attrs?.id as string) ?? 'file';
+      const att = attachments?.get(filename);
+      if (att) {
+        const proxyUrl = `/api/jira/attachment?url=${encodeURIComponent(att.url)}`;
+        if (att.mimeType.startsWith('image/')) {
+          return `![${filename}](${proxyUrl})\n\n`;
+        }
+        return `[${filename}](${proxyUrl})\n\n`;
+      }
       return `[attachment: ${filename}]`;
     }
 
@@ -93,15 +103,15 @@ function convertNode(node: AdfNode, listDepth: number): string {
     default:
       // Unknown node — recurse into children if present
       if (node.content) {
-        return convertNodes(node.content, listDepth);
+        return convertNodes(node.content, listDepth, attachments);
       }
       return '';
   }
 }
 
-function convertListItem(item: AdfNode, depth: number, prefix: string): string {
+function convertListItem(item: AdfNode, depth: number, prefix: string, attachments?: AttachmentMap): string {
   const indent = '  '.repeat(depth);
-  const inner = convertNodes(item.content ?? [], depth + 1).replace(/\n\n$/, '\n');
+  const inner = convertNodes(item.content ?? [], depth + 1, attachments).replace(/\n\n$/, '\n');
   // First line gets the bullet/number, subsequent lines get indented
   const lines = inner.split('\n');
   return lines
@@ -114,9 +124,9 @@ function convertListItem(item: AdfNode, depth: number, prefix: string): string {
     .join('\n') + '\n';
 }
 
-function convertInline(nodes?: AdfNode[]): string {
+function convertInline(nodes?: AdfNode[], attachments?: AttachmentMap): string {
   if (!nodes) return '';
-  return nodes.map((n) => convertNode(n, 0)).join('');
+  return nodes.map((n) => convertNode(n, 0, attachments)).join('');
 }
 
 function applyMarks(text: string, marks?: AdfNode['marks']): string {

@@ -33,6 +33,7 @@ import {
 } from '../integrations/linear/api';
 import type { LinearTaskData } from '../integrations/linear/types';
 
+import { NotesManager } from './notes-manager';
 import { PortManager } from './port-manager';
 import type {
   RunningProcess,
@@ -80,6 +81,8 @@ export class WorktreeManager {
 
   private portManager: PortManager;
 
+  private notesManager: NotesManager;
+
   private runningProcesses: Map<string, RunningProcess> = new Map();
 
   private creatingWorktrees: Map<string, WorktreeInfo> = new Map();
@@ -93,6 +96,7 @@ export class WorktreeManager {
     this.configFilePath = configFilePath;
     this.configDir = configFilePath ? path.dirname(path.dirname(configFilePath)) : process.cwd();
     this.portManager = new PortManager(config, configFilePath);
+    this.notesManager = new NotesManager(this.configDir);
 
     const worktreesPath = this.getWorktreesAbsolutePath();
     if (!existsSync(worktreesPath)) {
@@ -191,6 +195,10 @@ export class WorktreeManager {
     return getGitRoot(this.getWorktreesAbsolutePath());
   }
 
+  getNotesManager(): NotesManager {
+    return this.notesManager;
+  }
+
   getWorktrees(): WorktreeInfo[] {
     const worktrees: WorktreeInfo[] = [];
     const worktreesPath = this.getWorktreesAbsolutePath();
@@ -198,6 +206,9 @@ export class WorktreeManager {
     if (!existsSync(worktreesPath)) {
       return worktrees;
     }
+
+    // Build a map of worktreeId → issue info from notes.json files
+    const linkMap = this.notesManager.buildWorktreeLinkMap();
 
     const entries = readdirSync(worktreesPath, { withFileTypes: true });
 
@@ -229,24 +240,38 @@ export class WorktreeManager {
         hasUnpushed: true,
       };
 
-      // Check for linked task (Jira or Linear)
-      const taskFile = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks', entry.name, 'task.json');
-      if (existsSync(taskFile)) {
-        try {
-          const taskData = JSON.parse(readFileSync(taskFile, 'utf-8'));
-          if (taskData.source === 'local') {
-            if (taskData.identifier) info.localIssueId = taskData.identifier;
-            if (taskData.status) info.localIssueStatus = taskData.status;
-          } else if (taskData.source === 'linear') {
-            if (taskData.url) info.linearUrl = taskData.url;
-            if (taskData.status) info.linearStatus = taskData.status;
-          } else {
-            // Jira (default for backward compat)
-            if (taskData.url) info.jiraUrl = taskData.url;
-            if (taskData.status) info.jiraStatus = taskData.status;
+      // Check for linked issue via notes.json
+      const linked = linkMap.get(entry.name);
+      if (linked) {
+        const issueDir = this.notesManager.getIssueDir(linked.source, linked.issueId);
+        if (linked.source === 'local') {
+          // Read the local task.json for identifier and status
+          const taskFile = path.join(issueDir, 'task.json');
+          if (existsSync(taskFile)) {
+            try {
+              const taskData = JSON.parse(readFileSync(taskFile, 'utf-8'));
+              if (taskData.identifier) info.localIssueId = taskData.identifier;
+              if (taskData.status) info.localIssueStatus = taskData.status;
+            } catch { /* ignore */ }
           }
-        } catch {
-          // Ignore corrupt task files
+        } else if (linked.source === 'linear') {
+          const issueFile = path.join(issueDir, 'issue.json');
+          if (existsSync(issueFile)) {
+            try {
+              const issueData = JSON.parse(readFileSync(issueFile, 'utf-8'));
+              if (issueData.url) info.linearUrl = issueData.url;
+              if (issueData.status) info.linearStatus = issueData.status;
+            } catch { /* ignore */ }
+          }
+        } else if (linked.source === 'jira') {
+          const issueFile = path.join(issueDir, 'issue.json');
+          if (existsSync(issueFile)) {
+            try {
+              const issueData = JSON.parse(readFileSync(issueFile, 'utf-8'));
+              if (issueData.url) info.jiraUrl = issueData.url;
+              if (issueData.status) info.jiraStatus = issueData.status;
+            } catch { /* ignore */ }
+          }
         }
       }
 
@@ -1190,7 +1215,7 @@ export class WorktreeManager {
       };
     }
 
-    // Save task data locally
+    // Save issue data locally (writes to issues/jira/<KEY>/issue.json + notes.json)
     const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
     saveTaskData(taskData, tasksDir);
 
@@ -1201,6 +1226,9 @@ export class WorktreeManager {
     if (!result.success) {
       return { success: false, error: result.error, code: result.code, worktreeId: result.worktreeId };
     }
+
+    // Link the worktree to the issue via notes.json
+    this.notesManager.setLinkedWorktreeId('jira', resolvedKey, resolvedKey);
 
     return {
       success: true,
@@ -1250,7 +1278,7 @@ export class WorktreeManager {
       };
     }
 
-    // Save task data locally
+    // Save issue data locally (writes to issues/linear/<ID>/issue.json + notes.json)
     const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
     const taskData: LinearTaskData = {
       source: 'linear',
@@ -1277,6 +1305,9 @@ export class WorktreeManager {
     if (!result.success) {
       return { success: false, error: result.error, code: result.code, worktreeId: result.worktreeId };
     }
+
+    // Link the worktree to the issue via notes.json
+    this.notesManager.setLinkedWorktreeId('linear', resolvedId, resolvedId);
 
     return {
       success: true,

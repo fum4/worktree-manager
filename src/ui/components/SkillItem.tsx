@@ -7,9 +7,11 @@ interface SkillItemProps {
   skill: SkillSummary;
   isSelected: boolean;
   onSelect: () => void;
+  isDeployed?: boolean;
+  isProjectDeployed?: boolean;
 }
 
-export function SkillItem({ skill, isSelected, onSelect }: SkillItemProps) {
+export function SkillItem({ skill, isSelected, onSelect, isDeployed, isProjectDeployed }: SkillItemProps) {
   return (
     <button
       type="button"
@@ -34,9 +36,9 @@ export function SkillItem({ skill, isSelected, onSelect }: SkillItemProps) {
             </div>
           )}
         </div>
-        <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>
-          {skill.location}
-        </span>
+        {isDeployed && (
+          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 ${isProjectDeployed ? 'bg-teal-400' : 'bg-[#D4A574]'}`} />
+        )}
       </div>
     </button>
   );

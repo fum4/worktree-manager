@@ -1,4 +1,4 @@
-import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail, McpServerSummary, McpServerDetail, McpDeploymentStatus, McpScanResult, SkillSummary, SkillDetail, PluginSummary, SkillScanResult } from '../types';
+import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail, McpServerSummary, McpServerDetail, McpDeploymentStatus, McpScanResult, SkillSummary, SkillDetail, SkillDeploymentStatus, PluginSummary, SkillScanResult } from '../types';
 
 // API functions now accept an optional serverUrl parameter
 // When null/undefined, they use relative URLs (for single-project web mode)
@@ -934,6 +934,46 @@ export async function createWorktreeFromCustomTask(
   }
 }
 
+// -- Notes API --
+
+export interface IssueNotes {
+  linkedWorktreeId: string | null;
+  personal: { content: string; updatedAt: string } | null;
+  aiContext: { content: string; updatedAt: string } | null;
+}
+
+export async function fetchNotes(
+  source: string,
+  id: string,
+  serverUrl: string | null = null,
+): Promise<IssueNotes> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}`);
+    return await res.json();
+  } catch {
+    return { linkedWorktreeId: null, personal: null, aiContext: null };
+  }
+}
+
+export async function updateNotes(
+  source: string,
+  id: string,
+  section: 'personal' | 'aiContext',
+  content: string,
+  serverUrl: string | null = null,
+): Promise<IssueNotes> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ section, content }),
+    });
+    return await res.json();
+  } catch {
+    return { linkedWorktreeId: null, personal: null, aiContext: null };
+  }
+}
+
 // -- MCP Server Manager API --
 
 export async function fetchMcpServers(
@@ -1160,7 +1200,7 @@ export async function undeployMcpServer(
   }
 }
 
-// -- Claude Skills API --
+// -- Claude Skills API (registry-based) --
 
 export async function fetchClaudeSkills(
   serverUrl: string | null = null,
@@ -1178,11 +1218,12 @@ export async function fetchClaudeSkills(
 
 export async function fetchClaudeSkill(
   name: string,
-  location: 'global' | 'project' = 'global',
   serverUrl: string | null = null,
+  location?: 'project',
 ): Promise<{ skill?: SkillDetail; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}?location=${location}`);
+    const params = location ? `?location=${location}` : '';
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}${params}`);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       return { error: (body as { error?: string }).error ?? `Failed (${res.status})` };
@@ -1196,7 +1237,7 @@ export async function fetchClaudeSkill(
 }
 
 export async function createClaudeSkill(
-  data: { name: string; description?: string; allowedTools?: string; context?: string; location?: 'global' | 'project'; instructions?: string },
+  data: { name: string; description?: string; allowedTools?: string; context?: string; agent?: string; model?: string; argumentHint?: string; disableModelInvocation?: boolean; userInvocable?: boolean; mode?: boolean; instructions?: string },
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; skill?: SkillSummary; error?: string }> {
   try {
@@ -1216,11 +1257,13 @@ export async function createClaudeSkill(
 
 export async function updateClaudeSkill(
   name: string,
-  updates: { location?: 'global' | 'project'; skillMd?: string; referenceMd?: string; examplesMd?: string },
+  updates: { skillMd?: string; referenceMd?: string; examplesMd?: string; frontmatter?: Record<string, unknown> },
   serverUrl: string | null = null,
+  location?: 'project',
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}`, {
+    const params = location ? `?location=${location}` : '';
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}${params}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
@@ -1234,13 +1277,51 @@ export async function updateClaudeSkill(
   }
 }
 
-export async function deleteClaudeSkill(
+export async function duplicateSkillToProject(
   name: string,
-  location: 'global' | 'project' = 'global',
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}?location=${location}`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}/duplicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope: 'project' }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to duplicate skill',
+    };
+  }
+}
+
+export async function createGlobalFromProject(
+  name: string,
+  newName: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; name?: string; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}/create-global`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newName }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create global skill',
+    };
+  }
+}
+
+export async function deleteClaudeSkill(
+  name: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     });
     return await res.json();
@@ -1248,6 +1329,77 @@ export async function deleteClaudeSkill(
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to delete skill',
+    };
+  }
+}
+
+export async function fetchSkillDeploymentStatus(
+  serverUrl: string | null = null,
+): Promise<SkillDeploymentStatus> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/deployment-status`);
+    if (!res.ok) return { status: {} };
+    return await res.json();
+  } catch {
+    return { status: {} };
+  }
+}
+
+export async function deployClaudeSkill(
+  name: string,
+  scope: 'global' | 'project',
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}/deploy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to deploy skill',
+    };
+  }
+}
+
+export async function undeployClaudeSkill(
+  name: string,
+  scope: 'global' | 'project',
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}/undeploy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to undeploy skill',
+    };
+  }
+}
+
+export async function importClaudeSkills(
+  skills: Array<{ name: string; skillPath: string }>,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; imported?: string[]; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skills }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to import skills',
     };
   }
 }

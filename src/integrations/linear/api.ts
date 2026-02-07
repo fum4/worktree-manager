@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
 
 import type {
@@ -223,7 +223,18 @@ export function resolveIdentifier(id: string, config: LinearProjectConfig): stri
 }
 
 export function saveTaskData(taskData: LinearTaskData, tasksDir: string): void {
-  const taskDir = path.join(tasksDir, taskData.identifier);
-  mkdirSync(taskDir, { recursive: true });
-  writeFileSync(path.join(taskDir, 'task.json'), JSON.stringify(taskData, null, 2) + '\n');
+  // Write to issues/linear/<IDENTIFIER>/issue.json
+  const issueDir = path.join(path.dirname(tasksDir), 'issues', 'linear', taskData.identifier);
+  mkdirSync(issueDir, { recursive: true });
+  writeFileSync(path.join(issueDir, 'issue.json'), JSON.stringify(taskData, null, 2) + '\n');
+
+  // Create empty notes.json if it doesn't exist
+  const notesPath = path.join(issueDir, 'notes.json');
+  if (!existsSync(notesPath)) {
+    writeFileSync(notesPath, JSON.stringify({
+      linkedWorktreeId: null,
+      personal: null,
+      aiContext: null,
+    }, null, 2) + '\n');
+  }
 }

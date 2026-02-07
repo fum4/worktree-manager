@@ -6,6 +6,7 @@ import type { JiraIssueDetail } from '../../types';
 import { badge, border, button, jiraPriority, jiraStatus, jiraType, surface, text } from '../../theme';
 import { Tooltip } from '../Tooltip';
 import { MarkdownContent } from '../MarkdownContent';
+import { NotesSection } from './NotesSection';
 import { Spinner } from '../Spinner';
 import { WorktreeExistsModal } from '../WorktreeExistsModal';
 
@@ -354,6 +355,8 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
             </div>
           </section>
         )}
+
+        <NotesSection source="jira" issueId={issue.key} />
 
         {/* Footer */}
         <div className={`text-[10px] ${text.dimmed} flex flex-wrap gap-4 pt-2`}>

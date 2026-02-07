@@ -5,6 +5,7 @@ import { actions, MCP_INSTRUCTIONS } from './actions';
 import type { ActionContext } from './actions';
 import { APP_NAME } from './constants';
 import { WorktreeManager } from './server/manager';
+import { NotesManager } from './server/notes-manager';
 import type { WorktreeConfig } from './server/types';
 
 function buildJsonSchema(params: Record<string, { type: string; description: string; required?: boolean }>) {
@@ -23,7 +24,8 @@ export async function startMcpServer(config: WorktreeConfig, configFilePath: str
   const manager = new WorktreeManager(config, configFilePath);
   await manager.initGitHub();
 
-  const ctx: ActionContext = { manager };
+  const notesManager = new NotesManager(manager.getConfigDir());
+  const ctx: ActionContext = { manager, notesManager };
 
   const server = new McpServer(
     { name: APP_NAME, version: '0.1.0' },

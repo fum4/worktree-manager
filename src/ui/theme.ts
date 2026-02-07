@@ -364,6 +364,19 @@ export const mcpServer = {
   notDeployed:     'bg-[#4b5563]',
 } as const;
 
+// ─── Notes ──────────────────────────────────────────────────────
+export const notes = {
+  tabActive:     'text-white bg-white/[0.08]',
+  tabInactive:   'text-[#6b7280] hover:text-[#9ca3af]',
+  personalIcon:    'text-[#9ca3af]',
+  personalAccent:  'bg-amber-400/[0.04]',
+  personalBorder:  'border-amber-400/[0.08]',
+  aiIcon:          'text-purple-400',
+  aiAccent:        'bg-purple-400/[0.04]',
+  aiBorder:        'border-purple-400/[0.08]',
+  emptyText:     'text-[#4b5563]',
+} as const;
+
 // ─── Detail panel tabs (Logs / Terminal) ────────────────────────
 export const detailTab = {
   active:          'text-white bg-white/[0.08]',

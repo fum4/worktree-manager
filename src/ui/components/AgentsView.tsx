@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { APP_NAME } from '../../constants';
 import { useServer } from '../contexts/ServerContext';
 import { useMcpServers, useMcpDeploymentStatus } from '../hooks/useMcpServers';
-import { useClaudeSkills, useClaudePlugins } from '../hooks/useClaudeSkills';
+import { useClaudeSkills, useSkillDeploymentStatus, useClaudePlugins } from '../hooks/useClaudeSkills';
 import { surface } from '../theme';
 import { AgentsSidebar, type AgentSelection } from './AgentsSidebar';
 import { AgentsToolbar } from './AgentsToolbar';
@@ -47,6 +47,7 @@ export function AgentsView() {
   const { servers, isLoading: serversLoading, refetch: refetchServers } = useMcpServers(search || undefined);
   const { status: deploymentStatus, refetch: refetchDeployment } = useMcpDeploymentStatus();
   const { skills, isLoading: skillsLoading, refetch: refetchSkills } = useClaudeSkills();
+  const { status: skillDeploymentStatus, refetch: refetchSkillDeployment } = useSkillDeploymentStatus();
   const { plugins } = useClaudePlugins();
 
   // Sidebar width
@@ -86,6 +87,7 @@ export function AgentsView() {
 
   const handleSkillCreated = () => {
     refetchSkills();
+    refetchSkillDeployment();
   };
 
   const handleImported = () => {
@@ -116,6 +118,7 @@ export function AgentsView() {
           deploymentStatus={deploymentStatus}
           skills={skills}
           skillsLoading={skillsLoading}
+          skillDeploymentStatus={skillDeploymentStatus}
           plugins={plugins}
           selection={selection}
           onSelect={setSelection}
@@ -151,10 +154,10 @@ export function AgentsView() {
         ) : selection?.type === 'skill' ? (
           <SkillDetailPanel
             skillName={selection.name}
-            location={selection.location ?? 'global'}
             onDeleted={() => {
               setSelection(null);
               refetchSkills();
+              refetchSkillDeployment();
             }}
           />
         ) : (

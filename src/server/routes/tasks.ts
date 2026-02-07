@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import path from 'path';
 
 import type { WorktreeManager } from '../manager';
+import type { NotesManager } from '../notes-manager';
 
 interface CustomTask {
   id: string;
@@ -13,13 +14,12 @@ interface CustomTask {
   status: 'todo' | 'in-progress' | 'done';
   priority: 'high' | 'medium' | 'low';
   labels: string[];
-  linkedWorktreeId: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 function getTasksDir(configDir: string): string {
-  return path.join(configDir, 'tasks', 'custom');
+  return path.join(configDir, '.wok3', 'issues', 'local');
 }
 
 function ensureTasksDir(configDir: string): string {
@@ -65,20 +65,25 @@ function loadAllTasks(configDir: string): CustomTask[] {
   return tasks.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 }
 
-export function registerTaskRoutes(app: Hono, manager: WorktreeManager) {
+export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesManager: NotesManager) {
   const configDir = manager.getConfigDir();
 
-  // List all custom tasks
+  // List all custom tasks — enrich with linkedWorktreeId from notes
   app.get('/api/tasks', (c) => {
     const tasks = loadAllTasks(configDir);
-    return c.json({ tasks });
+    const enriched = tasks.map((task) => {
+      const notes = notesManager.loadNotes('local', task.id);
+      return { ...task, linkedWorktreeId: notes.linkedWorktreeId };
+    });
+    return c.json({ tasks: enriched });
   });
 
-  // Get single task
+  // Get single task — enrich with linkedWorktreeId from notes
   app.get('/api/tasks/:id', (c) => {
     const task = loadTask(configDir, c.req.param('id'));
     if (!task) return c.json({ error: 'Task not found' }, 404);
-    return c.json({ task });
+    const notes = notesManager.loadNotes('local', task.id);
+    return c.json({ task: { ...task, linkedWorktreeId: notes.linkedWorktreeId } });
   });
 
   // Create task
@@ -103,13 +108,18 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager) {
       status: 'todo',
       priority: (['high', 'medium', 'low'].includes(body.priority ?? '') ? body.priority : 'medium') as CustomTask['priority'],
       labels: Array.isArray(body.labels) ? body.labels.map((l) => String(l).trim()).filter(Boolean) : [],
-      linkedWorktreeId: null,
       createdAt: now,
       updatedAt: now,
     };
 
     saveTask(configDir, task);
-    return c.json({ success: true, task });
+    // Create empty notes.json alongside
+    notesManager.saveNotes('local', task.id, {
+      linkedWorktreeId: null,
+      personal: null,
+      aiContext: null,
+    });
+    return c.json({ success: true, task: { ...task, linkedWorktreeId: null } });
   });
 
   // Update task
@@ -123,7 +133,6 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager) {
       status: string;
       priority: string;
       labels: string[];
-      linkedWorktreeId: string | null;
     }>>();
 
     if (body.title !== undefined) task.title = body.title.trim();
@@ -137,29 +146,12 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager) {
     if (body.labels !== undefined) {
       task.labels = body.labels.map((l) => String(l).trim()).filter(Boolean);
     }
-    if (body.linkedWorktreeId !== undefined) {
-      task.linkedWorktreeId = body.linkedWorktreeId;
-    }
 
     task.updatedAt = new Date().toISOString();
     saveTask(configDir, task);
 
-    // Sync status to the worktree's task.json if linked
-    if (task.linkedWorktreeId) {
-      const wtTaskFile = path.join(configDir, '.wok3', 'tasks', task.linkedWorktreeId, 'task.json');
-      if (existsSync(wtTaskFile)) {
-        try {
-          const wtTask = JSON.parse(readFileSync(wtTaskFile, 'utf-8'));
-          wtTask.status = task.status;
-          wtTask.title = task.title;
-          writeFileSync(wtTaskFile, JSON.stringify(wtTask, null, 2));
-        } catch {
-          // Ignore corrupt files
-        }
-      }
-    }
-
-    return c.json({ success: true, task });
+    const notes = notesManager.loadNotes('local', task.id);
+    return c.json({ success: true, task: { ...task, linkedWorktreeId: notes.linkedWorktreeId } });
   });
 
   // Delete task
@@ -187,20 +179,8 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager) {
 
       if (result.success) {
         const worktreeId = task.identifier;
-        task.linkedWorktreeId = worktreeId;
-        task.updatedAt = new Date().toISOString();
-        saveTask(configDir, task);
-
-        // Save a task file at the standard location so the worktree detail view can show local issue info
-        const tasksDir = path.join(configDir, '.wok3', 'tasks', worktreeId);
-        if (!existsSync(tasksDir)) mkdirSync(tasksDir, { recursive: true });
-        writeFileSync(path.join(tasksDir, 'task.json'), JSON.stringify({
-          source: 'local',
-          identifier: task.identifier,
-          title: task.title,
-          status: task.status,
-          url: null,
-        }, null, 2));
+        // Link worktree via notes.json
+        notesManager.setLinkedWorktreeId('local', task.id, worktreeId);
       }
 
       return c.json(result);

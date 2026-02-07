@@ -18,8 +18,10 @@ import { registerEventRoutes } from './routes/events';
 import { registerMcpRoutes } from './routes/mcp';
 import { registerMcpServerRoutes } from './routes/mcp-servers';
 import { registerClaudeSkillRoutes } from './routes/claude-skills';
+import { registerNotesRoutes } from './routes/notes';
 import { registerTaskRoutes } from './routes/tasks';
 import { registerTerminalRoutes } from './routes/terminal';
+import { NotesManager } from './notes-manager';
 import { TerminalManager } from './terminal-manager';
 import type { WorktreeConfig } from './types';
 
@@ -39,6 +41,7 @@ const uiDir = currentDir.includes('src/server')
 export function createWorktreeServer(manager: WorktreeManager) {
   const app = new Hono();
   const terminalManager = new TerminalManager();
+  const notesManager = new NotesManager(manager.getConfigDir());
   const { upgradeWebSocket, injectWebSocket } = createNodeWebSocket({ app });
 
   app.use('*', cors());
@@ -57,7 +60,8 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerMcpRoutes(app, manager);
   registerMcpServerRoutes(app, manager);
   registerClaudeSkillRoutes(app, manager);
-  registerTaskRoutes(app, manager);
+  registerTaskRoutes(app, manager, notesManager);
+  registerNotesRoutes(app, notesManager);
   registerTerminalRoutes(app, terminalManager, manager, upgradeWebSocket);
 
   app.use('/*', serveStatic({ root: uiDir }));

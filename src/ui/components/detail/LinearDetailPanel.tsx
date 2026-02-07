@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { badge, border, button, linearPriority, linearStateType, text } from '../../theme';
 import { Tooltip } from '../Tooltip';
 import { MarkdownContent } from '../MarkdownContent';
+import { NotesSection } from './NotesSection';
 import { Spinner } from '../Spinner';
 import { WorktreeExistsModal } from '../WorktreeExistsModal';
 
@@ -224,6 +225,8 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
             </div>
           </section>
         )}
+
+        <NotesSection source="linear" issueId={issue.identifier} />
 
         {/* Footer */}
         <div className={`text-[10px] ${text.dimmed} flex flex-wrap gap-4 pt-2`}>

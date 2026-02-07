@@ -150,17 +150,31 @@ export interface SkillSummary {
   name: string;
   displayName: string;
   description: string;
-  location: 'global' | 'project';
   path: string;
 }
 
 export interface SkillDetail extends SkillSummary {
   skillMd: string;
-  frontmatter: { name: string; description: string; allowedTools: string; context: string };
+  frontmatter: {
+    name: string;
+    description: string;
+    allowedTools: string;
+    context: string;
+    agent: string;
+    model: string;
+    argumentHint: string;
+    disableModelInvocation: boolean;
+    userInvocable: boolean;
+    mode: boolean;
+  };
   hasReference: boolean;
   referenceMd?: string;
   hasExamples: boolean;
   examplesMd?: string;
+}
+
+export interface SkillDeploymentStatus {
+  status: Record<string, { global: boolean; project: boolean; projectIsSymlink: boolean; projectIsCopy: boolean }>;
 }
 
 export interface PluginSummary {
@@ -173,7 +187,7 @@ export interface SkillScanResult {
   displayName: string;
   description: string;
   skillPath: string;
-  type: 'skill';
+  alreadyInRegistry: boolean;
 }
 
 // ─── Jira types ─────────────────────────────────────────────────

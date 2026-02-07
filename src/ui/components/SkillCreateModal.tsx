@@ -3,7 +3,7 @@ import { Sparkles } from 'lucide-react';
 
 import { useApi } from '../hooks/useApi';
 import { Modal } from './Modal';
-import { button, input, text } from '../theme';
+import { claudeSkill, input, text } from '../theme';
 
 interface SkillCreateModalProps {
   onCreated: () => void;
@@ -16,7 +16,12 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
   const [description, setDescription] = useState('');
   const [allowedTools, setAllowedTools] = useState('');
   const [context, setContext] = useState('');
-  const [location, setLocation] = useState<'global' | 'project'>('global');
+  const [agent, setAgent] = useState('');
+  const [model, setModel] = useState('');
+  const [argumentHint, setArgumentHint] = useState('');
+  const [disableModelInvocation, setDisableModelInvocation] = useState(false);
+  const [userInvocable, setUserInvocable] = useState(true);
+  const [mode, setMode] = useState(false);
   const [instructions, setInstructions] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -33,7 +38,12 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
       description: description.trim() || undefined,
       allowedTools: allowedTools.trim() || undefined,
       context: context.trim() || undefined,
-      location,
+      agent: agent.trim() || undefined,
+      model: model.trim() || undefined,
+      argumentHint: argumentHint.trim() || undefined,
+      disableModelInvocation: disableModelInvocation || undefined,
+      userInvocable: userInvocable ? undefined : false,
+      mode: mode || undefined,
       instructions: instructions.trim() || undefined,
     });
 
@@ -68,7 +78,7 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
           <button
             type="submit"
             disabled={!name.trim() || creating}
-            className={`px-4 py-1.5 text-xs font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors duration-150`}
+            className={`px-4 py-1.5 text-xs ${claudeSkill.button} rounded-lg disabled:opacity-50 transition-colors duration-150`}
           >
             {creating ? 'Creating...' : 'Create Skill'}
           </button>
@@ -86,6 +96,7 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
             className={inputClass}
             autoFocus
           />
+          <p className={`text-[10px] ${text.dimmed} mt-0.5`}>Stored in ~/.wok3/skills/</p>
         </div>
 
         <div>
@@ -94,7 +105,7 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="What does this skill do?"
+            placeholder="What does this skill do? (used for auto-invocation)"
             className={inputClass}
           />
         </div>
@@ -105,41 +116,101 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
             type="text"
             value={allowedTools}
             onChange={(e) => setAllowedTools(e.target.value)}
-            placeholder="e.g. Read, Grep, Glob"
+            placeholder="e.g. Read, Grep, Glob, Bash(git:*)"
             className={inputClass}
           />
-          <p className={`text-[10px] ${text.dimmed} mt-0.5`}>Comma-separated tool names</p>
+          <p className={`text-[10px] ${text.dimmed} mt-0.5`}>Comma-separated, supports wildcards</p>
         </div>
 
-        <div>
-          <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Context</label>
-          <input
-            type="text"
-            value={context}
-            onChange={(e) => setContext(e.target.value)}
-            placeholder="e.g. fork"
-            className={inputClass}
-          />
-        </div>
-
-        <div>
-          <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Location</label>
-          <div className="flex gap-2">
-            {(['global', 'project'] as const).map((loc) => (
-              <button
-                key={loc}
-                type="button"
-                onClick={() => setLocation(loc)}
-                className={`flex-1 px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
-                  location === loc
-                    ? 'bg-[#D4A574]/[0.06] border-[#D4A574]/30 text-[#D4A574]'
-                    : 'bg-transparent border-white/[0.06] hover:border-white/[0.10] hover:bg-white/[0.02] ' + text.secondary
-                }`}
-              >
-                {loc === 'global' ? 'Global (~/.claude)' : 'Project (.claude)'}
-              </button>
-            ))}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Context</label>
+            <select
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">inline (default)</option>
+              <option value="fork">fork (subagent)</option>
+            </select>
           </div>
+          <div>
+            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Agent</label>
+            <input
+              type="text"
+              value={agent}
+              onChange={(e) => setAgent(e.target.value)}
+              placeholder="e.g. Explore, Plan"
+              className={inputClass}
+              disabled={context !== 'fork'}
+            />
+            <p className={`text-[10px] ${text.dimmed} mt-0.5`}>Subagent type (when fork)</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Model</label>
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">inherit (default)</option>
+              <option value="opus">opus</option>
+              <option value="sonnet">sonnet</option>
+              <option value="haiku">haiku</option>
+            </select>
+          </div>
+          <div>
+            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Argument Hint</label>
+            <input
+              type="text"
+              value={argumentHint}
+              onChange={(e) => setArgumentHint(e.target.value)}
+              placeholder="e.g. [issue-number]"
+              className={inputClass}
+            />
+            <p className={`text-[10px] ${text.dimmed} mt-0.5`}>Shown in autocomplete</p>
+          </div>
+        </div>
+
+        {/* Boolean toggles */}
+        <div className="space-y-2 pt-1">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={userInvocable}
+              onChange={(e) => setUserInvocable(e.target.checked)}
+              className="accent-[#D4A574]"
+            />
+            <span className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}>
+              User-invocable
+            </span>
+            <span className={`text-[10px] ${text.dimmed}`}>Show in /slash menu</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={disableModelInvocation}
+              onChange={(e) => setDisableModelInvocation(e.target.checked)}
+            />
+            <span className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}>
+              Disable model invocation
+            </span>
+            <span className={`text-[10px] ${text.dimmed}`}>Only user can trigger</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={mode}
+              onChange={(e) => setMode(e.target.checked)}
+            />
+            <span className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}>
+              Mode command
+            </span>
+            <span className={`text-[10px] ${text.dimmed}`}>Modifies Claude's behavior</span>
+          </label>
         </div>
 
         <div>

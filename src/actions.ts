@@ -1,5 +1,6 @@
 import { APP_NAME } from './constants';
 import type { WorktreeManager } from './server/manager';
+import type { NotesManager } from './server/notes-manager';
 
 export interface ActionParam {
   type: 'string' | 'number' | 'boolean';
@@ -16,6 +17,7 @@ export interface Action {
 
 export interface ActionContext {
   manager: WorktreeManager;
+  notesManager: NotesManager;
 }
 
 export const MCP_INSTRUCTIONS = `${APP_NAME} manages git worktrees with automatic port offsetting for running multiple dev server instances.
@@ -234,5 +236,52 @@ export const actions: Action[] = [
       config: ctx.manager.getConfig(),
       projectName: ctx.manager.getProjectName(),
     }),
+  },
+
+  // -- Notes --
+  {
+    name: 'read_issue_notes',
+    description: 'Read AI context notes for a worktree or issue. Returns user-provided directions for AI agents. Use this before starting work on a worktree to get context.',
+    params: {
+      worktreeId: { type: 'string', description: 'Worktree ID to find linked issue notes for' },
+      source: { type: 'string', description: 'Issue source: "jira", "linear", or "local" (use with issueId)' },
+      issueId: { type: 'string', description: 'Issue ID (use with source)' },
+    },
+    handler: async (ctx, params) => {
+      const worktreeId = params.worktreeId as string | undefined;
+      const source = params.source as string | undefined;
+      const issueId = params.issueId as string | undefined;
+
+      if (worktreeId) {
+        // Find linked issue for this worktree
+        const linkMap = ctx.notesManager.buildWorktreeLinkMap();
+        const linked = linkMap.get(worktreeId);
+        if (!linked) {
+          return { error: `No linked issue found for worktree "${worktreeId}"` };
+        }
+        const notes = ctx.notesManager.loadNotes(linked.source, linked.issueId);
+        return {
+          source: linked.source,
+          issueId: linked.issueId,
+          aiContext: notes.aiContext?.content ?? null,
+          personal: notes.personal?.content ?? null,
+        };
+      }
+
+      if (source && issueId) {
+        if (!['jira', 'linear', 'local'].includes(source)) {
+          return { error: 'Invalid source (must be "jira", "linear", or "local")' };
+        }
+        const notes = ctx.notesManager.loadNotes(source as 'jira' | 'linear' | 'local', issueId);
+        return {
+          source,
+          issueId,
+          aiContext: notes.aiContext?.content ?? null,
+          personal: notes.personal?.content ?? null,
+        };
+      }
+
+      return { error: 'Provide either worktreeId or both source and issueId' };
+    },
   },
 ];

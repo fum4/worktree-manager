@@ -127,6 +127,13 @@ export function useApi() {
       createWorktreeFromCustomTask: (id: string, branch?: string) =>
         api.createWorktreeFromCustomTask(id, branch, serverUrl),
 
+      // Notes
+      fetchNotes: (source: string, id: string) =>
+        api.fetchNotes(source, id, serverUrl),
+
+      updateNotes: (source: string, id: string, section: 'personal' | 'aiContext', content: string) =>
+        api.updateNotes(source, id, section, content, serverUrl),
+
       // MCP Server Manager
       fetchMcpServers: (query?: string) =>
         api.fetchMcpServers(query, serverUrl),
@@ -164,21 +171,39 @@ export function useApi() {
       undeployMcpServer: (id: string, tool: string, scope: string) =>
         api.undeployMcpServer(id, tool, scope, serverUrl),
 
-      // Claude Skills
+      // Claude Skills (registry-based)
       fetchClaudeSkills: () =>
         api.fetchClaudeSkills(serverUrl),
 
-      fetchClaudeSkill: (name: string, location?: 'global' | 'project') =>
-        api.fetchClaudeSkill(name, location, serverUrl),
+      fetchClaudeSkill: (name: string, location?: 'project') =>
+        api.fetchClaudeSkill(name, serverUrl, location),
 
-      createClaudeSkill: (data: { name: string; description?: string; allowedTools?: string; context?: string; location?: 'global' | 'project'; instructions?: string }) =>
+      createClaudeSkill: (data: Parameters<typeof api.createClaudeSkill>[0]) =>
         api.createClaudeSkill(data, serverUrl),
 
-      updateClaudeSkill: (name: string, updates: { location?: 'global' | 'project'; skillMd?: string; referenceMd?: string; examplesMd?: string }) =>
-        api.updateClaudeSkill(name, updates, serverUrl),
+      updateClaudeSkill: (name: string, updates: { skillMd?: string; referenceMd?: string; examplesMd?: string; frontmatter?: Record<string, unknown> }, location?: 'project') =>
+        api.updateClaudeSkill(name, updates, serverUrl, location),
 
-      deleteClaudeSkill: (name: string, location?: 'global' | 'project') =>
-        api.deleteClaudeSkill(name, location, serverUrl),
+      duplicateSkillToProject: (name: string) =>
+        api.duplicateSkillToProject(name, serverUrl),
+
+      createGlobalFromProject: (name: string, newName: string) =>
+        api.createGlobalFromProject(name, newName, serverUrl),
+
+      deleteClaudeSkill: (name: string) =>
+        api.deleteClaudeSkill(name, serverUrl),
+
+      fetchSkillDeploymentStatus: () =>
+        api.fetchSkillDeploymentStatus(serverUrl),
+
+      deployClaudeSkill: (name: string, scope: 'global' | 'project') =>
+        api.deployClaudeSkill(name, scope, serverUrl),
+
+      undeployClaudeSkill: (name: string, scope: 'global' | 'project') =>
+        api.undeployClaudeSkill(name, scope, serverUrl),
+
+      importClaudeSkills: (skills: Array<{ name: string; skillPath: string }>) =>
+        api.importClaudeSkills(skills, serverUrl),
 
       fetchClaudePlugins: () =>
         api.fetchClaudePlugins(serverUrl),

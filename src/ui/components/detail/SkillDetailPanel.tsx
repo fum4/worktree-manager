@@ -1,38 +1,101 @@
-import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { useClaudeSkillDetail } from '../../hooks/useClaudeSkills';
+import { useClaudeSkillDetail, useSkillDeploymentStatus } from '../../hooks/useClaudeSkills';
 import { useApi } from '../../hooks/useApi';
 import { border, button, claudeSkill, text } from '../../theme';
 import { Spinner } from '../Spinner';
+import { Tooltip } from '../Tooltip';
 
 interface SkillDetailPanelProps {
   skillName: string;
-  location: 'global' | 'project';
   onDeleted: () => void;
 }
 
-export function SkillDetailPanel({ skillName, location, onDeleted }: SkillDetailPanelProps) {
+export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const { skill, isLoading, error, refetch } = useClaudeSkillDetail(skillName, location);
+  const { status: allDeploymentStatus, refetch: refetchDeployment } = useSkillDeploymentStatus();
 
-  const [editingMd, setEditingMd] = useState(false);
-  const [mdDraft, setMdDraft] = useState('');
+  const deploymentStatus = allDeploymentStatus[skillName] ?? { global: false, project: false, projectIsSymlink: false, projectIsCopy: false };
+  const hasProjectCopy = deploymentStatus.projectIsCopy;
+
+  const [viewingLocation, setViewingLocation] = useState<'global' | 'project'>('global');
+  useEffect(() => {
+    if (!hasProjectCopy) setViewingLocation('global');
+  }, [skillName, hasProjectCopy]);
+
+  const locationParam = viewingLocation === 'project' ? 'project' as const : undefined;
+  const { skill, isLoading, error, refetch } = useClaudeSkillDetail(skillName, locationParam);
+
+  const [editingRef, setEditingRef] = useState(false);
+  const [editingExamples, setEditingExamples] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<string | null>(null);
+  const [configDraft, setConfigDraft] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCreateGlobal, setShowCreateGlobal] = useState(false);
+  const [createGlobalName, setCreateGlobalName] = useState('');
+  const [createGlobalError, setCreateGlobalError] = useState<string | null>(null);
+  const [deploying, setDeploying] = useState<string | null>(null);
+  const [duplicating, setDuplicating] = useState(false);
 
-  const handleSaveMd = async () => {
-    if (!skill) return;
-    await api.updateClaudeSkill(skillName, { location, skillMd: mdDraft });
-    setEditingMd(false);
+  useEffect(() => {
+    setEditingRef(false);
+    setEditingExamples(false);
+    setEditingConfig(null);
+  }, [skillName, viewingLocation]);
+
+  const saveUpdate = useCallback(async (updates: Parameters<typeof api.updateClaudeSkill>[1]) => {
+    await api.updateClaudeSkill(skillName, updates, locationParam);
     refetch();
+    queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
+  }, [api, skillName, locationParam, refetch, queryClient]);
+
+  const handleSaveConfig = async (key: string, value: string | boolean) => {
+    await saveUpdate({ frontmatter: { [key]: value } });
+    setEditingConfig(null);
   };
 
   const handleDelete = async () => {
-    await api.deleteClaudeSkill(skillName, location);
+    await api.deleteClaudeSkill(skillName);
     queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
+    queryClient.invalidateQueries({ queryKey: ['skillDeploymentStatus'] });
     onDeleted();
+  };
+
+  const handleDeploy = async (scope: 'global' | 'project', isDeployed: boolean) => {
+    setDeploying(scope);
+    if (isDeployed) {
+      await api.undeployClaudeSkill(skillName, scope);
+    } else {
+      await api.deployClaudeSkill(skillName, scope);
+    }
+    setDeploying(null);
+    refetchDeployment();
+  };
+
+  const handleDuplicate = async () => {
+    setDuplicating(true);
+    await api.duplicateSkillToProject(skillName);
+    setDuplicating(false);
+    refetchDeployment();
+    setViewingLocation('project');
+  };
+
+  const handleCreateGlobal = async () => {
+    if (!createGlobalName.trim()) return;
+    setCreateGlobalError(null);
+    setDuplicating(true);
+    const result = await api.createGlobalFromProject(skillName, createGlobalName.trim());
+    setDuplicating(false);
+    if (result.success) {
+      setShowCreateGlobal(false);
+      queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
+      queryClient.invalidateQueries({ queryKey: ['skillDeploymentStatus'] });
+    } else {
+      setCreateGlobalError(result.error ?? 'Failed to create global skill');
+    }
   };
 
   if (isLoading) {
@@ -60,6 +123,8 @@ export function SkillDetailPanel({ skillName, location, onDeleted }: SkillDetail
     );
   }
 
+  const fm = skill.frontmatter;
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
@@ -70,15 +135,18 @@ export function SkillDetailPanel({ skillName, location, onDeleted }: SkillDetail
               <span className={`text-[10px] font-mono ${claudeSkill.accent}`}>
                 {skill.name}
               </span>
-              <span className={`text-[10px] ${claudeSkill.badge} px-1.5 py-0.5 rounded`}>
-                {skill.location}
+              {fm.mode && (
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${claudeSkill.badge}`}>mode</span>
+              )}
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${claudeSkill.badge}`}>
+                {viewingLocation === 'project' ? 'Project' : 'Global'}
               </span>
             </div>
             <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug px-2 py-1 -mx-2 -my-1`}>
               {skill.displayName}
             </h2>
           </div>
-          <div className="flex-shrink-0 pt-1">
+          <div className="flex-shrink-0 pt-1 flex items-center gap-2">
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(true)}
@@ -87,40 +155,118 @@ export function SkillDetailPanel({ skillName, location, onDeleted }: SkillDetail
             >
               <Trash2 className="w-4 h-4" />
             </button>
+            {duplicating ? (
+              <Spinner size="xs" className={text.dimmed} />
+            ) : viewingLocation === 'project' ? (
+              <button
+                type="button"
+                onClick={() => { setCreateGlobalName(skill?.displayName ?? skillName); setShowCreateGlobal(true); }}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] ${button.secondary} transition-colors`}
+              >
+                Create global
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleDuplicate}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] ${button.secondary} transition-colors`}
+              >
+                Duplicate to project
+              </button>
+            )}
+            {hasProjectCopy && (
+              <LocationSwitch
+                value={viewingLocation}
+                onChange={setViewingLocation}
+              />
+            )}
           </div>
         </div>
       </div>
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto p-5 space-y-10">
-        {/* Description */}
-        {skill.description && (
-          <section>
-            <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>Description</h3>
-            <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2">
-              <p className={`text-xs ${text.secondary}`}>{skill.description}</p>
-            </div>
-          </section>
-        )}
+        {/* Description — auto-save */}
+        <AutoSaveTextSection
+          key={`desc-${skillName}-${viewingLocation}`}
+          title="Description"
+          content={fm.description || ''}
+          emptyText="Click to add description..."
+          rows={3}
+          onSave={(v) => saveUpdate({ frontmatter: { description: v } })}
+        />
 
-        {/* Frontmatter */}
+        {/* Deployment */}
+        <section>
+          <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>Deployment</h3>
+          <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] overflow-hidden">
+            <div className={`grid grid-cols-[1fr_80px] px-3 py-2 border-b ${border.subtle}`}>
+              <span className={`text-[10px] font-medium ${text.dimmed}`}>Scope</span>
+              <span className={`text-[10px] font-medium ${text.dimmed} text-center`}>Active</span>
+            </div>
+
+            {/* Global row */}
+            <div className={`grid grid-cols-[1fr_80px] px-3 py-2 border-b ${border.subtle} hover:bg-white/[0.02]`}>
+              <div>
+                <span className={`text-xs ${text.secondary}`}>Global</span>
+                <span className={`text-[10px] ${text.dimmed} ml-1.5`}>~/.claude/skills/</span>
+              </div>
+              <div className="flex justify-center items-center">
+                {viewingLocation === 'project' ? (
+                  <Tooltip text="Project-local skills cannot be deployed globally" position="left">
+                    <span className="cursor-not-allowed">
+                      <DeployToggle active={false} onToggle={() => {}} title="" disabled />
+                    </span>
+                  </Tooltip>
+                ) : deploying === 'global' ? (
+                  <Spinner size="xs" className={text.dimmed} />
+                ) : (
+                  <DeployToggle
+                    active={deploymentStatus.global}
+                    onToggle={() => handleDeploy('global', deploymentStatus.global)}
+                    title={deploymentStatus.global ? 'Remove from global' : 'Deploy globally'}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Project row */}
+            <div className={`grid grid-cols-[1fr_80px] px-3 py-2 hover:bg-white/[0.02]`}>
+              <div>
+                <span className={`text-xs ${text.secondary}`}>Project</span>
+                <span className={`text-[10px] ${text.dimmed} ml-1.5`}>
+                  {deploymentStatus.projectIsCopy ? 'copy' : deploymentStatus.projectIsSymlink ? 'symlink' : '.claude/skills/'}
+                </span>
+              </div>
+              <div className="flex justify-center items-center">
+                {deploying === 'project' ? (
+                  <Spinner size="xs" className={text.dimmed} />
+                ) : (
+                  <DeployToggle
+                    active={deploymentStatus.project}
+                    onToggle={() => handleDeploy('project', deploymentStatus.project)}
+                    title={deploymentStatus.project ? 'Remove from project' : 'Deploy to project'}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Configuration */}
         <section>
           <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>Configuration</h3>
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className={`text-[10px] ${text.dimmed} w-24`}>Allowed Tools</span>
-              <span className={`text-xs font-mono ${text.secondary}`}>
-                {skill.frontmatter.allowedTools || <span className={text.dimmed}>none</span>}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-[10px] ${text.dimmed} w-24`}>Context</span>
-              <span className={`text-xs font-mono ${text.secondary}`}>
-                {skill.frontmatter.context || <span className={text.dimmed}>default</span>}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-[10px] ${text.dimmed} w-24`}>Path</span>
+            <EditableConfigRow label="Allowed Tools" configKey="allowedTools" value={fm.allowedTools} fallback="none" editingConfig={editingConfig} configDraft={configDraft} setEditingConfig={setEditingConfig} setConfigDraft={setConfigDraft} onSave={handleSaveConfig} />
+            <EditableConfigRow label="Context" configKey="context" value={fm.context} fallback="inline" editingConfig={editingConfig} configDraft={configDraft} setEditingConfig={setEditingConfig} setConfigDraft={setConfigDraft} onSave={handleSaveConfig} options={['inline', 'file', 'tool', 'none']} />
+            <EditableConfigRow label="Agent" configKey="agent" value={fm.agent} fallback="general-purpose" editingConfig={editingConfig} configDraft={configDraft} setEditingConfig={setEditingConfig} setConfigDraft={setConfigDraft} onSave={handleSaveConfig} />
+            <EditableConfigRow label="Model" configKey="model" value={fm.model} fallback="inherit" editingConfig={editingConfig} configDraft={configDraft} setEditingConfig={setEditingConfig} setConfigDraft={setConfigDraft} onSave={handleSaveConfig} options={['', 'sonnet', 'opus', 'haiku']} />
+            <EditableConfigRow label="Argument Hint" configKey="argumentHint" value={fm.argumentHint} editingConfig={editingConfig} configDraft={configDraft} setEditingConfig={setEditingConfig} setConfigDraft={setConfigDraft} onSave={handleSaveConfig} />
+            <ToggleConfigRow label="User-invocable" value={fm.userInvocable} onToggle={(v) => handleSaveConfig('userInvocable', v)} />
+            <ToggleConfigRow label="Model invocation" value={!fm.disableModelInvocation} onToggle={(v) => handleSaveConfig('disableModelInvocation', !v)} />
+            <ToggleConfigRow label="Mode" value={fm.mode} onToggle={(v) => handleSaveConfig('mode', v)} />
+            <div className="flex items-center gap-2 pt-1">
+              <span className={`text-[10px] ${text.dimmed} w-28 flex-shrink-0`}>Path</span>
               <span className={`text-[10px] font-mono ${text.dimmed} truncate`}>
                 {skill.path}
               </span>
@@ -128,76 +274,60 @@ export function SkillDetailPanel({ skillName, location, onDeleted }: SkillDetail
           </div>
         </section>
 
-        {/* SKILL.md content */}
-        <section>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className={`text-[11px] font-medium ${text.muted}`}>SKILL.md</h3>
-            {!editingMd && (
-              <button
-                type="button"
-                onClick={() => { setMdDraft(skill.skillMd); setEditingMd(true); }}
-                className={`text-[10px] ${claudeSkill.accent} hover:underline`}
-              >
-                Edit
-              </button>
-            )}
-          </div>
-          {editingMd ? (
-            <div className="space-y-2">
-              <textarea
-                value={mdDraft}
-                onChange={(e) => setMdDraft(e.target.value)}
-                className={`w-full px-3 py-2 bg-white/[0.02] border border-white/[0.08] rounded-lg text-xs font-mono ${text.primary} focus:outline-none resize-none`}
-                rows={16}
-                autoFocus
-              />
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingMd(false)}
-                  className={`px-3 py-1 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveMd}
-                  className={`px-3 py-1 text-xs font-medium ${button.primary} rounded-lg transition-colors`}
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2 max-h-80 overflow-y-auto">
-              <pre className={`text-xs font-mono ${text.secondary} whitespace-pre-wrap`}>
-                {skill.skillMd}
-              </pre>
-            </div>
-          )}
-        </section>
+        {/* SKILL.md */}
+        <AutoSaveFileSection
+          key={`md-${skillName}-${viewingLocation}`}
+          title="SKILL.md"
+          content={skill.skillMd}
+          rows={16}
+          onSave={(v) => saveUpdate({ skillMd: v })}
+        />
 
-        {/* Reference */}
-        {skill.hasReference && skill.referenceMd && (
+        {/* reference.md */}
+        {skill.hasReference || editingRef ? (
+          <AutoSaveFileSection
+            key={`ref-${skillName}-${viewingLocation}`}
+            title="reference.md"
+            content={skill.referenceMd ?? ''}
+            rows={12}
+            onSave={(v) => saveUpdate({ referenceMd: v })}
+            startEditing={!skill.hasReference}
+          />
+        ) : (
           <section>
             <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>reference.md</h3>
-            <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2 max-h-60 overflow-y-auto">
-              <pre className={`text-xs font-mono ${text.secondary} whitespace-pre-wrap`}>
-                {skill.referenceMd}
-              </pre>
-            </div>
+            <button
+              type="button"
+              onClick={() => setEditingRef(true)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] ${text.dimmed} hover:${text.muted} hover:bg-white/[0.04] transition-colors`}
+            >
+              <Plus className="w-3 h-3" />
+              Add reference
+            </button>
           </section>
         )}
 
-        {/* Examples */}
-        {skill.hasExamples && skill.examplesMd && (
+        {/* examples.md */}
+        {skill.hasExamples || editingExamples ? (
+          <AutoSaveFileSection
+            key={`ex-${skillName}-${viewingLocation}`}
+            title="examples.md"
+            content={skill.examplesMd ?? ''}
+            rows={12}
+            onSave={(v) => saveUpdate({ examplesMd: v })}
+            startEditing={!skill.hasExamples}
+          />
+        ) : (
           <section>
             <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>examples.md</h3>
-            <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2 max-h-60 overflow-y-auto">
-              <pre className={`text-xs font-mono ${text.secondary} whitespace-pre-wrap`}>
-                {skill.examplesMd}
-              </pre>
-            </div>
+            <button
+              type="button"
+              onClick={() => setEditingExamples(true)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] ${text.dimmed} hover:${text.muted} hover:bg-white/[0.04] transition-colors`}
+            >
+              <Plus className="w-3 h-3" />
+              Add examples
+            </button>
           </section>
         )}
       </div>
@@ -210,10 +340,10 @@ export function SkillDetailPanel({ skillName, location, onDeleted }: SkillDetail
             <div className="bg-surface-panel rounded-xl shadow-2xl border border-white/[0.08] p-5 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
               <h3 className={`text-sm font-medium ${text.primary} mb-2`}>Delete skill?</h3>
               <p className={`text-xs ${text.secondary} mb-1`}>
-                This will delete the "{skill.displayName}" skill directory.
+                This will delete "{skill.displayName}" from the registry.
               </p>
               <p className={`text-xs ${text.muted} mb-4`}>
-                Path: {skill.path}
+                Any active deployments (symlinks) will also be removed.
               </p>
               <div className="flex justify-end gap-2">
                 <button
@@ -235,6 +365,329 @@ export function SkillDetailPanel({ skillName, location, onDeleted }: SkillDetail
           </div>
         </>
       )}
+
+      {/* Create global skill dialog */}
+      {showCreateGlobal && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowCreateGlobal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-surface-panel rounded-xl shadow-2xl border border-white/[0.08] p-5 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+              <h3 className={`text-sm font-medium ${text.primary} mb-2`}>Create global skill</h3>
+              <p className={`text-xs ${text.secondary} mb-3`}>
+                Copy this project skill to the global registry as a new skill.
+              </p>
+              <input
+                value={createGlobalName}
+                onChange={(e) => { setCreateGlobalName(e.target.value); setCreateGlobalError(null); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateGlobal(); if (e.key === 'Escape') setShowCreateGlobal(false); }}
+                placeholder="Skill name"
+                className={`w-full px-3 py-2 bg-white/[0.04] border border-white/[0.12] rounded-lg text-xs ${text.primary} focus:outline-none mb-1`}
+                autoFocus
+              />
+              {createGlobalError && (
+                <p className={`text-[10px] ${text.error} mb-2`}>{createGlobalError}</p>
+              )}
+              {!createGlobalError && <div className="mb-3" />}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateGlobal(false)}
+                  className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateGlobal}
+                  disabled={!createGlobalName.trim()}
+                  className={`px-3 py-1.5 text-xs font-medium ${button.confirm} rounded-lg transition-colors disabled:opacity-40`}
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
+  );
+}
+
+// ─── Helper components ───────────────────────────────────────
+
+function DeployToggle({ active, onToggle, title, disabled }: { active: boolean; onToggle: () => void; title: string; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={disabled ? undefined : onToggle}
+      className={`relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+      style={{ backgroundColor: active ? 'rgba(212,165,116,0.35)' : 'rgba(255,255,255,0.08)' }}
+      title={title}
+      disabled={disabled}
+    >
+      <span
+        className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
+          active ? 'left-3.5 bg-[#D4A574]' : 'left-0.5 bg-white/40'
+        }`}
+      />
+    </button>
+  );
+}
+
+function LocationSwitch({ value, onChange }: { value: 'global' | 'project'; onChange: (v: 'global' | 'project') => void }) {
+  return (
+    <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5">
+      {(['global', 'project'] as const).map((loc) => (
+        <button
+          key={loc}
+          type="button"
+          onClick={() => onChange(loc)}
+          className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
+            value === loc
+              ? `${claudeSkill.accent} bg-white/[0.06]`
+              : `${text.dimmed} hover:${text.muted}`
+          }`}
+        >
+          {loc === 'global' ? 'Global' : 'Project'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ToggleConfigRow({ label, value, onToggle }: { label: string; value: boolean; onToggle: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`text-[10px] ${text.dimmed} w-28 flex-shrink-0`}>{label}</span>
+      <button
+        type="button"
+        onClick={() => onToggle(!value)}
+        className="relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none"
+        style={{ backgroundColor: value ? 'rgba(212,165,116,0.35)' : 'rgba(255,255,255,0.08)' }}
+      >
+        <span
+          className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
+            value ? 'left-3.5 bg-[#D4A574]' : 'left-0.5 bg-white/40'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+function EditableConfigRow({
+  label,
+  configKey,
+  value,
+  fallback,
+  editingConfig,
+  configDraft,
+  setEditingConfig,
+  setConfigDraft,
+  onSave,
+  options,
+}: {
+  label: string;
+  configKey: string;
+  value?: string;
+  fallback?: string;
+  editingConfig: string | null;
+  configDraft: string;
+  setEditingConfig: (k: string | null) => void;
+  setConfigDraft: (v: string) => void;
+  onSave: (key: string, value: string) => void;
+  options?: string[];
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const isEditing = editingConfig === configKey;
+  const hasValue = value && value !== '';
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      if (selectRef.current) {
+        selectRef.current.focus();
+        try { selectRef.current.showPicker(); } catch { /* unsupported */ }
+      }
+    }
+  }, [isEditing]);
+
+  if (isEditing && options) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className={`text-[10px] ${text.dimmed} w-28 flex-shrink-0`}>{label}</span>
+        <select
+          ref={selectRef}
+          value={configDraft}
+          onChange={(e) => { onSave(configKey, e.target.value); }}
+          onBlur={() => setEditingConfig(null)}
+          className={`text-xs font-mono bg-white/[0.04] border border-white/[0.12] rounded px-1.5 py-0.5 ${text.primary} focus:outline-none`}
+        >
+          {options.map((opt) => (
+            <option key={opt} value={opt}>{opt || (fallback ? `(${fallback})` : '—')}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className={`text-[10px] ${text.dimmed} w-28 flex-shrink-0`}>{label}</span>
+        <input
+          ref={inputRef}
+          value={configDraft}
+          onChange={(e) => setConfigDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { onSave(configKey, configDraft); }
+            if (e.key === 'Escape') { setEditingConfig(null); }
+          }}
+          onBlur={() => onSave(configKey, configDraft)}
+          className={`text-xs font-mono bg-white/[0.04] border border-white/[0.12] rounded px-1.5 py-0.5 ${text.primary} focus:outline-none flex-1`}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`text-[10px] ${text.dimmed} w-28 flex-shrink-0`}>{label}</span>
+      <span
+        className={`text-xs font-mono ${hasValue ? text.secondary : text.dimmed} cursor-pointer hover:bg-white/[0.04] px-1.5 py-0.5 -mx-1.5 rounded transition-colors`}
+        onClick={() => { setConfigDraft(value ?? ''); setEditingConfig(configKey); }}
+      >
+        {hasValue ? value : (fallback ?? '—')}
+      </span>
+    </div>
+  );
+}
+
+// ─── Auto-save text section (description) ────────────────────
+
+function AutoSaveTextSection({
+  title,
+  content,
+  emptyText,
+  rows,
+  onSave,
+}: {
+  title: string;
+  content: string;
+  emptyText: string;
+  rows: number;
+  onSave: (value: string) => Promise<unknown>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSaved = useRef('');
+
+  const flush = useCallback((v: string) => {
+    if (v !== lastSaved.current) { lastSaved.current = v; onSave(v); }
+  }, [onSave]);
+
+  const schedule = useCallback((v: string) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => flush(v), 600);
+  }, [flush]);
+
+  const finish = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    flush(draft);
+    setEditing(false);
+  }, [draft, flush]);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  return (
+    <section>
+      <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>{title}</h3>
+      {editing ? (
+        <textarea
+          value={draft}
+          onChange={(e) => { setDraft(e.target.value); schedule(e.target.value); }}
+          onBlur={finish}
+          onKeyDown={(e) => { if (e.key === 'Escape') finish(); }}
+          className={`w-full px-3 py-2 bg-white/[0.02] border border-white/[0.08] rounded-lg text-xs ${text.primary} focus:outline-none resize-none`}
+          rows={rows}
+          autoFocus
+        />
+      ) : (
+        <div
+          className="rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] px-3 py-2 cursor-pointer transition-colors"
+          onClick={() => { setDraft(content); lastSaved.current = content; setEditing(true); }}
+        >
+          <p className={`text-xs ${content ? text.secondary : text.dimmed}`}>
+            {content || emptyText}
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ─── Auto-save file section (SKILL.md / reference / examples) ─
+
+function AutoSaveFileSection({
+  title,
+  content,
+  rows,
+  onSave,
+  startEditing,
+}: {
+  title: string;
+  content: string;
+  rows: number;
+  onSave: (value: string) => Promise<unknown>;
+  startEditing?: boolean;
+}) {
+  const [editing, setEditing] = useState(!!startEditing);
+  const [draft, setDraft] = useState(startEditing ? content : '');
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSaved = useRef(content);
+
+  const flush = useCallback((v: string) => {
+    if (v !== lastSaved.current) { lastSaved.current = v; onSave(v); }
+  }, [onSave]);
+
+  const schedule = useCallback((v: string) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => flush(v), 600);
+  }, [flush]);
+
+  const finish = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    flush(draft);
+    setEditing(false);
+  }, [draft, flush]);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  return (
+    <section>
+      <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>{title}</h3>
+      {editing ? (
+        <textarea
+          value={draft}
+          onChange={(e) => { setDraft(e.target.value); schedule(e.target.value); }}
+          onBlur={finish}
+          onKeyDown={(e) => { if (e.key === 'Escape') finish(); }}
+          className={`w-full px-3 py-2 bg-white/[0.02] border border-white/[0.08] rounded-lg text-xs font-mono ${text.primary} focus:outline-none resize-none`}
+          rows={rows}
+          autoFocus
+        />
+      ) : content ? (
+        <div
+          className="rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] px-3 py-2 max-h-80 overflow-y-auto cursor-pointer transition-colors"
+          onClick={() => { setDraft(content); lastSaved.current = content; setEditing(true); }}
+        >
+          <pre className={`text-xs font-mono ${text.secondary} whitespace-pre-wrap`}>
+            {content}
+          </pre>
+        </div>
+      ) : null}
+    </section>
   );
 }

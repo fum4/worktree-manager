@@ -6,6 +6,7 @@ import { useCustomTaskDetail } from '../../hooks/useCustomTaskDetail';
 import { useApi } from '../../hooks/useApi';
 import { border, button, customTask, getLabelColor, text } from '../../theme';
 import { MarkdownContent } from '../MarkdownContent';
+import { NotesSection } from './NotesSection';
 import { Spinner } from '../Spinner';
 
 interface CustomTaskDetailPanelProps {
@@ -353,6 +354,8 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
             </div>
           )}
         </section>
+
+        <NotesSection source="local" issueId={taskId} />
 
         {/* Timestamps */}
         <div className={`text-[11px] ${text.dimmed} flex flex-wrap gap-4 pt-2`}>

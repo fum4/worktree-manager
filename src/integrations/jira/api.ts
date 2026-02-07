@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync, createWriteStream } from 'fs';
+import { createWriteStream, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { pipeline } from 'stream/promises';
 import { Readable } from 'stream';
 import path from 'path';
@@ -61,7 +61,7 @@ export async function fetchIssue(
     { headers },
   );
 
-  let comments: JiraComment[] = [];
+  let rawComments: Array<{ author: { displayName: string }; body: unknown; created: string }> = [];
   if (commentsResp.ok) {
     const commentsData = (await commentsResp.json()) as {
       comments: Array<{
@@ -70,12 +70,7 @@ export async function fetchIssue(
         created: string;
       }>;
     };
-
-    comments = commentsData.comments.map((c) => ({
-      author: c.author?.displayName ?? 'Unknown',
-      body: adfToMarkdown(c.body),
-      created: c.created,
-    }));
+    rawComments = commentsData.comments;
   }
 
   // Build site URL for the issue
@@ -95,10 +90,24 @@ export async function fetchIssue(
     size: number;
   }>;
 
+  // Build attachment lookup for ADF media nodes
+  const attachmentMap = new Map<string, { url: string; mimeType: string }>();
+  for (const a of rawAttachments) {
+    if (a.content) {
+      attachmentMap.set(a.filename, { url: a.content, mimeType: a.mimeType });
+    }
+  }
+
+  const comments: JiraComment[] = rawComments.map((c) => ({
+    author: c.author?.displayName ?? 'Unknown',
+    body: adfToMarkdown(c.body, attachmentMap),
+    created: c.created,
+  }));
+
   return {
     key,
     summary: (fields.summary as string) ?? '',
-    description: adfToMarkdown(fields.description),
+    description: adfToMarkdown(fields.description, attachmentMap),
     status: ((fields.status as Record<string, unknown>)?.name as string) ?? 'Unknown',
     priority: ((fields.priority as Record<string, unknown>)?.name as string) ?? 'None',
     type: ((fields.issuetype as Record<string, unknown>)?.name as string) ?? 'Unknown',
@@ -183,7 +192,18 @@ export async function downloadAttachments(
 }
 
 export function saveTaskData(taskData: JiraTaskData, tasksDir: string): void {
-  const taskDir = path.join(tasksDir, taskData.key);
-  mkdirSync(taskDir, { recursive: true });
-  writeFileSync(path.join(taskDir, 'task.json'), JSON.stringify(taskData, null, 2) + '\n');
+  // Write to issues/jira/<KEY>/issue.json
+  const issueDir = path.join(path.dirname(tasksDir), 'issues', 'jira', taskData.key);
+  mkdirSync(issueDir, { recursive: true });
+  writeFileSync(path.join(issueDir, 'issue.json'), JSON.stringify(taskData, null, 2) + '\n');
+
+  // Create empty notes.json if it doesn't exist
+  const notesPath = path.join(issueDir, 'notes.json');
+  if (!existsSync(notesPath)) {
+    writeFileSync(notesPath, JSON.stringify({
+      linkedWorktreeId: null,
+      personal: null,
+      aiContext: null,
+    }, null, 2) + '\n');
+  }
 }

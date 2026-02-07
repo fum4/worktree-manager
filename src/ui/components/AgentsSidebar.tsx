@@ -10,7 +10,7 @@ import { Spinner } from './Spinner';
 
 type AgentSelection =
   | { type: 'mcp-server'; id: string }
-  | { type: 'skill'; name: string; location: 'global' | 'project' }
+  | { type: 'skill'; name: string }
   | null;
 
 function ChevronIcon({ collapsed }: { collapsed: boolean }) {
@@ -32,6 +32,7 @@ interface AgentsSidebarProps {
   deploymentStatus: Record<string, Record<string, { global?: boolean; project?: boolean }>>;
   skills: SkillSummary[];
   skillsLoading: boolean;
+  skillDeploymentStatus: Record<string, { global: boolean; project: boolean }>;
   plugins: PluginSummary[];
   selection: AgentSelection;
   onSelect: (selection: AgentSelection) => void;
@@ -44,6 +45,7 @@ export function AgentsSidebar({
   deploymentStatus,
   skills,
   skillsLoading,
+  skillDeploymentStatus,
   plugins,
   selection,
   onSelect,
@@ -157,18 +159,21 @@ export function AgentsSidebar({
               </div>
             ) : (
               <>
-                {filteredSkills.map((skill) => (
-                  <SkillItem
-                    key={`${skill.location}:${skill.name}`}
-                    skill={skill}
-                    isSelected={
-                      selection?.type === 'skill' &&
-                      selection.name === skill.name &&
-                      selection.location === skill.location
-                    }
-                    onSelect={() => onSelect({ type: 'skill', name: skill.name, location: skill.location })}
-                  />
-                ))}
+                {filteredSkills.map((skill) => {
+                  const depStatus = skillDeploymentStatus[skill.name];
+                  const isDeployed = depStatus ? (depStatus.global || depStatus.project) : false;
+
+                  return (
+                    <SkillItem
+                      key={skill.name}
+                      skill={skill}
+                      isSelected={selection?.type === 'skill' && selection.name === skill.name}
+                      onSelect={() => onSelect({ type: 'skill', name: skill.name })}
+                      isDeployed={isDeployed}
+                      isProjectDeployed={depStatus?.project ?? false}
+                    />
+                  );
+                })}
                 {filteredPlugins.map((plugin) => (
                   <PluginItem key={plugin.name} plugin={plugin} />
                 ))}
