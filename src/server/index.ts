@@ -16,6 +16,8 @@ import { registerJiraRoutes } from './routes/jira';
 import { registerLinearRoutes } from './routes/linear';
 import { registerEventRoutes } from './routes/events';
 import { registerMcpRoutes } from './routes/mcp';
+import { registerMcpServerRoutes } from './routes/mcp-servers';
+import { registerClaudeSkillRoutes } from './routes/claude-skills';
 import { registerTaskRoutes } from './routes/tasks';
 import { registerTerminalRoutes } from './routes/terminal';
 import { TerminalManager } from './terminal-manager';
@@ -40,6 +42,11 @@ export function createWorktreeServer(manager: WorktreeManager) {
   const { upgradeWebSocket, injectWebSocket } = createNodeWebSocket({ app });
 
   app.use('*', cors());
+  app.onError((err, c) => {
+    log.error(`${c.req.method} ${c.req.path} → ${err.message}`);
+    if (process.env.DEBUG) log.debug(err.stack ?? '');
+    return c.json({ error: err.message }, 500);
+  });
 
   registerWorktreeRoutes(app, manager, terminalManager);
   registerConfigRoutes(app, manager);
@@ -48,6 +55,8 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerLinearRoutes(app, manager);
   registerEventRoutes(app, manager);
   registerMcpRoutes(app, manager);
+  registerMcpServerRoutes(app, manager);
+  registerClaudeSkillRoutes(app, manager);
   registerTaskRoutes(app, manager);
   registerTerminalRoutes(app, terminalManager, manager, upgradeWebSocket);
 

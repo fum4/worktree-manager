@@ -3,6 +3,7 @@ import { badge, nav, surface, text } from '../theme';
 
 const tabs: { id: View; label: string }[] = [
   { id: 'workspace', label: 'Workspace' },
+  { id: 'agents', label: 'Agents' },
   { id: 'integrations', label: 'Integrations' },
   { id: 'configuration', label: 'Settings' },
 ];

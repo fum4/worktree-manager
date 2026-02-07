@@ -1,13 +1,19 @@
+import { FileText, Ticket } from 'lucide-react';
+
 import type { WorktreeInfo } from '../types';
-import { badge, border, status, surface, text } from '../theme';
+import { border, status, surface, text } from '../theme';
 
 interface WorktreeItemProps {
   worktree: WorktreeInfo;
   isSelected: boolean;
   onSelect: () => void;
+  hasLocalIssue?: boolean;
+  onSelectJiraIssue?: (key: string) => void;
+  onSelectLinearIssue?: (identifier: string) => void;
+  onSelectLocalIssue?: (identifier: string) => void;
 }
 
-export function WorktreeItem({ worktree, isSelected, onSelect }: WorktreeItemProps) {
+export function WorktreeItem({ worktree, isSelected, onSelect, hasLocalIssue, onSelectJiraIssue, onSelectLinearIssue, onSelectLocalIssue }: WorktreeItemProps) {
   const isRunning = worktree.status === 'running';
   const isCreating = worktree.status === 'creating';
 
@@ -48,12 +54,37 @@ export function WorktreeItem({ worktree, isSelected, onSelect }: WorktreeItemPro
       </div>
 
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        {worktree.jiraUrl && (
-          <span className={badge.jira} title="Jira linked">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-              <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Z" clipRule="evenodd" />
-              <path fillRule="evenodd" d="M6.194 12.753a.75.75 0 0 0 1.06.053L16.5 4.44v2.81a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.553l-9.056 8.194a.75.75 0 0 0-.053 1.06Z" clipRule="evenodd" />
-            </svg>
+        {worktree.jiraUrl && (() => {
+          const key = worktree.jiraUrl!.match(/\/browse\/([A-Z]+-\d+)/)?.[1];
+          return (
+            <span
+              title="Jira linked"
+              className="cursor-pointer p-1 -m-1 rounded text-blue-400 hover:bg-blue-400/10 transition-colors duration-150"
+              onClick={(e) => { e.stopPropagation(); if (key) onSelectJiraIssue?.(key); }}
+            >
+              <Ticket className="w-3.5 h-3.5" />
+            </span>
+          );
+        })()}
+        {worktree.linearUrl && (() => {
+          const id = worktree.linearUrl!.match(/\/issue\/([A-Z]+-\d+)/)?.[1];
+          return (
+            <span
+              title="Linear linked"
+              className="cursor-pointer p-1 -m-1 rounded text-[#5E6AD2] hover:bg-[#5E6AD2]/10 transition-colors duration-150"
+              onClick={(e) => { e.stopPropagation(); if (id) onSelectLinearIssue?.(id); }}
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
+            </span>
+          );
+        })()}
+        {hasLocalIssue && worktree.localIssueId && (
+          <span
+            title="Local issue linked"
+            className="cursor-pointer p-1 -m-1 rounded text-amber-400 hover:bg-amber-400/10 transition-colors duration-150"
+            onClick={(e) => { e.stopPropagation(); onSelectLocalIssue?.(worktree.localIssueId!); }}
+          >
+            <FileText className="w-3.5 h-3.5" />
           </span>
         )}
         {worktree.githubPrUrl && (

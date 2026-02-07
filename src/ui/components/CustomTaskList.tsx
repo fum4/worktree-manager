@@ -10,6 +10,8 @@ interface CustomTaskListProps {
   isLoading: boolean;
   error: string | null;
   onViewWorktree?: (worktreeId: string) => void;
+  showPriority?: boolean;
+  showStatus?: boolean;
 }
 
 export function CustomTaskList({
@@ -19,6 +21,8 @@ export function CustomTaskList({
   isLoading,
   error,
   onViewWorktree,
+  showPriority = true,
+  showStatus = true,
 }: CustomTaskListProps) {
   return (
     <div className="flex flex-col">
@@ -44,6 +48,8 @@ export function CustomTaskList({
               isSelected={task.id === selectedId}
               onSelect={() => onSelect(task.id)}
               onViewWorktree={onViewWorktree}
+              showPriority={showPriority}
+              showStatus={showStatus}
             />
           ))}
         </div>

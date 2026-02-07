@@ -161,15 +161,18 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
     }
   };
 
-  const inputClass = `w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`;
+  const focusBorder = mode === 'jira' ? 'focus:border-blue-400/30' : mode === 'linear' ? 'focus:border-[#5E6AD2]/30' : 'focus:border-white/[0.12]';
+  const inputClass = `w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] ${focusBorder} transition-all text-xs`;
 
   return (
     <>
       <Modal
         title={mode === 'branch' ? 'Create Worktree' : mode === 'jira' ? 'Pull from Jira' : 'Pull from Linear'}
         icon={mode === 'branch'
-          ? <GitBranch className="w-5 h-5 text-[#9ca3af]" />
-          : <Ticket className="w-5 h-5 text-[#9ca3af]" />
+          ? <GitBranch className="w-5 h-5 text-accent" />
+          : mode === 'jira'
+          ? <Ticket className="w-5 h-5 text-blue-400" />
+          : <svg className="w-5 h-5 text-[#5E6AD2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
         }
         onClose={onClose}
         onSubmit={mode === 'branch' ? handleBranchSubmit : mode === 'jira' ? handleJiraSubmit : handleLinearSubmit}
@@ -180,7 +183,7 @@ export function CreateWorktreeModal({ mode, onCreated, onClose, onSetupNeeded }:
             </Button>
             <Button
               type="submit"
-              variant="primary"
+              variant={mode === 'jira' ? 'jira' : mode === 'linear' ? 'linear' : 'primary'}
               disabled={mode === 'branch' ? !name.trim() : mode === 'jira' ? !taskId.trim() : !linearId.trim()}
               loading={isCreating}
             >

@@ -63,6 +63,10 @@ export interface WorktreeInfo {
   linearUrl?: string;
   /** Linear issue state name (e.g. "In Progress", "Todo") */
   linearStatus?: string;
+  /** Local issue identifier if this worktree was created from a local issue */
+  localIssueId?: string;
+  /** Local issue status (e.g. "todo", "in-progress", "done") */
+  localIssueStatus?: string;
   /** Whether there are uncommitted changes in the worktree */
   hasUncommitted?: boolean;
   /** Whether there are unpushed commits */

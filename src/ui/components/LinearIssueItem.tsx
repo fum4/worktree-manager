@@ -8,9 +8,11 @@ interface LinearIssueItemProps {
   onSelect: () => void;
   linkedWorktreeId?: string;
   onViewWorktree?: (worktreeId: string) => void;
+  showPriority?: boolean;
+  showStatus?: boolean;
 }
 
-export function LinearIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, onViewWorktree }: LinearIssueItemProps) {
+export function LinearIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, onViewWorktree, showPriority = true, showStatus = true }: LinearIssueItemProps) {
   const stateTypeLower = issue.state.type.toLowerCase();
   const stateClasses = linearStateType[stateTypeLower] ?? `${text.secondary} bg-white/[0.06]`;
 
@@ -30,10 +32,12 @@ export function LinearIssueItem({ issue, isSelected, onSelect, linkedWorktreeId,
             <span className={`text-[11px] font-semibold text-[#5E6AD2] flex-shrink-0`}>
               {issue.identifier}
             </span>
-            <span className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${stateClasses}`}>
-              {issue.state.name}
-            </span>
-            {linearPriority[issue.priority] && (
+            {showStatus && (
+              <span className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${stateClasses}`}>
+                {issue.state.name}
+              </span>
+            )}
+            {showPriority && linearPriority[issue.priority] && (
               <span className={`text-[10px] ${linearPriority[issue.priority].color}`}>
                 {linearPriority[issue.priority].label}
               </span>

@@ -1,9 +1,10 @@
 import { nav } from '../theme';
 
-export type View = 'workspace' | 'configuration' | 'integrations';
+export type View = 'workspace' | 'agents' | 'configuration' | 'integrations';
 
 const tabs: { id: View; label: string }[] = [
   { id: 'workspace', label: 'Workspace' },
+  { id: 'agents', label: 'Agents' },
   { id: 'integrations', label: 'Integrations' },
   { id: 'configuration', label: 'Settings' },
 ];

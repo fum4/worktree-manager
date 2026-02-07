@@ -4,7 +4,7 @@ interface ButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
   type?: 'button' | 'submit';
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger' | 'jira' | 'linear';
   size?: 'sm' | 'md';
   disabled?: boolean;
   loading?: boolean;
@@ -25,12 +25,14 @@ export function Button({
     ? 'px-3 py-1.5 text-xs'
     : 'px-4 py-2 text-sm';
 
-  const baseClass = `${sizeClass} font-medium rounded-lg transition-colors flex items-center gap-2`;
+  const baseClass = `${sizeClass} font-medium rounded-lg transition-colors flex items-center gap-2 disabled:pointer-events-none`;
 
   const variantClasses = {
     primary: `${button.primary} disabled:bg-[#2dd4bf]/5 disabled:text-[#2dd4bf]/40`,
     secondary: `${text.muted} hover:${text.secondary} hover:bg-white/[0.04] disabled:opacity-50`,
     danger: 'text-red-400 hover:bg-red-400/10 disabled:opacity-50',
+    jira: 'bg-blue-400/15 text-blue-400 hover:bg-blue-400/25 font-medium disabled:bg-blue-400/5 disabled:text-blue-400/40',
+    linear: 'bg-[#5E6AD2]/15 text-[#5E6AD2] hover:bg-[#5E6AD2]/25 font-medium disabled:bg-[#5E6AD2]/5 disabled:text-[#5E6AD2]/40',
   };
 
   return (

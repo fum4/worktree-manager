@@ -8,6 +8,9 @@ interface DetailHeaderProps {
   isRunning: boolean;
   isCreating: boolean;
   onRename: (changes: { name?: string; branch?: string }) => Promise<boolean>;
+  onSelectJiraIssue?: (key: string) => void;
+  onSelectLinearIssue?: (identifier: string) => void;
+  onSelectLocalIssue?: (identifier: string) => void;
 }
 
 function InlineEdit({
@@ -82,6 +85,9 @@ export function DetailHeader({
   isRunning,
   isCreating,
   onRename,
+  onSelectJiraIssue,
+  onSelectLinearIssue,
+  onSelectLocalIssue,
 }: DetailHeaderProps) {
   const editable = !isRunning && !isCreating;
 
@@ -129,21 +135,54 @@ export function DetailHeader({
       </div>
 
       {/* Integration links — flat, no nested badges */}
-      {(worktree.jiraUrl || worktree.githubPrUrl) && (
+      {(worktree.jiraUrl || worktree.linearUrl || worktree.localIssueId || worktree.githubPrUrl) && (
         <div className="flex items-center gap-3 mt-2.5">
-          {worktree.jiraUrl && (
-            <a
-              href={worktree.jiraUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`flex items-center gap-1.5 text-[11px] ${badge.jira} ${badge.jiraHover} transition-colors duration-150`}
+          {worktree.jiraUrl && (() => {
+            const jiraKey = worktree.jiraUrl!.match(/\/browse\/([A-Z]+-\d+)/)?.[1];
+            return (
+              <button
+                type="button"
+                onClick={() => jiraKey && onSelectJiraIssue?.(jiraKey)}
+                className={`flex items-center gap-1.5 text-[11px] ${badge.jira} ${badge.jiraHover} transition-colors duration-150`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                  <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+                  <path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" />
+                </svg>
+                Jira{worktree.jiraStatus ? ` \u00b7 ${worktree.jiraStatus}` : ''}
+              </button>
+            );
+          })()}
+          {worktree.linearUrl && (() => {
+            const linearId = worktree.linearUrl!.match(/\/issue\/([A-Z]+-\d+)/)?.[1];
+            return (
+              <button
+                type="button"
+                onClick={() => linearId && onSelectLinearIssue?.(linearId)}
+                className={`flex items-center gap-1.5 text-[11px] ${badge.linear} ${badge.linearHover} transition-colors duration-150`}
+              >
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+                Linear{worktree.linearStatus ? ` \u00b7 ${worktree.linearStatus}` : ''}
+              </button>
+            );
+          })()}
+          {worktree.localIssueId && (
+            <button
+              type="button"
+              onClick={() => onSelectLocalIssue?.(worktree.localIssueId!)}
+              className={`flex items-center gap-1.5 text-[11px] ${badge.localIssue} ${badge.localIssueHover} transition-colors duration-150`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
-                <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Z" clipRule="evenodd" />
-                <path fillRule="evenodd" d="M6.194 12.753a.75.75 0 0 0 1.06.053L16.5 4.44v2.81a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.553l-9.056 8.194a.75.75 0 0 0-.053 1.06Z" clipRule="evenodd" />
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <line x1="10" y1="9" x2="8" y2="9" />
               </svg>
-              Jira{worktree.jiraStatus ? ` \u00b7 ${worktree.jiraStatus}` : ''}
-            </a>
+              {worktree.localIssueId}{worktree.localIssueStatus ? ` \u00b7 ${worktree.localIssueStatus}` : ''}
+            </button>
           )}
           {worktree.githubPrUrl && (
             <a

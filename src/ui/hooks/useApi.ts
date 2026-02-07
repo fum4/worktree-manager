@@ -126,6 +126,65 @@ export function useApi() {
 
       createWorktreeFromCustomTask: (id: string, branch?: string) =>
         api.createWorktreeFromCustomTask(id, branch, serverUrl),
+
+      // MCP Server Manager
+      fetchMcpServers: (query?: string) =>
+        api.fetchMcpServers(query, serverUrl),
+
+      fetchMcpServer: (id: string) =>
+        api.fetchMcpServer(id, serverUrl),
+
+      createMcpServer: (data: { id?: string; name: string; description?: string; tags?: string[]; command: string; args?: string[]; env?: Record<string, string> }) =>
+        api.createMcpServer(data, serverUrl),
+
+      updateMcpServer: (id: string, updates: Record<string, unknown>) =>
+        api.updateMcpServer(id, updates, serverUrl),
+
+      deleteMcpServer: (id: string) =>
+        api.deleteMcpServer(id, serverUrl),
+
+      scanMcpServers: (options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string }) =>
+        api.scanMcpServers(options, serverUrl),
+
+      importMcpServers: (servers: Array<{ key: string; name?: string; description?: string; tags?: string[]; command: string; args: string[]; env?: Record<string, string>; source?: string }>) =>
+        api.importMcpServers(servers, serverUrl),
+
+      fetchMcpServerEnv: (serverId: string) =>
+        api.fetchMcpServerEnv(serverId, serverUrl),
+
+      updateMcpServerEnv: (serverId: string, env: Record<string, string>) =>
+        api.updateMcpServerEnv(serverId, env, serverUrl),
+
+      fetchMcpDeploymentStatus: () =>
+        api.fetchMcpDeploymentStatus(serverUrl),
+
+      deployMcpServer: (id: string, tool: string, scope: string) =>
+        api.deployMcpServer(id, tool, scope, serverUrl),
+
+      undeployMcpServer: (id: string, tool: string, scope: string) =>
+        api.undeployMcpServer(id, tool, scope, serverUrl),
+
+      // Claude Skills
+      fetchClaudeSkills: () =>
+        api.fetchClaudeSkills(serverUrl),
+
+      fetchClaudeSkill: (name: string, location?: 'global' | 'project') =>
+        api.fetchClaudeSkill(name, location, serverUrl),
+
+      createClaudeSkill: (data: { name: string; description?: string; allowedTools?: string; context?: string; location?: 'global' | 'project'; instructions?: string }) =>
+        api.createClaudeSkill(data, serverUrl),
+
+      updateClaudeSkill: (name: string, updates: { location?: 'global' | 'project'; skillMd?: string; referenceMd?: string; examplesMd?: string }) =>
+        api.updateClaudeSkill(name, updates, serverUrl),
+
+      deleteClaudeSkill: (name: string, location?: 'global' | 'project') =>
+        api.deleteClaudeSkill(name, location, serverUrl),
+
+      fetchClaudePlugins: () =>
+        api.fetchClaudePlugins(serverUrl),
+
+      scanClaudeSkills: (options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string }) =>
+        api.scanClaudeSkills(options, serverUrl),
     }),
     [serverUrl],
   );

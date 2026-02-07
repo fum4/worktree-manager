@@ -143,6 +143,22 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager) {
 
     task.updatedAt = new Date().toISOString();
     saveTask(configDir, task);
+
+    // Sync status to the worktree's task.json if linked
+    if (task.linkedWorktreeId) {
+      const wtTaskFile = path.join(configDir, '.wok3', 'tasks', task.linkedWorktreeId, 'task.json');
+      if (existsSync(wtTaskFile)) {
+        try {
+          const wtTask = JSON.parse(readFileSync(wtTaskFile, 'utf-8'));
+          wtTask.status = task.status;
+          wtTask.title = task.title;
+          writeFileSync(wtTaskFile, JSON.stringify(wtTask, null, 2));
+        } catch {
+          // Ignore corrupt files
+        }
+      }
+    }
+
     return c.json({ success: true, task });
   });
 
@@ -163,16 +179,28 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager) {
 
     const body = await c.req.json<{ branch?: string }>().catch(() => ({ branch: undefined }));
 
-    // Generate branch name from task title
-    const branchName = body.branch || `task/${task.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)}`;
+    // Use identifier (e.g. LOCAL-5) as default branch name
+    const branchName = body.branch || task.identifier.toLowerCase();
 
     try {
-      const result = await manager.createWorktree({ branch: branchName });
+      const result = await manager.createWorktree({ branch: branchName, name: task.identifier });
 
-      if (result.success && result.worktreeId) {
-        task.linkedWorktreeId = result.worktreeId;
+      if (result.success) {
+        const worktreeId = task.identifier;
+        task.linkedWorktreeId = worktreeId;
         task.updatedAt = new Date().toISOString();
         saveTask(configDir, task);
+
+        // Save a task file at the standard location so the worktree detail view can show local issue info
+        const tasksDir = path.join(configDir, '.wok3', 'tasks', worktreeId);
+        if (!existsSync(tasksDir)) mkdirSync(tasksDir, { recursive: true });
+        writeFileSync(path.join(tasksDir, 'task.json'), JSON.stringify({
+          source: 'local',
+          identifier: task.identifier,
+          title: task.title,
+          status: task.status,
+          url: null,
+        }, null, 2));
       }
 
       return c.json(result);

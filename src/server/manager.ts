@@ -234,7 +234,10 @@ export class WorktreeManager {
       if (existsSync(taskFile)) {
         try {
           const taskData = JSON.parse(readFileSync(taskFile, 'utf-8'));
-          if (taskData.source === 'linear') {
+          if (taskData.source === 'local') {
+            if (taskData.identifier) info.localIssueId = taskData.identifier;
+            if (taskData.status) info.localIssueStatus = taskData.status;
+          } else if (taskData.source === 'linear') {
             if (taskData.url) info.linearUrl = taskData.url;
             if (taskData.status) info.linearStatus = taskData.status;
           } else {

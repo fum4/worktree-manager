@@ -3,4 +3,5 @@ dist/
 release/
 .worktrees/
 .wok3/credentials.json
+.wok3/mcp-env.json
 .wok3/tasks/

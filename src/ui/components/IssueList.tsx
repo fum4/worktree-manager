@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Settings } from 'lucide-react';
 
 import type { CustomTaskSummary, JiraIssueSummary, LinearIssueSummary, WorktreeInfo } from '../types';
-import { text } from '../theme';
+import { border, text } from '../theme';
 import { CustomTaskList } from './CustomTaskList';
 import { JiraIssueList } from './JiraIssueList';
 import { LinearIssueList } from './LinearIssueList';
@@ -117,6 +118,35 @@ export function IssueList({
   const [jiraCollapsed, setJiraCollapsed] = useState(false);
   const [linearCollapsed, setLinearCollapsed] = useState(false);
   const [customCollapsed, setCustomCollapsed] = useState(false);
+  const [showPriority, setShowPriority] = useState(() => {
+    const saved = localStorage.getItem('wok3:issueShowPriority');
+    return saved !== null ? saved === '1' : true;
+  });
+  const [showStatus, setShowStatus] = useState(() => {
+    const saved = localStorage.getItem('wok3:issueShowStatus');
+    return saved !== null ? saved === '1' : true;
+  });
+  const [configOpen, setConfigOpen] = useState(false);
+  const configRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!configOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (configRef.current && !configRef.current.contains(e.target as Node)) {
+        setConfigOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [configOpen]);
+
+  useEffect(() => {
+    localStorage.setItem('wok3:issueShowPriority', showPriority ? '1' : '0');
+  }, [showPriority]);
+
+  useEffect(() => {
+    localStorage.setItem('wok3:issueShowStatus', showStatus ? '1' : '0');
+  }, [showStatus]);
 
   // Build map of issueKey -> worktreeId (Jira)
   const linkedJiraWorktrees = useMemo(() => {
@@ -174,9 +204,13 @@ export function IssueList({
 
   const allLinkedCount = linkedJiraIssues.length + linkedLinearIssues.length + linkedCustomTasks.length;
 
+  const jiraEmpty = unlinkedJiraIssues.length === 0 && !isLoading && !error;
+  const linearEmpty = unlinkedLinearIssues.length === 0 && !linearLoading && !linearError;
+  const customEmpty = unlinkedCustomTasks.length === 0 && !customTasksLoading && !customTasksError;
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-3">
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-8">
         {/* With Worktrees section */}
         {allLinkedCount > 0 && (
           <div>
@@ -187,13 +221,14 @@ export function IssueList({
             >
               <ChevronIcon collapsed={linkedCollapsed} />
               <span className={`text-[11px] font-medium ${text.secondary}`}>With Worktrees</span>
-              <span className={`text-[10px] ${text.dimmed} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+              <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
                 {allLinkedCount}
               </span>
+
             </button>
 
             {!linkedCollapsed && (
-              <>
+              <div className="space-y-px">
                 {linkedJiraIssues.length > 0 && (
                   <JiraIssueList
                     issues={linkedJiraIssues}
@@ -204,6 +239,8 @@ export function IssueList({
                     error={null}
                     linkedWorktrees={linkedJiraWorktrees}
                     onViewWorktree={onViewWorktree}
+                    showPriority={showPriority}
+                    showStatus={showStatus}
                   />
                 )}
                 {linkedLinearIssues.length > 0 && (
@@ -216,6 +253,8 @@ export function IssueList({
                     error={null}
                     linkedWorktrees={linkedLinearWorktrees}
                     onViewWorktree={onViewWorktree}
+                    showPriority={showPriority}
+                    showStatus={showStatus}
                   />
                 )}
                 {linkedCustomTasks.length > 0 && (
@@ -226,9 +265,11 @@ export function IssueList({
                     isLoading={false}
                     error={null}
                     onViewWorktree={onViewWorktree}
+                    showPriority={showPriority}
+                    showStatus={showStatus}
                   />
                 )}
-              </>
+              </div>
             )}
           </div>
         )}
@@ -237,16 +278,21 @@ export function IssueList({
         {issues.length > 0 && (
           <div>
             <div
-              className="w-full px-3 py-1.5 mb-px flex items-center gap-2 hover:bg-white/[0.03] transition-colors duration-150 cursor-pointer"
-              onClick={() => setJiraCollapsed(!jiraCollapsed)}
+              className={`w-full px-3 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${jiraEmpty ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
+              onClick={jiraEmpty ? undefined : () => setJiraCollapsed(!jiraCollapsed)}
             >
-              <ChevronIcon collapsed={jiraCollapsed} />
+              {jiraEmpty ? (
+                <span className={`w-3 h-3 flex items-center justify-center ${text.dimmed}`}>–</span>
+              ) : (
+                <ChevronIcon collapsed={jiraCollapsed} />
+              )}
               <span className={`text-[11px] font-medium ${text.secondary}`}>Jira</span>
-              {!isLoading && unlinkedJiraIssues.length > 0 && (
-                <span className={`text-[10px] ${text.dimmed} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+              {!isLoading && (
+                <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
                   {unlinkedJiraIssues.length}
                 </span>
               )}
+
               <RefreshIcon
                 spinning={isFetching && issues.length > 0}
                 onClick={onRefreshJira}
@@ -254,7 +300,7 @@ export function IssueList({
               />
             </div>
 
-            {!jiraCollapsed && (
+            {!jiraEmpty && !jiraCollapsed && (
               <JiraIssueList
                 issues={unlinkedJiraIssues}
                 selectedKey={selectedKey}
@@ -264,6 +310,8 @@ export function IssueList({
                 error={error}
                 linkedWorktrees={linkedJiraWorktrees}
                 onViewWorktree={onViewWorktree}
+                showPriority={showPriority}
+                showStatus={showStatus}
               />
             )}
           </div>
@@ -278,6 +326,7 @@ export function IssueList({
             >
               <ChevronIcon collapsed={jiraCollapsed} />
               <span className={`text-[11px] font-medium ${text.secondary}`}>Jira</span>
+
               <RefreshIcon
                 spinning={isFetching}
                 onClick={onRefreshJira}
@@ -294,6 +343,8 @@ export function IssueList({
                 isFetching={isFetching}
                 error={error}
                 onViewWorktree={onViewWorktree}
+                showPriority={showPriority}
+                showStatus={showStatus}
               />
             )}
           </div>
@@ -303,16 +354,21 @@ export function IssueList({
         {linearConfigured && (
           <div>
             <div
-              className="w-full px-3 py-1.5 mb-px flex items-center gap-2 hover:bg-white/[0.03] transition-colors duration-150 cursor-pointer"
-              onClick={() => setLinearCollapsed(!linearCollapsed)}
+              className={`w-full px-3 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${linearEmpty ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
+              onClick={linearEmpty ? undefined : () => setLinearCollapsed(!linearCollapsed)}
             >
-              <ChevronIcon collapsed={linearCollapsed} />
+              {linearEmpty ? (
+                <span className={`w-3 h-3 flex items-center justify-center ${text.dimmed}`}>–</span>
+              ) : (
+                <ChevronIcon collapsed={linearCollapsed} />
+              )}
               <span className={`text-[11px] font-medium ${text.secondary}`}>Linear</span>
-              {!linearLoading && unlinkedLinearIssues.length > 0 && (
-                <span className={`text-[10px] ${text.dimmed} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+              {!linearLoading && (
+                <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
                   {unlinkedLinearIssues.length}
                 </span>
               )}
+
               <RefreshIcon
                 spinning={linearFetching && linearIssues.length > 0}
                 onClick={onRefreshLinear}
@@ -320,7 +376,7 @@ export function IssueList({
               />
             </div>
 
-            {!linearCollapsed && (
+            {!linearEmpty && !linearCollapsed && (
               <LinearIssueList
                 issues={unlinkedLinearIssues}
                 selectedIdentifier={selectedLinearIdentifier}
@@ -330,28 +386,35 @@ export function IssueList({
                 error={linearError}
                 linkedWorktrees={linkedLinearWorktrees}
                 onViewWorktree={onViewWorktree}
+                showPriority={showPriority}
+                showStatus={showStatus}
               />
             )}
           </div>
         )}
 
         {/* Custom tasks section */}
-        {(unlinkedCustomTasks.length > 0 || customTasksLoading || customTasksError) && (
+        {(customTasks.length > 0 || customTasksLoading || customTasksError) && (
           <div>
             <div
-              className="w-full px-3 py-1.5 mb-px flex items-center gap-2 hover:bg-white/[0.03] transition-colors duration-150 cursor-pointer"
-              onClick={() => setCustomCollapsed(!customCollapsed)}
+              className={`w-full px-3 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${customEmpty ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
+              onClick={customEmpty ? undefined : () => setCustomCollapsed(!customCollapsed)}
             >
-              <ChevronIcon collapsed={customCollapsed} />
+              {customEmpty ? (
+                <span className={`w-3 h-3 flex items-center justify-center ${text.dimmed}`}>–</span>
+              ) : (
+                <ChevronIcon collapsed={customCollapsed} />
+              )}
               <span className={`text-[11px] font-medium ${text.secondary}`}>Local</span>
-              {!customTasksLoading && unlinkedCustomTasks.length > 0 && (
-                <span className={`text-[10px] ${text.dimmed} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+              {!customTasksLoading && (
+                <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
                   {unlinkedCustomTasks.length}
                 </span>
               )}
+
             </div>
 
-            {!customCollapsed && (
+            {!customEmpty && !customCollapsed && (
               <CustomTaskList
                 tasks={unlinkedCustomTasks}
                 selectedId={selectedCustomTaskId}
@@ -359,10 +422,65 @@ export function IssueList({
                 isLoading={customTasksLoading}
                 error={customTasksError}
                 onViewWorktree={onViewWorktree}
+                showPriority={showPriority}
+                showStatus={showStatus}
               />
             )}
           </div>
         )}
+      </div>
+
+      {/* Config bar */}
+      <div className={`flex-shrink-0 border-t ${border.subtle} px-2 py-1.5`}>
+        <div className="relative" ref={configRef}>
+          <button
+            type="button"
+            onClick={() => setConfigOpen(!configOpen)}
+            className={`p-1 rounded transition-colors duration-150 ${
+              configOpen ? `${text.secondary} bg-white/[0.06]` : `${text.dimmed} hover:${text.muted} hover:bg-white/[0.04]`
+            }`}
+            title="List settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+
+          {configOpen && (
+            <div className="absolute bottom-full left-0 mb-1 w-44 rounded-lg bg-[#1a1d24] border border-white/[0.08] shadow-xl py-1 z-50">
+              <button
+                type="button"
+                onClick={() => setShowPriority(!showPriority)}
+                className={`w-full px-3 py-1.5 flex items-center gap-2 text-left text-[11px] ${text.secondary} hover:bg-white/[0.04] transition-colors duration-150`}
+              >
+                <span className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
+                  showPriority ? 'bg-accent/20 border-accent/40' : 'border-white/[0.15]'
+                }`}>
+                  {showPriority && (
+                    <svg className="w-2 h-2 text-accent" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 6l3 3 5-5" />
+                    </svg>
+                  )}
+                </span>
+                Show priority
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowStatus(!showStatus)}
+                className={`w-full px-3 py-1.5 flex items-center gap-2 text-left text-[11px] ${text.secondary} hover:bg-white/[0.04] transition-colors duration-150`}
+              >
+                <span className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
+                  showStatus ? 'bg-accent/20 border-accent/40' : 'border-white/[0.15]'
+                }`}>
+                  {showStatus && (
+                    <svg className="w-2 h-2 text-accent" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 6l3 3 5-5" />
+                    </svg>
+                  )}
+                </span>
+                Show status
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

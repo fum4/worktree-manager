@@ -15,9 +15,12 @@ interface DetailPanelProps {
   onUpdate: () => void;
   onDeleted: () => void;
   onNavigateToIntegrations?: () => void;
+  onSelectJiraIssue?: (key: string) => void;
+  onSelectLinearIssue?: (identifier: string) => void;
+  onSelectLocalIssue?: (identifier: string) => void;
 }
 
-export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegrations }: DetailPanelProps) {
+export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegrations, onSelectJiraIssue, onSelectLinearIssue, onSelectLocalIssue }: DetailPanelProps) {
   const api = useApi();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -159,6 +162,9 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
         isRunning={isRunning}
         isCreating={isCreating}
         onRename={handleRename}
+        onSelectJiraIssue={onSelectJiraIssue}
+        onSelectLinearIssue={onSelectLinearIssue}
+        onSelectLocalIssue={onSelectLocalIssue}
       />
 
       {!isCreating && (

@@ -1,4 +1,4 @@
-import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail } from '../types';
+import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail, McpServerSummary, McpServerDetail, McpDeploymentStatus, McpScanResult, SkillSummary, SkillDetail, PluginSummary, SkillScanResult } from '../types';
 
 // API functions now accept an optional serverUrl parameter
 // When null/undefined, they use relative URLs (for single-project web mode)
@@ -930,6 +930,354 @@ export async function createWorktreeFromCustomTask(
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Failed to create worktree from task',
+    };
+  }
+}
+
+// -- MCP Server Manager API --
+
+export async function fetchMcpServers(
+  query?: string,
+  serverUrl: string | null = null,
+): Promise<{ servers: McpServerSummary[]; error?: string }> {
+  try {
+    const params = query ? `?q=${encodeURIComponent(query)}` : '';
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers${params}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { servers: [], error: (body as { error?: string }).error ?? `Failed (${res.status})` };
+    }
+    return await res.json();
+  } catch (err) {
+    return {
+      servers: [],
+      error: err instanceof Error ? err.message : 'Failed to fetch MCP servers',
+    };
+  }
+}
+
+export async function fetchMcpServer(
+  id: string,
+  serverUrl: string | null = null,
+): Promise<{ server?: McpServerDetail; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { error: (body as { error?: string }).error ?? `Failed (${res.status})` };
+    }
+    return await res.json();
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'Failed to fetch MCP server',
+    };
+  }
+}
+
+export async function createMcpServer(
+  data: { id?: string; name: string; description?: string; tags?: string[]; command: string; args?: string[]; env?: Record<string, string> },
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; server?: McpServerDetail; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create MCP server',
+    };
+  }
+}
+
+export async function updateMcpServer(
+  id: string,
+  updates: Record<string, unknown>,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; server?: McpServerDetail; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to update MCP server',
+    };
+  }
+}
+
+export async function deleteMcpServer(
+  id: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to delete MCP server',
+    };
+  }
+}
+
+export async function scanMcpServers(
+  options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string },
+  serverUrl: string | null = null,
+): Promise<{ discovered: McpScanResult[]; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options ?? {}),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { discovered: [], error: (body as { error?: string }).error ?? `Scan failed (${res.status})` };
+    }
+    return await res.json();
+  } catch (err) {
+    return {
+      discovered: [],
+      error: err instanceof Error ? err.message : 'Failed to scan MCP servers',
+    };
+  }
+}
+
+export async function importMcpServers(
+  servers: Array<{ key: string; name?: string; description?: string; tags?: string[]; command: string; args: string[]; env?: Record<string, string>; source?: string }>,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; imported?: string[]; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ servers }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to import MCP servers',
+    };
+  }
+}
+
+export async function fetchMcpServerEnv(
+  serverId: string,
+  serverUrl: string | null = null,
+): Promise<{ env: Record<string, string> }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-env/${encodeURIComponent(serverId)}`);
+    if (!res.ok) return { env: {} };
+    return await res.json();
+  } catch {
+    return { env: {} };
+  }
+}
+
+export async function updateMcpServerEnv(
+  serverId: string,
+  env: Record<string, string>,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; env: Record<string, string>; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-env/${encodeURIComponent(serverId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ env }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      env: {},
+      error: err instanceof Error ? err.message : 'Failed to update env',
+    };
+  }
+}
+
+export async function fetchMcpDeploymentStatus(
+  serverUrl: string | null = null,
+): Promise<McpDeploymentStatus> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/deployment-status`);
+    if (!res.ok) return { status: {} };
+    return await res.json();
+  } catch {
+    return { status: {} };
+  }
+}
+
+export async function deployMcpServer(
+  id: string,
+  tool: string,
+  scope: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}/deploy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool, scope }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to deploy MCP server',
+    };
+  }
+}
+
+export async function undeployMcpServer(
+  id: string,
+  tool: string,
+  scope: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}/undeploy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool, scope }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to undeploy MCP server',
+    };
+  }
+}
+
+// -- Claude Skills API --
+
+export async function fetchClaudeSkills(
+  serverUrl: string | null = null,
+): Promise<{ skills: SkillSummary[]; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills`);
+    return await res.json();
+  } catch (err) {
+    return {
+      skills: [],
+      error: err instanceof Error ? err.message : 'Failed to fetch skills',
+    };
+  }
+}
+
+export async function fetchClaudeSkill(
+  name: string,
+  location: 'global' | 'project' = 'global',
+  serverUrl: string | null = null,
+): Promise<{ skill?: SkillDetail; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}?location=${location}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { error: (body as { error?: string }).error ?? `Failed (${res.status})` };
+    }
+    return await res.json();
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'Failed to fetch skill',
+    };
+  }
+}
+
+export async function createClaudeSkill(
+  data: { name: string; description?: string; allowedTools?: string; context?: string; location?: 'global' | 'project'; instructions?: string },
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; skill?: SkillSummary; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to create skill',
+    };
+  }
+}
+
+export async function updateClaudeSkill(
+  name: string,
+  updates: { location?: 'global' | 'project'; skillMd?: string; referenceMd?: string; examplesMd?: string },
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to update skill',
+    };
+  }
+}
+
+export async function deleteClaudeSkill(
+  name: string,
+  location: 'global' | 'project' = 'global',
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}?location=${location}`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to delete skill',
+    };
+  }
+}
+
+export async function fetchClaudePlugins(
+  serverUrl: string | null = null,
+): Promise<{ plugins: PluginSummary[] }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins`);
+    return await res.json();
+  } catch {
+    return { plugins: [] };
+  }
+}
+
+export async function scanClaudeSkills(
+  options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string },
+  serverUrl: string | null = null,
+): Promise<{ discovered: SkillScanResult[]; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options ?? {}),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      discovered: [],
+      error: err instanceof Error ? err.message : 'Failed to scan skills',
     };
   }
 }

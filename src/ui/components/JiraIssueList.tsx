@@ -12,6 +12,8 @@ interface JiraIssueListProps {
   error: string | null;
   linkedWorktrees?: Map<string, string>;
   onViewWorktree?: (worktreeId: string) => void;
+  showPriority?: boolean;
+  showStatus?: boolean;
 }
 
 export function JiraIssueList({
@@ -22,6 +24,8 @@ export function JiraIssueList({
   error,
   linkedWorktrees,
   onViewWorktree,
+  showPriority = true,
+  showStatus = true,
 }: JiraIssueListProps) {
   return (
     <div className="flex flex-col">
@@ -50,6 +54,8 @@ export function JiraIssueList({
               onSelect={() => onSelect(issue.key)}
               linkedWorktreeId={linkedWorktrees?.get(issue.key)}
               onViewWorktree={onViewWorktree}
+              showPriority={showPriority}
+              showStatus={showStatus}
             />
           ))}
         </div>

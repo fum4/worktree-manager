@@ -8,9 +8,11 @@ interface JiraIssueItemProps {
   onSelect: () => void;
   linkedWorktreeId?: string;
   onViewWorktree?: (worktreeId: string) => void;
+  showPriority?: boolean;
+  showStatus?: boolean;
 }
 
-export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, onViewWorktree }: JiraIssueItemProps) {
+export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, onViewWorktree, showPriority = true, showStatus = true }: JiraIssueItemProps) {
   const statusLower = issue.status.toLowerCase();
   const statusClasses = jiraStatus[statusLower] ?? `${text.secondary} bg-white/[0.06]`;
 
@@ -30,12 +32,16 @@ export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, o
             <span className={`text-[11px] font-semibold text-blue-400 flex-shrink-0`}>
               {issue.key}
             </span>
-            <span className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>
-              {issue.status}
-            </span>
-            <span className={`text-[10px] ${jiraPriority[issue.priority.toLowerCase()] ?? text.muted}`}>
-              {issue.priority}
-            </span>
+            {showStatus && (
+              <span className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>
+                {issue.status}
+              </span>
+            )}
+            {showPriority && (
+              <span className={`text-[10px] ${jiraPriority[issue.priority.toLowerCase()] ?? text.muted}`}>
+                {issue.priority}
+              </span>
+            )}
           </div>
           <div className={`text-xs ${text.primary} truncate mt-0.5`}>
             {issue.summary}

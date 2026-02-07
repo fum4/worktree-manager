@@ -172,9 +172,9 @@ export const action = {
 
 // ─── Primary button ─────────────────────────────────────────────
 export const button = {
-  primary:         'bg-accent/15 text-accent hover:bg-accent/25 font-medium',
-  secondary:       'bg-white/[0.06] text-[#9ca3af] hover:bg-white/[0.10] hover:text-white',
-  confirm:         'text-red-400 bg-red-900/30 hover:bg-red-900/50',
+  primary:         'bg-accent/15 text-accent hover:bg-accent/25 font-medium disabled:pointer-events-none',
+  secondary:       'bg-white/[0.06] text-[#9ca3af] hover:bg-white/[0.10] hover:text-white disabled:pointer-events-none',
+  confirm:         'text-red-400 bg-red-900/30 hover:bg-red-900/50 disabled:pointer-events-none',
 } as const;
 
 // ─── Tabs (create form Branch / Jira) ───────────────────────────
@@ -192,11 +192,22 @@ export const badge = {
   linear:          'text-[#5E6AD2]',
   linearHover:     'hover:text-[#7B85E0]',
   linearStatus:    'bg-[#5E6AD2]/20',
+  localIssue:      'text-amber-400',
+  localIssueHover: 'hover:text-amber-300',
   prOpen:          'text-emerald-400 bg-emerald-900/30',
   prDraft:         'text-[#9ca3af] bg-white/[0.06]',
   prMerged:        'text-purple-400 bg-purple-900/30',
   prClosed:        'text-red-400 bg-red-900/30',
   unpushed:        'text-white',
+} as const;
+
+// ─── Integration colors (use these everywhere for consistency) ──
+export const integration = {
+  jira:        'text-blue-400',
+  linear:      'text-[#5E6AD2]',
+  localIssue:  'text-amber-400',
+  worktree:    'text-teal-400',
+  mcp:         'text-purple-400',
 } as const;
 
 // ─── Header bar ─────────────────────────────────────────────────
@@ -331,6 +342,27 @@ export function getLabelColor(label: string) {
   }
   return customTask.labelColors[((hash >>> 0) % customTask.labelColors.length)];
 }
+
+// ─── Claude Skills ──────────────────────────────────────────────
+export const claudeSkill = {
+  accent:          'text-[#D4A574]',
+  accentBg:        'bg-[#D4A574]/10',
+  accentBorder:    'border-[#D4A574]/30',
+  badge:           'text-[#D4A574] bg-[#D4A574]/15',
+  button:          'bg-[#D4A574]/15 text-[#D4A574] hover:bg-[#D4A574]/25 font-medium',
+} as const;
+
+// ─── MCP Servers ────────────────────────────────────────────────
+export const mcpServer = {
+  accent:          'text-purple-400',
+  accentBg:        'bg-purple-400/10',
+  accentBorder:    'border-purple-400/30',
+  badge:           'text-purple-400 bg-purple-900/30',
+  button:          'bg-purple-400/15 text-purple-400 hover:bg-purple-400/25 font-medium',
+  deployed:        'bg-teal-400',
+  partial:         'bg-teal-400/50',
+  notDeployed:     'bg-[#4b5563]',
+} as const;
 
 // ─── Detail panel tabs (Logs / Terminal) ────────────────────────
 export const detailTab = {

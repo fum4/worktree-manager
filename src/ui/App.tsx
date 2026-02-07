@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { Search } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { APP_NAME } from '../constants';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
@@ -14,6 +15,7 @@ import { LinearDetailPanel } from './components/detail/LinearDetailPanel';
 import { Header } from './components/Header';
 import { IntegrationsPanel } from './components/IntegrationsPanel';
 import { IssueList } from './components/IssueList';
+import { AgentsView } from './components/AgentsView';
 import { ProjectSetupScreen } from './components/ProjectSetupScreen';
 import { ResizableHandle } from './components/ResizableHandle';
 import { SetupCommitModal } from './components/SetupCommitModal';
@@ -46,6 +48,10 @@ export default function App() {
   const { linearStatus, refetchLinearStatus } = useLinearStatus();
   const githubStatus = useGitHubStatus();
   const { tasks: customTasks, isLoading: customTasksLoading, error: customTasksError, refetch: refetchCustomTasks } = useCustomTasks();
+  const localIssueLinkedIds = useMemo(
+    () => new Set<string>(customTasks.filter((t) => t.linkedWorktreeId).map((t) => t.linkedWorktreeId as string)),
+    [customTasks],
+  );
   const runningCount = worktrees.filter((w) => w.status === 'running').length;
 
   // Track if config existed when we first connected (to detect "deleted while open")
@@ -120,10 +126,83 @@ export default function App() {
     }
   };
 
-  const [activeView, setActiveView] = useState<View>('workspace');
+  const [activeView, setActiveViewState] = useState<View>(() => {
+    if (serverUrl) {
+      const saved = localStorage.getItem(`wok3:view:${serverUrl}`);
+      if (saved === 'workspace' || saved === 'agents' || saved === 'configuration' || saved === 'integrations') {
+        return saved;
+      }
+    }
+    return 'workspace';
+  });
 
-  const [selection, setSelection] = useState<Selection>(null);
-  const [activeCreateTab, setActiveCreateTab] = useState<'branch' | 'issues'>('branch');
+  const setActiveView = (view: View) => {
+    setActiveViewState(view);
+    if (serverUrl) {
+      localStorage.setItem(`wok3:view:${serverUrl}`, view);
+    }
+  };
+
+  // Restore view when switching projects
+  useEffect(() => {
+    if (!serverUrl) return;
+    const saved = localStorage.getItem(`wok3:view:${serverUrl}`);
+    if (saved === 'workspace' || saved === 'agents' || saved === 'configuration' || saved === 'integrations') {
+      setActiveViewState(saved);
+    } else {
+      setActiveViewState('workspace');
+    }
+  }, [serverUrl]);
+
+  const [selection, setSelectionState] = useState<Selection>(() => {
+    if (serverUrl) {
+      try {
+        const saved = localStorage.getItem(`wok3:wsSel:${serverUrl}`);
+        if (saved) return JSON.parse(saved);
+      } catch { /* ignore */ }
+    }
+    return null;
+  });
+
+  const setSelection = (sel: Selection) => {
+    setSelectionState(sel);
+    if (serverUrl) {
+      localStorage.setItem(`wok3:wsSel:${serverUrl}`, JSON.stringify(sel));
+    }
+  };
+
+  useEffect(() => {
+    if (!serverUrl) return;
+    try {
+      const saved = localStorage.getItem(`wok3:wsSel:${serverUrl}`);
+      if (saved) setSelectionState(JSON.parse(saved));
+      else setSelectionState(null);
+    } catch { setSelectionState(null); }
+  }, [serverUrl]);
+  const [activeCreateTab, setActiveCreateTabState] = useState<'branch' | 'issues'>(() => {
+    if (serverUrl) {
+      const saved = localStorage.getItem(`wok3:wsTab:${serverUrl}`);
+      if (saved === 'branch' || saved === 'issues') return saved;
+    }
+    return 'branch';
+  });
+
+  const setActiveCreateTab = (tab: 'branch' | 'issues') => {
+    setActiveCreateTabState(tab);
+    if (serverUrl) {
+      localStorage.setItem(`wok3:wsTab:${serverUrl}`, tab);
+    }
+  };
+
+  useEffect(() => {
+    if (!serverUrl) return;
+    const saved = localStorage.getItem(`wok3:wsTab:${serverUrl}`);
+    if (saved === 'branch' || saved === 'issues') {
+      setActiveCreateTabState(saved);
+    } else {
+      setActiveCreateTabState('branch');
+    }
+  }, [serverUrl]);
   const [worktreeFilter, setWorktreeFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalMode, setCreateModalMode] = useState<'branch' | 'jira' | 'linear' | 'custom'>('branch');
@@ -257,17 +336,21 @@ export default function App() {
     dataUpdatedAt: linearIssuesUpdatedAt,
   } = useLinearIssues(linearEnabled, linearRefreshIntervalMinutes);
 
-  // Auto-select first worktree when on branch tab, or fix stale selection
+  // Auto-select first worktree when nothing is selected, or fix stale worktree selection
   useEffect(() => {
-    if (activeCreateTab !== 'branch') return;
     if (worktrees.length === 0) {
-      setSelection(null);
+      if (selection?.type === 'worktree') setSelection(null);
       return;
     }
-    if (!selection || selection.type !== 'worktree' || !worktrees.find((w) => w.id === selection.id)) {
+    if (!selection) {
+      setSelection({ type: 'worktree', id: worktrees[0].id });
+      return;
+    }
+    // Fix stale worktree selection (worktree was deleted)
+    if (selection.type === 'worktree' && !worktrees.find((w) => w.id === selection.id)) {
       setSelection({ type: 'worktree', id: worktrees[0].id });
     }
-  }, [worktrees, selection, activeCreateTab]);
+  }, [worktrees, selection]);
 
   const selectedWorktree = selection?.type === 'worktree'
     ? worktrees.find((w) => w.id === selection.id) || null
@@ -442,7 +525,9 @@ export default function App() {
                 />
 
                 {/* Shared search bar */}
-                <div className="px-3 py-2">
+                <div className="px-3 pt-2 pb-3">
+                  <div className="relative">
+                    <Search className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${text.dimmed}`} />
                     <input
                       type="text"
                       value={activeCreateTab === 'branch' ? worktreeFilter : jiraSearchQuery}
@@ -455,8 +540,9 @@ export default function App() {
                         }
                       }}
                       placeholder={activeCreateTab === 'branch' ? 'Filter worktrees...' : 'Search issues...'}
-                      className={`w-full px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
+                      className={`w-full pl-8 pr-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
                     />
+                  </div>
                 </div>
 
                 <AnimatePresence mode="wait" initial={false}>
@@ -474,6 +560,13 @@ export default function App() {
                         selectedId={selection?.type === 'worktree' ? selection.id : null}
                         onSelect={(id) => setSelection({ type: 'worktree', id })}
                         filter={worktreeFilter}
+                        localIssueLinkedIds={localIssueLinkedIds}
+                        onSelectJiraIssue={(key) => { setActiveCreateTab('issues'); setSelection({ type: 'issue', key }); }}
+                        onSelectLinearIssue={(identifier) => { setActiveCreateTab('issues'); setSelection({ type: 'linear-issue', identifier }); }}
+                        onSelectLocalIssue={(identifier) => {
+                          const task = customTasks.find((t) => t.identifier === identifier);
+                          if (task) { setActiveCreateTab('issues'); setSelection({ type: 'custom-task', id: task.id }); }
+                        }}
                       />
                     </motion.div>
                   ) : (
@@ -559,10 +652,20 @@ export default function App() {
                     onUpdate={refetch}
                     onDeleted={handleDeleted}
                     onNavigateToIntegrations={() => setActiveView('integrations')}
+                    onSelectJiraIssue={(key) => { setActiveCreateTab('issues'); setSelection({ type: 'issue', key }); }}
+                    onSelectLinearIssue={(identifier) => { setActiveCreateTab('issues'); setSelection({ type: 'linear-issue', identifier }); }}
+                    onSelectLocalIssue={(identifier) => {
+                      const task = customTasks.find((t) => t.identifier === identifier);
+                      if (task) { setActiveCreateTab('issues'); setSelection({ type: 'custom-task', id: task.id }); }
+                    }}
                   />
                 )}
               </main>
             </div>
+          )}
+
+          {activeView === 'agents' && (
+            <AgentsView />
           )}
 
           {activeView === 'configuration' && (

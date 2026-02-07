@@ -8,9 +8,11 @@ interface CustomTaskItemProps {
   isSelected: boolean;
   onSelect: () => void;
   onViewWorktree?: (worktreeId: string) => void;
+  showPriority?: boolean;
+  showStatus?: boolean;
 }
 
-export function CustomTaskItem({ task, isSelected, onSelect, onViewWorktree }: CustomTaskItemProps) {
+export function CustomTaskItem({ task, isSelected, onSelect, onViewWorktree, showPriority = true, showStatus = true }: CustomTaskItemProps) {
   const statusClasses = customTask.status[task.status] ?? customTask.status.todo;
 
   const statusLabel = task.status === 'in-progress' ? 'In Progress' : task.status === 'todo' ? 'Todo' : 'Done';
@@ -31,12 +33,16 @@ export function CustomTaskItem({ task, isSelected, onSelect, onViewWorktree }: C
             <span className={`text-[11px] font-semibold text-amber-500 flex-shrink-0`}>
               {task.identifier}
             </span>
-            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>
-              {statusLabel}
-            </span>
-            <span className={`text-[10px] ${customTask.priority[task.priority] ?? text.muted}`}>
-              {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-            </span>
+            {showStatus && (
+              <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>
+                {statusLabel}
+              </span>
+            )}
+            {showPriority && (
+              <span className={`text-[10px] ${customTask.priority[task.priority] ?? text.muted}`}>
+                {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+              </span>
+            )}
           </div>
           <div className={`text-xs ${text.primary} truncate mt-0.5`}>
             {task.title}
@@ -49,7 +55,7 @@ export function CustomTaskItem({ task, isSelected, onSelect, onViewWorktree }: C
               e.stopPropagation();
               onViewWorktree?.(task.linkedWorktreeId!);
             }}
-            className="flex-shrink-0 p-0.5 rounded text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 transition-colors duration-150 self-center"
+            className="flex-shrink-0 p-0.5 rounded text-accent hover:text-accent-muted hover:bg-accent/10 transition-colors duration-150 self-center"
             title="View linked worktree"
           >
             <GitBranch className="w-3.5 h-3.5" />

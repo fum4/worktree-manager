@@ -7,9 +7,13 @@ interface WorktreeListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   filter?: string;
+  localIssueLinkedIds?: Set<string>;
+  onSelectJiraIssue?: (key: string) => void;
+  onSelectLinearIssue?: (identifier: string) => void;
+  onSelectLocalIssue?: (identifier: string) => void;
 }
 
-export function WorktreeList({ worktrees, selectedId, onSelect, filter = '' }: WorktreeListProps) {
+export function WorktreeList({ worktrees, selectedId, onSelect, filter = '', localIssueLinkedIds, onSelectJiraIssue, onSelectLinearIssue, onSelectLocalIssue }: WorktreeListProps) {
 
   const filtered = filter
     ? worktrees.filter((w) => {
@@ -44,6 +48,10 @@ export function WorktreeList({ worktrees, selectedId, onSelect, filter = '' }: W
               worktree={worktree}
               isSelected={worktree.id === selectedId}
               onSelect={() => onSelect(worktree.id)}
+              hasLocalIssue={localIssueLinkedIds?.has(worktree.id)}
+              onSelectJiraIssue={onSelectJiraIssue}
+              onSelectLinearIssue={onSelectLinearIssue}
+              onSelectLocalIssue={onSelectLocalIssue}
             />
           ))}
           </div>

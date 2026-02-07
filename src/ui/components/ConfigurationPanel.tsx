@@ -188,6 +188,8 @@ export function ConfigurationPanel({
     );
   }
 
+  const hasChanges = JSON.stringify(form) !== JSON.stringify(config);
+
   const handleSave = async () => {
     setSaving(true);
     setFeedback(null);
@@ -342,18 +344,14 @@ export function ConfigurationPanel({
             </span>
           </div>
           <div className="flex items-center gap-3">
-            {feedback && (
-              <span
-                className={`text-xs ${
-                  feedback.type === 'success' ? 'text-emerald-400' : text.error
-                }`}
-              >
+            {feedback && feedback.type === 'error' && (
+              <span className={`text-xs ${text.error}`}>
                 {feedback.message}
               </span>
             )}
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || !hasChanges}
               className={`px-4 py-2 rounded-lg text-xs font-medium ${button.primary} disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}
             >
               {saving ? 'Saving...' : 'Save'}

@@ -12,6 +12,8 @@ interface LinearIssueListProps {
   error: string | null;
   linkedWorktrees?: Map<string, string>;
   onViewWorktree?: (worktreeId: string) => void;
+  showPriority?: boolean;
+  showStatus?: boolean;
 }
 
 export function LinearIssueList({
@@ -22,6 +24,8 @@ export function LinearIssueList({
   error,
   linkedWorktrees,
   onViewWorktree,
+  showPriority = true,
+  showStatus = true,
 }: LinearIssueListProps) {
   return (
     <div className="flex flex-col">
@@ -50,6 +54,8 @@ export function LinearIssueList({
               onSelect={() => onSelect(issue.identifier)}
               linkedWorktreeId={linkedWorktrees?.get(issue.identifier)}
               onViewWorktree={onViewWorktree}
+              showPriority={showPriority}
+              showStatus={showStatus}
             />
           ))}
         </div>

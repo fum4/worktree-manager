@@ -86,9 +86,9 @@ function Tab({ project, isActive, onSelect, onClose }: TabProps) {
           onClose();
         }}
         className={`
-          flex items-center justify-center w-4 h-4 rounded
+          flex items-center justify-center w-4 h-4 rounded -mr-1
           opacity-0 group-hover:opacity-100
-          hover:bg-white/10 transition-opacity duration-150
+          hover:bg-white/10 hover:text-[#e5e7eb] transition-all duration-150
         `}
         title="Close"
       >

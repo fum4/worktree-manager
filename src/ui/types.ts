@@ -13,6 +13,8 @@ export interface WorktreeInfo {
   jiraStatus?: string;
   linearUrl?: string;
   linearStatus?: string;
+  localIssueId?: string;
+  localIssueStatus?: string;
   githubPrUrl?: string;
   githubPrState?: string;
   hasUncommitted?: boolean;
@@ -105,6 +107,76 @@ export interface CustomTaskSummary {
 export interface CustomTaskDetail extends CustomTaskSummary {
   description: string;
 }
+
+// ─── MCP Server Manager types ───────────────────────────────────
+
+export interface McpServerSummary {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  source?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface McpServerDetail extends McpServerSummary {}
+
+export interface McpDeploymentStatus {
+  /** serverId -> agentId -> { global?, project?, globalPath?, projectPath? } */
+  status: Record<string, Record<string, {
+    global?: boolean;
+    project?: boolean;
+    globalPath?: string;
+    projectPath?: string;
+  }>>;
+}
+
+export interface McpScanResult {
+  key: string;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  foundIn: Array<{ configPath: string }>;
+  alreadyInRegistry: boolean;
+}
+
+// ─── Claude Skills / Plugins types ──────────────────────────────
+
+export interface SkillSummary {
+  name: string;
+  displayName: string;
+  description: string;
+  location: 'global' | 'project';
+  path: string;
+}
+
+export interface SkillDetail extends SkillSummary {
+  skillMd: string;
+  frontmatter: { name: string; description: string; allowedTools: string; context: string };
+  hasReference: boolean;
+  referenceMd?: string;
+  hasExamples: boolean;
+  examplesMd?: string;
+}
+
+export interface PluginSummary {
+  name: string;
+  enabled: boolean;
+}
+
+export interface SkillScanResult {
+  name: string;
+  displayName: string;
+  description: string;
+  skillPath: string;
+  type: 'skill';
+}
+
+// ─── Jira types ─────────────────────────────────────────────────
 
 export interface JiraIssueDetail {
   key: string;
