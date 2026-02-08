@@ -323,7 +323,7 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
+      <div className="flex-1 overflow-y-auto p-5 space-y-12">
         <section>
           <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>Description</h3>
           {editingDescription ? (

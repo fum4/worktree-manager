@@ -48,6 +48,13 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
       }
 
       saveLinearCredentials(configDir, creds);
+
+      // Initialize integrations.json with defaults if no config exists yet
+      const existing = loadLinearProjectConfig(configDir);
+      if (!existing.refreshIntervalMinutes) {
+        saveLinearProjectConfig(configDir, { ...existing, refreshIntervalMinutes: 5 });
+      }
+
       return c.json({ success: true });
     } catch (error) {
       return c.json(
@@ -81,11 +88,11 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
   app.delete('/api/linear/credentials', (c) => {
     try {
       const configDir = manager.getConfigDir();
-      const credPath = path.join(configDir, CONFIG_DIR_NAME, 'credentials.json');
-      if (existsSync(credPath)) {
-        const data = JSON.parse(readFileSync(credPath, 'utf-8'));
+      const intPath = path.join(configDir, CONFIG_DIR_NAME, 'integrations.json');
+      if (existsSync(intPath)) {
+        const data = JSON.parse(readFileSync(intPath, 'utf-8'));
         delete data.linear;
-        writeFileSync(credPath, JSON.stringify(data, null, 2) + '\n');
+        writeFileSync(intPath, JSON.stringify(data, null, 2) + '\n');
       }
       return c.json({ success: true });
     } catch (error) {

@@ -211,7 +211,7 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-10">
+      <div className="flex-1 overflow-y-auto p-5 space-y-12">
         {/* Description */}
         <section>
           <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>Description</h3>

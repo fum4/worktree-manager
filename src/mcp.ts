@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
 
 import { actions, MCP_INSTRUCTIONS } from './actions';
 import type { ActionContext } from './actions';
@@ -54,6 +55,27 @@ export async function startMcpServer(config: WorktreeConfig, configFilePath: str
       },
     );
   }
+
+  server.prompt(
+    'work-on-task',
+    'Create a worktree from an issue and start working on it',
+    { issueId: z.string().describe('Issue ID (e.g., PROJ-123, ENG-42, or just a number)') },
+    async ({ issueId }) => ({
+      messages: [{
+        role: 'user' as const,
+        content: {
+          type: 'text' as const,
+          text: `Use the wok3 MCP server tools to create a worktree for issue "${issueId}". Follow this workflow:
+1. Determine the issue type and call the appropriate wok3 tool: create_from_jira or create_from_linear
+2. The response will include full task context and the worktree path
+3. Poll the wok3 list_worktrees tool until the worktree status is 'stopped' (creation complete)
+4. Navigate to the worktree directory
+5. Read TASK.md for full context
+6. Start implementing the task`,
+        },
+      }],
+    }),
+  );
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

@@ -137,9 +137,9 @@ export function ProjectSetupScreen({
               Configuration Created
             </h1>
             <p className={`text-sm ${text.secondary} leading-relaxed`}>
-              Your project is now configured. Commit the configuration files
+              Your project is now configured. Commit and push the configuration
               <br />
-              so they're available in all worktrees.
+              so it's available in all worktrees.
             </p>
           </div>
 
@@ -176,12 +176,12 @@ export function ProjectSetupScreen({
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Committing...
+                  Pushing...
                 </>
               ) : (
                 <>
                   <GitCommit className="w-4 h-4" />
-                  Commit
+                  Commit & Push
                 </>
               )}
             </button>

@@ -185,7 +185,7 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-10">
+      <div className="flex-1 overflow-y-auto p-5 space-y-12">
         {/* Description — auto-save */}
         <AutoSaveTextSection
           key={`desc-${skillName}-${viewingLocation}`}

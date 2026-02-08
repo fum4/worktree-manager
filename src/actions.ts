@@ -25,32 +25,27 @@ export interface ActionContext {
   notesManager: NotesManager;
 }
 
-export const MCP_INSTRUCTIONS = `${APP_NAME} manages git worktrees with automatic port offsetting for running multiple dev server instances.
+export const MCP_INSTRUCTIONS = `${APP_NAME} manages git worktrees with automatic port offsetting.
 
-## Workflow
+IMPORTANT: When a user mentions an issue key, ticket number, or says "work on <something>",
+you should immediately use the appropriate wok3 tool to create a worktree.
 
-When a user wants to work on an issue:
-1. Create a worktree using create_from_jira, create_from_linear, or create_worktree
-   - The response includes full task context (description, comments, AI notes)
-   - The worktree is created asynchronously — check list_worktrees for status
-2. Once the worktree status is 'stopped' (creation complete), navigate to the worktree path
-3. A TASK.md file in the worktree root contains all task context
-4. Start implementing the task based on the description and AI context
+## Quick Start
+- Issue key like "PROJ-123" or number like "456" → call create_from_jira
+- Linear identifier like "ENG-42" → call create_from_linear
+- Branch name → call create_worktree directly
+- "show my issues" → call list_jira_issues or list_linear_issues
 
-When working inside a worktree:
-- Use get_task_context to get (or refresh) full task details at any time
-- Use start_worktree to launch the dev server
-- Use commit, push, create_pr for git operations
+## After Creating a Worktree
+1. Poll list_worktrees until status is 'stopped' (creation done)
+2. Navigate to the worktree path returned in the response
+3. Read TASK.md for full context
+4. Implement the task
 
-## Issue Identification
-- Jira key (e.g. "PROJ-123", "jira 123", "work on 456"): use create_from_jira
-- Linear issue (e.g. "ENG-42", "linear 42"): use create_from_linear
-- Branch name: use create_worktree directly
-- Just a number (e.g. "1234"): try the configured tracker (Jira or Linear)
-
-## Browsing Issues
-- "show my issues" or "what should I work on": use list_jira_issues or list_linear_issues depending on which is configured
-- For issue details before creating a worktree: use get_jira_issue or get_linear_issue`;
+## While Working in a Worktree
+- get_task_context — refresh full task details at any time
+- start_worktree — launch the dev server
+- commit, push, create_pr — git operations`;
 
 function findWorktreeOrThrow(ctx: ActionContext, id: string) {
   const worktrees = ctx.manager.getWorktrees();

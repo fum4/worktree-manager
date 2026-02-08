@@ -190,6 +190,18 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
+      // Push
+      try {
+        execFileSync('git', ['push'], {
+          cwd: projectDir,
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch {
+        // Commit succeeded but push failed — still report success
+        return c.json({ success: true, pushFailed: true });
+      }
+
       return c.json({ success: true });
     } catch (error) {
       // Extract stderr from execFileSync error for better error messages

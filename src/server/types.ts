@@ -1,6 +1,4 @@
 import type { ChildProcess } from 'child_process';
-import type { JiraProjectConfig } from '../integrations/jira/types';
-import type { LinearProjectConfig } from '../integrations/linear/types';
 
 export interface PortConfig {
   /** Ports discovered by running the dev command and monitoring with lsof */
@@ -28,10 +26,6 @@ export interface WorktreeConfig {
   autoInstall?: boolean;
   /** Prefix for local issue identifiers (default: "LOCAL") */
   localIssuePrefix?: string;
-  /** Jira integration config (shared with team) */
-  jira?: JiraProjectConfig;
-  /** Linear integration config (shared with team) */
-  linear?: LinearProjectConfig;
 }
 
 export interface WorktreeInfo {

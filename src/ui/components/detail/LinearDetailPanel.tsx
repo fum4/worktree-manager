@@ -196,7 +196,7 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
+      <div className="flex-1 overflow-y-auto p-5 space-y-12">
         {issue.description && (
           <section>
             <SectionLabel>Description</SectionLabel>

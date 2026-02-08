@@ -7,7 +7,6 @@ import { log } from '../logger';
 import {
   loadJiraCredentials,
   saveJiraCredentials,
-  loadJiraProjectConfig,
   saveJiraProjectConfig,
 } from '../integrations/jira/credentials';
 import {
@@ -240,5 +239,5 @@ async function runConnectJira() {
   }
 
   log.success('\nJira connected successfully!');
-  log.info(`Credentials saved to ${CONFIG_DIR_NAME}/credentials.json (make sure it's gitignored)`);
+  log.info(`Credentials saved to ${CONFIG_DIR_NAME}/integrations.json (make sure it's gitignored)`);
 }

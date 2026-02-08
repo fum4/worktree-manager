@@ -77,6 +77,13 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
       }
 
       saveJiraCredentials(configDir, creds);
+
+      // Initialize integrations.json with defaults if no config exists yet
+      const existing = loadJiraProjectConfig(configDir);
+      if (!existing.refreshIntervalMinutes) {
+        saveJiraProjectConfig(configDir, { ...existing, refreshIntervalMinutes: 5 });
+      }
+
       return c.json({ success: true });
     } catch (error) {
       return c.json(
@@ -110,11 +117,11 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
   app.delete('/api/jira/credentials', (c) => {
     try {
       const configDir = manager.getConfigDir();
-      const credPath = path.join(configDir, CONFIG_DIR_NAME, 'credentials.json');
-      if (existsSync(credPath)) {
-        const data = JSON.parse(readFileSync(credPath, 'utf-8'));
+      const intPath = path.join(configDir, CONFIG_DIR_NAME, 'integrations.json');
+      if (existsSync(intPath)) {
+        const data = JSON.parse(readFileSync(intPath, 'utf-8'));
         delete data.jira;
-        writeFileSync(credPath, JSON.stringify(data, null, 2) + '\n');
+        writeFileSync(intPath, JSON.stringify(data, null, 2) + '\n');
       }
       return c.json({ success: true });
     } catch (error) {

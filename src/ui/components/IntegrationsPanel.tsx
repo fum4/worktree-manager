@@ -347,12 +347,11 @@ function JiraCard({
     const result = await api.updateJiraConfig(projectKey, refreshInterval);
     setSaving(false);
     if (result.success) {
-      setFeedback({ type: 'success', message: 'Settings saved' });
       onStatusChange();
     } else {
       setFeedback({ type: 'error', message: result.error ?? 'Failed to save' });
+      setTimeout(() => setFeedback(null), 3000);
     }
-    setTimeout(() => setFeedback(null), 3000);
   };
 
   const isConfigured = status?.configured ?? false;
@@ -566,12 +565,11 @@ function LinearCard({
     const result = await api.updateLinearConfig(teamKey, refreshInterval);
     setSaving(false);
     if (result.success) {
-      setFeedback({ type: 'success', message: 'Settings saved' });
       onStatusChange();
     } else {
       setFeedback({ type: 'error', message: result.error ?? 'Failed to save' });
+      setTimeout(() => setFeedback(null), 3000);
     }
-    setTimeout(() => setFeedback(null), 3000);
   };
 
   const isConfigured = status?.configured ?? false;

@@ -1,6 +1,7 @@
 import type { Hono } from 'hono';
 
 import type { WorktreeManager } from '../manager';
+import { deployAgentInstructions, removeAgentInstructions } from '../lib/builtin-instructions';
 import {
   type AgentId,
   type Scope,
@@ -50,8 +51,13 @@ export function registerMcpRoutes(app: Hono, manager: WorktreeManager) {
         return c.json({ success: false, error: `${scope} scope not supported for this agent` }, 400);
       }
 
-      const filePath = resolveConfigPath(spec.configPath, manager.getConfigDir());
+      const projectDir = manager.getConfigDir();
+      const filePath = resolveConfigPath(spec.configPath, projectDir);
       const result = writeServerToConfig(filePath, spec, 'wok3', WOK3_MCP_ENTRY);
+
+      if (result.success) {
+        deployAgentInstructions(agent, projectDir, scope);
+      }
 
       return c.json(result, result.success ? 200 : 500);
     } catch (error) {
@@ -77,8 +83,13 @@ export function registerMcpRoutes(app: Hono, manager: WorktreeManager) {
         return c.json({ success: false, error: `${scope} scope not supported for this agent` }, 400);
       }
 
-      const filePath = resolveConfigPath(spec.configPath, manager.getConfigDir());
+      const projectDir = manager.getConfigDir();
+      const filePath = resolveConfigPath(spec.configPath, projectDir);
       const result = removeServerFromConfig(filePath, spec, 'wok3');
+
+      if (result.success) {
+        removeAgentInstructions(agent, projectDir, scope);
+      }
 
       return c.json(result, result.success ? 200 : 500);
     } catch (error) {

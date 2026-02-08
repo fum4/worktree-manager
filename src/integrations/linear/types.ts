@@ -1,4 +1,4 @@
-// -- Config types (split across config.json and credentials.json) --
+// -- Config types (stored in integrations.json) --
 
 export interface LinearProjectConfig {
   defaultTeamKey?: string;
