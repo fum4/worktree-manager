@@ -36,6 +36,8 @@ import type { LinearTaskData } from '../integrations/linear/types';
 
 import { NotesManager } from './notes-manager';
 import { PortManager } from './port-manager';
+import type { PendingTaskContext } from './task-context';
+import { writeTaskMd, generateTaskMd } from './task-context';
 import type {
   RunningProcess,
   WorktreeConfig,
@@ -90,6 +92,8 @@ export class WorktreeManager {
 
   private githubManager: GitHubManager | null = null;
 
+  private pendingWorktreeContext: Map<string, PendingTaskContext> = new Map();
+
   private eventListeners: Set<(worktrees: WorktreeInfo[]) => void> = new Set();
 
   constructor(config: WorktreeConfig, configFilePath: string | null = null) {
@@ -131,6 +135,7 @@ export class WorktreeManager {
         envMapping: fileConfig.envMapping ?? this.config.envMapping,
         serverPort: fileConfig.serverPort ?? this.config.serverPort,
         autoInstall: fileConfig.autoInstall,
+        localIssuePrefix: fileConfig.localIssuePrefix,
       };
 
       // Update the config file path for future reloads
@@ -199,6 +204,14 @@ export class WorktreeManager {
 
   getNotesManager(): NotesManager {
     return this.notesManager;
+  }
+
+  setPendingWorktreeContext(id: string, ctx: PendingTaskContext): void {
+    this.pendingWorktreeContext.set(id, ctx);
+  }
+
+  clearPendingWorktreeContext(id: string): void {
+    this.pendingWorktreeContext.delete(id);
   }
 
   getWorktrees(): WorktreeInfo[] {
@@ -672,6 +685,18 @@ export class WorktreeManager {
         });
       }
 
+      // Write TASK.md if we have pending context for this worktree
+      const pendingCtx = this.pendingWorktreeContext.get(worktreeId);
+      if (pendingCtx) {
+        try {
+          const content = generateTaskMd(pendingCtx.data, pendingCtx.aiContext);
+          writeTaskMd(worktreePath, content);
+        } catch {
+          // Non-critical — don't fail worktree creation
+        }
+        this.pendingWorktreeContext.delete(worktreeId);
+      }
+
       // Done — remove from creating map; getWorktrees() will pick it up from filesystem
       this.creatingWorktrees.delete(worktreeId);
       this.notifyListeners();
@@ -680,6 +705,9 @@ export class WorktreeManager {
         error instanceof Error ? error.message : 'Failed to create worktree';
       log.error(`Failed to create ${worktreeId}: ${message}`);
       updateStatus(`Error: ${message}`);
+
+      // Clean up pending context on error
+      this.pendingWorktreeContext.delete(worktreeId);
 
       // Remove after a delay so the user can see the error
       setTimeout(() => {
@@ -1007,7 +1035,7 @@ export class WorktreeManager {
       // Merge allowed top-level fields
       const allowedKeys = [
         'startCommand', 'installCommand', 'baseBranch',
-        'projectDir', 'serverPort', 'autoInstall',
+        'projectDir', 'serverPort', 'autoInstall', 'localIssuePrefix',
       ] as const;
 
       for (const key of allowedKeys) {
@@ -1188,10 +1216,21 @@ export class WorktreeManager {
     branch?: string,
   ): Promise<{
     success: boolean;
-    task?: { key: string; summary: string; status: string; type: string; url: string };
+    worktreeId?: string;
+    worktreePath?: string;
+    task?: {
+      key: string;
+      summary: string;
+      description: string;
+      status: string;
+      type: string;
+      url: string;
+      comments: Array<{ author: string; body: string }>;
+    };
+    aiContext?: string | null;
+    instructions?: string;
     error?: string;
     code?: string;
-    worktreeId?: string;
   }> {
     const creds = loadJiraCredentials(this.configDir);
     if (!creds) {
@@ -1223,12 +1262,35 @@ export class WorktreeManager {
     const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
     saveTaskData(taskData, tasksDir);
 
+    // Load AI context notes
+    const notes = this.notesManager.loadNotes('jira', resolvedKey);
+    const aiContext = notes.aiContext?.content ?? null;
+
+    // Set pending context so TASK.md gets written after worktree creation
+    const worktreesPath = this.getWorktreesAbsolutePath();
+    const worktreePath = path.join(worktreesPath, resolvedKey);
+
+    this.setPendingWorktreeContext(resolvedKey, {
+      data: {
+        source: 'jira',
+        issueId: resolvedKey,
+        identifier: taskData.key,
+        title: taskData.summary,
+        description: taskData.description,
+        status: taskData.status,
+        url: taskData.url,
+        comments: taskData.comments.slice(0, 10),
+      },
+      aiContext,
+    });
+
     // Create worktree using custom branch or generated name from rule
     const worktreeBranch = branch?.trim()
       || await generateBranchName(this.configDir, { id: resolvedKey, name: taskData.summary, type: 'jira' });
     const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedKey });
 
     if (!result.success) {
+      this.clearPendingWorktreeContext(resolvedKey);
       return { success: false, error: result.error, code: result.code, worktreeId: result.worktreeId };
     }
 
@@ -1237,13 +1299,19 @@ export class WorktreeManager {
 
     return {
       success: true,
+      worktreeId: resolvedKey,
+      worktreePath,
       task: {
         key: taskData.key,
         summary: taskData.summary,
+        description: taskData.description,
         status: taskData.status,
         type: taskData.type,
         url: taskData.url,
+        comments: taskData.comments.slice(0, 10),
       },
+      aiContext,
+      instructions: `Worktree is being created at ${worktreePath}. Once creation completes (check with list_worktrees), navigate to the worktree directory and start implementing the task. A TASK.md file with full context will be available in the worktree root.`,
     };
   }
 
@@ -1252,10 +1320,20 @@ export class WorktreeManager {
     branch?: string,
   ): Promise<{
     success: boolean;
-    task?: { identifier: string; title: string; status: string; url: string };
+    worktreeId?: string;
+    worktreePath?: string;
+    task?: {
+      identifier: string;
+      title: string;
+      description: string;
+      status: string;
+      url: string;
+      comments?: Array<{ author: string; body: string; created?: string }>;
+    };
+    aiContext?: string | null;
+    instructions?: string;
     error?: string;
     code?: string;
-    worktreeId?: string;
   }> {
     const creds = loadLinearCredentials(this.configDir);
     if (!creds) {
@@ -1303,12 +1381,41 @@ export class WorktreeManager {
     };
     saveLinearTaskData(taskData, tasksDir);
 
+    // Load AI context notes
+    const notes = this.notesManager.loadNotes('linear', resolvedId);
+    const aiContext = notes.aiContext?.content ?? null;
+
+    // Set pending context so TASK.md gets written after worktree creation
+    const worktreesPath = this.getWorktreesAbsolutePath();
+    const worktreePath = path.join(worktreesPath, resolvedId);
+
+    const linearComments = issueDetail.comments?.map((c) => ({
+      author: c.author ?? 'Unknown',
+      body: c.body ?? '',
+      created: c.createdAt,
+    }));
+
+    this.setPendingWorktreeContext(resolvedId, {
+      data: {
+        source: 'linear',
+        issueId: resolvedId,
+        identifier: issueDetail.identifier,
+        title: issueDetail.title,
+        description: issueDetail.description ?? '',
+        status: issueDetail.state.name,
+        url: issueDetail.url,
+        comments: linearComments,
+      },
+      aiContext,
+    });
+
     // Create worktree using custom branch or generated name from rule
     const worktreeBranch = branch?.trim()
       || await generateBranchName(this.configDir, { id: resolvedId, name: issueDetail.title, type: 'linear' });
     const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedId });
 
     if (!result.success) {
+      this.clearPendingWorktreeContext(resolvedId);
       return { success: false, error: result.error, code: result.code, worktreeId: result.worktreeId };
     }
 
@@ -1317,12 +1424,18 @@ export class WorktreeManager {
 
     return {
       success: true,
+      worktreeId: resolvedId,
+      worktreePath,
       task: {
         identifier: issueDetail.identifier,
         title: issueDetail.title,
+        description: issueDetail.description ?? '',
         status: issueDetail.state.name,
         url: issueDetail.url,
+        comments: linearComments,
       },
+      aiContext,
+      instructions: `Worktree is being created at ${worktreePath}. Once creation completes (check with list_worktrees), navigate to the worktree directory and start implementing the task. A TASK.md file with full context will be available in the worktree root.`,
     };
   }
 }

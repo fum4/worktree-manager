@@ -15,6 +15,7 @@ export interface WorktreeConfig {
   envMapping?: Record<string, string>;
   serverPort: number;
   autoInstall?: boolean;
+  localIssuePrefix?: string;
 }
 
 export function useConfig() {

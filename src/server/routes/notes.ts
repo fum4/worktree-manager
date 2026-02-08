@@ -1,8 +1,15 @@
+import path from 'path';
 import { Hono } from 'hono';
 
+import { CONFIG_DIR_NAME } from '../../constants';
+import type { WorktreeManager } from '../manager';
 import type { IssueSource, NotesManager } from '../notes-manager';
+import { regenerateTaskMd } from '../task-context';
 
-export function registerNotesRoutes(app: Hono, notesManager: NotesManager) {
+export function registerNotesRoutes(app: Hono, manager: WorktreeManager, notesManager: NotesManager) {
+  const configDir = manager.getConfigDir();
+  const worktreesPath = path.join(configDir, CONFIG_DIR_NAME, 'worktrees');
+
   // Get notes for an issue
   app.get('/api/notes/:source/:id', (c) => {
     const source = c.req.param('source') as IssueSource;
@@ -34,6 +41,16 @@ export function registerNotesRoutes(app: Hono, notesManager: NotesManager) {
     }
 
     const notes = notesManager.updateSection(source, id, body.section as 'personal' | 'aiContext', body.content);
+
+    // Regenerate TASK.md in linked worktree when aiContext changes
+    if (body.section === 'aiContext' && notes.linkedWorktreeId) {
+      try {
+        regenerateTaskMd(source, id, notes.linkedWorktreeId, notesManager, configDir, worktreesPath);
+      } catch {
+        // Non-critical — don't fail the notes update
+      }
+    }
+
     return c.json(notes);
   });
 }

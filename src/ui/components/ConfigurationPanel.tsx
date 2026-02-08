@@ -343,6 +343,12 @@ export function ConfigurationPanel({
                 onChange={(v) => setForm({ ...form, projectDir: v })}
               />
             </Field>
+            <Field label="Local Issue Prefix" description="Prefix for local issue identifiers (leave empty for number only)">
+              <TextInput
+                value={form.localIssuePrefix ?? 'LOCAL'}
+                onChange={(v) => setForm({ ...form, localIssuePrefix: v.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+              />
+            </Field>
           </div>
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
             <div className="flex flex-col gap-0.5">

@@ -309,7 +309,8 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
     try {
       const body = await c.req.json<{ content?: string | null; source?: BranchSource }>();
       const filename = body.source ? `branch-name.${body.source}.mjs` : 'branch-name.mjs';
-      const rulePath = path.join(manager.getConfigDir(), CONFIG_DIR_NAME, filename);
+      const scriptsDir = path.join(manager.getConfigDir(), CONFIG_DIR_NAME, 'scripts');
+      const rulePath = path.join(scriptsDir, filename);
 
       if (!body.content?.trim()) {
         // Delete the rule file
@@ -317,9 +318,8 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
         return c.json({ success: true });
       }
 
-      // Ensure directory exists
-      const dir = path.join(manager.getConfigDir(), CONFIG_DIR_NAME);
-      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      // Ensure scripts directory exists
+      if (!existsSync(scriptsDir)) mkdirSync(scriptsDir, { recursive: true });
 
       writeFileSync(rulePath, wrapWithExportDefault(body.content));
       return c.json({ success: true });

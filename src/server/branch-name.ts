@@ -29,7 +29,7 @@ function defaultBranchNameFn({ id, name }: { id: string; name: string }): string
 
 function getBranchNameRulePath(configDir: string, source?: BranchSource): string {
   const filename = source ? `branch-name.${source}.mjs` : BRANCH_NAME_FILE;
-  return path.join(configDir, CONFIG_DIR_NAME, filename);
+  return path.join(configDir, CONFIG_DIR_NAME, 'scripts', filename);
 }
 
 async function loadCustomRule(

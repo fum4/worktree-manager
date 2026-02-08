@@ -7,8 +7,8 @@ import type { WorktreeManager } from '../manager';
 
 export function registerTerminalRoutes(
   app: Hono,
-  terminalManager: TerminalManager,
   worktreeManager: WorktreeManager,
+  terminalManager: TerminalManager,
   upgradeWebSocket: UpgradeWebSocket<WebSocket>,
 ) {
   app.post('/api/worktrees/:id/terminals', async (c) => {

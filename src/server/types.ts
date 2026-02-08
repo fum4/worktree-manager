@@ -26,6 +26,8 @@ export interface WorktreeConfig {
   serverPort: number;
   /** Whether to auto-install dependencies when creating a worktree (default: true) */
   autoInstall?: boolean;
+  /** Prefix for local issue identifiers (default: "LOCAL") */
+  localIssuePrefix?: string;
   /** Jira integration config (shared with team) */
   jira?: JiraProjectConfig;
   /** Linear integration config (shared with team) */

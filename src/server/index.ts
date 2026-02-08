@@ -66,8 +66,8 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerMcpServerRoutes(app, manager);
   registerClaudeSkillRoutes(app, manager);
   registerTaskRoutes(app, manager, notesManager);
-  registerNotesRoutes(app, notesManager);
-  registerTerminalRoutes(app, terminalManager, manager, upgradeWebSocket);
+  registerNotesRoutes(app, manager, notesManager);
+  registerTerminalRoutes(app, manager, terminalManager, upgradeWebSocket);
 
   // Background verification of all integration connections
   app.get('/api/integrations/verify', async (c) => {

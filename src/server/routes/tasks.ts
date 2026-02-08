@@ -29,7 +29,7 @@ function ensureTasksDir(configDir: string): string {
   return dir;
 }
 
-function getNextIdentifier(configDir: string): string {
+function getNextIdentifier(configDir: string, prefix = 'LOCAL'): string {
   const counterFile = path.join(ensureTasksDir(configDir), '.counter');
   let counter = 0;
   if (existsSync(counterFile)) {
@@ -37,7 +37,7 @@ function getNextIdentifier(configDir: string): string {
   }
   counter++;
   writeFileSync(counterFile, String(counter));
-  return `LOCAL-${counter}`;
+  return prefix ? `${prefix}-${counter}` : String(counter);
 }
 
 function loadTask(configDir: string, id: string): CustomTask | null {
@@ -103,7 +103,7 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
     const now = new Date().toISOString();
     const task: CustomTask = {
       id: randomUUID(),
-      identifier: getNextIdentifier(configDir),
+      identifier: getNextIdentifier(configDir, manager.getConfig().localIssuePrefix),
       title: body.title.trim(),
       description: body.description?.trim() ?? '',
       status: 'todo',
@@ -176,6 +176,24 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
     const branchName = body.branch
       || await generateBranchName(configDir, { id: task.identifier, name: task.title, type: 'local' });
 
+    // Load AI context notes
+    const notes = notesManager.loadNotes('local', task.id);
+    const aiContext = notes.aiContext?.content ?? null;
+
+    // Set pending context so TASK.md gets written after worktree creation
+    manager.setPendingWorktreeContext(task.identifier, {
+      data: {
+        source: 'local',
+        issueId: task.id,
+        identifier: task.identifier,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        url: '',
+      },
+      aiContext,
+    });
+
     try {
       const result = await manager.createWorktree({ branch: branchName, name: task.identifier });
 
@@ -183,10 +201,13 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
         const worktreeId = task.identifier;
         // Link worktree via notes.json
         notesManager.setLinkedWorktreeId('local', task.id, worktreeId);
+      } else {
+        manager.clearPendingWorktreeContext(task.identifier);
       }
 
       return c.json(result);
     } catch (err) {
+      manager.clearPendingWorktreeContext(task.identifier);
       return c.json({
         success: false,
         error: err instanceof Error ? err.message : 'Failed to create worktree',
