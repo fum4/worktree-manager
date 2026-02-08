@@ -260,6 +260,10 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
         installCommand: body.installCommand ?? detected.installCommand,
         baseBranch: body.baseBranch ?? detected.baseBranch,
         serverPort: body.serverPort ?? detected.serverPort,
+        projectDir: '',
+        autoInstall: true,
+        localIssuePrefix: 'LOCAL',
+        envMapping: {},
         ports: {
           discovered: [],
           offsetStep: 1,

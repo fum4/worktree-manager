@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, GitCommit, Loader2, Settings, Sparkles } from 'lucide-react';
+import { Check, ChevronDown, GitCommit, Loader2, Settings, Sparkles } from 'lucide-react';
 
 import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
 import { useApi } from '../hooks/useApi';
@@ -32,6 +32,12 @@ export function ProjectSetupScreen({
     startCommand: 'npm run dev',
     installCommand: 'npm install',
     serverPort: 6969,
+  });
+  const [showAll, setShowAll] = useState(false);
+  const [extraValues, setExtraValues] = useState({
+    projectDir: '',
+    autoInstall: true,
+    localIssuePrefix: 'LOCAL',
   });
 
   // Commit message for the commit prompt
@@ -77,7 +83,7 @@ export function ProjectSetupScreen({
     setError(null);
 
     try {
-      const result = await api.initConfig(formValues);
+      const result = await api.initConfig({ ...formValues, ...extraValues });
       if (result.success) {
         if (rememberChoice) {
           onRememberChoice?.('manual');
@@ -265,6 +271,84 @@ export function ProjectSetupScreen({
                 Command to install dependencies in new worktrees
               </p>
             </div>
+
+            {/* Show all toggle */}
+            <button
+              type="button"
+              onClick={() => setShowAll(!showAll)}
+              className={`flex items-center gap-1.5 text-[11px] ${text.muted} hover:${text.secondary} transition-colors`}
+            >
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${showAll ? 'rotate-180' : ''}`} />
+              {showAll ? 'Show less' : 'Show all options'}
+            </button>
+
+            {showAll && (
+              <>
+                <div>
+                  <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
+                    Project directory
+                  </label>
+                  <input
+                    type="text"
+                    value={extraValues.projectDir}
+                    onChange={(e) => setExtraValues({ ...extraValues, projectDir: e.target.value })}
+                    className={`w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`}
+                    placeholder="(root)"
+                  />
+                  <p className={`mt-1 text-[11px] ${text.dimmed}`}>
+                    Subdirectory to run commands in (leave empty for project root)
+                  </p>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
+                    Local issue prefix
+                  </label>
+                  <input
+                    type="text"
+                    value={extraValues.localIssuePrefix}
+                    onChange={(e) => setExtraValues({ ...extraValues, localIssuePrefix: e.target.value })}
+                    className={`w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`}
+                    placeholder="LOCAL"
+                  />
+                  <p className={`mt-1 text-[11px] ${text.dimmed}`}>
+                    Prefix for local issue identifiers (e.g. LOCAL-1). Leave empty for number only.
+                  </p>
+                </div>
+
+                <label className="flex items-center gap-2.5 cursor-pointer group py-1">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={extraValues.autoInstall}
+                      onChange={(e) => setExtraValues({ ...extraValues, autoInstall: e.target.checked })}
+                      className="sr-only"
+                    />
+                    <div className={`
+                      w-4 h-4 rounded border transition-all duration-150
+                      ${extraValues.autoInstall
+                        ? 'bg-[#2dd4bf]/20 border-[#2dd4bf]/50'
+                        : 'bg-white/[0.04] border-white/[0.1] group-hover:border-white/[0.2]'
+                      }
+                    `}>
+                      {extraValues.autoInstall && (
+                        <svg className="w-4 h-4 text-[#2dd4bf]" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 8l3 3 5-6" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <span className={`text-xs font-medium ${text.muted} group-hover:${text.secondary} transition-colors`}>
+                      Auto-install dependencies
+                    </span>
+                    <p className={`text-[11px] ${text.dimmed}`}>
+                      Automatically run install command when creating worktrees
+                    </p>
+                  </div>
+                </label>
+              </>
+            )}
 
             {error && (
               <p className={`text-[11px] ${text.error}`}>{error}</p>

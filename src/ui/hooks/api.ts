@@ -830,7 +830,7 @@ export async function detectConfig(
 
 // Initialize config with provided values
 export async function initConfig(
-  config: Partial<DetectedConfig>,
+  config: Partial<DetectedConfig> & Record<string, unknown>,
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; config?: DetectedConfig; error?: string }> {
   try {

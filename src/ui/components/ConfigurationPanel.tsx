@@ -152,8 +152,6 @@ export function ConfigurationPanel({
 }) {
   const api = useApi();
   const [form, setForm] = useState<WorktreeConfig | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [discovering, setDiscovering] = useState(false);
 
   // Branch name rule state — per-tab
@@ -188,6 +186,49 @@ export function ConfigurationPanel({
       setForm({ ...config, envMapping: { ...(config.envMapping ?? {}) } });
     }
   }, [config]);
+
+  // Auto-save config on form changes (debounced)
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const prevFormJson = useRef<string>('');
+
+  useEffect(() => {
+    if (!form || !config) return;
+    const json = JSON.stringify(form);
+    // Skip initial load and no-change scenarios
+    if (!prevFormJson.current) {
+      prevFormJson.current = json;
+      return;
+    }
+    if (json === prevFormJson.current) return;
+    prevFormJson.current = json;
+
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      await api.saveConfig(form as unknown as Record<string, unknown>);
+      onSaved();
+    }, 500);
+
+    return () => clearTimeout(saveTimer.current);
+  }, [form]);
+
+  // Auto-save branch rules (debounced)
+  const branchSaveTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const saveBranchRule = useCallback((tabKey: string, content: string) => {
+    clearTimeout(branchSaveTimer.current);
+    branchSaveTimer.current = setTimeout(async () => {
+      const source = tabKey === 'default' ? undefined : tabKey;
+      await api.saveBranchNameRule(content.trim() || null, source);
+      // Update original to match saved
+      setBranchRules((prev) => ({
+        ...prev,
+        [tabKey]: { ...prev[tabKey], original: content },
+      }));
+      // Refresh override status
+      const status = await api.fetchBranchRuleStatus();
+      setBranchOverrides(status.overrides);
+    }, 800);
+  }, [api]);
 
   // Load a specific branch tab's content
   const loadBranchTab = useCallback(async (tabKey: BranchTab) => {
@@ -236,54 +277,6 @@ export function ConfigurationPanel({
       </div>
     );
   }
-
-  const branchRuleChanged = Object.entries(branchRules).some(
-    ([, v]) => v.content !== v.original,
-  );
-  const hasChanges = JSON.stringify(form) !== JSON.stringify(config) || branchRuleChanged;
-
-  const handleSave = async () => {
-    setSaving(true);
-    setFeedback(null);
-
-    // Build save promises for all changed branch tabs
-    const branchSaves = Object.entries(branchRules)
-      .filter(([, v]) => v.content !== v.original)
-      .map(([tabKey, v]) => {
-        const source = tabKey === 'default' ? undefined : tabKey;
-        return api.saveBranchNameRule(v.content.trim() || null, source);
-      });
-
-    const results = await Promise.all([
-      api.saveConfig(form as unknown as Record<string, unknown>),
-      ...branchSaves,
-    ]);
-
-    setSaving(false);
-    const failed = results.find((r) => !r.success);
-    if (failed) {
-      setFeedback({ type: 'error', message: failed.error ?? 'Failed to save' });
-    } else {
-      // Reload changed tabs to get effective content
-      const changedTabs = Object.entries(branchRules)
-        .filter(([, v]) => v.content !== v.original)
-        .map(([k]) => k);
-      for (const tabKey of changedTabs) {
-        const source = tabKey === 'default' ? undefined : tabKey;
-        const fresh = await api.fetchBranchNameRule(source);
-        setBranchRules((prev) => ({
-          ...prev,
-          [tabKey]: { content: fresh.content, original: fresh.content },
-        }));
-      }
-      // Refresh override status
-      const status = await api.fetchBranchRuleStatus();
-      setBranchOverrides(status.overrides);
-      setFeedback({ type: 'success', message: 'Configuration saved' });
-      onSaved();
-    }
-    setTimeout(() => setFeedback(null), 3000);
-  };
 
   const handleDiscover = async () => {
     setDiscovering(true);
@@ -471,10 +464,12 @@ export function ConfigurationPanel({
                   <button
                     type="button"
                     onClick={() => {
+                      const original = branchRules[branchTab].original;
                       setBranchRules((prev) => ({
                         ...prev,
-                        [branchTab]: { ...prev[branchTab], content: prev[branchTab].original },
+                        [branchTab]: { ...prev[branchTab], content: original },
                       }));
+                      saveBranchRule(branchTab, original);
                     }}
                     className={`absolute top-1.5 right-1.5 z-10 p-1 rounded ${text.dimmed} hover:${text.muted} hover:bg-white/[0.06] transition-colors`}
                     title="Reset to saved"
@@ -487,10 +482,12 @@ export function ConfigurationPanel({
                   defaultLanguage="javascript"
                   value={branchRules[branchTab]?.content ?? ''}
                   onChange={(value) => {
+                    const content = value ?? '';
                     setBranchRules((prev) => ({
                       ...prev,
-                      [branchTab]: { ...prev[branchTab], content: value ?? '' },
+                      [branchTab]: { ...prev[branchTab], content },
                     }));
+                    saveBranchRule(branchTab, content);
                   }}
                   theme="vs-dark"
                   options={{
@@ -545,32 +542,16 @@ export function ConfigurationPanel({
           </div>
         )}
 
-        {/* Status & Save Button */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 ml-3">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]' : 'bg-[#4b5563]'
-              }`}
-            />
-            <span className={`text-xs ${text.muted}`}>
-              {isConnected ? 'Connected' : 'Disconnected'}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            {feedback && feedback.type === 'error' && (
-              <span className={`text-xs ${text.error}`}>
-                {feedback.message}
-              </span>
-            )}
-            <button
-              onClick={handleSave}
-              disabled={saving || !hasChanges}
-              className={`px-4 py-2 rounded-lg text-xs font-medium ${button.primary} disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}
-            >
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-          </div>
+        {/* Connection status */}
+        <div className="flex items-center gap-2 ml-3">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              isConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]' : 'bg-[#4b5563]'
+            }`}
+          />
+          <span className={`text-xs ${text.muted}`}>
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
         </div>
       </div>
     </div>
