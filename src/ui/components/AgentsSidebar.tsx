@@ -8,11 +8,23 @@ import { border, mcpServer, surface, text } from '../theme';
 import { ConfirmDialog } from './ConfirmDialog';
 import { DeployDialog } from './DeployDialog';
 import { McpServerItem } from './McpServerItem';
-import { WOK3_SERVER_ID } from './McpServerList';
 import { SkillItem } from './SkillItem';
 import { PluginItem } from './PluginItem';
 import { Spinner } from './Spinner';
-import { Tooltip } from './Tooltip';
+
+export const WOK3_SERVER: McpServerSummary = {
+  id: 'wok3',
+  name: 'wok3',
+  description: 'Worktree management, issue tracking, and more',
+  tags: ['built-in'],
+  command: 'wok3',
+  args: ['mcp'],
+  env: {},
+  source: 'built-in',
+  createdAt: '',
+  updatedAt: '',
+};
+
 
 type AgentSelection =
   | { type: 'mcp-server'; id: string }
@@ -137,9 +149,9 @@ export function AgentsSidebar({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [filterOpen]);
 
-  // Filter servers (exclude wok3 duplicates — McpServerList handles wok3 internally)
+  // Filter servers (exclude wok3 duplicates — handled as built-in item)
   const filteredServers = servers.filter((s) =>
-    s.id !== WOK3_SERVER_ID && !(s.name === 'wok3' && s.command === 'wok3'),
+    s.id !== WOK3_SERVER.id && !(s.name === 'wok3' && s.command === 'wok3'),
   );
 
   const filteredSkills = search
@@ -162,7 +174,7 @@ export function AgentsSidebar({
 
   const handleSelectWok3 = () => {
     if (isWok3New) localStorage.setItem('wok3:mcpWok3Seen', '1');
-    onSelect({ type: 'mcp-server', id: WOK3_SERVER_ID });
+    onSelect({ type: 'mcp-server', id: WOK3_SERVER.id });
   };
 
   // Filter helpers
@@ -225,7 +237,7 @@ export function AgentsSidebar({
 
   return (
     <>
-    <div className="flex-1 min-h-0 overflow-y-auto space-y-8" style={{ scrollbarGutter: 'stable' }}>
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-8">
       {/* MCP Servers Section */}
       <div>
         <div className="relative mb-px group">
@@ -256,11 +268,11 @@ export function AgentsSidebar({
             {serversLoading ? (
               <>
                 <Wok3Item
-                  isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER_ID}
+                  isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER.id}
                   onSelect={handleSelectWok3}
                   isNew={isWok3New}
-                  isActive={Object.values(deploymentStatus[WOK3_SERVER_ID] ?? {}).some((v) => v.global || v.project)}
-                  onDeploy={() => setDeployDialog({ type: 'mcp', id: WOK3_SERVER_ID, name: 'wok3' })}
+                  isActive={Object.values(deploymentStatus[WOK3_SERVER.id] ?? {}).some((v) => v.global || v.project)}
+                  onDeploy={() => setDeployDialog({ type: 'mcp', id: WOK3_SERVER.id, name: 'wok3' })}
                 />
                 <div className="flex items-center justify-center gap-2 py-4">
                   <Spinner size="sm" className={text.muted} />
@@ -269,12 +281,12 @@ export function AgentsSidebar({
               </>
             ) : (
               (() => {
-                const wok3Status = deploymentStatus[WOK3_SERVER_ID] ?? {};
+                const wok3Status = deploymentStatus[WOK3_SERVER.id] ?? {};
                 const wok3Active = Object.values(wok3Status).some((v) => v.global || v.project);
 
                 type SortEntry = { type: 'server'; server: McpServerSummary } | { type: 'wok3' };
                 const entries: SortEntry[] = [
-                  ...(isServerVisible(WOK3_SERVER_ID) ? [{ type: 'wok3' as const }] : []),
+                  ...(isServerVisible(WOK3_SERVER.id) ? [{ type: 'wok3' as const }] : []),
                   ...filteredServers
                     .filter((s) => isServerVisible(s.id))
                     .map((s) => ({ type: 'server' as const, server: s })),
@@ -299,12 +311,12 @@ export function AgentsSidebar({
                   if (entry.type === 'wok3') {
                     return (
                       <Wok3Item
-                        key={WOK3_SERVER_ID}
-                        isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER_ID}
+                        key={WOK3_SERVER.id}
+                        isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER.id}
                         onSelect={handleSelectWok3}
                         isNew={isWok3New}
                         isActive={wok3Active}
-                        onDeploy={() => setDeployDialog({ type: 'mcp', id: WOK3_SERVER_ID, name: 'wok3' })}
+                        onDeploy={() => setDeployDialog({ type: 'mcp', id: WOK3_SERVER.id, name: 'wok3' })}
                       />
                     );
                   }
@@ -721,21 +733,19 @@ function Wok3Item({ isSelected, onSelect, isNew, isActive, onDeploy }: {
             )}
           </div>
           <div className="absolute inset-0 hidden group-hover:flex items-center justify-end mr-[4px]">
-            <Tooltip text="Deploy" position="top">
+            <span
+              role="button"
+              onClick={handleDeploy}
+              className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
+                isActive ? 'bg-teal-400/35' : 'bg-white/[0.08]'
+              }`}
+            >
               <span
-                role="button"
-                onClick={handleDeploy}
-                className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
-                  isActive ? 'bg-teal-400/35' : 'bg-white/[0.08]'
+                className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                  isActive ? 'left-[11px] bg-teal-400' : 'left-0.5 bg-white/40'
                 }`}
-              >
-                <span
-                  className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
-                    isActive ? 'left-3 bg-teal-400' : 'left-0.5 bg-white/40'
-                  }`}
-                />
-              </span>
-            </Tooltip>
+              />
+            </span>
           </div>
         </div>
       </div>

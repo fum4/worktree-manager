@@ -91,30 +91,30 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
                 {badgeDot}
               </div>
               <div className="absolute inset-0 hidden group-hover:flex items-center justify-end gap-2.5 mr-[4px]">
-                <Tooltip text="Remove" position="top">
+                <span
+                  role="button"
+                  onClick={handleRemove}
+                  className="p-0.5 rounded text-white/30 hover:text-red-400 hover:bg-red-400/15 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </span>
+                <span
+                  role="button"
+                  onClick={handleToggle}
+                  className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
+                    plugin.enabled
+                      ? plugin.error ? 'bg-red-400/35' : plugin.warning ? 'bg-yellow-400/35' : 'bg-teal-400/35'
+                      : 'bg-white/[0.08]'
+                  }`}
+                >
                   <span
-                    role="button"
-                    onClick={handleRemove}
-                    className="p-0.5 rounded text-white/30 hover:text-red-400 hover:bg-red-400/15 transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </span>
-                </Tooltip>
-                <Tooltip text={plugin.enabled ? 'Disable' : 'Enable'} position="top">
-                  <span
-                    role="button"
-                    onClick={handleToggle}
-                    className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
-                      plugin.enabled ? 'bg-teal-400/35' : 'bg-white/[0.08]'
+                    className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                      plugin.enabled
+                        ? `left-[11px] ${plugin.error ? 'bg-red-400' : plugin.warning ? 'bg-yellow-400' : 'bg-teal-400'}`
+                        : 'left-0.5 bg-white/40'
                     }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
-                        plugin.enabled ? 'left-3 bg-teal-400' : 'left-0.5 bg-white/40'
-                      }`}
-                    />
-                  </span>
-                </Tooltip>
+                  />
+                </span>
               </div>
             </>
           )}

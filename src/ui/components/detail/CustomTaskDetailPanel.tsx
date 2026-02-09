@@ -8,7 +8,7 @@ import { border, button, customTask, getLabelColor, text } from '../../theme';
 import { MarkdownContent } from '../MarkdownContent';
 import { NotesSection } from './NotesSection';
 import { Spinner } from '../Spinner';
-import { Tooltip } from '../Tooltip';
+
 
 interface CustomTaskDetailPanelProps {
   taskId: string;
@@ -244,15 +244,13 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
             )}
           </div>
           <div className="flex-shrink-0 pt-1 flex items-center gap-2">
-            <Tooltip text="Delete task">
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </Tooltip>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
             {task.linkedWorktreeId ? (
               <button
                 type="button"

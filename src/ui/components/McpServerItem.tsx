@@ -2,7 +2,6 @@ import { Server, Trash2 } from 'lucide-react';
 
 import type { McpServerSummary } from '../types';
 import { mcpServer, surface, text } from '../theme';
-import { Tooltip } from './Tooltip';
 
 interface McpServerItemProps {
   server: McpServerSummary;
@@ -59,30 +58,26 @@ export function McpServerItem({ server, isSelected, onSelect, isActive, onDeploy
             )}
           </div>
           <div className="absolute inset-0 hidden group-hover:flex items-center justify-end gap-2.5 mr-[4px]">
-            <Tooltip text="Remove" position="top">
+            <span
+              role="button"
+              onClick={handleRemove}
+              className="p-0.5 rounded text-white/30 hover:text-red-400 hover:bg-red-400/15 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3 h-3" />
+            </span>
+            <span
+              role="button"
+              onClick={handleDeploy}
+              className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
+                isActive ? 'bg-teal-400/35' : 'bg-white/[0.08]'
+              }`}
+            >
               <span
-                role="button"
-                onClick={handleRemove}
-                className="p-0.5 rounded text-white/30 hover:text-red-400 hover:bg-red-400/15 transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-3 h-3" />
-              </span>
-            </Tooltip>
-            <Tooltip text="Deploy" position="top">
-              <span
-                role="button"
-                onClick={handleDeploy}
-                className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
-                  isActive ? 'bg-teal-400/35' : 'bg-white/[0.08]'
+                className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                  isActive ? 'left-[11px] bg-teal-400' : 'left-0.5 bg-white/40'
                 }`}
-              >
-                <span
-                  className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
-                    isActive ? 'left-3 bg-teal-400' : 'left-0.5 bg-white/40'
-                  }`}
-                />
-              </span>
-            </Tooltip>
+              />
+            </span>
           </div>
         </div>
       </div>

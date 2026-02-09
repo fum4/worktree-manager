@@ -16,7 +16,7 @@ import { McpServerScanModal } from './McpServerScanModal';
 import { SkillCreateModal } from './SkillCreateModal';
 import { PluginInstallModal } from './PluginInstallModal';
 import { ResizableHandle } from './ResizableHandle';
-import { WOK3_SERVER_ID, WOK3_SERVER } from './McpServerList';
+import { WOK3_SERVER } from './AgentsSidebar';
 import { text } from '../theme';
 
 const BANNER_DISMISSED_KEY = `${APP_NAME}:agentsBannerDismissed`;
@@ -78,11 +78,11 @@ export function AgentsView() {
   // Auto-select wok3 built-in if nothing selected
   useEffect(() => {
     if (!selection) {
-      setSelection({ type: 'mcp-server', id: WOK3_SERVER_ID });
-    } else if (selection.type === 'mcp-server' && selection.id !== WOK3_SERVER_ID) {
+      setSelection({ type: 'mcp-server', id: WOK3_SERVER.id });
+    } else if (selection.type === 'mcp-server' && selection.id !== WOK3_SERVER.id) {
       // Check if selected server still exists
       if (!serversLoading && servers.length > 0 && !servers.find((s) => s.id === selection.id)) {
-        setSelection({ type: 'mcp-server', id: WOK3_SERVER_ID });
+        setSelection({ type: 'mcp-server', id: WOK3_SERVER.id });
       }
     }
   }, [servers, serversLoading, selection]);
@@ -188,7 +188,7 @@ export function AgentsView() {
             </button>
           </div>
         )}
-        {selection?.type === 'mcp-server' && selection.id !== WOK3_SERVER_ID ? (
+        {selection?.type === 'mcp-server' && selection.id !== WOK3_SERVER.id ? (
           <McpServerDetailPanel
             serverId={selection.id}
             onDeleted={() => {
@@ -197,9 +197,9 @@ export function AgentsView() {
               refetchDeployment();
             }}
           />
-        ) : selection?.type === 'mcp-server' && selection.id === WOK3_SERVER_ID ? (
+        ) : selection?.type === 'mcp-server' && selection.id === WOK3_SERVER.id ? (
           <McpServerDetailPanel
-            serverId={WOK3_SERVER_ID}
+            serverId={WOK3_SERVER.id}
             builtInServer={WOK3_SERVER}
             onDeleted={() => setSelection(null)}
           />

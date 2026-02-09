@@ -8,7 +8,7 @@ import { useApi } from '../../hooks/useApi';
 import { border, mcpServer, text } from '../../theme';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { Spinner } from '../Spinner';
-import { Tooltip } from '../Tooltip';
+
 
 interface McpServerDetailPanelProps {
   serverId: string;
@@ -205,15 +205,13 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
           </div>
           {!isBuiltIn && (
             <div className="flex-shrink-0 pt-1">
-              <Tooltip text="Delete server">
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </Tooltip>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           )}
         </div>

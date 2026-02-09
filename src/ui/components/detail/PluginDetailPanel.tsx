@@ -157,6 +157,7 @@ export function PluginDetailPanel({ pluginId, onDeleted, pluginActing, onPluginA
                 onToggle={handleToggleEnabled}
                 disabled={isDisabled}
                 title={plugin.enabled ? 'Disable' : 'Enable'}
+                accent={plugin.error ? 'red' : plugin.warning ? 'yellow' : undefined}
               />
               <span className={`text-[10px] ${text.dimmed} w-10`}>
                 {plugin.enabled ? 'Enabled' : 'Disabled'}
@@ -177,16 +178,14 @@ export function PluginDetailPanel({ pluginId, onDeleted, pluginActing, onPluginA
                 <Spinner size="sm" className="text-red-400" />
               </div>
             ) : (
-              <Tooltip text="Uninstall plugin">
-                <button
-                  type="button"
-                  onClick={() => setShowUninstallConfirm(true)}
-                  disabled={isDisabled}
-                  className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:pointer-events-none`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </Tooltip>
+              <button
+                type="button"
+                onClick={() => setShowUninstallConfirm(true)}
+                disabled={isDisabled}
+                className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:pointer-events-none`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             )}
           </div>
         </div>
@@ -410,19 +409,26 @@ export function PluginDetailPanel({ pluginId, onDeleted, pluginActing, onPluginA
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
-function DeployToggle({ active, onToggle, disabled, title }: { active: boolean; onToggle: () => void; disabled?: boolean; title: string }) {
+const accentColors = {
+  teal: { bg: 'rgba(45,212,191,0.35)', dot: 'bg-teal-400' },
+  red: { bg: 'rgba(248,113,113,0.35)', dot: 'bg-red-400' },
+  yellow: { bg: 'rgba(250,204,21,0.35)', dot: 'bg-yellow-400' },
+};
+
+function DeployToggle({ active, onToggle, disabled, title, accent }: { active: boolean; onToggle: () => void; disabled?: boolean; title: string; accent?: 'red' | 'yellow' }) {
+  const colors = accentColors[accent ?? 'teal'];
   return (
     <button
       type="button"
       onClick={onToggle}
       disabled={disabled}
       className={`relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
-      style={{ backgroundColor: active ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
+      style={{ backgroundColor: active ? colors.bg : 'rgba(255,255,255,0.08)' }}
       title={title}
     >
       <span
         className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
-          active ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'
+          active ? `left-3.5 ${colors.dot}` : 'left-0.5 bg-white/40'
         }`}
       />
     </button>

@@ -49,8 +49,6 @@ input[type="checkbox"]:checked::after {
 input[type="checkbox"].accent-teal-400 { --checkbox-accent: #0f766e; }
 input[type="checkbox"].accent-red-400 { --checkbox-accent: #7f1d1d; }
 
-/* Thin custom scrollbar for dark theme */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(45,212,191,0.25); }
+/* Hide scrollbars globally */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
