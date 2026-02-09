@@ -28,12 +28,13 @@ export interface ActionContext {
 export const MCP_INSTRUCTIONS = `${APP_NAME} manages git worktrees with automatic port offsetting.
 
 IMPORTANT: When a user mentions an issue key, ticket number, or says "work on <something>",
-you should immediately use the appropriate wok3 tool to create a worktree.
+you should immediately use the appropriate wok3 MCP tool to create a worktree.
+Do NOT read .wok3/ files or make HTTP requests to the wok3 server. All communication goes through these MCP tools.
 
 ## Quick Start
-- Issue key like "PROJ-123" or number like "456" → call create_from_jira
-- Linear identifier like "ENG-42" → call create_from_linear
-- Branch name → call create_worktree directly
+- Issue key like "PROJ-123" or number like "456" → call create_from_jira with issueKey param
+- Linear identifier like "ENG-42" or "NOM-10" → call create_from_linear with identifier param
+- Branch name → call create_worktree directly with branch param
 - "show my issues" → call list_jira_issues or list_linear_issues
 
 ## After Creating a Worktree

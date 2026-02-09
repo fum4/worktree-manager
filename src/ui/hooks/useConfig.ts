@@ -13,7 +13,6 @@ export interface WorktreeConfig {
     offsetStep: number;
   };
   envMapping?: Record<string, string>;
-  serverPort: number;
   autoInstall?: boolean;
   localIssuePrefix?: string;
 }

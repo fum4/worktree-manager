@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { APP_NAME } from '../constants';
+import { AppSettingsModal } from './components/AppSettingsModal';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { CreateCustomTaskModal } from './components/CreateCustomTaskModal';
 import { CreateForm } from './components/CreateForm';
@@ -252,6 +253,7 @@ export default function App() {
     }
   };
 
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [showSetupCommitModal, setShowSetupCommitModal] = useState(false);
@@ -414,7 +416,7 @@ export default function App() {
         <div className="flex-1 flex items-center justify-center">
           <WelcomeScreen onImportProject={handleImportProject} />
         </div>
-        <TabBar />
+        <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
       </div>
     );
   }
@@ -431,7 +433,7 @@ export default function App() {
             </span>
           </div>
         </div>
-        <TabBar />
+        <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
       </div>
     );
   }
@@ -445,7 +447,7 @@ export default function App() {
           onSetupComplete={handleSetupComplete}
           onRememberChoice={handleRememberChoice}
         />
-        <TabBar />
+        <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
       </div>
     );
   }
@@ -462,7 +464,7 @@ export default function App() {
             </span>
           </div>
         </div>
-        <TabBar />
+        <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
       </div>
     );
   }
@@ -736,8 +738,13 @@ export default function App() {
         />
       )}
 
+      {/* App settings modal (Electron only) */}
+      {showSettingsModal && (
+        <AppSettingsModal onClose={() => setShowSettingsModal(false)} />
+      )}
+
       {/* Tab bar for multi-project (Electron only) */}
-      <TabBar />
+      <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
     </div>
   );
 }

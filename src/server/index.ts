@@ -1,12 +1,14 @@
 import { createAdaptorServer } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { createNodeWebSocket } from '@hono/node-ws';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import net from 'net';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { CONFIG_DIR_NAME, DEFAULT_PORT } from '../constants';
 import { log } from '../logger';
 import { checkGhAuth } from '../integrations/github/gh-client';
 import { testConnection as testJiraConnection } from '../integrations/jira/auth';
@@ -42,6 +44,26 @@ const projectRoot = isDev
 const uiDir = currentDir.includes('src/server')
   ? path.join(projectRoot, 'dist', 'ui')
   : path.join(currentDir, 'ui');
+
+function findAvailablePort(startPort: number): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const tryPort = (port: number) => {
+      const server = net.createServer();
+      server.once('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EADDRINUSE') {
+          tryPort(port + 1);
+        } else {
+          reject(err);
+        }
+      });
+      server.once('listening', () => {
+        server.close(() => resolve(port));
+      });
+      server.listen(port);
+    };
+    tryPort(startPort);
+  });
+}
 
 export function createWorktreeServer(manager: WorktreeManager) {
   const app = new Hono();
@@ -128,13 +150,16 @@ export function createWorktreeServer(manager: WorktreeManager) {
 export async function startWorktreeServer(
   config: WorktreeConfig,
   configFilePath?: string | null,
-  options?: { exitOnClose?: boolean },
+  options?: { exitOnClose?: boolean; port?: number },
 ): Promise<{ manager: WorktreeManager; close: () => Promise<void>; port: number }> {
   const exitOnClose = options?.exitOnClose ?? true;
+  const requestedPort = options?.port ?? DEFAULT_PORT;
   const manager = new WorktreeManager(config, configFilePath ?? null);
   await manager.initGitHub();
   const { app, injectWebSocket, terminalManager } =
     createWorktreeServer(manager);
+
+  const actualPort = await findAvailablePort(requestedPort);
 
   const server = createAdaptorServer({
     fetch: app.fetch,
@@ -142,15 +167,32 @@ export async function startWorktreeServer(
 
   injectWebSocket(server);
 
-  server.listen(config.serverPort, () => {
-    log.success(`Server running at http://localhost:${config.serverPort}`);
+  server.listen(actualPort, () => {
+    log.success(`Server running at http://localhost:${actualPort}`);
   });
+
+  // Write server.json for agent discovery
+  const configDir = manager.getConfigDir();
+  const serverJsonPath = configDir ? path.join(configDir, CONFIG_DIR_NAME, 'server.json') : null;
+  if (serverJsonPath && existsSync(path.dirname(serverJsonPath))) {
+    try {
+      writeFileSync(serverJsonPath, JSON.stringify({ url: `http://localhost:${actualPort}`, pid: process.pid }, null, 2));
+    } catch {
+      // Non-critical
+    }
+  }
 
   let closing = false;
   const close = async () => {
     if (closing) return;
     closing = true;
     log.info('\nShutting down...');
+
+    // Clean up server.json
+    if (serverJsonPath) {
+      try { unlinkSync(serverJsonPath); } catch { /* ignore */ }
+    }
+
     terminalManager.destroyAll();
     await manager.stopAll();
     server.close();
@@ -162,7 +204,7 @@ export async function startWorktreeServer(
   process.on('SIGINT', close);
   process.on('SIGTERM', close);
 
-  return { manager, close, port: config.serverPort };
+  return { manager, close, port: actualPort };
 }
 
 export { WorktreeManager } from './manager';

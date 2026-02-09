@@ -6,7 +6,7 @@ import { Modal } from './Modal';
 import { claudeSkill, input, text } from '../theme';
 
 interface SkillCreateModalProps {
-  onCreated: () => void;
+  onCreated: (skillName: string) => void;
   onClose: () => void;
 }
 
@@ -23,6 +23,7 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
   const [userInvocable, setUserInvocable] = useState(true);
   const [mode, setMode] = useState(false);
   const [instructions, setInstructions] = useState('');
+  const [scope, setScope] = useState<'global' | 'local'>('global');
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -49,8 +50,12 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
 
     setCreating(false);
 
-    if (result.success) {
-      onCreated();
+    if (result.success && result.skill) {
+      await api.deployClaudeSkill(result.skill.name, scope);
+      onCreated(result.skill.name);
+      onClose();
+    } else if (result.success) {
+      onCreated(name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'));
       onClose();
     } else {
       setError(result.error ?? 'Failed to create skill');
@@ -96,7 +101,29 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
             className={inputClass}
             autoFocus
           />
-          <p className={`text-[10px] ${text.dimmed} mt-0.5`}>Stored in ~/.wok3/skills/</p>
+        </div>
+
+        <div>
+          <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Deploy to</label>
+          <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5 w-fit">
+            {(['global', 'local'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setScope(s)}
+                className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-colors ${
+                  scope === s
+                    ? 'text-[#d1d5db] bg-white/[0.06]'
+                    : `${text.dimmed} hover:${text.muted}`
+                }`}
+              >
+                {s === 'global' ? 'Global' : 'Project'}
+              </button>
+            ))}
+          </div>
+          <p className={`text-[10px] ${text.dimmed} mt-0.5`}>
+            {scope === 'global' ? 'Available in all projects (~/.claude/skills/)' : 'Available only in this project (.claude/skills/)'}
+          </p>
         </div>
 
         <div>
@@ -182,7 +209,7 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
               type="checkbox"
               checked={userInvocable}
               onChange={(e) => setUserInvocable(e.target.checked)}
-              className="accent-[#D4A574]"
+              className="accent-teal-400"
             />
             <span className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}>
               User-invocable
@@ -194,6 +221,7 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
               type="checkbox"
               checked={disableModelInvocation}
               onChange={(e) => setDisableModelInvocation(e.target.checked)}
+              className="accent-teal-400"
             />
             <span className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}>
               Disable model invocation
@@ -205,6 +233,7 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
               type="checkbox"
               checked={mode}
               onChange={(e) => setMode(e.target.checked)}
+              className="accent-teal-400"
             />
             <span className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}>
               Mode command

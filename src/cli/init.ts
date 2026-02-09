@@ -45,7 +45,6 @@ export async function autoInitConfig(projectDir: string): Promise<void> {
     startCommand,
     installCommand,
     baseBranch,
-    serverPort: 6969,
     ports: {
       discovered: [],
       offsetStep: 1,
@@ -151,18 +150,12 @@ export async function runInit() {
     if (!installCommand) console.log('  Install command is required.');
   }
 
-  const serverPort = parseInt(
-    (await prompt(rl, 'Manager UI port [6969]: ')) || '6969',
-    10,
-  );
-
   rl.close();
 
   const config: ConfigFile = {
     startCommand,
     installCommand,
     baseBranch,
-    serverPort,
     ports: {
       discovered: [],
       offsetStep: 1,
@@ -205,7 +198,6 @@ export async function runInit() {
       installCommand,
       baseBranch,
       ports: config.ports as PortConfig,
-      serverPort,
     };
     const pm = new PortManager(tempConfig, configPath);
     const envMapping = pm.detectEnvMapping(resolvedProjectDir);

@@ -20,8 +20,6 @@ export interface WorktreeConfig {
   ports: PortConfig;
   /** Env var templates with port references, e.g. { "VITE_API_URL": "http://localhost:${4000}" } */
   envMapping?: Record<string, string>;
-  /** Port for the manager server (default: 3100) */
-  serverPort: number;
   /** Whether to auto-install dependencies when creating a worktree (default: true) */
   autoInstall?: boolean;
   /** Prefix for local issue identifiers (default: "LOCAL") */

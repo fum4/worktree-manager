@@ -1,10 +1,14 @@
-import { Plus, X, Folder, Loader2 } from 'lucide-react';
+import { Plus, Settings, X, Folder, Loader2 } from 'lucide-react';
 
 import { useServer } from '../contexts/ServerContext';
 import type { Project } from '../contexts/ServerContext';
 import { surface } from '../theme';
 
-export function TabBar() {
+interface TabBarProps {
+  onOpenSettings?: () => void;
+}
+
+export function TabBar({ onOpenSettings }: TabBarProps) {
   const { projects, activeProject, switchProject, closeProject, selectFolder, openProject, isElectron } = useServer();
 
   // Only show in Electron mode with at least one project
@@ -39,6 +43,20 @@ export function TabBar() {
       >
         <Plus className="w-4 h-4" />
       </button>
+
+      {/* Spacer */}
+      <div className="ml-auto" />
+
+      {/* Settings button */}
+      {onOpenSettings && (
+        <button
+          onClick={onOpenSettings}
+          className="flex items-center justify-center w-7 h-7 rounded-md text-[#6b7280] hover:text-[#e5e7eb] hover:bg-white/[0.06] transition-colors duration-150"
+          title="App Settings"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }

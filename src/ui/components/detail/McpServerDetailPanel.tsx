@@ -6,6 +6,7 @@ import type { McpServerSummary } from '../../types';
 import { useMcpServerDetail, useMcpDeploymentStatus } from '../../hooks/useMcpServers';
 import { useApi } from '../../hooks/useApi';
 import { border, button, mcpServer, text } from '../../theme';
+import { Modal } from '../Modal';
 import { Spinner } from '../Spinner';
 
 interface McpServerDetailPanelProps {
@@ -43,6 +44,7 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
   const [argsDraft, setArgsDraft] = useState('');
   const [showEnv, setShowEnv] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteUndeploy, setDeleteUndeploy] = useState(true);
   const [deploying, setDeploying] = useState<string | null>(null);
 
   // Per-project env state
@@ -77,8 +79,16 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
 
   const handleDelete = async () => {
     if (isBuiltIn) return;
+    if (deleteUndeploy) {
+      const serverStatus = deploymentStatus[serverId] ?? {};
+      for (const [tool, scopes] of Object.entries(serverStatus)) {
+        if (scopes.global) await api.undeployMcpServer(serverId, tool, 'global');
+        if (scopes.project) await api.undeployMcpServer(serverId, tool, 'project');
+      }
+    }
     await api.deleteMcpServer(serverId);
     queryClient.invalidateQueries({ queryKey: ['mcpServers'] });
+    queryClient.invalidateQueries({ queryKey: ['mcpDeploymentStatus'] });
     onDeleted();
   };
 
@@ -513,36 +523,45 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
 
       {/* Delete confirmation */}
       {!isBuiltIn && showDeleteConfirm && (
-        <>
-          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowDeleteConfirm(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-surface-panel rounded-xl shadow-2xl border border-white/[0.08] p-5 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-              <h3 className={`text-sm font-medium ${text.primary} mb-2`}>Delete server?</h3>
-              <p className={`text-xs ${text.secondary} mb-1`}>
-                This will remove "{server.name}" from the registry.
-              </p>
-              <p className={`text-xs ${text.muted} mb-4`}>
-                It will NOT automatically undeploy from tool configs.
-              </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className={`px-3 py-1.5 text-xs font-medium ${button.confirm} rounded-lg transition-colors`}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
+        <Modal
+          title="Delete server?"
+          icon={<Trash2 className="w-4 h-4 text-red-400" />}
+          onClose={() => setShowDeleteConfirm(false)}
+          width="sm"
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className={`px-3 py-1.5 text-xs font-medium ${button.confirm} rounded-lg transition-colors`}
+              >
+                Delete
+              </button>
+            </>
+          }
+        >
+          <p className={`text-xs ${text.secondary} mb-3`}>
+            This will remove "{server.name}" from the registry.
+          </p>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={deleteUndeploy}
+              onChange={(e) => setDeleteUndeploy(e.target.checked)}
+              className="accent-red-400"
+            />
+            <span className={`text-xs ${text.secondary}`}>
+              Also undeploy from all tool configs
+            </span>
+          </label>
+        </Modal>
       )}
     </div>
   );

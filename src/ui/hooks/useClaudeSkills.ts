@@ -26,7 +26,7 @@ export function useClaudeSkills() {
   };
 }
 
-export function useClaudeSkillDetail(name: string | null, location?: 'project') {
+export function useClaudeSkillDetail(name: string | null, location?: 'local') {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch } = useQuery({

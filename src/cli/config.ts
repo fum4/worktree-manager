@@ -15,7 +15,6 @@ export interface ConfigFile {
   baseBranch?: string;
   ports?: Partial<PortConfig>;
   envMapping?: Record<string, string>;
-  serverPort?: number;
 }
 
 /**
@@ -59,7 +58,6 @@ export function loadConfig(): { config: WorktreeConfig; configPath: string | nul
       discovered: [],
       offsetStep: 1,
     },
-    serverPort: 6969,
   };
 
   if (!configPath) {
@@ -89,7 +87,6 @@ export function loadConfig(): { config: WorktreeConfig; configPath: string | nul
         offsetStep: fileConfig.ports?.offsetStep ?? defaults.ports.offsetStep,
       },
       envMapping: fileConfig.envMapping,
-      serverPort: fileConfig.serverPort ?? defaults.serverPort,
     };
 
     return { config, configPath };

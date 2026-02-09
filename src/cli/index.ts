@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 
 import { APP_NAME, CONFIG_DIR_NAME } from '../constants';
 import { log } from '../logger';
+import { loadGlobalPreferences } from '../shared/global-preferences';
 import { startWorktreeServer } from '../server/index';
 import { findConfigFile, loadConfig } from './config';
 
@@ -142,8 +143,13 @@ async function main() {
 
   const noOpen = process.argv.includes('--no-open') || process.env.WOK3_NO_OPEN === '1';
   const autoInit = process.argv.includes('--auto-init') || process.env.WOK3_AUTO_INIT === '1';
-  const portOverride = process.env.WOK3_PORT ? parseInt(process.env.WOK3_PORT, 10) : null;
   const projectDir = process.cwd();
+
+  // Determine port: WOK3_PORT env override → global preferences → default
+  const globalPrefs = loadGlobalPreferences();
+  const basePort = process.env.WOK3_PORT
+    ? parseInt(process.env.WOK3_PORT, 10)
+    : globalPrefs.basePort;
 
   log.info('Starting...');
 
@@ -163,20 +169,19 @@ async function main() {
       log.info('No configuration found. Auto-initializing...');
       const { autoInitConfig } = await import('./init');
       await autoInitConfig(projectDir);
-    } else {
+    } else if (process.stdin.isTTY) {
       log.info('No configuration found. Starting setup wizard...');
       log.plain('');
       const { runInit } = await import('./init');
       await runInit();
+    } else {
+      // Non-interactive (e.g. spawned from Electron) — proceed with defaults
+      // The frontend will show a setup screen
+      log.info('No configuration found. Proceeding with defaults...');
     }
   }
 
   const { config, configPath } = loadConfig();
-
-  // Apply port override if specified
-  if (portOverride) {
-    config.serverPort = portOverride;
-  }
 
   log.info('Configuration:');
   log.plain(`  Project directory: ${config.projectDir}`);
@@ -191,17 +196,17 @@ async function main() {
   log.plain(
     `  Env mappings: ${envMappingKeys.length > 0 ? envMappingKeys.join(', ') : '(none)'}`,
   );
-  log.plain(`  Server port: ${config.serverPort}`);
+  log.plain(`  Base port: ${basePort}`);
   log.plain('');
 
-  await startWorktreeServer(config, configPath);
+  const { port: actualPort } = await startWorktreeServer(config, configPath, { port: basePort });
 
   if (!noOpen) {
-    const url = `http://localhost:${config.serverPort}`;
+    const url = `http://localhost:${actualPort}`;
     log.plain('');
     log.info(`Opening ${url}`);
     log.plain('');
-    openUI(config.serverPort);
+    openUI(actualPort);
   }
 }
 

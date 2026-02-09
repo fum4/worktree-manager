@@ -29,19 +29,34 @@ allowed-tools: mcp__wok3__*
 
 The user wants to work on issue $ARGUMENTS.
 
-Use the wok3 MCP tools to set up a worktree and start working:
+IMPORTANT: Use ONLY the wok3 MCP tools (mcp__wok3__*) to interact with wok3. Do NOT read .wok3/ files or make HTTP requests to the wok3 server. All communication goes through the MCP tools.
 
-1. **Identify the issue type** from the identifier:
-   - Jira-style key (e.g., PROJ-123, or just a number): call \`mcp__wok3__create_from_jira\`
-   - Linear-style key (e.g., ENG-42): call \`mcp__wok3__create_from_linear\`
+## Steps
 
-2. **Create the worktree** — the response includes full task context (description, comments, AI notes) and the worktree path
+1. **Create the worktree** by calling the right MCP tool based on the issue identifier:
+   - Jira-style key (e.g., PROJ-123, or just a number) → \`mcp__wok3__create_from_jira\` with \`issueKey\` param
+   - Linear-style key (e.g., ENG-42, NOM-10) → \`mcp__wok3__create_from_linear\` with \`identifier\` param
 
-3. **Wait for creation** — poll \`mcp__wok3__list_worktrees\` until the worktree status changes from 'creating' to 'stopped'
+2. **Wait for creation** — poll \`mcp__wok3__list_worktrees\` until the worktree status changes from 'creating' to 'stopped'
 
-4. **Navigate** to the worktree path and read the TASK.md file
+3. **Navigate** to the worktree path returned in the response and read the TASK.md file
 
-5. **Start implementing** based on the task description and AI context
+4. **Start implementing** based on the task description and AI context
+
+## Available MCP tools
+
+- \`mcp__wok3__create_from_jira\` — create worktree from Jira issue
+- \`mcp__wok3__create_from_linear\` — create worktree from Linear issue
+- \`mcp__wok3__create_worktree\` — create worktree from a branch name
+- \`mcp__wok3__list_worktrees\` — list all worktrees and their status
+- \`mcp__wok3__start_worktree\` — start the dev server in a worktree
+- \`mcp__wok3__stop_worktree\` — stop the dev server
+- \`mcp__wok3__get_task_context\` — refresh full task details
+- \`mcp__wok3__get_logs\` — get recent output logs
+- \`mcp__wok3__commit\` — stage all changes and commit
+- \`mcp__wok3__push\` — push commits to remote
+- \`mcp__wok3__create_pr\` — create a pull request
+- \`mcp__wok3__read_issue_notes\` — read AI context notes for a worktree
 `;
 
 // ─── Cursor: .cursor/rules/wok3.mdc ─────────────────────────────

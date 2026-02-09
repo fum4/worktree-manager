@@ -340,7 +340,7 @@ export class PortManager {
         const match = line.match(/:(\d+)\s+\(LISTEN\)/);
         if (match) {
           const port = parseInt(match[1], 10);
-          if (!isNaN(port) && port !== this.config.serverPort) {
+          if (!isNaN(port)) {
             ports.add(port);
           }
         }

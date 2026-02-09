@@ -3,6 +3,7 @@ import path from 'path';
 import os from 'os';
 import type { ChildProcess } from 'child_process';
 import { spawnServer, stopServer, waitForServerReady } from './server-spawner.js';
+import { preferencesManager } from './preferences-manager.js';
 
 export interface Project {
   id: string;
@@ -28,12 +29,10 @@ interface AppState {
 const STATE_DIR = path.join(os.homedir(), '.wok3');
 const STATE_FILE = path.join(STATE_DIR, 'app-state.json');
 const LOCK_FILE = path.join(STATE_DIR, 'electron.lock');
-const BASE_PORT = 6970;
 
 export class ProjectManager {
   private projects = new Map<string, ProjectInternal>();
   private activeProjectId: string | null = null;
-  private nextPort = BASE_PORT;
   private onChangeCallbacks: Array<() => void> = [];
 
   constructor() {
@@ -89,14 +88,12 @@ export class ProjectManager {
   }
 
   private allocatePort(): number {
-    const port = this.nextPort;
-    this.nextPort++;
+    const usedPorts = new Set(Array.from(this.projects.values()).map((p) => p.port));
+    let port = preferencesManager.getBasePort() + 1;
+    while (usedPorts.has(port)) {
+      port++;
+    }
     return port;
-  }
-
-  private releasePort(_port: number) {
-    // Simple implementation - just decrement if it was the last one
-    // In a more robust implementation, we'd track available ports
   }
 
   private notifyChange() {
@@ -201,7 +198,6 @@ export class ProjectManager {
       project.serverProcess = null;
     }
 
-    this.releasePort(project.port);
     this.projects.delete(id);
 
     if (this.activeProjectId === id) {
@@ -235,7 +231,6 @@ export class ProjectManager {
       project.serverProcess = null;
     }
 
-    this.releasePort(project.port);
     this.projects.delete(id);
 
     if (this.activeProjectId === id) {

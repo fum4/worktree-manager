@@ -21,8 +21,7 @@ export function spawnServer(
     : path.join(projectRoot, 'dist', 'cli', 'index.js');
 
   // --no-open: don't open browser/electron
-  // --auto-init: auto-create config if it doesn't exist (non-interactive)
-  const args = ['--no-open', '--auto-init'];
+  const args = ['--no-open'];
 
   const child = spawn('node', [cliPath, ...args], {
     cwd: projectDir,

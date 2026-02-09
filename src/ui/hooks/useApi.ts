@@ -185,13 +185,13 @@ export function useApi() {
       fetchClaudeSkills: () =>
         api.fetchClaudeSkills(serverUrl),
 
-      fetchClaudeSkill: (name: string, location?: 'project') =>
+      fetchClaudeSkill: (name: string, location?: 'local') =>
         api.fetchClaudeSkill(name, serverUrl, location),
 
       createClaudeSkill: (data: Parameters<typeof api.createClaudeSkill>[0]) =>
         api.createClaudeSkill(data, serverUrl),
 
-      updateClaudeSkill: (name: string, updates: { skillMd?: string; referenceMd?: string; examplesMd?: string; frontmatter?: Record<string, unknown> }, location?: 'project') =>
+      updateClaudeSkill: (name: string, updates: { skillMd?: string; referenceMd?: string; examplesMd?: string; frontmatter?: Record<string, unknown> }, location?: 'local') =>
         api.updateClaudeSkill(name, updates, serverUrl, location),
 
       duplicateSkillToProject: (name: string) =>
@@ -206,10 +206,10 @@ export function useApi() {
       fetchSkillDeploymentStatus: () =>
         api.fetchSkillDeploymentStatus(serverUrl),
 
-      deployClaudeSkill: (name: string, scope: 'global' | 'project') =>
+      deployClaudeSkill: (name: string, scope: 'global' | 'local') =>
         api.deployClaudeSkill(name, scope, serverUrl),
 
-      undeployClaudeSkill: (name: string, scope: 'global' | 'project') =>
+      undeployClaudeSkill: (name: string, scope: 'global' | 'local') =>
         api.undeployClaudeSkill(name, scope, serverUrl),
 
       importClaudeSkills: (skills: Array<{ name: string; skillPath: string }>) =>

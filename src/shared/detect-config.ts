@@ -6,7 +6,6 @@ export interface DetectedConfig {
   baseBranch: string;
   startCommand: string;
   installCommand: string;
-  serverPort: number;
 }
 
 export function detectDefaultBranch(projectDir: string): string {
@@ -65,6 +64,5 @@ export function detectConfig(projectDir: string): DetectedConfig {
     baseBranch: detectDefaultBranch(projectDir),
     startCommand: detectStartCommand(projectDir) || 'npm run dev',
     installCommand: detectInstallCommand(projectDir) || 'npm install',
-    serverPort: 6969,
   };
 }

@@ -133,7 +133,6 @@ export class WorktreeManager {
           offsetStep: fileConfig.ports?.offsetStep ?? this.config.ports.offsetStep,
         },
         envMapping: fileConfig.envMapping ?? this.config.envMapping,
-        serverPort: fileConfig.serverPort ?? this.config.serverPort,
         autoInstall: fileConfig.autoInstall,
         localIssuePrefix: fileConfig.localIssuePrefix,
       };
@@ -1035,7 +1034,7 @@ export class WorktreeManager {
       // Merge allowed top-level fields
       const allowedKeys = [
         'startCommand', 'installCommand', 'baseBranch',
-        'projectDir', 'serverPort', 'autoInstall', 'localIssuePrefix',
+        'projectDir', 'autoInstall', 'localIssuePrefix',
       ] as const;
 
       for (const key of allowedKeys) {

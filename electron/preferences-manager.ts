@@ -5,6 +5,7 @@ import os from 'os';
 export type SetupPreference = 'auto' | 'manual' | 'ask';
 
 export interface AppPreferences {
+  basePort: number;
   setupPreference: SetupPreference;
   sidebarWidth: number;
   windowBounds: {
@@ -18,7 +19,10 @@ export interface AppPreferences {
 const STATE_DIR = path.join(os.homedir(), '.wok3');
 const PREFERENCES_FILE = path.join(STATE_DIR, 'app-preferences.json');
 
+const DEFAULT_PORT = 6969;
+
 const DEFAULT_PREFERENCES: AppPreferences = {
+  basePort: DEFAULT_PORT,
   setupPreference: 'ask',
   sidebarWidth: 300,
   windowBounds: null,
@@ -60,6 +64,15 @@ class PreferencesManager {
 
   getPreferences(): AppPreferences {
     return { ...this.preferences };
+  }
+
+  getBasePort(): number {
+    return this.preferences.basePort;
+  }
+
+  setBasePort(port: number) {
+    this.preferences.basePort = port;
+    this.save();
   }
 
   getSetupPreference(): SetupPreference {

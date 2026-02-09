@@ -436,7 +436,6 @@ export async function fetchConfig(serverUrl: string | null = null): Promise<{
     baseBranch: string;
     ports: { discovered: number[]; offsetStep: number };
     envMapping?: Record<string, string>;
-    serverPort: number;
   };
   projectName?: string;
   hasBranchNameRule?: boolean;
@@ -814,7 +813,6 @@ export interface DetectedConfig {
   baseBranch: string;
   startCommand: string;
   installCommand: string;
-  serverPort: number;
 }
 
 export async function detectConfig(
@@ -1282,7 +1280,7 @@ export async function fetchClaudeSkills(
 export async function fetchClaudeSkill(
   name: string,
   serverUrl: string | null = null,
-  location?: 'project',
+  location?: 'local',
 ): Promise<{ skill?: SkillDetail; error?: string }> {
   try {
     const params = location ? `?location=${location}` : '';
@@ -1322,7 +1320,7 @@ export async function updateClaudeSkill(
   name: string,
   updates: { skillMd?: string; referenceMd?: string; examplesMd?: string; frontmatter?: Record<string, unknown> },
   serverUrl: string | null = null,
-  location?: 'project',
+  location?: 'local',
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const params = location ? `?location=${location}` : '';
@@ -1348,7 +1346,7 @@ export async function duplicateSkillToProject(
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}/duplicate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope: 'project' }),
+      body: JSON.stringify({ scope: 'local' }),
     });
     return await res.json();
   } catch (err) {
@@ -1410,7 +1408,7 @@ export async function fetchSkillDeploymentStatus(
 
 export async function deployClaudeSkill(
   name: string,
-  scope: 'global' | 'project',
+  scope: 'global' | 'local',
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -1430,7 +1428,7 @@ export async function deployClaudeSkill(
 
 export async function undeployClaudeSkill(
   name: string,
-  scope: 'global' | 'project',
+  scope: 'global' | 'local',
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {

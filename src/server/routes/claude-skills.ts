@@ -135,7 +135,7 @@ function listRegistrySkills(): SkillInfo[] {
   return skills;
 }
 
-// ─── Symlink helpers ────────────────────────────────────────────
+// ─── Deploy helpers ─────────────────────────────────────────────
 
 function isSymlinkToRegistry(deployDir: string, skillName: string): boolean {
   const linkPath = path.join(deployDir, skillName);
@@ -151,7 +151,7 @@ function isSymlinkToRegistry(deployDir: string, skillName: string): boolean {
   }
 }
 
-function createDeploySymlink(deployDir: string, skillName: string): { success: boolean; error?: string } {
+function createDeploy(deployDir: string, skillName: string): { success: boolean; error?: string } {
   const linkPath = path.join(deployDir, skillName);
   const targetPath = path.join(getRegistryDir(), skillName);
 
@@ -181,19 +181,22 @@ function createDeploySymlink(deployDir: string, skillName: string): { success: b
   }
 }
 
-function removeDeploySymlink(deployDir: string, skillName: string): { success: boolean; error?: string } {
+function removeDeploy(deployDir: string, skillName: string): { success: boolean; error?: string } {
   const linkPath = path.join(deployDir, skillName);
   try {
     const stat = lstatSync(linkPath);
-    if (!stat.isSymbolicLink()) {
-      return { success: false, error: 'Target is not a symlink managed by wok3' };
+    if (stat.isSymbolicLink()) {
+      unlinkSync(linkPath);
+    } else if (stat.isDirectory()) {
+      rmSync(linkPath, { recursive: true });
+    } else {
+      return { success: false, error: 'Target is not a skill deployment managed by wok3' };
     }
-    unlinkSync(linkPath);
     return { success: true };
   } catch (e: unknown) {
     const err = e as NodeJS.ErrnoException;
     if (err.code === 'ENOENT') return { success: true };
-    return { success: false, error: err.message ?? 'Failed to remove symlink' };
+    return { success: false, error: err.message ?? 'Failed to remove deployment' };
   }
 }
 
@@ -331,9 +334,38 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
 
   // ── Static GET routes (before parameterized :name) ────────────
 
-  // List all skills in registry
+  // List all skills (registry + project-only)
   app.get('/api/claude/skills', (c) => {
-    return c.json({ skills: listRegistrySkills() });
+    const registrySkills = listRegistrySkills();
+    const registryNames = new Set(registrySkills.map((s) => s.name));
+
+    // Also include project-only skills (non-symlink copies not in registry)
+    const projectSkillsDir = getProjectDeployDir(projectDir);
+    const projectOnlySkills: SkillInfo[] = [];
+    if (existsSync(projectSkillsDir)) {
+      try {
+        for (const entry of readdirSync(projectSkillsDir, { withFileTypes: true })) {
+          if (!entry.isDirectory()) continue;
+          if (registryNames.has(entry.name)) continue;
+          const entryPath = path.join(projectSkillsDir, entry.name);
+          try { if (lstatSync(entryPath).isSymbolicLink()) continue; } catch { continue; }
+          const skillMdPath = path.join(entryPath, 'SKILL.md');
+          if (!existsSync(skillMdPath)) continue;
+          try {
+            const content = readFileSync(skillMdPath, 'utf-8');
+            const { frontmatter } = parseSkillMd(content);
+            projectOnlySkills.push({
+              name: entry.name,
+              displayName: frontmatter.name || entry.name,
+              description: frontmatter.description || '',
+              path: entryPath,
+            });
+          } catch { /* skip unreadable */ }
+        }
+      } catch { /* dir not readable */ }
+    }
+
+    return c.json({ skills: [...registrySkills, ...projectOnlySkills] });
   });
 
   // Deployment status for all skills
@@ -341,25 +373,48 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
     const skills = listRegistrySkills();
     const globalDir = getGlobalDeployDir();
     const projectDeployDir = getProjectDeployDir(projectDir);
+    const registryNames = new Set(skills.map((s) => s.name));
 
-    const status: Record<string, { global: boolean; project: boolean; projectIsSymlink: boolean; projectIsCopy: boolean }> = {};
+    const status: Record<string, { global: boolean; local: boolean; localIsSymlink: boolean; localIsCopy: boolean; inRegistry: boolean }> = {};
     for (const skill of skills) {
-      const isProjectSymlink = isSymlinkToRegistry(projectDeployDir, skill.name);
-      const projectPath = path.join(projectDeployDir, skill.name);
-      let isProjectCopy = false;
-      if (!isProjectSymlink) {
+      const isLocalSymlink = isSymlinkToRegistry(projectDeployDir, skill.name);
+      const localPath = path.join(projectDeployDir, skill.name);
+      let isLocalCopy = false;
+      if (!isLocalSymlink) {
         try {
-          const stat = lstatSync(projectPath);
-          isProjectCopy = stat.isDirectory() && !stat.isSymbolicLink();
+          const stat = lstatSync(localPath);
+          isLocalCopy = stat.isDirectory() && !stat.isSymbolicLink();
         } catch { /* doesn't exist */ }
       }
       status[skill.name] = {
         global: isSymlinkToRegistry(globalDir, skill.name),
-        project: isProjectSymlink || isProjectCopy,
-        projectIsSymlink: isProjectSymlink,
-        projectIsCopy: isProjectCopy,
+        local: isLocalSymlink || isLocalCopy,
+        localIsSymlink: isLocalSymlink,
+        localIsCopy: isLocalCopy,
+        inRegistry: true,
       };
     }
+
+    // Include project-only skills (not in registry)
+    if (existsSync(projectDeployDir)) {
+      try {
+        for (const entry of readdirSync(projectDeployDir, { withFileTypes: true })) {
+          if (!entry.isDirectory()) continue;
+          if (registryNames.has(entry.name)) continue;
+          const entryPath = path.join(projectDeployDir, entry.name);
+          try { if (lstatSync(entryPath).isSymbolicLink()) continue; } catch { continue; }
+          if (!existsSync(path.join(entryPath, 'SKILL.md'))) continue;
+          status[entry.name] = {
+            global: false,
+            local: true,
+            localIsSymlink: false,
+            localIsCopy: true,
+            inRegistry: false,
+          };
+        }
+      } catch { /* dir not readable */ }
+    }
+
     return c.json({ status });
   });
 
@@ -368,12 +423,12 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
     return c.json({ plugins: loadPlugins() });
   });
 
-  // Get skill detail (registry or project copy via ?location=project)
+  // Get skill detail (registry or local copy via ?location=local)
   app.get('/api/claude/skills/:name', (c) => {
     const name = c.req.param('name');
     const location = c.req.query('location');
 
-    const skillDir = location === 'project'
+    const skillDir = location === 'local'
       ? path.join(getProjectDeployDir(projectDir), name)
       : path.join(getRegistryDir(), name);
     const skillMdPath = path.join(skillDir, 'SKILL.md');
@@ -524,7 +579,7 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
 
   // ── Parameterized routes ──────────────────────────────────────
 
-  // Update skill (registry or project copy via ?location=project)
+  // Update skill (registry or local copy via ?location=local)
   app.patch('/api/claude/skills/:name', async (c) => {
     const name = c.req.param('name');
     const location = c.req.query('location');
@@ -535,7 +590,7 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
       frontmatter?: Partial<SkillFrontmatter>;
     }>();
 
-    const skillDir = location === 'project'
+    const skillDir = location === 'local'
       ? path.join(getProjectDeployDir(projectDir), name)
       : path.join(getRegistryDir(), name);
     const skillMdPath = path.join(skillDir, 'SKILL.md');
@@ -589,10 +644,10 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
     const globalDir = getGlobalDeployDir();
     const projectDeployDir = getProjectDeployDir(projectDir);
     if (isSymlinkToRegistry(globalDir, name)) {
-      removeDeploySymlink(globalDir, name);
+      removeDeploy(globalDir, name);
     }
     if (isSymlinkToRegistry(projectDeployDir, name)) {
-      removeDeploySymlink(projectDeployDir, name);
+      removeDeploy(projectDeployDir, name);
     }
 
     rmSync(skillDir, { recursive: true });
@@ -602,26 +657,26 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
   // Deploy skill (create symlink)
   app.post('/api/claude/skills/:name/deploy', async (c) => {
     const name = c.req.param('name');
-    const body = await c.req.json<{ scope: 'global' | 'project' }>();
+    const body = await c.req.json<{ scope: 'global' | 'local' }>();
 
-    const deployDir = body.scope === 'project'
+    const deployDir = body.scope === 'local'
       ? getProjectDeployDir(projectDir)
       : getGlobalDeployDir();
 
-    const result = createDeploySymlink(deployDir, name);
+    const result = createDeploy(deployDir, name);
     return c.json(result, result.success ? 200 : 500);
   });
 
   // Undeploy skill (remove symlink)
   app.post('/api/claude/skills/:name/undeploy', async (c) => {
     const name = c.req.param('name');
-    const body = await c.req.json<{ scope: 'global' | 'project' }>();
+    const body = await c.req.json<{ scope: 'global' | 'local' }>();
 
-    const deployDir = body.scope === 'project'
+    const deployDir = body.scope === 'local'
       ? getProjectDeployDir(projectDir)
       : getGlobalDeployDir();
 
-    const result = removeDeploySymlink(deployDir, name);
+    const result = removeDeploy(deployDir, name);
     return c.json(result, result.success ? 200 : 500);
   });
 

@@ -174,7 +174,7 @@ export interface SkillDetail extends SkillSummary {
 }
 
 export interface SkillDeploymentStatus {
-  status: Record<string, { global: boolean; project: boolean; projectIsSymlink: boolean; projectIsCopy: boolean }>;
+  status: Record<string, { global: boolean; local: boolean; localIsSymlink: boolean; localIsCopy: boolean; inRegistry: boolean }>;
 }
 
 export interface PluginSummary {

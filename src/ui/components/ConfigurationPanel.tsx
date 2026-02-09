@@ -172,10 +172,6 @@ export function ConfigurationPanel({
     return localStorage.getItem(SETTINGS_BANNER_DISMISSED_KEY) !== 'true';
   });
 
-  // Electron-only: setup preference
-  const isElectron = !!window.electronAPI;
-  const [setupPreference, setSetupPreference] = useState<SetupPreference>('ask');
-
   const dismissBanner = () => {
     setShowBanner(false);
     localStorage.setItem(SETTINGS_BANNER_DISMISSED_KEY, 'true');
@@ -256,18 +252,6 @@ export function ConfigurationPanel({
   useEffect(() => {
     loadBranchTab(branchTab);
   }, [branchTab, loadBranchTab]);
-
-  // Load setup preference from Electron
-  useEffect(() => {
-    if (isElectron) {
-      window.electronAPI?.getSetupPreference().then(setSetupPreference);
-    }
-  }, [isElectron]);
-
-  const handleSetupPreferenceChange = (pref: SetupPreference) => {
-    setSetupPreference(pref);
-    window.electronAPI?.setSetupPreference(pref);
-  };
 
   if (!form) {
     return (
@@ -367,22 +351,14 @@ export function ConfigurationPanel({
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
           <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>Port Configuration</h3>
           <div className="flex flex-col gap-6">
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Server Port" description={`Port for the ${APP_NAME} manager server`}>
-                <NumberInput
-                  value={form.serverPort}
-                  onChange={(v) => setForm({ ...form, serverPort: v })}
-                />
-              </Field>
-              <Field label="Port Offset Step" description="Increment per worktree instance">
-                <NumberInput
-                  value={form.ports.offsetStep}
-                  onChange={(v) =>
-                    setForm({ ...form, ports: { ...form.ports, offsetStep: v } })
-                  }
-                />
-              </Field>
-            </div>
+            <Field label="Port Offset Step" description="Increment per worktree instance">
+              <NumberInput
+                value={form.ports.offsetStep}
+                onChange={(v) =>
+                  setForm({ ...form, ports: { ...form.ports, offsetStep: v } })
+                }
+              />
+            </Field>
             <Field label="Discovered Ports" description="Ports detected from your dev server">
               <div className="flex items-center gap-2">
                 <span className={`text-xs ${text.secondary}`}>
@@ -520,27 +496,6 @@ export function ConfigurationPanel({
             </div>
           )}
         </div>
-
-        {/* App Preferences Card (Electron only) */}
-        {isElectron && (
-          <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-            <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>App Preferences</h3>
-            <Field
-              label="New Project Setup"
-              description={`How to handle projects without ${APP_NAME} configuration`}
-            >
-              <select
-                value={setupPreference}
-                onChange={(e) => handleSetupPreferenceChange(e.target.value as SetupPreference)}
-                className={fieldInputClass}
-              >
-                <option value="ask">Ask every time</option>
-                <option value="auto">Auto-detect settings</option>
-                <option value="manual">Show setup form</option>
-              </select>
-            </Field>
-          </div>
-        )}
 
         {/* Connection status */}
         <div className="flex items-center gap-2 ml-3">

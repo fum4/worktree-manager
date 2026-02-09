@@ -12,6 +12,7 @@ interface ElectronProject {
 type SetupPreference = 'auto' | 'manual' | 'ask';
 
 interface AppPreferences {
+  basePort: number;
   setupPreference: SetupPreference;
   sidebarWidth: number;
   windowBounds: {

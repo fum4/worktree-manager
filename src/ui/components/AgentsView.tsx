@@ -85,9 +85,10 @@ export function AgentsView() {
     refetchDeployment();
   };
 
-  const handleSkillCreated = () => {
+  const handleSkillCreated = (skillName: string) => {
     refetchSkills();
     refetchSkillDeployment();
+    setSelection({ type: 'skill', name: skillName });
   };
 
   const handleImported = () => {
@@ -123,6 +124,8 @@ export function AgentsView() {
           selection={selection}
           onSelect={setSelection}
           search={search}
+          onAddServer={() => setShowCreateServerModal(true)}
+          onAddSkill={() => setShowCreateSkillModal(true)}
         />
       </aside>
 

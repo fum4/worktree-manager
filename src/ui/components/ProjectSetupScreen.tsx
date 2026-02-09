@@ -31,7 +31,6 @@ export function ProjectSetupScreen({
     baseBranch: 'origin/main',
     startCommand: 'npm run dev',
     installCommand: 'npm install',
-    serverPort: 6969,
   });
   const [showAll, setShowAll] = useState(false);
   const [extraValues, setExtraValues] = useState({
