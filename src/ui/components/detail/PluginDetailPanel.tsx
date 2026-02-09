@@ -1,0 +1,376 @@
+import { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, ExternalLink, RefreshCw, Trash2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { useClaudePluginDetail } from '../../hooks/useClaudeSkills';
+import { useApi } from '../../hooks/useApi';
+import { border, button, plugin as pluginTheme, text } from '../../theme';
+import { MarkdownContent } from '../MarkdownContent';
+import { Modal } from '../Modal';
+import { Spinner } from '../Spinner';
+
+interface PluginDetailPanelProps {
+  pluginId: string;
+  onDeleted: () => void;
+}
+
+export function PluginDetailPanel({ pluginId, onDeleted }: PluginDetailPanelProps) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const { plugin, isLoading, error, refetch } = useClaudePluginDetail(pluginId);
+
+  const [acting, setActing] = useState<string | null>(null);
+  const [showUninstallConfirm, setShowUninstallConfirm] = useState(false);
+
+  // Track current pluginId so async operations can check if we're still viewing the same plugin
+  const currentPluginIdRef = useRef(pluginId);
+  useEffect(() => { currentPluginIdRef.current = pluginId; }, [pluginId]);
+
+  const invalidatePlugins = () => {
+    queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
+  };
+
+  const handleToggleEnabled = async () => {
+    if (!plugin) return;
+    setActing('toggle');
+    if (plugin.enabled) {
+      await api.disableClaudePlugin(plugin.id, plugin.scope);
+    } else {
+      await api.enableClaudePlugin(plugin.id, plugin.scope);
+    }
+    setActing(null);
+    invalidatePlugins();
+    refetch();
+  };
+
+  const handleUpdate = async () => {
+    if (!plugin) return;
+    setActing('update');
+    await api.updateClaudePlugin(plugin.id);
+    setActing(null);
+    invalidatePlugins();
+    refetch();
+  };
+
+  const handleUninstall = async () => {
+    if (!plugin) return;
+    setShowUninstallConfirm(false);
+    setActing('uninstall');
+    await api.uninstallClaudePlugin(plugin.id, plugin.scope);
+    await queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
+    // Only redirect if still viewing the plugin that was deleted
+    if (currentPluginIdRef.current === plugin.id) {
+      onDeleted();
+    }
+  };
+
+  // Redirect when source is deleted / not found
+  useEffect(() => {
+    if (!isLoading && (error || !plugin)) onDeleted();
+  }, [isLoading, error, plugin]);
+
+  if (isLoading || error || !plugin) {
+    return (
+      <div className="flex-1 flex items-center justify-center gap-2">
+        <Spinner size="sm" className={text.muted} />
+        <p className={`${text.muted} text-sm`}>Loading plugin...</p>
+      </div>
+    );
+  }
+
+  const scopeLabel = plugin.scope === 'user' ? 'User' : plugin.scope === 'project' ? 'Project' : 'Local';
+
+  // Parse name: strip marketplace suffix if present
+  const displayName = plugin.marketplace
+    ? plugin.name.replace(/@.*$/, '')
+    : plugin.name.includes('@')
+      ? plugin.name.split('@', 2)[0]
+      : plugin.name;
+  const displayMarketplace = plugin.marketplace || (plugin.name.includes('@') ? plugin.name.split('@', 2)[1] : '');
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* Header */}
+      <div className={`flex-shrink-0 px-5 py-4 border-b ${border.section}`}>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className={`text-[10px] font-mono ${pluginTheme.accent}`}>
+                {plugin.id}
+              </span>
+              {plugin.version && (
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${pluginTheme.badge}`}>
+                  v{plugin.version}
+                </span>
+              )}
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${pluginTheme.badge}`}>
+                {scopeLabel}
+              </span>
+            </div>
+            <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>
+              {displayName}
+            </h2>
+            {displayMarketplace && (
+              <p className={`text-[11px] ${text.muted} mt-0.5`}>
+                {displayMarketplace}
+              </p>
+            )}
+          </div>
+          <div className="flex-shrink-0 pt-1 flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <DeployToggle
+                active={plugin.enabled}
+                onToggle={handleToggleEnabled}
+                disabled={!!acting}
+                title={plugin.enabled ? 'Disable' : 'Enable'}
+              />
+              <span className={`text-[10px] ${text.dimmed} w-10`}>
+                {plugin.enabled ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleUpdate}
+              disabled={!!acting}
+              className={`p-1.5 rounded-lg ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] transition-colors disabled:opacity-50 disabled:pointer-events-none`}
+              title="Update plugin"
+            >
+              <RefreshCw className={`w-4 h-4 ${acting === 'update' ? 'animate-spin' : ''}`} />
+            </button>
+            {acting === 'uninstall' ? (
+              <div className="p-1.5">
+                <Spinner size="sm" className="text-red-400" />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowUninstallConfirm(true)}
+                disabled={!!acting}
+                className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:pointer-events-none`}
+                title="Uninstall plugin"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Error / warning banner */}
+      {plugin.error && (
+        <div className="flex-shrink-0 mx-5 mt-4 px-3 py-2 rounded-lg bg-red-900/20 border border-red-500/20 flex items-center gap-2">
+          <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+          <span className="text-[11px] text-red-300">{plugin.error}</span>
+        </div>
+      )}
+      {!plugin.error && plugin.warning && (
+        <div className="flex-shrink-0 mx-5 mt-4 px-3 py-2 rounded-lg bg-yellow-900/20 border border-yellow-500/20 flex items-center gap-2">
+          <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+          <span className="text-[11px] text-yellow-300">{plugin.warning}</span>
+        </div>
+      )}
+
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto p-5 flex flex-col min-h-0">
+        {/* Description */}
+        {plugin.description && (
+          <section className={`flex flex-col mb-8 min-h-0 ${plugin.readme ? 'flex-shrink-0' : 'flex-1'}`}>
+            <h3 className={`text-[11px] font-medium ${text.muted} mb-2 flex-shrink-0`}>Description</h3>
+            <div className={`rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2 overflow-y-auto ${plugin.readme ? '' : 'flex-1'}`}>
+              <MarkdownContent content={plugin.description} />
+            </div>
+          </section>
+        )}
+
+        {/* Info, Components */}
+        <div className="flex-shrink-0 space-y-8">
+          <section>
+            <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>Info</h3>
+            <div className="space-y-2">
+              {plugin.author && (
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] ${text.dimmed} w-24 flex-shrink-0`}>Author</span>
+                  <span className={`text-xs ${text.secondary}`}>{plugin.author}</span>
+                </div>
+              )}
+              {plugin.homepage && (
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] ${text.dimmed} w-24 flex-shrink-0`}>Homepage</span>
+                  <a
+                    href={plugin.homepage}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`text-xs ${pluginTheme.accent} hover:underline flex items-center gap-1`}
+                  >
+                    {plugin.homepage}
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+              {plugin.repository && (
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] ${text.dimmed} w-24 flex-shrink-0`}>Repository</span>
+                  <a
+                    href={plugin.repository}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`text-xs ${pluginTheme.accent} hover:underline flex items-center gap-1`}
+                  >
+                    {plugin.repository}
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+              {plugin.license && (
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] ${text.dimmed} w-24 flex-shrink-0`}>License</span>
+                  <span className={`text-xs ${text.secondary}`}>{plugin.license}</span>
+                </div>
+              )}
+              {plugin.keywords && plugin.keywords.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <span className={`text-[10px] ${text.dimmed} w-24 flex-shrink-0 pt-0.5`}>Keywords</span>
+                  <div className="flex flex-wrap gap-1">
+                    {plugin.keywords.map((kw) => (
+                      <span key={kw} className={`text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] ${text.muted}`}>
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {plugin.installPath && (
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] ${text.dimmed} w-24 flex-shrink-0`}>Path</span>
+                  <span className={`text-[10px] font-mono ${text.dimmed} truncate`}>
+                    {plugin.installPath}
+                  </span>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {hasComponents(plugin.components) && (
+            <section>
+              <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>Components</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {plugin.components.commands.map((cmd) => (
+                  <ComponentChip key={`cmd-${cmd}`} label={cmd} type="Command" />
+                ))}
+                {plugin.components.agents.map((agent) => (
+                  <ComponentChip key={`agent-${agent}`} label={agent} type="Agent" />
+                ))}
+                {plugin.components.skills.map((skill) => (
+                  <ComponentChip key={`skill-${skill}`} label={skill} type="Skill" />
+                ))}
+                {plugin.components.mcpServers.map((srv) => (
+                  <ComponentChip key={`mcp-${srv}`} label={srv} type="MCP Server" />
+                ))}
+                {plugin.components.hasHooks && (
+                  <ComponentChip label="hooks" type="Hooks" />
+                )}
+                {plugin.components.hasLsp && (
+                  <ComponentChip label="LSP" type="LSP" />
+                )}
+              </div>
+            </section>
+          )}
+
+        </div>
+
+        {/* README — fills remaining space */}
+        {plugin.readme && (
+          <section className="flex-1 flex flex-col mt-8 min-h-0">
+            <h3 className={`text-[11px] font-medium ${text.muted} mb-2 flex-shrink-0`}>README</h3>
+            <div className="flex-1 rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2 overflow-y-auto">
+              <MarkdownContent content={plugin.readme} />
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* Uninstall confirmation */}
+      {showUninstallConfirm && (
+        <Modal
+          title="Uninstall plugin?"
+          icon={<Trash2 className="w-4 h-4 text-red-400" />}
+          onClose={() => setShowUninstallConfirm(false)}
+          width="sm"
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setShowUninstallConfirm(false)}
+                className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleUninstall}
+                className={`px-3 py-1.5 text-xs font-medium ${button.confirm} rounded-lg transition-colors`}
+              >
+                Uninstall
+              </button>
+            </>
+          }
+        >
+          <p className={`text-xs ${text.secondary}`}>
+            The plugin "{plugin.name}" will be uninstalled from {scopeLabel.toLowerCase()} scope.
+          </p>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────
+
+function DeployToggle({ active, onToggle, disabled, title }: { active: boolean; onToggle: () => void; disabled?: boolean; title: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      className={`relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
+      style={{ backgroundColor: active ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
+      title={title}
+    >
+      <span
+        className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
+          active ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'
+        }`}
+      />
+    </button>
+  );
+}
+
+function hasComponents(components: { commands: string[]; agents: string[]; skills: string[]; mcpServers: string[]; hasHooks: boolean; hasLsp: boolean }): boolean {
+  return (
+    components.commands.length > 0 ||
+    components.agents.length > 0 ||
+    components.skills.length > 0 ||
+    components.mcpServers.length > 0 ||
+    components.hasHooks ||
+    components.hasLsp
+  );
+}
+
+const typeColors: Record<string, string> = {
+  Command: 'text-blue-300 bg-blue-900/30',
+  Agent: 'text-emerald-300 bg-emerald-900/30',
+  Skill: 'text-amber-300 bg-amber-900/30',
+  'MCP Server': 'text-purple-300 bg-purple-900/30',
+  Hooks: 'text-rose-300 bg-rose-900/30',
+  LSP: 'text-cyan-300 bg-cyan-900/30',
+};
+
+function ComponentChip({ label, type }: { label: string; type: string }) {
+  const colors = typeColors[type] ?? `${text.muted} bg-white/[0.06]`;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full ${colors}`}>
+      <span className="opacity-60">{type}:</span>
+      {label}
+    </span>
+  );
+}

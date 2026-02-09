@@ -72,7 +72,7 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
   return (
     <Modal
       title="Create Skill"
-      icon={<Sparkles className="w-4 h-4 text-[#D4A574]" />}
+      icon={<Sparkles className="w-4 h-4 text-purple-400" />}
       onClose={onClose}
       onSubmit={handleSubmit}
       width="md"

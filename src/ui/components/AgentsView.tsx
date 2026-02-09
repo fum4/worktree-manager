@@ -10,9 +10,11 @@ import { AgentsSidebar, type AgentSelection } from './AgentsSidebar';
 import { AgentsToolbar } from './AgentsToolbar';
 import { McpServerDetailPanel } from './detail/McpServerDetailPanel';
 import { SkillDetailPanel } from './detail/SkillDetailPanel';
+import { PluginDetailPanel } from './detail/PluginDetailPanel';
 import { McpServerCreateModal } from './McpServerCreateModal';
 import { McpServerScanModal } from './McpServerScanModal';
 import { SkillCreateModal } from './SkillCreateModal';
+import { PluginInstallModal } from './PluginInstallModal';
 import { ResizableHandle } from './ResizableHandle';
 import { WOK3_SERVER_ID, WOK3_SERVER } from './McpServerList';
 import { text } from '../theme';
@@ -45,13 +47,14 @@ export function AgentsView() {
   };
   const [showCreateServerModal, setShowCreateServerModal] = useState(false);
   const [showCreateSkillModal, setShowCreateSkillModal] = useState(false);
+  const [showInstallPluginModal, setShowInstallPluginModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
 
   const { servers, isLoading: serversLoading, refetch: refetchServers } = useMcpServers(search || undefined);
   const { status: deploymentStatus, refetch: refetchDeployment } = useMcpDeploymentStatus();
   const { skills, isLoading: skillsLoading, refetch: refetchSkills } = useClaudeSkills();
   const { status: skillDeploymentStatus, refetch: refetchSkillDeployment } = useSkillDeploymentStatus();
-  const { plugins } = useClaudePlugins();
+  const { plugins, isLoading: pluginsLoading, refetch: refetchPlugins } = useClaudePlugins();
 
   // Sidebar width
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -94,6 +97,10 @@ export function AgentsView() {
     setSelection({ type: 'skill', name: skillName });
   };
 
+  const handlePluginInstalled = () => {
+    refetchPlugins();
+  };
+
   const handleImported = () => {
     refetchServers();
     refetchDeployment();
@@ -123,6 +130,7 @@ export function AgentsView() {
           onSearchChange={setSearch}
           onAddServer={() => setShowCreateServerModal(true)}
           onAddSkill={() => setShowCreateSkillModal(true)}
+          onAddPlugin={() => setShowInstallPluginModal(true)}
           onScanImport={() => setShowScanModal(true)}
           hasItems={hasItems}
         />
@@ -134,11 +142,13 @@ export function AgentsView() {
           skillsLoading={skillsLoading}
           skillDeploymentStatus={skillDeploymentStatus}
           plugins={plugins}
+          pluginsLoading={pluginsLoading}
           selection={selection}
           onSelect={setSelection}
           search={search}
           onAddServer={() => setShowCreateServerModal(true)}
           onAddSkill={() => setShowCreateSkillModal(true)}
+          onAddPlugin={() => setShowInstallPluginModal(true)}
         />
       </aside>
 
@@ -199,6 +209,14 @@ export function AgentsView() {
               refetchSkillDeployment();
             }}
           />
+        ) : selection?.type === 'plugin' ? (
+          <PluginDetailPanel
+            pluginId={selection.id}
+            onDeleted={() => {
+              setSelection(null);
+              refetchPlugins();
+            }}
+          />
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <p className={`text-xs ${text.dimmed}`}>Select an agent to view details</p>
@@ -217,6 +235,12 @@ export function AgentsView() {
         <SkillCreateModal
           onCreated={handleSkillCreated}
           onClose={() => setShowCreateSkillModal(false)}
+        />
+      )}
+      {showInstallPluginModal && (
+        <PluginInstallModal
+          onInstalled={handlePluginInstalled}
+          onClose={() => setShowInstallPluginModal(false)}
         />
       )}
       {showScanModal && (

@@ -439,11 +439,11 @@ export function IssueList({
             type="button"
             onClick={() => setConfigOpen(!configOpen)}
             className={`p-1 rounded transition-colors duration-150 ${
-              configOpen ? `${text.secondary} bg-white/[0.06]` : `${text.dimmed} hover:${text.muted} hover:bg-white/[0.04]`
+              configOpen ? `${text.secondary} bg-white/[0.06]` : `${text.dimmed} hover:${text.secondary} hover:bg-white/[0.06]`
             }`}
             title="List settings"
           >
-            <Settings className="w-3.5 h-3.5" />
+            <Settings className="w-4 h-4" />
           </button>
 
           {configOpen && (

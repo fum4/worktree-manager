@@ -178,8 +178,57 @@ export interface SkillDeploymentStatus {
 }
 
 export interface PluginSummary {
+  id: string;
   name: string;
+  description: string;
+  version: string;
+  scope: 'user' | 'project' | 'local';
   enabled: boolean;
+  marketplace: string;
+  author: string;
+  error?: string;
+  warning?: string;
+  componentCounts: {
+    commands: number;
+    agents: number;
+    skills: number;
+    mcpServers: number;
+    hooks: boolean;
+    lsp: boolean;
+  };
+}
+
+export interface PluginDetail extends PluginSummary {
+  installPath: string;
+  manifest: Record<string, unknown>;
+  components: {
+    commands: string[];
+    agents: string[];
+    skills: string[];
+    mcpServers: string[];
+    hasHooks: boolean;
+    hasLsp: boolean;
+  };
+  homepage: string;
+  repository: string;
+  license: string;
+  keywords: string[];
+  readme: string;
+}
+
+export interface AvailablePlugin {
+  pluginId: string;
+  name: string;
+  description: string;
+  marketplaceName: string;
+  version: string;
+  installed: boolean;
+}
+
+export interface MarketplaceSummary {
+  name: string;
+  source: string;
+  repo: string;
 }
 
 export interface SkillScanResult {

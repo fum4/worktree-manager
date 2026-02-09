@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Server, Settings } from 'lucide-react';
+import { Filter, Plus, Server, Settings } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import type { McpServerSummary, SkillSummary, PluginSummary } from '../types';
+import { useApi } from '../hooks/useApi';
 import { border, mcpServer, surface, text } from '../theme';
 import { McpServerItem } from './McpServerItem';
 import { WOK3_SERVER_ID } from './McpServerList';
@@ -12,6 +14,7 @@ import { Spinner } from './Spinner';
 type AgentSelection =
   | { type: 'mcp-server'; id: string }
   | { type: 'skill'; name: string }
+  | { type: 'plugin'; id: string }
   | null;
 
 function ChevronIcon({ collapsed }: { collapsed: boolean }) {
@@ -35,11 +38,13 @@ interface AgentsSidebarProps {
   skillsLoading: boolean;
   skillDeploymentStatus: Record<string, { global: boolean; local: boolean }>;
   plugins: PluginSummary[];
+  pluginsLoading: boolean;
   selection: AgentSelection;
   onSelect: (selection: AgentSelection) => void;
   search: string;
   onAddServer: () => void;
   onAddSkill: () => void;
+  onAddPlugin: () => void;
 }
 
 export function AgentsSidebar({
@@ -50,14 +55,20 @@ export function AgentsSidebar({
   skillsLoading,
   skillDeploymentStatus,
   plugins,
+  pluginsLoading,
   selection,
   onSelect,
   search,
   onAddServer,
   onAddSkill,
+  onAddPlugin,
 }: AgentsSidebarProps) {
-  const [mcpCollapsed, setMcpCollapsed] = useState(false);
-  const [claudeCollapsed, setClaudeCollapsed] = useState(false);
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  const [mcpCollapsed, setMcpCollapsed] = useState(() => localStorage.getItem('wok3:agentsMcpCollapsed') === '1');
+  const [skillsCollapsed, setSkillsCollapsed] = useState(() => localStorage.getItem('wok3:agentsSkillsCollapsed') === '1');
+  const [pluginsCollapsed, setPluginsCollapsed] = useState(() => localStorage.getItem('wok3:agentsPluginsCollapsed') === '1');
 
   const [showGlobal, setShowGlobal] = useState(() => {
     const saved = localStorage.getItem('wok3:agentsShowGlobal');
@@ -70,6 +81,22 @@ export function AgentsSidebar({
   const [configOpen, setConfigOpen] = useState(false);
   const configRef = useRef<HTMLDivElement>(null);
 
+  const [hiddenMarketplaces, setHiddenMarketplaces] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('wok3:hiddenMarketplaces');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem('wok3:agentsMcpCollapsed', mcpCollapsed ? '1' : '0');
+  }, [mcpCollapsed]);
+  useEffect(() => {
+    localStorage.setItem('wok3:agentsSkillsCollapsed', skillsCollapsed ? '1' : '0');
+  }, [skillsCollapsed]);
+  useEffect(() => {
+    localStorage.setItem('wok3:agentsPluginsCollapsed', pluginsCollapsed ? '1' : '0');
+  }, [pluginsCollapsed]);
   useEffect(() => {
     localStorage.setItem('wok3:agentsShowGlobal', showGlobal ? '1' : '0');
   }, [showGlobal]);
@@ -86,6 +113,19 @@ export function AgentsSidebar({
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [configOpen]);
+  useEffect(() => {
+    localStorage.setItem('wok3:hiddenMarketplaces', JSON.stringify([...hiddenMarketplaces]));
+  }, [hiddenMarketplaces]);
+  useEffect(() => {
+    if (!filterOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [filterOpen]);
 
   // Filter servers (exclude wok3 duplicates — McpServerList handles wok3 internally)
   const filteredServers = servers.filter((s) =>
@@ -101,7 +141,10 @@ export function AgentsSidebar({
     : skills;
 
   const filteredPlugins = search
-    ? plugins.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+    ? plugins.filter((p) =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.description.toLowerCase().includes(search.toLowerCase()),
+      )
     : plugins;
 
   const wok3Seen = typeof localStorage !== 'undefined' && localStorage.getItem('wok3:mcpWok3Seen') === '1';
@@ -136,9 +179,43 @@ export function AgentsSidebar({
     return false;
   };
 
+  const isPluginVisible = (plugin: PluginSummary) => {
+    if (showGlobal && showProject) return true;
+    if (plugin.scope === 'user') return showGlobal;
+    if (plugin.scope === 'project' || plugin.scope === 'local') return showProject;
+    return true;
+  };
+
+  // Sort plugins: errors first, then warnings, then enabled, then disabled; alphabetical within each group
+  const pluginSortPriority = (p: PluginSummary) => {
+    if (p.error) return 0;
+    if (p.warning) return 1;
+    if (p.enabled) return 2;
+    return 3;
+  };
+  const marketplaceNames = [...new Set(plugins.map((p) => p.marketplace).filter(Boolean))].sort();
+
+  const toggleMarketplace = (name: string) => {
+    setHiddenMarketplaces((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const sortedPlugins = [...filteredPlugins]
+    .filter((p) => isPluginVisible(p) && (!p.marketplace || !hiddenMarketplaces.has(p.marketplace)))
+    .sort((a, b) => {
+      const pa = pluginSortPriority(a);
+      const pb = pluginSortPriority(b);
+      if (pa !== pb) return pa - pb;
+      return a.name.localeCompare(b.name);
+    });
+
   return (
     <>
-    <div className="flex-1 min-h-0 overflow-y-auto space-y-8">
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-8" style={{ scrollbarGutter: 'stable' }}>
       {/* MCP Servers Section */}
       <div>
         <div className="relative mb-px group">
@@ -241,19 +318,19 @@ export function AgentsSidebar({
         )}
       </div>
 
-      {/* Claude Section */}
+      {/* Skills Section */}
       <div>
         <div className="relative mb-px group">
           <button
             type="button"
-            onClick={() => setClaudeCollapsed(!claudeCollapsed)}
+            onClick={() => setSkillsCollapsed(!skillsCollapsed)}
             className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-white/[0.03] cursor-pointer transition-colors duration-150"
           >
-            <ChevronIcon collapsed={claudeCollapsed} />
-            <span className={`text-[11px] font-medium ${text.secondary}`}>Claude</span>
+            <ChevronIcon collapsed={skillsCollapsed} />
+            <span className={`text-[11px] font-medium ${text.secondary}`}>Skills</span>
             {!skillsLoading && (
               <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
-                {filteredSkills.length + filteredPlugins.length}
+                {filteredSkills.filter((s) => isSkillVisible(s.name)).length}
               </span>
             )}
           </button>
@@ -267,7 +344,7 @@ export function AgentsSidebar({
           </button>
         </div>
 
-        {!claudeCollapsed && (
+        {!skillsCollapsed && (
           <div className="space-y-px">
             {skillsLoading ? (
               <div className="flex items-center justify-center gap-2 py-4">
@@ -301,15 +378,106 @@ export function AgentsSidebar({
                       />
                     );
                   })}
-                {filteredPlugins.map((plugin) => (
-                  <PluginItem key={plugin.name} plugin={plugin} />
-                ))}
-                {filteredSkills.length === 0 && filteredPlugins.length === 0 && (
+                {filteredSkills.filter((s) => isSkillVisible(s.name)).length === 0 && (
                   <div className="flex items-center justify-center py-4">
-                    <p className={`text-xs ${text.dimmed}`}>No skills or plugins</p>
+                    <p className={`text-xs ${text.dimmed}`}>No skills</p>
                   </div>
                 )}
               </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Plugins Section */}
+      <div>
+        <div className="relative mb-px group">
+          <button
+            type="button"
+            onClick={() => setPluginsCollapsed(!pluginsCollapsed)}
+            className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-white/[0.03] cursor-pointer transition-colors duration-150"
+          >
+            <ChevronIcon collapsed={pluginsCollapsed} />
+            <span className={`text-[11px] font-medium ${text.secondary}`}>Plugins</span>
+            {!pluginsLoading && (
+              <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+                {sortedPlugins.length}
+              </span>
+            )}
+          </button>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
+            {marketplaceNames.length > 1 && (
+              <div className="relative" ref={filterRef}>
+                <button
+                  type="button"
+                  onClick={() => setFilterOpen(!filterOpen)}
+                  className={`p-1 rounded transition-colors duration-150 ${
+                    hiddenMarketplaces.size > 0
+                      ? 'text-teal-400 hover:text-teal-300 hover:bg-white/[0.06]'
+                      : `${text.dimmed} hover:${text.muted} hover:bg-white/[0.06]`
+                  }`}
+                >
+                  <Filter className="w-3 h-3" />
+                </button>
+                {filterOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-48 rounded-lg bg-[#1a1d24] border border-white/[0.08] shadow-xl py-1 z-50">
+                    {marketplaceNames.map((name) => (
+                      <SettingsToggle
+                        key={name}
+                        label={name}
+                        checked={!hiddenMarketplaces.has(name)}
+                        onToggle={() => toggleMarketplace(name)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={onAddPlugin}
+              className={`p-1 rounded ${text.dimmed} hover:${text.muted} hover:bg-white/[0.06] transition-colors`}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {!pluginsCollapsed && (
+          <div className="space-y-px">
+            {pluginsLoading ? (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Spinner size="sm" className={text.muted} />
+                <span className={`text-xs ${text.muted}`}>Loading...</span>
+              </div>
+            ) : sortedPlugins.length === 0 ? (
+              <div className="flex items-center justify-center py-4">
+                <p className={`text-xs ${text.dimmed}`}>No plugins</p>
+              </div>
+            ) : (
+              sortedPlugins.map((plugin) => (
+                <PluginItem
+                  key={plugin.id}
+                  plugin={plugin}
+                  isSelected={selection?.type === 'plugin' && selection.id === plugin.id}
+                  onSelect={() => onSelect({ type: 'plugin', id: plugin.id })}
+                  onToggleEnabled={async () => {
+                    if (plugin.enabled) {
+                      await api.disableClaudePlugin(plugin.id, plugin.scope);
+                    } else {
+                      await api.enableClaudePlugin(plugin.id, plugin.scope);
+                    }
+                    queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
+                  }}
+                  onRemove={async () => {
+                    await api.uninstallClaudePlugin(plugin.id, plugin.scope);
+                    await queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
+                    if (selection?.type === 'plugin' && selection.id === plugin.id) {
+                      onSelect(null as unknown as AgentSelection);
+                    }
+                  }}
+                />
+              ))
             )}
           </div>
         )}
@@ -323,11 +491,11 @@ export function AgentsSidebar({
           type="button"
           onClick={() => setConfigOpen(!configOpen)}
           className={`p-1 rounded transition-colors duration-150 ${
-            configOpen ? `${text.secondary} bg-white/[0.06]` : `${text.dimmed} hover:${text.muted} hover:bg-white/[0.04]`
+            configOpen ? `${text.secondary} bg-white/[0.06]` : `${text.dimmed} hover:${text.secondary} hover:bg-white/[0.06]`
           }`}
           title="List settings"
         >
-          <Settings className="w-3.5 h-3.5" />
+          <Settings className="w-4 h-4" />
         </button>
 
         {configOpen && (
@@ -377,14 +545,14 @@ function Wok3Item({ isSelected, onSelect, isNew, deploymentStatus }: { isSelecte
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full text-left px-3 py-2.5 transition-colors duration-150 border-l-2 ${
+      className={`group w-full text-left px-3 py-2.5 transition-colors duration-150 border-l-2 ${
         isSelected
           ? `${surface.panelSelected} ${mcpServer.accentBorder}`
           : `border-transparent hover:${surface.panelHover}`
       }`}
     >
       <div className="flex items-start gap-2.5 min-w-0">
-        <Server className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${isSelected ? 'text-purple-400' : text.muted}`} />
+        <Server className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 transition-colors duration-150 ${isSelected ? 'text-purple-400' : `${text.muted} group-hover:text-purple-400`}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={`text-xs font-medium truncate ${isSelected ? text.primary : text.secondary}`}>

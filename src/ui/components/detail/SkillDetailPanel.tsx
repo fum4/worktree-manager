@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useClaudeSkillDetail, useSkillDeploymentStatus } from '../../hooks/useClaudeSkills';
 import { useApi } from '../../hooks/useApi';
 import { border, button, claudeSkill, text } from '../../theme';
+import { MarkdownContent } from '../MarkdownContent';
 import { Modal } from '../Modal';
 import { Spinner } from '../Spinner';
 
@@ -170,27 +171,16 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
   };
 
 
-  if (isLoading) {
+  // Redirect when source is deleted / not found
+  useEffect(() => {
+    if (!isLoading && (error || !skill)) onDeleted();
+  }, [isLoading, error, skill]);
+
+  if (isLoading || error || !skill) {
     return (
       <div className="flex-1 flex items-center justify-center gap-2">
         <Spinner size="sm" className={text.muted} />
         <p className={`${text.muted} text-sm`}>Loading skill...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className={`${text.error} text-sm`}>{error}</p>
-      </div>
-    );
-  }
-
-  if (!skill) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className={`${text.muted} text-sm`}>Select a skill to view details</p>
       </div>
     );
   }
@@ -663,9 +653,11 @@ function AutoSaveTextSection({
           className="rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] px-3 py-2 cursor-pointer transition-colors"
           onClick={() => { setDraft(content); lastSaved.current = content; setEditing(true); }}
         >
-          <p className={`text-xs ${content ? text.secondary : text.dimmed}`}>
-            {content || emptyText}
-          </p>
+          {content ? (
+            <MarkdownContent content={content} />
+          ) : (
+            <p className={`text-xs ${text.dimmed}`}>{emptyText}</p>
+          )}
         </div>
       )}
     </section>

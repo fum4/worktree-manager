@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, ScanSearch, Search, Server, Sparkles } from 'lucide-react';
+import { Plus, Puzzle, ScanSearch, Search, Server, Sparkles } from 'lucide-react';
 
 import { claudeSkill, input, integration, surface, text } from '../theme';
 
@@ -8,11 +8,12 @@ interface AgentsToolbarProps {
   onSearchChange: (value: string) => void;
   onAddServer: () => void;
   onAddSkill: () => void;
+  onAddPlugin: () => void;
   onScanImport: () => void;
   hasItems: boolean;
 }
 
-export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill, onScanImport }: AgentsToolbarProps) {
+export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill, onAddPlugin, onScanImport }: AgentsToolbarProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
@@ -81,6 +82,14 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
             <Sparkles className={`w-4 h-4 ${claudeSkill.accent}`} />
             Skill
           </button>
+          <button
+            type="button"
+            onClick={() => { setShowAddMenu(false); onAddPlugin(); }}
+            className={menuItemClass}
+          >
+            <Puzzle className={`w-4 h-4 ${claudeSkill.accent}`} />
+            Plugin
+          </button>
           <div className="border-t border-white/[0.06]" />
           <button
             type="button"
@@ -100,7 +109,7 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Filter servers, skills..."
+            placeholder="Filter servers, skills, plugins..."
             className={`w-full pl-8 pr-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
           />
         </div>

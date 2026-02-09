@@ -215,37 +215,6 @@ function copyDir(src: string, dest: string): void {
   }
 }
 
-// ─── Plugins from settings.json ─────────────────────────────────
-
-interface PluginInfo {
-  name: string;
-  enabled: boolean;
-}
-
-function loadPlugins(): PluginInfo[] {
-  const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
-  if (!existsSync(settingsPath)) return [];
-
-  try {
-    const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
-    const plugins = settings.plugins;
-    if (!plugins || typeof plugins !== 'object') return [];
-
-    if (Array.isArray(plugins)) {
-      return plugins.map((p: string | { name: string; enabled?: boolean }) => {
-        if (typeof p === 'string') return { name: p, enabled: true };
-        return { name: p.name, enabled: p.enabled !== false };
-      });
-    }
-
-    return Object.entries(plugins).map(([name, value]) => ({
-      name,
-      enabled: value !== false,
-    }));
-  } catch {
-    return [];
-  }
-}
 
 // ─── Scan for skills in filesystem ──────────────────────────────
 
@@ -415,11 +384,6 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
     }
 
     return c.json({ status });
-  });
-
-  // List plugins (read-only)
-  app.get('/api/claude/plugins', (c) => {
-    return c.json({ plugins: loadPlugins() });
   });
 
   // Get skill detail (registry or local copy via ?location=local)

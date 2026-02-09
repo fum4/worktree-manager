@@ -345,11 +345,18 @@ export function getLabelColor(label: string) {
 
 // ─── Claude Skills ──────────────────────────────────────────────
 export const claudeSkill = {
+  accent:          'text-purple-400',
+  accentBg:        'bg-purple-400/10',
+  accentBorder:    'border-purple-400/30',
+  badge:           'text-purple-400 bg-purple-900/30',
+  button:          'bg-purple-400/15 text-purple-400 hover:bg-purple-400/25 font-medium',
+} as const;
+
+// ─── Plugins ────────────────────────────────────────────────────
+export const plugin = {
   accent:          'text-[#D4A574]',
-  accentBg:        'bg-[#D4A574]/10',
   accentBorder:    'border-[#D4A574]/30',
   badge:           'text-[#D4A574] bg-[#D4A574]/15',
-  button:          'bg-[#D4A574]/15 text-[#D4A574] hover:bg-[#D4A574]/25 font-medium',
 } as const;
 
 // ─── MCP Servers ────────────────────────────────────────────────

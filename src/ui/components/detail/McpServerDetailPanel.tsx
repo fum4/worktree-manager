@@ -134,19 +134,16 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
     setNewEnvValue('');
   };
 
-  if (!isBuiltIn && isLoading) {
+  // Redirect when source is deleted / not found
+  useEffect(() => {
+    if (!isBuiltIn && !isLoading && (error || !server)) onDeleted();
+  }, [isBuiltIn, isLoading, error, server]);
+
+  if (!isBuiltIn && (isLoading || error || !server)) {
     return (
       <div className="flex-1 flex items-center justify-center gap-2">
         <Spinner size="sm" className={text.muted} />
         <p className={`${text.muted} text-sm`}>Loading server...</p>
-      </div>
-    );
-  }
-
-  if (!isBuiltIn && error) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className={`${text.error} text-sm`}>{error}</p>
       </div>
     );
   }

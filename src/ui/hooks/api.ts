@@ -1,4 +1,4 @@
-import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail, McpServerSummary, McpServerDetail, McpDeploymentStatus, McpScanResult, SkillSummary, SkillDetail, SkillDeploymentStatus, PluginSummary, SkillScanResult } from '../types';
+import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail, McpServerSummary, McpServerDetail, McpDeploymentStatus, McpScanResult, SkillSummary, SkillDetail, SkillDeploymentStatus, PluginSummary, PluginDetail, AvailablePlugin, MarketplaceSummary, SkillScanResult } from '../types';
 
 // API functions now accept an optional serverUrl parameter
 // When null/undefined, they use relative URLs (for single-project web mode)
@@ -1467,12 +1467,176 @@ export async function importClaudeSkills(
 
 export async function fetchClaudePlugins(
   serverUrl: string | null = null,
-): Promise<{ plugins: PluginSummary[] }> {
+): Promise<{ plugins: PluginSummary[]; cliAvailable?: boolean }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins`);
     return await res.json();
   } catch {
     return { plugins: [] };
+  }
+}
+
+export async function fetchClaudePluginDetail(
+  id: string,
+  serverUrl: string | null = null,
+): Promise<{ plugin?: PluginDetail; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { error: (body as { error?: string }).error ?? `Failed (${res.status})` };
+    }
+    return await res.json();
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to fetch plugin detail' };
+  }
+}
+
+export async function installClaudePlugin(
+  ref: string,
+  scope?: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/install`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref, scope }),
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to install plugin' };
+  }
+}
+
+export async function uninstallClaudePlugin(
+  id: string,
+  scope?: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/uninstall`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope }),
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to uninstall plugin' };
+  }
+}
+
+export async function enableClaudePlugin(
+  id: string,
+  scope?: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/enable`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope }),
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to enable plugin' };
+  }
+}
+
+export async function disableClaudePlugin(
+  id: string,
+  scope?: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/disable`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope }),
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to disable plugin' };
+  }
+}
+
+export async function updateClaudePlugin(
+  id: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/update`, {
+      method: 'POST',
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to update plugin' };
+  }
+}
+
+export async function fetchAvailablePlugins(
+  serverUrl: string | null = null,
+): Promise<{ available: AvailablePlugin[]; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/available`);
+    return await res.json();
+  } catch (err) {
+    return { available: [], error: err instanceof Error ? err.message : 'Failed to fetch available plugins' };
+  }
+}
+
+export async function fetchPluginMarketplaces(
+  serverUrl: string | null = null,
+): Promise<{ marketplaces: MarketplaceSummary[]; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/marketplaces`);
+    return await res.json();
+  } catch (err) {
+    return { marketplaces: [], error: err instanceof Error ? err.message : 'Failed to fetch marketplaces' };
+  }
+}
+
+export async function addPluginMarketplace(
+  source: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/marketplaces`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source }),
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to add marketplace' };
+  }
+}
+
+export async function removePluginMarketplace(
+  name: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/marketplaces/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to remove marketplace' };
+  }
+}
+
+export async function updatePluginMarketplace(
+  name: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/marketplaces/${encodeURIComponent(name)}/update`, {
+      method: 'POST',
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to update marketplace' };
   }
 }
 

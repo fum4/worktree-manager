@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Notes
 
 - **No backwards compatibility needed.** There are no users — data gets deleted and recreated from scratch. Don't add migration code, backfill logic, or compatibility shims.
+- **Never use native `title` attribute for tooltips.** Always use the `Tooltip` component (`src/ui/components/Tooltip.tsx`) instead.
 
 ## What This Is
 

@@ -34,7 +34,7 @@ export function Button({
     jira: 'bg-blue-400/15 text-blue-400 hover:bg-blue-400/25 font-medium disabled:bg-blue-400/5 disabled:text-blue-400/40',
     linear: 'bg-[#5E6AD2]/15 text-[#5E6AD2] hover:bg-[#5E6AD2]/25 font-medium disabled:bg-[#5E6AD2]/5 disabled:text-[#5E6AD2]/40',
     mcp: 'bg-purple-400/15 text-purple-400 hover:bg-purple-400/25 font-medium disabled:bg-purple-400/5 disabled:text-purple-400/40',
-    skill: 'bg-[#D4A574]/15 text-[#D4A574] hover:bg-[#D4A574]/25 font-medium disabled:bg-[#D4A574]/5 disabled:text-[#D4A574]/40',
+    skill: 'bg-purple-400/15 text-purple-400 hover:bg-purple-400/25 font-medium disabled:bg-purple-400/5 disabled:text-purple-400/40',
     task: 'bg-amber-400/15 text-amber-400 hover:bg-amber-400/25 font-medium disabled:bg-amber-400/5 disabled:text-amber-400/40',
   };
 

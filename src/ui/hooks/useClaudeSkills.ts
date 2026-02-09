@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchClaudeSkills, fetchClaudeSkill, fetchClaudePlugins, fetchSkillDeploymentStatus } from './api';
+import { fetchClaudeSkills, fetchClaudeSkill, fetchClaudePlugins, fetchClaudePluginDetail, fetchAvailablePlugins, fetchSkillDeploymentStatus } from './api';
 import { useServerUrlOptional } from '../contexts/ServerContext';
 
 export function useClaudeSkills() {
@@ -69,16 +69,63 @@ export function useSkillDeploymentStatus() {
 export function useClaudePlugins() {
   const serverUrl = useServerUrlOptional();
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['claudePlugins', serverUrl],
     queryFn: () => fetchClaudePlugins(serverUrl),
     enabled: serverUrl !== null,
-    staleTime: 30_000,
+    staleTime: 5_000,
   });
 
   return {
     plugins: data?.plugins ?? [],
+    cliAvailable: data?.cliAvailable ?? false,
     isLoading,
+    isFetching,
+    refetch,
+  };
+}
+
+export function useClaudePluginDetail(id: string | null) {
+  const serverUrl = useServerUrlOptional();
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['claudePlugin', serverUrl, id],
+    queryFn: async () => {
+      if (!id) return null;
+      const result = await fetchClaudePluginDetail(id, serverUrl);
+      if (result.error) throw new Error(result.error);
+      return result.plugin ?? null;
+    },
+    enabled: serverUrl !== null && id !== null,
+    staleTime: 5_000,
+  });
+
+  return {
+    plugin: data ?? null,
+    isLoading,
+    error: error instanceof Error ? error.message : null,
+    refetch,
+  };
+}
+
+export function useAvailablePlugins(enabled: boolean) {
+  const serverUrl = useServerUrlOptional();
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['availablePlugins', serverUrl],
+    queryFn: async () => {
+      const result = await fetchAvailablePlugins(serverUrl);
+      if (result.error) throw new Error(result.error);
+      return result.available;
+    },
+    enabled: serverUrl !== null && enabled,
+    staleTime: 60_000,
+  });
+
+  return {
+    available: data ?? [],
+    isLoading,
+    error: error instanceof Error ? error.message : null,
     refetch,
   };
 }

@@ -218,6 +218,39 @@ export function useApi() {
       fetchClaudePlugins: () =>
         api.fetchClaudePlugins(serverUrl),
 
+      fetchClaudePluginDetail: (id: string) =>
+        api.fetchClaudePluginDetail(id, serverUrl),
+
+      installClaudePlugin: (ref: string, scope?: string) =>
+        api.installClaudePlugin(ref, scope, serverUrl),
+
+      uninstallClaudePlugin: (id: string, scope?: string) =>
+        api.uninstallClaudePlugin(id, scope, serverUrl),
+
+      enableClaudePlugin: (id: string, scope?: string) =>
+        api.enableClaudePlugin(id, scope, serverUrl),
+
+      disableClaudePlugin: (id: string, scope?: string) =>
+        api.disableClaudePlugin(id, scope, serverUrl),
+
+      updateClaudePlugin: (id: string) =>
+        api.updateClaudePlugin(id, serverUrl),
+
+      fetchAvailablePlugins: () =>
+        api.fetchAvailablePlugins(serverUrl),
+
+      fetchPluginMarketplaces: () =>
+        api.fetchPluginMarketplaces(serverUrl),
+
+      addPluginMarketplace: (source: string) =>
+        api.addPluginMarketplace(source, serverUrl),
+
+      removePluginMarketplace: (name: string) =>
+        api.removePluginMarketplace(name, serverUrl),
+
+      updatePluginMarketplace: (name: string) =>
+        api.updatePluginMarketplace(name, serverUrl),
+
       scanClaudeSkills: (options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string }) =>
         api.scanClaudeSkills(options, serverUrl),
     }),

@@ -16,14 +16,14 @@ export function SkillItem({ skill, isSelected, onSelect, isDeployed, isProjectDe
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full text-left px-3 py-2.5 transition-colors duration-150 border-l-2 ${
+      className={`group w-full text-left px-3 py-2.5 transition-colors duration-150 border-l-2 ${
         isSelected
           ? `${surface.panelSelected} ${claudeSkill.accentBorder}`
           : `border-transparent hover:${surface.panelHover}`
       }`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <Sparkles className={`w-3.5 h-3.5 flex-shrink-0 ${isSelected ? 'text-[#D4A574]' : text.muted}`} />
+        <Sparkles className={`w-3.5 h-3.5 flex-shrink-0 transition-colors duration-150 ${isSelected ? 'text-purple-400' : `${text.muted} group-hover:text-purple-400`}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={`text-xs font-medium truncate ${isSelected ? text.primary : text.secondary}`}>
