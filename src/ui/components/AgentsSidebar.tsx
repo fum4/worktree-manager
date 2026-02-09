@@ -444,11 +444,15 @@ export function AgentsSidebar({
           >
             <ChevronIcon collapsed={pluginsCollapsed} />
             <span className={`text-[11px] font-medium ${text.secondary}`}>Plugins</span>
-            {!pluginsLoading && (
-              <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
-                {sortedPlugins.length}
-              </span>
-            )}
+            <span className="inline-flex items-center h-[18px]">
+              {pluginsLoading ? (
+                pluginsCollapsed && <Spinner size="xs" className={`${text.muted} ml-1.5`} />
+              ) : (
+                <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+                  {sortedPlugins.length}
+                </span>
+              )}
+            </span>
           </button>
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
             {marketplaceNames.length > 1 && (
