@@ -48,6 +48,8 @@ interface AgentsSidebarProps {
   onAddServer: () => void;
   onAddSkill: () => void;
   onAddPlugin: () => void;
+  pluginActing?: boolean;
+  onPluginActingChange?: (acting: boolean) => void;
 }
 
 export function AgentsSidebar({
@@ -65,6 +67,8 @@ export function AgentsSidebar({
   onAddServer,
   onAddSkill,
   onAddPlugin,
+  pluginActing,
+  onPluginActingChange,
 }: AgentsSidebarProps) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -510,13 +514,22 @@ export function AgentsSidebar({
                   plugin={plugin}
                   isSelected={selection?.type === 'plugin' && selection.id === plugin.id}
                   onSelect={() => onSelect({ type: 'plugin', id: plugin.id })}
+                  disabled={pluginActing}
                   onToggleEnabled={async () => {
-                    if (plugin.enabled) {
-                      await api.disableClaudePlugin(plugin.id, plugin.scope);
-                    } else {
-                      await api.enableClaudePlugin(plugin.id, plugin.scope);
+                    onPluginActingChange?.(true);
+                    try {
+                      if (plugin.enabled) {
+                        await api.disableClaudePlugin(plugin.id, plugin.scope);
+                      } else {
+                        await api.enableClaudePlugin(plugin.id, plugin.scope);
+                      }
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ['claudePlugins'] }),
+                        queryClient.invalidateQueries({ queryKey: ['claudePlugin'] }),
+                      ]);
+                    } finally {
+                      onPluginActingChange?.(false);
                     }
-                    await queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
                   }}
                   onRemove={() => {
                     const displayName = plugin.name.replace(/@.*$/, '');

@@ -87,7 +87,7 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
             onClick={() => { setShowAddMenu(false); onAddPlugin(); }}
             className={menuItemClass}
           >
-            <Puzzle className={`w-4 h-4 ${claudeSkill.accent}`} />
+            <Puzzle className="w-4 h-4 text-[#D4A574]" />
             Plugin
           </button>
           <div className="border-t border-white/[0.06]" />
@@ -96,7 +96,7 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
             onClick={() => { setShowAddMenu(false); onScanImport(); }}
             className={menuItemClass}
           >
-            <ScanSearch className={`w-4 h-4 ${text.muted}`} />
+            <ScanSearch className="w-4 h-4 text-purple-400" />
             Scan & Import
           </button>
         </div>

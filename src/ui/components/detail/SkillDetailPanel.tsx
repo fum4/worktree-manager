@@ -194,14 +194,14 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className={`text-[10px] font-mono ${claudeSkill.accent}`}>
+              <span className={`text-[11px] font-mono ${claudeSkill.accent}`}>
                 {skill.name}
               </span>
               {fm.mode && (
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${claudeSkill.badge}`}>mode</span>
+                <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${claudeSkill.badge}`}>mode</span>
               )}
-              <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${claudeSkill.badge}`}>
-                {viewingLocation === 'local' ? 'Project' : 'Global'}
+              <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${claudeSkill.badge}`}>
+                {deploymentStatus.global ? 'Global' : deploymentStatus.local ? 'Project' : 'Not deployed'}
               </span>
             </div>
             <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug px-2 py-1 -mx-2 -my-1`}>

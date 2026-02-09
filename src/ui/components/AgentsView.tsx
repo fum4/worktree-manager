@@ -55,6 +55,7 @@ export function AgentsView() {
   const { skills, isLoading: skillsLoading, refetch: refetchSkills } = useClaudeSkills();
   const { status: skillDeploymentStatus, refetch: refetchSkillDeployment } = useSkillDeploymentStatus();
   const { plugins, isLoading: pluginsLoading, refetch: refetchPlugins } = useClaudePlugins();
+  const [pluginActing, setPluginActing] = useState(false);
 
   // Sidebar width
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -149,6 +150,8 @@ export function AgentsView() {
           onAddServer={() => setShowCreateServerModal(true)}
           onAddSkill={() => setShowCreateSkillModal(true)}
           onAddPlugin={() => setShowInstallPluginModal(true)}
+          pluginActing={pluginActing}
+          onPluginActingChange={setPluginActing}
         />
       </aside>
 
@@ -212,6 +215,8 @@ export function AgentsView() {
         ) : selection?.type === 'plugin' ? (
           <PluginDetailPanel
             pluginId={selection.id}
+            pluginActing={pluginActing}
+            onPluginActingChange={setPluginActing}
             onDeleted={() => {
               setSelection(null);
               refetchPlugins();

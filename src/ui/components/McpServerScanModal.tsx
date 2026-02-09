@@ -5,7 +5,7 @@ import { useServer } from '../contexts/ServerContext';
 import { useApi } from '../hooks/useApi';
 import type { McpScanResult, SkillScanResult } from '../types';
 import { Modal } from './Modal';
-import { button, input, text } from '../theme';
+import { input, text } from '../theme';
 import { Spinner } from './Spinner';
 
 const isWok3Server = (r: McpScanResult) =>
@@ -144,7 +144,7 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
   return (
     <Modal
       title="Scan & Import"
-      icon={<ScanSearch className="w-4 h-4 text-[#9ca3af]" />}
+      icon={<ScanSearch className="w-4 h-4 text-purple-400" />}
       onClose={onClose}
       width="lg"
       footer={
@@ -161,7 +161,7 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
               type="button"
               onClick={handleImport}
               disabled={totalSelected === 0 || importing}
-              className={`px-4 py-1.5 text-xs font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors duration-150`}
+              className="px-4 py-1.5 text-xs font-medium text-purple-400 bg-purple-400/15 hover:bg-purple-400/25 rounded-lg disabled:opacity-50 disabled:pointer-events-none transition-colors duration-150"
             >
               {importing ? 'Importing...' : `Import ${totalSelected} item${totalSelected !== 1 ? 's' : ''}`}
             </button>
@@ -179,7 +179,7 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
               type="button"
               onClick={handleScan}
               disabled={scanning || (mode === 'folder' && !scanPath.trim())}
-              className={`px-4 py-1.5 text-xs font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors duration-150`}
+              className="px-4 py-1.5 text-xs font-medium text-purple-400 bg-purple-400/15 hover:bg-purple-400/25 rounded-lg disabled:opacity-50 disabled:pointer-events-none transition-colors duration-150"
             >
               {scanning ? 'Scanning...' : 'Scan'}
             </button>

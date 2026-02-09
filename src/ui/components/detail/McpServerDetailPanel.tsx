@@ -165,11 +165,11 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className={`text-[10px] font-mono ${mcpServer.accent}`}>
+              <span className={`text-[11px] font-mono ${mcpServer.accent}`}>
                 {server.id}
               </span>
               {server.tags.filter((tag) => tag !== 'built-in').map((tag) => (
-                <span key={tag} className={`text-[10px] ${mcpServer.badge} px-1.5 py-0.5 rounded`}>
+                <span key={tag} className={`text-[11px] ${mcpServer.badge} px-2.5 py-0.5 rounded`}>
                   {tag}
                 </span>
               ))}

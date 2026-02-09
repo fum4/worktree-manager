@@ -12,6 +12,7 @@ interface PluginItemProps {
   onSelect: () => void;
   onToggleEnabled: () => Promise<void>;
   onRemove: () => void;
+  disabled?: boolean;
 }
 
 function parsePluginName(plugin: PluginSummary): { name: string; marketplace: string } {
@@ -26,7 +27,7 @@ function parsePluginName(plugin: PluginSummary): { name: string; marketplace: st
   return { name: plugin.name, marketplace: '' };
 }
 
-export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRemove }: PluginItemProps) {
+export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRemove, disabled }: PluginItemProps) {
   const { name, marketplace } = parsePluginName(plugin);
   const [acting, setActing] = useState<string | null>(null);
 
@@ -79,7 +80,7 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
 
         {/* Status dot / Actions — fixed-height wrapper prevents reflow on hover */}
         <div className="flex-shrink-0 relative" style={{ width: 52, height: 16 }}>
-          {acting ? (
+          {acting || disabled ? (
             <div className="absolute inset-0 mr-[5px] flex items-center justify-end">
               <Spinner size="xs" className={acting === 'remove' ? 'text-red-400' : text.muted} />
             </div>

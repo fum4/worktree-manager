@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ExternalLink, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertTriangle, ExternalLink, RefreshCw, Repeat2, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useClaudePluginDetail } from '../../hooks/useClaudeSkills';
@@ -7,62 +7,82 @@ import { useApi } from '../../hooks/useApi';
 import { border, plugin as pluginTheme, text } from '../../theme';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { MarkdownContent } from '../MarkdownContent';
+import { Modal } from '../Modal';
 import { Spinner } from '../Spinner';
+import { Tooltip } from '../Tooltip';
 
 interface PluginDetailPanelProps {
   pluginId: string;
   onDeleted: () => void;
+  pluginActing?: boolean;
+  onPluginActingChange?: (acting: boolean) => void;
 }
 
-export function PluginDetailPanel({ pluginId, onDeleted }: PluginDetailPanelProps) {
+export function PluginDetailPanel({ pluginId, onDeleted, pluginActing, onPluginActingChange }: PluginDetailPanelProps) {
   const api = useApi();
   const queryClient = useQueryClient();
   const { plugin, isLoading, error, refetch } = useClaudePluginDetail(pluginId);
 
   const [acting, setActing] = useState<string | null>(null);
   const [showUninstallConfirm, setShowUninstallConfirm] = useState(false);
+  const [showScopePicker, setShowScopePicker] = useState(false);
+  const [scopeSelection, setScopeSelection] = useState<string>('');
 
   // Track current pluginId so async operations can check if we're still viewing the same plugin
   const currentPluginIdRef = useRef(pluginId);
   useEffect(() => { currentPluginIdRef.current = pluginId; }, [pluginId]);
 
-  const invalidatePlugins = () => {
-    queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
+  const isDisabled = !!acting || !!pluginActing;
+
+  const invalidatePlugins = () => queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
+
+  const withActing = async (key: string, fn: () => Promise<void>) => {
+    setActing(key);
+    onPluginActingChange?.(true);
+    try {
+      await fn();
+    } finally {
+      setActing(null);
+      onPluginActingChange?.(false);
+    }
   };
 
-  const handleToggleEnabled = async () => {
+  const handleToggleEnabled = () => withActing('toggle', async () => {
     if (!plugin) return;
-    setActing('toggle');
     if (plugin.enabled) {
       await api.disableClaudePlugin(plugin.id, plugin.scope);
     } else {
       await api.enableClaudePlugin(plugin.id, plugin.scope);
     }
-    setActing(null);
-    invalidatePlugins();
-    refetch();
-  };
+    await Promise.all([invalidatePlugins(), refetch()]);
+  });
 
-  const handleUpdate = async () => {
+  const handleUpdate = () => withActing('update', async () => {
     if (!plugin) return;
-    setActing('update');
     await api.updateClaudePlugin(plugin.id);
-    setActing(null);
-    invalidatePlugins();
-    refetch();
+    await Promise.all([invalidatePlugins(), refetch()]);
+  });
+
+  const handleChangeScope = (newScope: string) => {
+    if (!plugin || newScope === plugin.scope) return;
+    setShowScopePicker(false);
+    withActing('scope', async () => {
+      await api.uninstallClaudePlugin(plugin!.id, plugin!.scope);
+      await api.installClaudePlugin(plugin!.id, newScope);
+      await Promise.all([invalidatePlugins(), refetch()]);
+    });
   };
 
-  const handleUninstall = async () => {
+  const handleUninstall = () => withActing('uninstall', async () => {
     if (!plugin) return;
     setShowUninstallConfirm(false);
-    setActing('uninstall');
     await api.uninstallClaudePlugin(plugin.id, plugin.scope);
     await queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
     // Only redirect if still viewing the plugin that was deleted
     if (currentPluginIdRef.current === plugin.id) {
       onDeleted();
     }
-  };
+  });
 
   // Redirect when source is deleted / not found
   useEffect(() => {
@@ -95,17 +115,31 @@ export function PluginDetailPanel({ pluginId, onDeleted }: PluginDetailPanelProp
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className={`text-[10px] font-mono ${pluginTheme.accent}`}>
+              <span className={`text-[11px] font-mono ${pluginTheme.accent}`}>
                 {plugin.id}
               </span>
               {plugin.version && (
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${pluginTheme.badge}`}>
+                <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${pluginTheme.badge}`}>
                   v{plugin.version}
                 </span>
               )}
-              <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${pluginTheme.badge}`}>
+              <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${pluginTheme.badge}`}>
                 {scopeLabel}
               </span>
+              {acting === 'scope' ? (
+                <Spinner size="xs" className={text.dimmed} />
+              ) : (
+                <Tooltip text="Change scope" position="top">
+                  <button
+                    type="button"
+                    onClick={() => { setScopeSelection(plugin.scope); setShowScopePicker(true); }}
+                    disabled={isDisabled}
+                    className={`p-1 rounded text-[#D4A574]/60 hover:text-[#D4A574] hover:bg-white/[0.06] transition-colors disabled:opacity-50`}
+                  >
+                    <Repeat2 className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+              )}
             </div>
             <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>
               {displayName}
@@ -121,7 +155,7 @@ export function PluginDetailPanel({ pluginId, onDeleted }: PluginDetailPanelProp
               <DeployToggle
                 active={plugin.enabled}
                 onToggle={handleToggleEnabled}
-                disabled={!!acting}
+                disabled={isDisabled}
                 title={plugin.enabled ? 'Disable' : 'Enable'}
               />
               <span className={`text-[10px] ${text.dimmed} w-10`}>
@@ -131,7 +165,7 @@ export function PluginDetailPanel({ pluginId, onDeleted }: PluginDetailPanelProp
             <button
               type="button"
               onClick={handleUpdate}
-              disabled={!!acting}
+              disabled={isDisabled}
               className={`p-1.5 rounded-lg ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] transition-colors disabled:opacity-50 disabled:pointer-events-none`}
               title="Update plugin"
             >
@@ -145,7 +179,7 @@ export function PluginDetailPanel({ pluginId, onDeleted }: PluginDetailPanelProp
               <button
                 type="button"
                 onClick={() => setShowUninstallConfirm(true)}
-                disabled={!!acting}
+                disabled={isDisabled}
                 className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:pointer-events-none`}
                 title="Uninstall plugin"
               >
@@ -301,6 +335,72 @@ export function PluginDetailPanel({ pluginId, onDeleted }: PluginDetailPanelProp
             The plugin "{plugin.name}" will be uninstalled from {scopeLabel.toLowerCase()} scope.
           </p>
         </ConfirmDialog>
+      )}
+
+      {/* Scope picker */}
+      {showScopePicker && (
+        <Modal
+          title="Change scope"
+          icon={<Repeat2 className="w-4 h-4 text-[#D4A574]" />}
+          width="sm"
+          onClose={() => setShowScopePicker(false)}
+          footer={
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowScopePicker(false)}
+                className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChangeScope(scopeSelection)}
+                disabled={scopeSelection === plugin.scope}
+                className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  scopeSelection !== plugin.scope
+                    ? 'text-[#D4A574] bg-[#D4A574]/15 hover:bg-[#D4A574]/25'
+                    : 'text-white/20 bg-white/[0.04] cursor-not-allowed'
+                }`}
+              >
+                Change scope
+              </button>
+            </div>
+          }
+        >
+          <p className={`text-[11px] ${text.muted} mb-3`}>
+            This will reinstall the plugin in the selected scope.
+          </p>
+          <div className="space-y-2">
+            {(['user', 'project', 'local'] as const).map((scope) => {
+              const label = scope === 'user' ? 'Global' : scope === 'project' ? 'Project' : 'Local';
+              const isCurrent = scope === plugin.scope;
+              const isSelected = scopeSelection === scope;
+              return (
+                <button
+                  key={scope}
+                  type="button"
+                  onClick={() => setScopeSelection(scope)}
+                  className={`w-full text-left px-3 py-2.5 flex items-center justify-between text-xs rounded-lg border transition-colors ${
+                    isSelected
+                      ? `bg-white/[0.04] border-white/[0.15] ${text.primary}`
+                      : `bg-transparent border-white/[0.06] hover:border-white/[0.10] hover:bg-white/[0.02] ${text.secondary}`
+                  }`}
+                >
+                  <span>{label}</span>
+                  {isCurrent && <span className={`text-[10px] ${text.dimmed}`}>current</span>}
+                </button>
+              );
+            })}
+          </div>
+          <p className={`text-[10px] ${text.dimmed} mt-3`}>
+            {scopeSelection === 'user'
+              ? 'Global — applies to all your projects'
+              : scopeSelection === 'project'
+                ? 'Per-project — committed to git, shared with your team'
+                : 'Per-project — gitignored, private to you'}
+          </p>
+        </Modal>
       )}
     </div>
   );
