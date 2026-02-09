@@ -1,15 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
-import { Filter, Plus, Server, Settings } from 'lucide-react';
+import { Filter, Plus, Server, Settings, Sparkles } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import type { McpServerSummary, SkillSummary, PluginSummary } from '../types';
 import { useApi } from '../hooks/useApi';
 import { border, mcpServer, surface, text } from '../theme';
+import { ConfirmDialog } from './ConfirmDialog';
+import { DeployDialog } from './DeployDialog';
 import { McpServerItem } from './McpServerItem';
 import { WOK3_SERVER_ID } from './McpServerList';
 import { SkillItem } from './SkillItem';
 import { PluginItem } from './PluginItem';
 import { Spinner } from './Spinner';
+import { Tooltip } from './Tooltip';
 
 type AgentSelection =
   | { type: 'mcp-server'; id: string }
@@ -80,6 +83,9 @@ export function AgentsSidebar({
   });
   const [configOpen, setConfigOpen] = useState(false);
   const configRef = useRef<HTMLDivElement>(null);
+
+  const [pendingRemove, setPendingRemove] = useState<{ title: string; message: string; confirmLabel: string; action: () => Promise<void> } | null>(null);
+  const [deployDialog, setDeployDialog] = useState<{ type: 'mcp' | 'skill'; id: string; name: string } | null>(null);
 
   const [hiddenMarketplaces, setHiddenMarketplaces] = useState<Set<string>>(() => {
     const saved = localStorage.getItem('wok3:hiddenMarketplaces');
@@ -250,7 +256,8 @@ export function AgentsSidebar({
                   isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER_ID}
                   onSelect={handleSelectWok3}
                   isNew={isWok3New}
-                  deploymentStatus={deploymentStatus[WOK3_SERVER_ID]}
+                  isActive={Object.values(deploymentStatus[WOK3_SERVER_ID] ?? {}).some((v) => v.global || v.project)}
+                  onDeploy={() => setDeployDialog({ type: 'mcp', id: WOK3_SERVER_ID, name: 'wok3' })}
                 />
                 <div className="flex items-center justify-center gap-2 py-4">
                   <Spinner size="sm" className={text.muted} />
@@ -293,7 +300,8 @@ export function AgentsSidebar({
                         isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER_ID}
                         onSelect={handleSelectWok3}
                         isNew={isWok3New}
-                        deploymentStatus={deploymentStatus[WOK3_SERVER_ID]}
+                        isActive={wok3Active}
+                        onDeploy={() => setDeployDialog({ type: 'mcp', id: WOK3_SERVER_ID, name: 'wok3' })}
                       />
                     );
                   }
@@ -308,7 +316,27 @@ export function AgentsSidebar({
                       server={server}
                       isSelected={selection?.type === 'mcp-server' && selection.id === server.id}
                       onSelect={() => onSelect({ type: 'mcp-server', id: server.id })}
-                      deployedAgents={agents.length > 0 ? agents : undefined}
+                      isActive={agents.length > 0}
+                      onDeploy={() => setDeployDialog({ type: 'mcp', id: server.id, name: server.name })}
+                      onRemove={() => {
+                        setPendingRemove({
+                          title: 'Delete MCP server?',
+                          message: `This will remove "${server.name}" from the registry.`,
+                          confirmLabel: 'Delete',
+                          action: async () => {
+                            for (const [tool, scopes] of Object.entries(status)) {
+                              if (scopes.global) await api.undeployMcpServer(server.id, tool, 'global');
+                              if (scopes.project) await api.undeployMcpServer(server.id, tool, 'project');
+                            }
+                            await api.deleteMcpServer(server.id);
+                            await queryClient.invalidateQueries({ queryKey: ['mcpServers'] });
+                            await queryClient.invalidateQueries({ queryKey: ['mcpDeploymentStatus'] });
+                            if (selection?.type === 'mcp-server' && selection.id === server.id) {
+                              onSelect(null as unknown as AgentSelection);
+                            }
+                          },
+                        });
+                      }}
                     />
                   );
                 });
@@ -374,7 +402,24 @@ export function AgentsSidebar({
                         isSelected={selection?.type === 'skill' && selection.name === skill.name}
                         onSelect={() => onSelect({ type: 'skill', name: skill.name })}
                         isDeployed={isDeployed}
-                        isProjectDeployed={depStatus?.local ?? false}
+                        onDeploy={() => setDeployDialog({ type: 'skill', id: skill.name, name: skill.displayName })}
+                        onRemove={() => {
+                          setPendingRemove({
+                            title: 'Delete skill?',
+                            message: `The skill "${skill.displayName}" will be deleted.`,
+                            confirmLabel: 'Delete',
+                            action: async () => {
+                              if (depStatus?.global) await api.undeployClaudeSkill(skill.name, 'global');
+                              if (depStatus?.local) await api.undeployClaudeSkill(skill.name, 'local');
+                              await api.deleteClaudeSkill(skill.name);
+                              await queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
+                              await queryClient.invalidateQueries({ queryKey: ['skillDeploymentStatus'] });
+                              if (selection?.type === 'skill' && selection.name === skill.name) {
+                                onSelect(null as unknown as AgentSelection);
+                              }
+                            },
+                          });
+                        }}
                       />
                     );
                   })}
@@ -467,14 +512,22 @@ export function AgentsSidebar({
                     } else {
                       await api.enableClaudePlugin(plugin.id, plugin.scope);
                     }
-                    queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
-                  }}
-                  onRemove={async () => {
-                    await api.uninstallClaudePlugin(plugin.id, plugin.scope);
                     await queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
-                    if (selection?.type === 'plugin' && selection.id === plugin.id) {
-                      onSelect(null as unknown as AgentSelection);
-                    }
+                  }}
+                  onRemove={() => {
+                    const displayName = plugin.name.replace(/@.*$/, '');
+                    setPendingRemove({
+                      title: 'Uninstall plugin?',
+                      message: `The plugin "${displayName}" will be uninstalled.`,
+                      confirmLabel: 'Uninstall',
+                      action: async () => {
+                        await api.uninstallClaudePlugin(plugin.id, plugin.scope);
+                        await queryClient.invalidateQueries({ queryKey: ['claudePlugins'] });
+                        if (selection?.type === 'plugin' && selection.id === plugin.id) {
+                          onSelect(null as unknown as AgentSelection);
+                        }
+                      },
+                    });
                   }}
                 />
               ))
@@ -506,6 +559,81 @@ export function AgentsSidebar({
         )}
       </div>
     </div>
+
+    {/* Remove confirmation dialog */}
+    {pendingRemove && (
+      <ConfirmDialog
+        title={pendingRemove.title}
+        confirmLabel={pendingRemove.confirmLabel}
+        onConfirm={() => {
+          const { action } = pendingRemove;
+          setPendingRemove(null);
+          action();
+        }}
+        onCancel={() => setPendingRemove(null)}
+      >
+        <p className={`text-xs ${text.secondary}`}>{pendingRemove.message}</p>
+      </ConfirmDialog>
+    )}
+
+    {deployDialog && (
+      <DeployDialog
+        title={`Deploy ${deployDialog.name}`}
+        icon={deployDialog.type === 'mcp'
+          ? <Server className="w-4 h-4 text-purple-400" />
+          : <Sparkles className="w-4 h-4 text-purple-400" />
+        }
+        scopes={
+          deployDialog.type === 'mcp'
+            ? [
+                { key: 'global', label: 'Global', active: !!(deploymentStatus[deployDialog.id]?.claude?.global) },
+                { key: 'project', label: 'Project', active: !!(deploymentStatus[deployDialog.id]?.claude?.project) },
+              ]
+            : [
+                { key: 'global', label: 'Global', active: !!(skillDeploymentStatus[deployDialog.id]?.global) },
+                { key: 'local', label: 'Project', active: !!(skillDeploymentStatus[deployDialog.id]?.local) },
+              ]
+        }
+        mutuallyExclusive={deployDialog.type === 'skill'}
+        warning={deployDialog.type === 'skill' ? (draft) => {
+          const hasLocal = skillDeploymentStatus[deployDialog.id]?.local;
+          if (hasLocal && !draft.local) {
+            return `The project skill "${deployDialog.name}" will be deleted.`;
+          }
+          return null;
+        } : undefined}
+        onApply={async (desired) => {
+          if (deployDialog.type === 'mcp') {
+            const current = deploymentStatus[deployDialog.id]?.claude ?? {};
+            for (const scope of ['global', 'project'] as const) {
+              if (current[scope] && !desired[scope]) {
+                await api.undeployMcpServer(deployDialog.id, 'claude', scope);
+              }
+            }
+            for (const scope of ['global', 'project'] as const) {
+              if (!current[scope] && desired[scope]) {
+                await api.deployMcpServer(deployDialog.id, 'claude', scope);
+              }
+            }
+            await queryClient.invalidateQueries({ queryKey: ['mcpDeploymentStatus'] });
+          } else {
+            const current = skillDeploymentStatus[deployDialog.id] ?? { global: false, local: false };
+            for (const scope of ['global', 'local'] as const) {
+              if (current[scope] && !desired[scope]) {
+                await api.undeployClaudeSkill(deployDialog.id, scope);
+              }
+            }
+            for (const scope of ['global', 'local'] as const) {
+              if (!current[scope] && desired[scope]) {
+                await api.deployClaudeSkill(deployDialog.id, scope);
+              }
+            }
+            await queryClient.invalidateQueries({ queryKey: ['skillDeploymentStatus'] });
+          }
+        }}
+        onClose={() => setDeployDialog(null)}
+      />
+    )}
     </>
   );
 }
@@ -533,26 +661,30 @@ function SettingsToggle({ label, checked, onToggle }: { label: string; checked: 
 
 // ─── Wok3 built-in item ─────────────────────────────────────────
 
-function Wok3Item({ isSelected, onSelect, isNew, deploymentStatus }: { isSelected: boolean; onSelect: () => void; isNew: boolean; deploymentStatus?: Record<string, { global?: boolean; project?: boolean }> }) {
-  const deployedAgents = deploymentStatus
-    ? Object.entries(deploymentStatus)
-        .filter(([, v]) => v.global || v.project)
-        .map(([name]) => name)
-    : [];
-  const isActive = deployedAgents.length > 0;
+function Wok3Item({ isSelected, onSelect, isNew, isActive, onDeploy }: {
+  isSelected: boolean;
+  onSelect: () => void;
+  isNew: boolean;
+  isActive?: boolean;
+  onDeploy: () => void;
+}) {
+  const handleDeploy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDeploy();
+  };
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`group w-full text-left px-3 py-2.5 transition-colors duration-150 border-l-2 ${
+      className={`group w-full text-left px-3 py-3.5 transition-colors duration-150 border-l-2 ${
         isSelected
           ? `${surface.panelSelected} ${mcpServer.accentBorder}`
           : `border-transparent hover:${surface.panelHover}`
       }`}
     >
-      <div className="flex items-start gap-2.5 min-w-0">
-        <Server className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 transition-colors duration-150 ${isSelected ? 'text-purple-400' : `${text.muted} group-hover:text-purple-400`}`} />
+      <div className="flex items-center gap-2.5 min-w-0">
+        <Server className={`w-3.5 h-3.5 flex-shrink-0 transition-colors duration-150 ${isSelected ? 'text-purple-400' : `${text.muted} group-hover:text-purple-400`}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={`text-xs font-medium truncate ${isSelected ? text.primary : text.secondary}`}>
@@ -566,9 +698,32 @@ function Wok3Item({ isSelected, onSelect, isNew, deploymentStatus }: { isSelecte
             )}
           </div>
         </div>
-        {isActive && (
-          <span className={`w-1.5 h-1.5 rounded-full ${mcpServer.deployed} flex-shrink-0 mt-1 mr-2`} />
-        )}
+
+        {/* Status dot / Actions — fixed-height wrapper prevents reflow on hover */}
+        <div className="flex-shrink-0 relative" style={{ width: 52, height: 16 }}>
+          <div className="absolute inset-0 flex items-center justify-end group-hover:hidden">
+            {isActive && (
+              <span className={`w-1.5 h-1.5 rounded-full ${mcpServer.deployed} flex-shrink-0 mr-2`} />
+            )}
+          </div>
+          <div className="absolute inset-0 hidden group-hover:flex items-center justify-end mr-[4px]">
+            <Tooltip text="Deploy" position="top">
+              <span
+                role="button"
+                onClick={handleDeploy}
+                className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
+                  isActive ? 'bg-teal-400/35' : 'bg-white/[0.08]'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                    isActive ? 'left-3 bg-teal-400' : 'left-0.5 bg-white/40'
+                  }`}
+                />
+              </span>
+            </Tooltip>
+          </div>
+        </div>
       </div>
     </button>
   );

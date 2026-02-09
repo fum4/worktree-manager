@@ -5,8 +5,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { McpServerSummary } from '../../types';
 import { useMcpServerDetail, useMcpDeploymentStatus } from '../../hooks/useMcpServers';
 import { useApi } from '../../hooks/useApi';
-import { border, button, mcpServer, text } from '../../theme';
-import { Modal } from '../Modal';
+import { border, mcpServer, text } from '../../theme';
+import { ConfirmDialog } from '../ConfirmDialog';
 import { Spinner } from '../Spinner';
 
 interface McpServerDetailPanelProps {
@@ -520,29 +520,10 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
 
       {/* Delete confirmation */}
       {!isBuiltIn && showDeleteConfirm && (
-        <Modal
-          title="Delete server?"
-          icon={<Trash2 className="w-4 h-4 text-red-400" />}
-          onClose={() => setShowDeleteConfirm(false)}
-          width="sm"
-          footer={
-            <>
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                className={`px-3 py-1.5 text-xs font-medium ${button.confirm} rounded-lg transition-colors`}
-              >
-                Delete
-              </button>
-            </>
-          }
+        <ConfirmDialog
+          title="Delete MCP server?"
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
         >
           <p className={`text-xs ${text.secondary} mb-3`}>
             This will remove "{server.name}" from the registry.
@@ -558,7 +539,7 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
               Also remove server from all agents that use it
             </span>
           </label>
-        </Modal>
+        </ConfirmDialog>
       )}
     </div>
   );

@@ -1,17 +1,29 @@
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Trash2 } from 'lucide-react';
 
 import type { SkillSummary } from '../types';
 import { claudeSkill, surface, text } from '../theme';
+import { Tooltip } from './Tooltip';
 
 interface SkillItemProps {
   skill: SkillSummary;
   isSelected: boolean;
   onSelect: () => void;
   isDeployed?: boolean;
-  isProjectDeployed?: boolean;
+  onDeploy: () => void;
+  onRemove: () => void;
 }
 
-export function SkillItem({ skill, isSelected, onSelect, isDeployed, isProjectDeployed }: SkillItemProps) {
+export function SkillItem({ skill, isSelected, onSelect, isDeployed, onDeploy, onRemove }: SkillItemProps) {
+  const handleDeploy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDeploy();
+  };
+
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRemove();
+  };
+
   return (
     <button
       type="button"
@@ -36,9 +48,41 @@ export function SkillItem({ skill, isSelected, onSelect, isDeployed, isProjectDe
             </div>
           )}
         </div>
-        {isDeployed && (
-          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 bg-teal-400" />
-        )}
+
+        {/* Status dot / Actions — fixed-height wrapper prevents reflow on hover */}
+        <div className="flex-shrink-0 relative" style={{ width: 52, height: 16 }}>
+          <div className="absolute inset-0 flex items-center justify-end group-hover:hidden">
+            {isDeployed && (
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 bg-teal-400" />
+            )}
+          </div>
+          <div className="absolute inset-0 hidden group-hover:flex items-center justify-end gap-2.5 mr-[4px]">
+            <Tooltip text="Remove" position="top">
+              <span
+                role="button"
+                onClick={handleRemove}
+                className="p-0.5 rounded text-red-400/70 hover:text-red-400 hover:bg-red-400/15 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3 h-3" />
+              </span>
+            </Tooltip>
+            <Tooltip text="Deploy" position="top">
+              <span
+                role="button"
+                onClick={handleDeploy}
+                className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
+                  isDeployed ? 'bg-teal-400/35' : 'bg-white/[0.08]'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                    isDeployed ? 'left-3 bg-teal-400' : 'left-0.5 bg-white/40'
+                  }`}
+                />
+              </span>
+            </Tooltip>
+          </div>
+        </div>
       </div>
     </button>
   );

@@ -5,8 +5,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useClaudeSkillDetail, useSkillDeploymentStatus } from '../../hooks/useClaudeSkills';
 import { useApi } from '../../hooks/useApi';
 import { border, button, claudeSkill, text } from '../../theme';
+import { ConfirmDialog } from '../ConfirmDialog';
 import { MarkdownContent } from '../MarkdownContent';
-import { Modal } from '../Modal';
 import { Spinner } from '../Spinner';
 
 interface SkillDetailPanelProps {
@@ -363,29 +363,10 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
 
       {/* Delete confirmation */}
       {showDeleteConfirm && (
-        <Modal
+        <ConfirmDialog
           title={hasLocalCopy && inRegistry ? `Delete ${viewingLocation === 'local' ? 'project' : 'global'} skill?` : 'Delete skill?'}
-          icon={<Trash2 className="w-4 h-4 text-red-400" />}
-          onClose={() => { setShowDeleteConfirm(false); setDeleteBoth(false); }}
-          width="sm"
-          footer={
-            <>
-              <button
-                type="button"
-                onClick={() => { setShowDeleteConfirm(false); setDeleteBoth(false); }}
-                className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                className={`px-3 py-1.5 text-xs font-medium ${button.confirm} rounded-lg transition-colors`}
-              >
-                Delete
-              </button>
-            </>
-          }
+          onConfirm={handleDelete}
+          onCancel={() => { setShowDeleteConfirm(false); setDeleteBoth(false); }}
         >
           <p className={`text-xs ${text.secondary}`}>
             The {viewingLocation === 'local' ? 'project' : 'global'} skill "{skill.displayName}" will be deleted.
@@ -403,44 +384,28 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
               </span>
             </label>
           )}
-        </Modal>
+        </ConfirmDialog>
       )}
 
       {/* Deploy mutual exclusion confirmation */}
       {pendingDeploy && (
-        <Modal
+        <ConfirmDialog
           title={
             `${pendingDeploy.action.charAt(0).toUpperCase() +
               pendingDeploy.action.slice(1)} ${pendingDeploy.scope === 'local' ? 'project' : 'global'} skill?`
           }
           icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
-          onClose={() => setPendingDeploy(null)}
-          width="sm"
-          footer={
-            <>
-              <button
-                type="button"
-                onClick={() => setPendingDeploy(null)}
-                className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeploy}
-                className="px-3 py-1.5 text-xs font-medium text-amber-400 bg-amber-900/30 hover:bg-amber-900/50 rounded-lg transition-colors"
-              >
-                Continue
-              </button>
-            </>
-          }
+          confirmLabel="Continue"
+          confirmClassName="text-amber-400 bg-amber-900/30 hover:bg-amber-900/50"
+          onConfirm={handleConfirmDeploy}
+          onCancel={() => setPendingDeploy(null)}
         >
           <p className={`text-xs ${text.secondary}`}>
             {pendingDeploy.scope === 'local' && pendingDeploy.action === 'enable'
               ? 'This will disable the global skill.'
               : `The project skill "${skill.displayName}" will be deleted.`}
           </p>
-        </Modal>
+        </ConfirmDialog>
       )}
 
     </div>

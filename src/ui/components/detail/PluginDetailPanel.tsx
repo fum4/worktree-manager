@@ -4,9 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { useClaudePluginDetail } from '../../hooks/useClaudeSkills';
 import { useApi } from '../../hooks/useApi';
-import { border, button, plugin as pluginTheme, text } from '../../theme';
+import { border, plugin as pluginTheme, text } from '../../theme';
+import { ConfirmDialog } from '../ConfirmDialog';
 import { MarkdownContent } from '../MarkdownContent';
-import { Modal } from '../Modal';
 import { Spinner } from '../Spinner';
 
 interface PluginDetailPanelProps {
@@ -291,34 +291,16 @@ export function PluginDetailPanel({ pluginId, onDeleted }: PluginDetailPanelProp
 
       {/* Uninstall confirmation */}
       {showUninstallConfirm && (
-        <Modal
+        <ConfirmDialog
           title="Uninstall plugin?"
-          icon={<Trash2 className="w-4 h-4 text-red-400" />}
-          onClose={() => setShowUninstallConfirm(false)}
-          width="sm"
-          footer={
-            <>
-              <button
-                type="button"
-                onClick={() => setShowUninstallConfirm(false)}
-                className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleUninstall}
-                className={`px-3 py-1.5 text-xs font-medium ${button.confirm} rounded-lg transition-colors`}
-              >
-                Uninstall
-              </button>
-            </>
-          }
+          confirmLabel="Uninstall"
+          onConfirm={handleUninstall}
+          onCancel={() => setShowUninstallConfirm(false)}
         >
           <p className={`text-xs ${text.secondary}`}>
             The plugin "{plugin.name}" will be uninstalled from {scopeLabel.toLowerCase()} scope.
           </p>
-        </Modal>
+        </ConfirmDialog>
       )}
     </div>
   );
