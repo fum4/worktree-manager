@@ -114,45 +114,74 @@ export function AgentsSidebar({
 
         {!mcpCollapsed && (
           <div className="space-y-px">
-            {/* wok3 built-in */}
-            <Wok3Item
-              isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER_ID}
-              onSelect={handleSelectWok3}
-              isNew={isWok3New}
-              deploymentStatus={deploymentStatus[WOK3_SERVER_ID]}
-            />
-
             {serversLoading ? (
-              <div className="flex items-center justify-center gap-2 py-4">
-                <Spinner size="sm" className={text.muted} />
-                <span className={`text-xs ${text.muted}`}>Loading...</span>
-              </div>
+              <>
+                <Wok3Item
+                  isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER_ID}
+                  onSelect={handleSelectWok3}
+                  isNew={isWok3New}
+                  deploymentStatus={deploymentStatus[WOK3_SERVER_ID]}
+                />
+                <div className="flex items-center justify-center gap-2 py-4">
+                  <Spinner size="sm" className={text.muted} />
+                  <span className={`text-xs ${text.muted}`}>Loading...</span>
+                </div>
+              </>
             ) : (
-              [...filteredServers]
-                .sort((a, b) => {
+              (() => {
+                const wok3Status = deploymentStatus[WOK3_SERVER_ID] ?? {};
+                const wok3Active = Object.values(wok3Status).some((v) => v.global || v.project);
+
+                const sorted = [...filteredServers].sort((a, b) => {
                   const aStatus = deploymentStatus[a.id] ?? {};
                   const bStatus = deploymentStatus[b.id] ?? {};
                   const aActive = Object.values(aStatus).some((v) => v.global || v.project);
                   const bActive = Object.values(bStatus).some((v) => v.global || v.project);
                   if (aActive !== bActive) return aActive ? -1 : 1;
                   return 0;
-                })
-                .map((server) => {
-                  const status = deploymentStatus[server.id] ?? {};
-                  const agents = Object.entries(status)
-                    .filter(([, v]) => v.global || v.project)
-                    .map(([name]) => name);
+                });
 
-                  return (
-                    <McpServerItem
-                      key={server.id}
-                      server={server}
-                      isSelected={selection?.type === 'mcp-server' && selection.id === server.id}
-                      onSelect={() => onSelect({ type: 'mcp-server', id: server.id })}
-                      deployedAgents={agents.length > 0 ? agents : undefined}
-                    />
-                  );
-                })
+                // Insert wok3 after active servers (or at top if wok3 is active)
+                const insertIdx = wok3Active
+                  ? 0
+                  : sorted.findIndex((s) => {
+                      const st = deploymentStatus[s.id] ?? {};
+                      return !Object.values(st).some((v) => v.global || v.project);
+                    });
+                const wok3Pos = insertIdx === -1 ? sorted.length : insertIdx;
+
+                const items: React.ReactNode[] = [];
+                for (let i = 0; i <= sorted.length; i++) {
+                  if (i === wok3Pos) {
+                    items.push(
+                      <Wok3Item
+                        key={WOK3_SERVER_ID}
+                        isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER_ID}
+                        onSelect={handleSelectWok3}
+                        isNew={isWok3New}
+                        deploymentStatus={deploymentStatus[WOK3_SERVER_ID]}
+                      />,
+                    );
+                  }
+                  if (i < sorted.length) {
+                    const server = sorted[i];
+                    const status = deploymentStatus[server.id] ?? {};
+                    const agents = Object.entries(status)
+                      .filter(([, v]) => v.global || v.project)
+                      .map(([name]) => name);
+                    items.push(
+                      <McpServerItem
+                        key={server.id}
+                        server={server}
+                        isSelected={selection?.type === 'mcp-server' && selection.id === server.id}
+                        onSelect={() => onSelect({ type: 'mcp-server', id: server.id })}
+                        deployedAgents={agents.length > 0 ? agents : undefined}
+                      />,
+                    );
+                  }
+                }
+                return items;
+              })()
             )}
           </div>
         )}
