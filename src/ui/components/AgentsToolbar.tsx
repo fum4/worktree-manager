@@ -14,6 +14,7 @@ interface AgentsToolbarProps {
 
 export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill, onScanImport }: AgentsToolbarProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -33,57 +34,65 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showAddMenu]);
 
+  const handleToggleMenu = () => {
+    if (!showAddMenu && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.top, left: rect.right + 4 });
+    }
+    setShowAddMenu(!showAddMenu);
+  };
+
   const menuItemClass = `w-full flex items-center gap-2.5 px-3 py-2 text-xs ${text.secondary} hover:bg-white/[0.06] transition-colors`;
 
   return (
     <>
       <div className="flex-shrink-0 px-3 pt-3.5 pb-2 flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-[#6b7280] ml-2">Agents</span>
-        <div className="relative">
-          <button
-            ref={buttonRef}
-            type="button"
-            onClick={() => setShowAddMenu(!showAddMenu)}
-            className={`p-1 rounded-md ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] transition-colors duration-150`}
-            title="Add"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-
-          {showAddMenu && (
-            <div
-              ref={menuRef}
-              className={`absolute right-0 top-full mt-1 w-48 ${surface.panel} rounded-lg border border-white/[0.08] shadow-xl overflow-hidden z-50`}
-            >
-              <button
-                type="button"
-                onClick={() => { setShowAddMenu(false); onAddServer(); }}
-                className={menuItemClass}
-              >
-                <Server className={`w-4 h-4 ${integration.mcp}`} />
-                MCP Server
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowAddMenu(false); onAddSkill(); }}
-                className={menuItemClass}
-              >
-                <Sparkles className={`w-4 h-4 ${claudeSkill.accent}`} />
-                Skill
-              </button>
-              <div className="border-t border-white/[0.06]" />
-              <button
-                type="button"
-                onClick={() => { setShowAddMenu(false); onScanImport(); }}
-                className={menuItemClass}
-              >
-                <ScanSearch className={`w-4 h-4 ${text.muted}`} />
-                Scan & Import
-              </button>
-            </div>
-          )}
-        </div>
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={handleToggleMenu}
+          className={`p-1 rounded-md ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] transition-colors duration-150`}
+          title="Add"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
       </div>
+
+      {showAddMenu && (
+        <div
+          ref={menuRef}
+          style={{ top: menuPos.top, left: menuPos.left }}
+          className={`fixed w-48 ${surface.panel} rounded-lg border border-white/[0.08] shadow-xl overflow-hidden z-50`}
+        >
+          <button
+            type="button"
+            onClick={() => { setShowAddMenu(false); onAddServer(); }}
+            className={menuItemClass}
+          >
+            <Server className={`w-4 h-4 ${integration.mcp}`} />
+            MCP Server
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowAddMenu(false); onAddSkill(); }}
+            className={menuItemClass}
+          >
+            <Sparkles className={`w-4 h-4 ${claudeSkill.accent}`} />
+            Skill
+          </button>
+          <div className="border-t border-white/[0.06]" />
+          <button
+            type="button"
+            onClick={() => { setShowAddMenu(false); onScanImport(); }}
+            className={menuItemClass}
+          >
+            <ScanSearch className={`w-4 h-4 ${text.muted}`} />
+            Scan & Import
+          </button>
+        </div>
+      )}
+
       <div className="px-3 pt-2 pb-3">
         <div className="relative">
           <Search className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${text.dimmed}`} />

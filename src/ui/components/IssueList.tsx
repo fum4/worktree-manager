@@ -280,7 +280,7 @@ export function IssueList({
         {issues.length > 0 && (
           <div>
             <div
-              className={`w-full px-3 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${jiraEmpty ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
+              className={`w-full pl-3 pr-4 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${jiraEmpty ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
               onClick={jiraEmpty ? undefined : () => setJiraCollapsed(!jiraCollapsed)}
             >
               {jiraEmpty ? (
@@ -356,7 +356,7 @@ export function IssueList({
         {linearConfigured && (
           <div>
             <div
-              className={`w-full px-3 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${linearEmpty ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
+              className={`w-full pl-3 pr-4 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${linearEmpty ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
               onClick={linearEmpty ? undefined : () => setLinearCollapsed(!linearCollapsed)}
             >
               {linearEmpty ? (
