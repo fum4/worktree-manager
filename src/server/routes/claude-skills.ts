@@ -293,9 +293,8 @@ function scanForSkills(roots: string[], maxDepth: number, knownSkills: Set<strin
                 const skillMdPath = path.join(skillsDir, skillEntry.name, 'SKILL.md');
                 if (!existsSync(skillMdPath)) continue;
 
-                const key = path.resolve(skillsDir, skillEntry.name);
-                if (seen.has(key)) continue;
-                seen.add(key);
+                if (seen.has(skillEntry.name)) continue;
+                seen.add(skillEntry.name);
 
                 try {
                   const content = readFileSync(skillMdPath, 'utf-8');
@@ -532,15 +531,16 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
 
     const mode = body.mode ?? 'project';
 
-    // Collect all already-known skill names: registry + project-deployed
+    // Collect all already-known skill names: registry + project-deployed + global-deployed
     const knownSkills = new Set(listRegistrySkills().map((s) => s.name));
-    const projectSkillsDir = getProjectDeployDir(projectDir);
-    if (existsSync(projectSkillsDir)) {
-      try {
-        for (const entry of readdirSync(projectSkillsDir, { withFileTypes: true })) {
-          if (entry.isDirectory()) knownSkills.add(entry.name);
-        }
-      } catch { /* dir not readable */ }
+    for (const dir of [getProjectDeployDir(projectDir), getGlobalDeployDir()]) {
+      if (existsSync(dir)) {
+        try {
+          for (const entry of readdirSync(dir, { withFileTypes: true })) {
+            if (entry.isDirectory() || entry.isSymbolicLink()) knownSkills.add(entry.name);
+          }
+        } catch { /* dir not readable */ }
+      }
     }
 
     let scanRoots: string[];

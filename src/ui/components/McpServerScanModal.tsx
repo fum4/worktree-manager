@@ -224,63 +224,67 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
           </div>
 
           {tab === 'servers' ? (
-            mcpCount === 0 ? (
-              <p className={`${text.muted} text-xs py-6 text-center`}>No new MCP servers found.</p>
-            ) : (
-              <div className="space-y-1 max-h-72 overflow-y-auto">
-                {mcpResults!.map((r) => (
-                  <label
-                    key={r.key}
-                    className="flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-white/[0.04] transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedMcps.has(r.key)}
-                      onChange={() => toggleMcp(r.key)}
-                      className="mt-[5px] accent-teal-400"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-xs font-medium ${text.primary}`}>{r.key}</span>
-                      <div className={`text-[11px] ${text.muted} font-mono`}>
-                        {r.command} {r.args.join(' ')}
+            <div key="servers-tab">
+              {mcpCount === 0 ? (
+                <p className={`${text.muted} text-xs py-6 text-center`}>No new MCP servers found.</p>
+              ) : (
+                <div className="space-y-1 max-h-72 overflow-y-auto">
+                  {mcpResults!.map((r) => (
+                    <label
+                      key={r.key}
+                      className="flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-white/[0.04] transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMcps.has(r.key)}
+                        onChange={() => toggleMcp(r.key)}
+                        className="mt-[5px] accent-teal-400"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-xs font-medium ${text.primary}`}>{r.key}</span>
+                        <div className={`text-[11px] ${text.muted} font-mono`}>
+                          {r.command} {r.args.join(' ')}
+                        </div>
+                        <div className={`text-[10px] ${text.dimmed} mt-0.5`}>
+                          {r.foundIn.map((f) => (
+                            <div key={f.configPath} className="truncate">{f.configPath}</div>
+                          ))}
+                        </div>
                       </div>
-                      <div className={`text-[10px] ${text.dimmed} mt-0.5`}>
-                        {r.foundIn.map((f) => (
-                          <div key={f.configPath} className="truncate">{f.configPath}</div>
-                        ))}
-                      </div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
-            skillCount === 0 ? (
-              <p className={`${text.muted} text-xs py-6 text-center`}>No new skills found.</p>
-            ) : (
-              <div className="space-y-1 max-h-72 overflow-y-auto">
-                {skillResults!.map((r) => (
-                  <label
-                    key={r.name}
-                    className="flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-white/[0.04] transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedSkills.has(r.name)}
-                      onChange={() => toggleSkill(r.name)}
-                      className="mt-[5px] accent-teal-400"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-xs font-medium ${text.primary}`}>{r.displayName}</span>
-                      {r.description && (
-                        <div className={`text-[11px] ${text.muted}`}>{r.description}</div>
-                      )}
-                      <div className={`text-[10px] ${text.dimmed} mt-0.5 font-mono truncate`}>{r.skillPath}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            )
+            <div key="skills-tab">
+              {skillCount === 0 ? (
+                <p className={`${text.muted} text-xs py-6 text-center`}>No new skills found.</p>
+              ) : (
+                <div className="space-y-1 max-h-72 overflow-y-auto">
+                  {skillResults!.map((r) => (
+                    <label
+                      key={r.name}
+                      className="flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-white/[0.04] transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedSkills.has(r.name)}
+                        onChange={() => toggleSkill(r.name)}
+                        className="mt-[5px] accent-teal-400"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-xs font-medium ${text.primary}`}>{r.displayName}</span>
+                        {r.description && (
+                          <div className={`text-[11px] ${text.muted}`}>{r.description}</div>
+                        )}
+                        <div className={`text-[10px] ${text.dimmed} mt-0.5 font-mono truncate`}>{r.skillPath}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {error && (
