@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { Search } from 'lucide-react';
+import { Info, Plus, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { APP_NAME } from '../constants';
@@ -251,6 +251,15 @@ export default function App() {
     if (isElectron) {
       window.electronAPI?.setSidebarWidth(sidebarWidth);
     }
+  };
+
+  const WS_BANNER_KEY = `${APP_NAME}:workspaceBannerDismissed`;
+  const [wsBannerDismissed, setWsBannerDismissed] = useState(
+    () => localStorage.getItem(WS_BANNER_KEY) === '1',
+  );
+  const dismissWsBanner = () => {
+    setWsBannerDismissed(true);
+    localStorage.setItem(WS_BANNER_KEY, '1');
   };
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -623,6 +632,29 @@ export default function App() {
               <main
                 className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}
               >
+                {!wsBannerDismissed && (
+                  <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-teal-400/20 bg-teal-400/[0.04]">
+                    <Info className="w-4 h-4 text-teal-400 flex-shrink-0" />
+                    <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
+                      Your local development workspace. Create worktrees from branches, issue trackers, or local tasks. Connect integrations to pull issues directly into your workflow.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveView('integrations')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-teal-300 bg-teal-400/10 hover:bg-teal-400/20 border border-teal-400/20 rounded-lg transition-colors flex-shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Integrations
+                    </button>
+                    <button
+                      type="button"
+                      onClick={dismissWsBanner}
+                      className="p-1 rounded-md hover:bg-teal-400/10 text-teal-400/40 hover:text-teal-400/70 transition-colors flex-shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
                 {selection?.type === 'issue' ? (
                   <JiraDetailPanel
                     issueKey={selection.key}

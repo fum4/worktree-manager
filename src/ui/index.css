@@ -16,6 +16,39 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Grey unchecked checkboxes for dark theme */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+input[type="checkbox"]:checked {
+  border-color: transparent;
+  background: var(--checkbox-accent, #2dd4bf);
+}
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3.5px;
+  top: 1px;
+  width: 4px;
+  height: 7px;
+  border: solid white;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+/* Checkbox accent color variants */
+input[type="checkbox"].accent-teal-400 { --checkbox-accent: #2dd4bf; }
+input[type="checkbox"].accent-red-400 { --checkbox-accent: #7f1d1d; }
+
 /* Thin custom scrollbar for dark theme */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

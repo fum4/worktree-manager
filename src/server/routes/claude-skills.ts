@@ -463,10 +463,11 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
 
   // ── Static POST routes (before parameterized :name) ───────────
 
-  // Create skill in registry
+  // Create skill in registry (global) or directly in project (local)
   app.post('/api/claude/skills', async (c) => {
     const body = await c.req.json<{
       name: string;
+      scope?: 'global' | 'local';
       description?: string;
       allowedTools?: string;
       context?: string;
@@ -483,9 +484,13 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
       return c.json({ success: false, error: 'Name is required' }, 400);
     }
 
+    const scope = body.scope ?? 'global';
     const dirName = body.name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
-    const registryDir = getRegistryDir();
-    const skillDir = path.join(registryDir, dirName);
+
+    const parentDir = scope === 'local'
+      ? getProjectDeployDir(projectDir)
+      : getRegistryDir();
+    const skillDir = path.join(parentDir, dirName);
 
     if (existsSync(skillDir)) {
       return c.json({ success: false, error: `Skill "${dirName}" already exists` }, 409);

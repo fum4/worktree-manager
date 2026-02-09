@@ -36,6 +36,7 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
   const [editingConfig, setEditingConfig] = useState<string | null>(null);
   const [configDraft, setConfigDraft] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteBoth, setDeleteBoth] = useState(false);
   const [deploying, setDeploying] = useState<string | null>(null);
   const [duplicating, setDuplicating] = useState(false);
   const [pendingDeploy, setPendingDeploy] = useState<{ scope: 'global' | 'local'; action: 'enable' | 'disable' } | null>(null);
@@ -58,10 +59,19 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
   };
 
   const handleDelete = async () => {
+    const shouldDeleteBoth = deleteBoth;
     setShowDeleteConfirm(false);
+    setDeleteBoth(false);
     setDeploying('delete');
 
-    if (viewingLocation === 'local') {
+    if (shouldDeleteBoth) {
+      // Delete both: remove project copy + delete from registry
+      await api.undeployClaudeSkill(skillName, 'local');
+      await api.deleteClaudeSkill(skillName);
+      setDeploying(null);
+      queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
+      onDeleted();
+    } else if (viewingLocation === 'local') {
       // Remove the local/project copy
       await api.undeployClaudeSkill(skillName, 'local');
       setDeploying(null);
@@ -364,15 +374,15 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
       {/* Delete confirmation */}
       {showDeleteConfirm && (
         <Modal
-          title={hasLocalCopy ? `Delete ${viewingLocation === 'local' ? 'project' : 'global'} skill?` : 'Delete skill?'}
+          title={hasLocalCopy && inRegistry ? `Delete ${viewingLocation === 'local' ? 'project' : 'global'} skill?` : 'Delete skill?'}
           icon={<Trash2 className="w-4 h-4 text-red-400" />}
-          onClose={() => setShowDeleteConfirm(false)}
+          onClose={() => { setShowDeleteConfirm(false); setDeleteBoth(false); }}
           width="sm"
           footer={
             <>
               <button
                 type="button"
-                onClick={() => setShowDeleteConfirm(false)}
+                onClick={() => { setShowDeleteConfirm(false); setDeleteBoth(false); }}
                 className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
               >
                 Cancel
@@ -390,6 +400,19 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
           <p className={`text-xs ${text.secondary}`}>
             The {viewingLocation === 'local' ? 'project' : 'global'} skill "{skill.displayName}" will be deleted.
           </p>
+          {hasLocalCopy && inRegistry && (
+            <label className="flex items-center gap-2 mt-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={deleteBoth}
+                onChange={(e) => setDeleteBoth(e.target.checked)}
+                className="accent-red-400"
+              />
+              <span className={`text-[11px] ${text.muted} group-hover:${text.secondary} transition-colors`}>
+                Delete both global and project skills
+              </span>
+            </label>
+          )}
         </Modal>
       )}
 

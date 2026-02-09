@@ -1298,7 +1298,7 @@ export async function fetchClaudeSkill(
 }
 
 export async function createClaudeSkill(
-  data: { name: string; description?: string; allowedTools?: string; context?: string; agent?: string; model?: string; argumentHint?: string; disableModelInvocation?: boolean; userInvocable?: boolean; mode?: boolean; instructions?: string },
+  data: { name: string; scope?: 'global' | 'local'; description?: string; allowedTools?: string; context?: string; agent?: string; model?: string; argumentHint?: string; disableModelInvocation?: boolean; userInvocable?: boolean; mode?: boolean; instructions?: string },
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; skill?: SkillSummary; error?: string }> {
   try {

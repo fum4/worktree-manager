@@ -36,6 +36,7 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
 
     const result = await api.createClaudeSkill({
       name: name.trim(),
+      scope,
       description: description.trim() || undefined,
       allowedTools: allowedTools.trim() || undefined,
       context: context.trim() || undefined,
@@ -51,7 +52,11 @@ export function SkillCreateModal({ onCreated, onClose }: SkillCreateModalProps) 
     setCreating(false);
 
     if (result.success && result.skill) {
-      await api.deployClaudeSkill(result.skill.name, scope);
+      // Global skills need a deploy step (symlink from registry to ~/.claude/skills/)
+      // Local/project skills are already created in the right place
+      if (scope === 'global') {
+        await api.deployClaudeSkill(result.skill.name, 'global');
+      }
       onCreated(result.skill.name);
       onClose();
     } else if (result.success) {

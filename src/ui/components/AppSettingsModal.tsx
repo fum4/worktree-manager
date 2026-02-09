@@ -3,7 +3,7 @@ import { Settings } from 'lucide-react';
 
 import { DEFAULT_PORT } from '../../constants';
 import { Modal } from './Modal';
-import { input, settings, text } from '../theme';
+import { button, input, settings, text } from '../theme';
 
 interface AppSettingsModalProps {
   onClose: () => void;
@@ -12,22 +12,23 @@ interface AppSettingsModalProps {
 export function AppSettingsModal({ onClose }: AppSettingsModalProps) {
   const [basePort, setBasePort] = useState(DEFAULT_PORT);
   const [setupPreference, setSetupPreference] = useState<'ask' | 'auto' | 'manual'>('ask');
+  const [initialBasePort, setInitialBasePort] = useState(DEFAULT_PORT);
+  const [initialSetupPreference, setInitialSetupPreference] = useState<'ask' | 'auto' | 'manual'>('ask');
 
   useEffect(() => {
     window.electronAPI?.getPreferences().then((prefs) => {
       setBasePort(prefs.basePort);
       setSetupPreference(prefs.setupPreference);
+      setInitialBasePort(prefs.basePort);
+      setInitialSetupPreference(prefs.setupPreference);
     });
   }, []);
 
-  const handleBasePortChange = (value: number) => {
-    setBasePort(value);
-    window.electronAPI?.updatePreferences({ basePort: value });
-  };
+  const hasChanges = basePort !== initialBasePort || setupPreference !== initialSetupPreference;
 
-  const handleSetupPreferenceChange = (value: 'ask' | 'auto' | 'manual') => {
-    setSetupPreference(value);
-    window.electronAPI?.updatePreferences({ setupPreference: value });
+  const handleSave = () => {
+    window.electronAPI?.updatePreferences({ basePort, setupPreference });
+    onClose();
   };
 
   const fieldInputClass = `w-full px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`;
@@ -37,7 +38,26 @@ export function AppSettingsModal({ onClose }: AppSettingsModalProps) {
       title="App Settings"
       icon={<Settings className="w-5 h-5 text-[#9ca3af]" />}
       onClose={onClose}
-      width="sm"
+      width="md"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!hasChanges}
+            className={`px-4 py-1.5 text-xs font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors duration-150`}
+          >
+            Save
+          </button>
+        </>
+      }
     >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1.5">
@@ -50,7 +70,7 @@ export function AppSettingsModal({ onClose }: AppSettingsModalProps) {
           <input
             type="number"
             value={basePort}
-            onChange={(e) => handleBasePortChange(parseInt(e.target.value, 10) || DEFAULT_PORT)}
+            onChange={(e) => setBasePort(parseInt(e.target.value, 10) || DEFAULT_PORT)}
             className={fieldInputClass}
           />
           <span className={`text-[10px] ${text.dimmed}`}>
@@ -67,7 +87,7 @@ export function AppSettingsModal({ onClose }: AppSettingsModalProps) {
           </span>
           <select
             value={setupPreference}
-            onChange={(e) => handleSetupPreferenceChange(e.target.value as 'ask' | 'auto' | 'manual')}
+            onChange={(e) => setSetupPreference(e.target.value as 'ask' | 'auto' | 'manual')}
             className={fieldInputClass}
           >
             <option value="ask">Ask every time</option>
