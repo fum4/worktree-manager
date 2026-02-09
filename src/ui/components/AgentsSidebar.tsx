@@ -246,7 +246,6 @@ export function AgentsSidebar({
             type="button"
             onClick={onAddServer}
             className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded ${text.dimmed} hover:${text.muted} hover:bg-white/[0.06] transition-colors z-10`}
-            title="Add MCP server"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
@@ -370,7 +369,6 @@ export function AgentsSidebar({
             type="button"
             onClick={onAddSkill}
             className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded ${text.dimmed} hover:${text.muted} hover:bg-white/[0.06] transition-colors z-10`}
-            title="Add skill"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
@@ -563,7 +561,6 @@ export function AgentsSidebar({
           className={`p-1 rounded transition-colors duration-150 ${
             configOpen ? `${text.secondary} bg-white/[0.06]` : `${text.dimmed} hover:${text.secondary} hover:bg-white/[0.06]`
           }`}
-          title="List settings"
         >
           <Settings className="w-4 h-4" />
         </button>

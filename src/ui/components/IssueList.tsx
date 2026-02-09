@@ -441,7 +441,6 @@ export function IssueList({
             className={`p-1 rounded transition-colors duration-150 ${
               configOpen ? `${text.secondary} bg-white/[0.06]` : `${text.dimmed} hover:${text.secondary} hover:bg-white/[0.06]`
             }`}
-            title="List settings"
           >
             <Settings className="w-4 h-4" />
           </button>

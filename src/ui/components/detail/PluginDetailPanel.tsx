@@ -162,29 +162,31 @@ export function PluginDetailPanel({ pluginId, onDeleted, pluginActing, onPluginA
                 {plugin.enabled ? 'Enabled' : 'Disabled'}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={handleUpdate}
-              disabled={isDisabled}
-              className={`p-1.5 rounded-lg ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] transition-colors disabled:opacity-50 disabled:pointer-events-none`}
-              title="Update plugin"
-            >
-              <RefreshCw className={`w-4 h-4 ${acting === 'update' ? 'animate-spin' : ''}`} />
-            </button>
+            <Tooltip text="Update plugin">
+              <button
+                type="button"
+                onClick={handleUpdate}
+                disabled={isDisabled}
+                className={`p-1.5 rounded-lg ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] transition-colors disabled:opacity-50 disabled:pointer-events-none`}
+              >
+                <RefreshCw className={`w-4 h-4 ${acting === 'update' ? 'animate-spin' : ''}`} />
+              </button>
+            </Tooltip>
             {acting === 'uninstall' ? (
               <div className="p-1.5">
                 <Spinner size="sm" className="text-red-400" />
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => setShowUninstallConfirm(true)}
-                disabled={isDisabled}
-                className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:pointer-events-none`}
-                title="Uninstall plugin"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <Tooltip text="Uninstall plugin">
+                <button
+                  type="button"
+                  onClick={() => setShowUninstallConfirm(true)}
+                  disabled={isDisabled}
+                  className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:pointer-events-none`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>

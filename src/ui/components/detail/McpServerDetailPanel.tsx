@@ -8,6 +8,7 @@ import { useApi } from '../../hooks/useApi';
 import { border, mcpServer, text } from '../../theme';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { Spinner } from '../Spinner';
+import { Tooltip } from '../Tooltip';
 
 interface McpServerDetailPanelProps {
   serverId: string;
@@ -204,14 +205,15 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
           </div>
           {!isBuiltIn && (
             <div className="flex-shrink-0 pt-1">
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
-                title="Delete server"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <Tooltip text="Delete server">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </Tooltip>
             </div>
           )}
         </div>
@@ -362,7 +364,6 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
                     <span
                       className={`text-[11px] font-mono ${text.secondary} flex-shrink-0 cursor-pointer hover:bg-white/[0.04] px-1.5 py-0.5 -mx-1.5 rounded transition-colors`}
                       onClick={() => { setEditingEnvName(key); setEnvNameDraft(key); }}
-                      title="Click to rename"
                     >
                       {key}
                     </span>
@@ -385,7 +386,6 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
                     <span
                       className={`text-[11px] font-mono ${text.secondary} cursor-pointer hover:bg-white/[0.04] px-1.5 py-0.5 -mx-1.5 rounded transition-colors truncate`}
                       onClick={() => { setEditingEnvKey(key); setEnvValueDraft(value); }}
-                      title="Click to edit"
                     >
                       {showEnv ? value : '••••••••'}
                     </span>
@@ -394,7 +394,6 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
                     type="button"
                     onClick={() => handleEnvDelete(key)}
                     className={`flex-shrink-0 p-0.5 rounded opacity-0 group-hover/env:opacity-100 ${text.dimmed} hover:text-red-400 transition-all`}
-                    title="Remove"
                   >
                     <X className="w-3 h-3" />
                   </button>

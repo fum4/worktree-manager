@@ -8,6 +8,7 @@ import { border, button, claudeSkill, text } from '../../theme';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { MarkdownContent } from '../MarkdownContent';
 import { Spinner } from '../Spinner';
+import { Tooltip } from '../Tooltip';
 
 interface SkillDetailPanelProps {
   skillName: string;
@@ -256,14 +257,15 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
                 {(viewingLocation === 'local' ? deploymentStatus.local : deploymentStatus.global) ? 'Enabled' : 'Disabled'}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
-              title="Delete skill"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <Tooltip text="Delete skill">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </Tooltip>
           </div>
         </div>
       </div>

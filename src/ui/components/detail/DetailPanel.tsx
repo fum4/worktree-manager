@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { WorktreeInfo } from '../../types';
 import { useApi } from '../../hooks/useApi';
 import { border, detailTab, errorBanner, status, text } from '../../theme';
-import { ConfirmModal } from '../ConfirmModal';
+import { ConfirmDialog } from '../ConfirmDialog';
 import { ActionToolbar } from './ActionToolbar';
 import { DetailHeader } from './DetailHeader';
 import { GitActionInputs } from './GitActionInputs';
@@ -258,13 +258,16 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
       ))}
 
       {showRemoveModal && (
-        <ConfirmModal
-          title="Remove worktree"
-          message={`Remove "${worktree.id}"? This will delete the worktree directory.`}
+        <ConfirmDialog
+          title="Delete worktree?"
           confirmLabel="Delete"
           onConfirm={handleConfirmRemove}
           onCancel={() => setShowRemoveModal(false)}
-        />
+        >
+          <p className={`text-xs ${text.secondary}`}>
+            Delete "{worktree.id}"? This will delete the worktree directory.
+          </p>
+        </ConfirmDialog>
       )}
     </div>
   );

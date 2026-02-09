@@ -5,9 +5,9 @@ import { customTask, getLabelColor, text } from '../theme';
 import { Modal } from './Modal';
 
 interface CreateCustomTaskModalProps {
-  onCreated: () => void;
+  onCreated: (taskId?: string) => void;
   onClose: () => void;
-  onCreate: (data: { title: string; description?: string; priority?: string; labels?: string[] }) => Promise<{ success: boolean; error?: string }>;
+  onCreate: (data: { title: string; description?: string; priority?: string; labels?: string[] }) => Promise<{ success: boolean; task?: { id: string }; error?: string }>;
 }
 
 export function CreateCustomTaskModal({ onCreated, onClose, onCreate }: CreateCustomTaskModalProps) {
@@ -36,7 +36,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate }: CreateCu
     setIsCreating(false);
 
     if (result.success) {
-      onCreated();
+      onCreated(result.task?.id);
       onClose();
     } else {
       setError(result.error ?? 'Failed to create task');

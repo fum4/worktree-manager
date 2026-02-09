@@ -7,6 +7,7 @@ import { type WorktreeConfig } from '../hooks/useConfig';
 import { useApi } from '../hooks/useApi';
 import { button, infoBanner, input, settings, surface, tab, text } from '../theme';
 import { Spinner } from './Spinner';
+import { Tooltip } from './Tooltip';
 
 const SETTINGS_BANNER_DISMISSED_KEY = `${APP_NAME}-settings-banner-dismissed`;
 
@@ -215,11 +216,6 @@ export function ConfigurationPanel({
     branchSaveTimer.current = setTimeout(async () => {
       const source = tabKey === 'default' ? undefined : tabKey;
       await api.saveBranchNameRule(content.trim() || null, source);
-      // Update original to match saved
-      setBranchRules((prev) => ({
-        ...prev,
-        [tabKey]: { ...prev[tabKey], original: content },
-      }));
       // Refresh override status
       const status = await api.fetchBranchRuleStatus();
       setBranchOverrides(status.overrides);
@@ -437,21 +433,22 @@ export function ConfigurationPanel({
               )}
               <div className="relative rounded-md border border-white/[0.06]">
                 {branchRules[branchTab] && branchRules[branchTab].content !== branchRules[branchTab].original && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const original = branchRules[branchTab].original;
-                      setBranchRules((prev) => ({
-                        ...prev,
-                        [branchTab]: { ...prev[branchTab], content: original },
-                      }));
-                      saveBranchRule(branchTab, original);
-                    }}
-                    className={`absolute top-1.5 right-1.5 z-10 p-1 rounded ${text.dimmed} hover:${text.muted} hover:bg-white/[0.06] transition-colors`}
-                    title="Reset to saved"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                  </button>
+                  <Tooltip text="Reset to saved">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const original = branchRules[branchTab].original;
+                        setBranchRules((prev) => ({
+                          ...prev,
+                          [branchTab]: { ...prev[branchTab], content: original },
+                        }));
+                        saveBranchRule(branchTab, original);
+                      }}
+                      className={`absolute top-1.5 right-1.5 z-10 p-1 rounded ${text.dimmed} hover:${text.muted} hover:bg-white/[0.06] transition-colors`}
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </button>
+                  </Tooltip>
                 )}
                 <Editor
                   height="160px"

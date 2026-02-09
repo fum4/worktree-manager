@@ -3,6 +3,7 @@ import { Plus, Settings, X, Folder, Loader2 } from 'lucide-react';
 import { useServer } from '../contexts/ServerContext';
 import type { Project } from '../contexts/ServerContext';
 import { surface } from '../theme';
+import { Tooltip } from './Tooltip';
 
 interface TabBarProps {
   onOpenSettings?: () => void;
@@ -36,13 +37,14 @@ export function TabBar({ onOpenSettings }: TabBarProps) {
       ))}
 
       {/* Add project button */}
-      <button
-        onClick={handleAddProject}
-        className="flex items-center justify-center w-7 h-7 rounded-md text-[#6b7280] hover:text-[#e5e7eb] hover:bg-white/[0.06] transition-colors duration-150"
-        title="Open Project"
-      >
-        <Plus className="w-4 h-4" />
-      </button>
+      <Tooltip text="Open Project">
+        <button
+          onClick={handleAddProject}
+          className="flex items-center justify-center w-7 h-7 rounded-md text-[#6b7280] hover:text-[#e5e7eb] hover:bg-white/[0.06] transition-colors duration-150"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </Tooltip>
 
       {/* Spacer */}
       <div className="ml-auto" />
@@ -52,7 +54,6 @@ export function TabBar({ onOpenSettings }: TabBarProps) {
         <button
           onClick={onOpenSettings}
           className="flex items-center justify-center w-7 h-7 rounded-md text-[#6b7280] hover:text-[#e5e7eb] hover:bg-white/[0.06] transition-colors duration-150"
-          title="App Settings"
         >
           <Settings className="w-4 h-4" />
         </button>
@@ -108,7 +109,6 @@ function Tab({ project, isActive, onSelect, onClose }: TabProps) {
           opacity-0 group-hover:opacity-100
           hover:bg-white/10 hover:text-[#e5e7eb] transition-all duration-150
         `}
-        title="Close"
       >
         <X className="w-3 h-3" />
       </button>

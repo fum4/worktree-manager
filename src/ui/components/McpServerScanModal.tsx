@@ -339,7 +339,6 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
                       if (folder) setScanPath(folder);
                     }}
                     className={`px-2 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${text.muted} hover:bg-white/[0.08] hover:${text.secondary} transition-colors`}
-                    title="Browse..."
                   >
                     <FolderOpen className="w-3.5 h-3.5" />
                   </button>

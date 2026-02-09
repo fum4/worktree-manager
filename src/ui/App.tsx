@@ -762,9 +762,10 @@ export default function App() {
       {showCreateModal && createModalMode === 'custom' && (
         <CreateCustomTaskModal
           onCreate={(data) => api.createCustomTask(data)}
-          onCreated={() => {
+          onCreated={(taskId) => {
             refetchCustomTasks();
             setActiveCreateTab('issues');
+            if (taskId) setSelection({ type: 'custom-task', id: taskId });
           }}
           onClose={() => setShowCreateModal(false)}
         />

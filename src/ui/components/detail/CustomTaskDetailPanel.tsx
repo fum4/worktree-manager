@@ -8,6 +8,7 @@ import { border, button, customTask, getLabelColor, text } from '../../theme';
 import { MarkdownContent } from '../MarkdownContent';
 import { NotesSection } from './NotesSection';
 import { Spinner } from '../Spinner';
+import { Tooltip } from '../Tooltip';
 
 interface CustomTaskDetailPanelProps {
   taskId: string;
@@ -229,28 +230,29 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
                   if (e.key === 'Enter') saveTitle();
                   if (e.key === 'Escape') setEditingTitle(false);
                 }}
-                className={`w-full text-[15px] font-semibold ${text.primary} bg-white/[0.04] border border-amber-400/30 rounded-md px-2 py-1 focus:outline-none`}
+                style={{ width: `${Math.max(titleDraft.length + 1, 10)}ch` }}
+                className={`max-w-full text-[15px] font-semibold ${text.primary} bg-white/[0.04] border border-amber-400/30 rounded-md px-2 py-1 focus:outline-none`}
                 autoFocus
               />
             ) : (
               <h2
                 className={`text-[15px] font-semibold ${text.primary} leading-snug cursor-pointer hover:bg-white/[0.04] rounded-md px-2 py-1 -mx-2 -my-1 transition-colors`}
                 onClick={startEditTitle}
-                title="Click to edit"
               >
                 {task.title}
               </h2>
             )}
           </div>
           <div className="flex-shrink-0 pt-1 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
-              title="Delete task"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <Tooltip text="Delete task">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </Tooltip>
             {task.linkedWorktreeId ? (
               <button
                 type="button"
@@ -344,7 +346,6 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
               ref={descriptionRef}
               className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-4 py-3 cursor-pointer hover:border-white/[0.08] transition-colors min-h-[60px]"
               onClick={startEditDescription}
-              title="Click to edit"
             >
               {task.description ? (
                 <MarkdownContent content={task.description} />

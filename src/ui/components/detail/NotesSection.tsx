@@ -209,7 +209,6 @@ function NotePane({
     <div
       className={`rounded-lg ${accentBg} border ${accentBorder} px-4 py-3 cursor-pointer hover:border-white/[0.08] transition-colors min-h-[60px]`}
       onClick={startEdit}
-      title="Click to edit"
     >
       {content ? (
         <MarkdownContent content={content} />

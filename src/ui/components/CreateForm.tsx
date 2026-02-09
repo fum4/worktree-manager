@@ -82,7 +82,6 @@ export function CreateForm({ jiraConfigured, linearConfigured, hasCustomTasks, a
         type="button"
         onClick={handleToggleMenu}
         className={`p-1 rounded-md ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] transition-colors duration-150`}
-        title="Create"
       >
         <Plus className="w-4 h-4" />
       </button>

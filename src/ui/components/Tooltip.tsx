@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
 interface TooltipProps {
-  text: string;
+  text: React.ReactNode;
   children: React.ReactElement<Record<string, unknown>>;
   position?: TooltipPosition;
   delay?: number;
