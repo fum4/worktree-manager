@@ -52,8 +52,9 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
         : null;
 
   const tooltipText = plugin.error || plugin.warning;
+  const tooltipDotColor = plugin.error ? 'bg-red-400' : 'bg-yellow-400';
 
-  return (
+  const item = (
     <button
       type="button"
       onClick={onSelect}
@@ -87,11 +88,7 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
           ) : (
             <>
               <div className="absolute inset-0 flex items-center justify-end group-hover:hidden">
-                {tooltipText ? (
-                  <Tooltip text={tooltipText} position="right">
-                    {badgeDot!}
-                  </Tooltip>
-                ) : badgeDot}
+                {badgeDot}
               </div>
               <div className="absolute inset-0 hidden group-hover:flex items-center justify-end gap-2.5 mr-[4px]">
                 <Tooltip text="Remove" position="top">
@@ -125,4 +122,17 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
       </div>
     </button>
   );
+
+  if (tooltipText) {
+    return (
+      <Tooltip
+        text={<span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tooltipDotColor}`} />{tooltipText}</span>}
+        position="right"
+      >
+        {item}
+      </Tooltip>
+    );
+  }
+
+  return item;
 }
