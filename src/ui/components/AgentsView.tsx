@@ -4,7 +4,7 @@ import { Info, ScanSearch, X } from 'lucide-react';
 import { APP_NAME } from '../../constants';
 import { useServer } from '../contexts/ServerContext';
 import { useMcpServers, useMcpDeploymentStatus } from '../hooks/useMcpServers';
-import { useClaudeSkills, useSkillDeploymentStatus, useClaudePlugins } from '../hooks/useClaudeSkills';
+import { useSkills, useSkillDeploymentStatus, useClaudePlugins } from '../hooks/useSkills';
 import { surface } from '../theme';
 import { AgentsSidebar, type AgentSelection } from './AgentsSidebar';
 import { AgentsToolbar } from './AgentsToolbar';
@@ -52,7 +52,7 @@ export function AgentsView() {
 
   const { servers, isLoading: serversLoading, refetch: refetchServers } = useMcpServers(search || undefined);
   const { status: deploymentStatus, refetch: refetchDeployment } = useMcpDeploymentStatus();
-  const { skills, isLoading: skillsLoading, refetch: refetchSkills } = useClaudeSkills();
+  const { skills, isLoading: skillsLoading, refetch: refetchSkills } = useSkills();
   const { status: skillDeploymentStatus, refetch: refetchSkillDeployment } = useSkillDeploymentStatus();
   const { plugins, isLoading: pluginsLoading, refetch: refetchPlugins } = useClaudePlugins();
   const [pluginActing, setPluginActing] = useState(false);
@@ -97,6 +97,15 @@ export function AgentsView() {
     refetchSkillDeployment();
     setSelection({ type: 'skill', name: skillName });
   };
+
+  const handleSkillInstalled = (skillNames: string[]) => {
+    refetchSkills();
+    refetchSkillDeployment();
+    if (skillNames.length > 0) {
+      setSelection({ type: 'skill', name: skillNames[0] });
+    }
+  };
+
 
   const handlePluginInstalled = () => {
     refetchPlugins();
@@ -239,6 +248,7 @@ export function AgentsView() {
       {showCreateSkillModal && (
         <SkillCreateModal
           onCreated={handleSkillCreated}
+          onInstalled={handleSkillInstalled}
           onClose={() => setShowCreateSkillModal(false)}
         />
       )}

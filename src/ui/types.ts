@@ -173,8 +173,20 @@ export interface SkillDetail extends SkillSummary {
   examplesMd?: string;
 }
 
+export interface SkillAgentDeployment {
+  global?: boolean;
+  project?: boolean;
+}
+
 export interface SkillDeploymentStatus {
-  status: Record<string, { global: boolean; local: boolean; localIsSymlink: boolean; localIsCopy: boolean; inRegistry: boolean }>;
+  status: Record<string, { inRegistry: boolean; agents: Record<string, SkillAgentDeployment> }>;
+}
+
+export interface SkillInstallRequest {
+  repo: string;
+  skill?: string;
+  agents: string[];
+  scope: 'global' | 'project';
 }
 
 export interface PluginSummary {

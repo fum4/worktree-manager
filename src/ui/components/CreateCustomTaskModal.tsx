@@ -59,7 +59,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate }: CreateCu
 
   return (
     <Modal
-      title="Create Local Task"
+      title="Create Task"
       icon={<FileText className="w-4 h-4 text-amber-400" />}
       onClose={onClose}
       onSubmit={handleSubmit}

@@ -1,15 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchClaudeSkills, fetchClaudeSkill, fetchClaudePlugins, fetchClaudePluginDetail, fetchAvailablePlugins, fetchSkillDeploymentStatus } from './api';
+import { fetchSkills, fetchSkill, fetchClaudePlugins, fetchClaudePluginDetail, fetchAvailablePlugins, fetchSkillDeploymentStatus } from './api';
 import { useServerUrlOptional } from '../contexts/ServerContext';
 
-export function useClaudeSkills() {
+export function useSkills() {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['claudeSkills', serverUrl],
+    queryKey: ['skills', serverUrl],
     queryFn: async () => {
-      const result = await fetchClaudeSkills(serverUrl);
+      const result = await fetchSkills(serverUrl);
       if (result.error) throw new Error(result.error);
       return result.skills;
     },
@@ -26,14 +26,14 @@ export function useClaudeSkills() {
   };
 }
 
-export function useClaudeSkillDetail(name: string | null, location?: 'local') {
+export function useSkillDetail(name: string | null) {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['claudeSkill', serverUrl, name, location],
+    queryKey: ['skill', serverUrl, name],
     queryFn: async () => {
       if (!name) return null;
-      const result = await fetchClaudeSkill(name, serverUrl, location);
+      const result = await fetchSkill(name, serverUrl);
       if (result.error) throw new Error(result.error);
       return result.skill ?? null;
     },

@@ -343,13 +343,13 @@ export function getLabelColor(label: string) {
   return customTask.labelColors[((hash >>> 0) % customTask.labelColors.length)];
 }
 
-// ─── Claude Skills ──────────────────────────────────────────────
-export const claudeSkill = {
-  accent:          'text-purple-400',
-  accentBg:        'bg-purple-400/10',
-  accentBorder:    'border-purple-400/30',
-  badge:           'text-purple-400 bg-purple-900/30',
-  button:          'bg-purple-400/15 text-purple-400 hover:bg-purple-400/25 font-medium',
+// ─── Skills ─────────────────────────────────────────────────────
+export const skill = {
+  accent:          'text-pink-400',
+  accentBg:        'bg-pink-400/10',
+  accentBorder:    'border-pink-400/30',
+  badge:           'text-pink-400 bg-pink-900/30',
+  button:          'bg-pink-400/15 text-pink-400 hover:bg-pink-400/25 font-medium',
 } as const;
 
 // ─── Plugins ────────────────────────────────────────────────────

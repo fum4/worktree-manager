@@ -1,7 +1,7 @@
 import { Sparkles, Trash2 } from 'lucide-react';
 
 import type { SkillSummary } from '../types';
-import { claudeSkill, surface, text } from '../theme';
+import { skill as skillTheme, surface, text } from '../theme';
 
 interface SkillItemProps {
   skill: SkillSummary;
@@ -29,12 +29,12 @@ export function SkillItem({ skill, isSelected, onSelect, isDeployed, onDeploy, o
       onClick={onSelect}
       className={`group w-full text-left px-3 py-2.5 transition-colors duration-150 border-l-2 ${
         isSelected
-          ? `${surface.panelSelected} ${claudeSkill.accentBorder}`
+          ? `${surface.panelSelected} ${skillTheme.accentBorder}`
           : `border-transparent hover:${surface.panelHover}`
       }`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <Sparkles className={`w-3.5 h-3.5 flex-shrink-0 transition-colors duration-150 ${isSelected ? 'text-purple-400' : `${text.muted} group-hover:text-purple-400`}`} />
+        <Sparkles className={`w-3.5 h-3.5 flex-shrink-0 transition-colors duration-150 ${isSelected ? 'text-pink-400' : `${text.muted} group-hover:text-pink-400`}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={`text-xs font-medium truncate ${isSelected ? text.primary : text.secondary}`}>

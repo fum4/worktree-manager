@@ -181,39 +181,39 @@ export function useApi() {
       undeployMcpServer: (id: string, tool: string, scope: string) =>
         api.undeployMcpServer(id, tool, scope, serverUrl),
 
-      // Claude Skills (registry-based)
-      fetchClaudeSkills: () =>
-        api.fetchClaudeSkills(serverUrl),
+      // Skills (registry-based, multi-agent)
+      fetchSkills: () =>
+        api.fetchSkills(serverUrl),
 
-      fetchClaudeSkill: (name: string, location?: 'local') =>
-        api.fetchClaudeSkill(name, serverUrl, location),
+      fetchSkill: (name: string) =>
+        api.fetchSkill(name, serverUrl),
 
-      createClaudeSkill: (data: Parameters<typeof api.createClaudeSkill>[0]) =>
-        api.createClaudeSkill(data, serverUrl),
+      createSkill: (data: Parameters<typeof api.createSkill>[0]) =>
+        api.createSkill(data, serverUrl),
 
-      updateClaudeSkill: (name: string, updates: { skillMd?: string; referenceMd?: string; examplesMd?: string; frontmatter?: Record<string, unknown> }, location?: 'local') =>
-        api.updateClaudeSkill(name, updates, serverUrl, location),
+      updateSkill: (name: string, updates: { skillMd?: string; referenceMd?: string; examplesMd?: string; frontmatter?: Record<string, unknown> }) =>
+        api.updateSkill(name, updates, serverUrl),
 
-      duplicateSkillToProject: (name: string) =>
-        api.duplicateSkillToProject(name, serverUrl),
-
-      createGlobalFromProject: (name: string, newName: string) =>
-        api.createGlobalFromProject(name, newName, serverUrl),
-
-      deleteClaudeSkill: (name: string) =>
-        api.deleteClaudeSkill(name, serverUrl),
+      deleteSkill: (name: string) =>
+        api.deleteSkill(name, serverUrl),
 
       fetchSkillDeploymentStatus: () =>
         api.fetchSkillDeploymentStatus(serverUrl),
 
-      deployClaudeSkill: (name: string, scope: 'global' | 'local') =>
-        api.deployClaudeSkill(name, scope, serverUrl),
+      deploySkill: (name: string, agent: string, scope: 'global' | 'project') =>
+        api.deploySkill(name, agent, scope, serverUrl),
 
-      undeployClaudeSkill: (name: string, scope: 'global' | 'local') =>
-        api.undeployClaudeSkill(name, scope, serverUrl),
+      undeploySkill: (name: string, agent: string, scope: 'global' | 'project') =>
+        api.undeploySkill(name, agent, scope, serverUrl),
 
-      importClaudeSkills: (skills: Array<{ name: string; skillPath: string }>) =>
-        api.importClaudeSkills(skills, serverUrl),
+      importSkills: (skills: Array<{ name: string; skillPath: string }>) =>
+        api.importSkills(skills, serverUrl),
+
+      installSkill: (request: Parameters<typeof api.installSkill>[0]) =>
+        api.installSkill(request, serverUrl),
+
+      checkNpxSkillsAvailable: () =>
+        api.checkNpxSkillsAvailable(serverUrl),
 
       fetchClaudePlugins: () =>
         api.fetchClaudePlugins(serverUrl),
@@ -251,8 +251,8 @@ export function useApi() {
       updatePluginMarketplace: (name: string) =>
         api.updatePluginMarketplace(name, serverUrl),
 
-      scanClaudeSkills: (options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string }) =>
-        api.scanClaudeSkills(options, serverUrl),
+      scanSkills: (options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string }) =>
+        api.scanSkills(options, serverUrl),
     }),
     [serverUrl],
   );

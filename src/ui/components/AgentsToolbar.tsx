@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, Puzzle, ScanSearch, Search, Server, Sparkles } from 'lucide-react';
 
-import { claudeSkill, input, integration, surface, text } from '../theme';
+import { skill, input, integration, surface, text } from '../theme';
 
 interface AgentsToolbarProps {
   search: string;
@@ -78,7 +78,7 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
             onClick={() => { setShowAddMenu(false); onAddSkill(); }}
             className={menuItemClass}
           >
-            <Sparkles className={`w-4 h-4 ${claudeSkill.accent}`} />
+            <Sparkles className={`w-4 h-4 ${skill.accent}`} />
             Skill
           </button>
           <button
@@ -95,7 +95,7 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
             onClick={() => { setShowAddMenu(false); onScanImport(); }}
             className={menuItemClass}
           >
-            <ScanSearch className="w-4 h-4 text-purple-400" />
+            <ScanSearch className="w-4 h-4 text-[#9ca3af]" />
             Scan & Import
           </button>
         </div>

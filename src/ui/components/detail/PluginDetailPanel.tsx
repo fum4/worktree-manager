@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, ExternalLink, RefreshCw, Repeat2, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { useClaudePluginDetail } from '../../hooks/useClaudeSkills';
+import { useClaudePluginDetail } from '../../hooks/useSkills';
 import { useApi } from '../../hooks/useApi';
 import { border, plugin as pluginTheme, text } from '../../theme';
 import { ConfirmDialog } from '../ConfirmDialog';

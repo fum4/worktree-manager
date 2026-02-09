@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Download, Filter, Puzzle, Trash2, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { useAvailablePlugins } from '../hooks/useClaudeSkills';
+import { useAvailablePlugins } from '../hooks/useSkills';
 import { useApi } from '../hooks/useApi';
 import type { AvailablePlugin, MarketplaceSummary } from '../types';
 import { border, button, text } from '../theme';

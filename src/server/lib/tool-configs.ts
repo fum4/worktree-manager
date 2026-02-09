@@ -89,6 +89,32 @@ export const AGENT_SPECS: Record<AgentId, AgentSpec> = {
 
 export const VALID_AGENTS = new Set(Object.keys(AGENT_SPECS));
 
+// ─── Skill deployment specs ─────────────────────────────────
+
+export interface SkillDirSpec {
+  global?: string;   // Absolute path template (~ = home)
+  project?: string;  // Relative to project root
+}
+
+export const SKILL_AGENT_SPECS: Record<AgentId, SkillDirSpec> = {
+  claude:  { global: '~/.claude/skills',  project: '.claude/skills' },
+  cursor:  { global: '~/.cursor/skills',  project: '.cursor/skills' },
+  gemini:  { global: '~/.gemini/skills',  project: '.gemini/skills' },
+  codex:   { global: '~/.codex/skills',   project: '.codex/skills' },
+  vscode:  { global: '~/.vscode/skills',  project: '.vscode/skills' },
+};
+
+export function resolveSkillDeployDir(agent: AgentId, scope: Scope, projectDir: string): string | null {
+  const spec = SKILL_AGENT_SPECS[agent];
+  if (!spec) return null;
+  const template = scope === 'global' ? spec.global : spec.project;
+  if (!template) return null;
+  if (template.startsWith('~')) {
+    return path.join(os.homedir(), template.slice(2));
+  }
+  return path.join(projectDir, template);
+}
+
 // ─── Utility functions ──────────────────────────────────────────
 
 export function stripJsonComments(text: string): string {

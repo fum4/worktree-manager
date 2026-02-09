@@ -54,7 +54,7 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
 
     const [mcpRes, skillRes] = await Promise.all([
       api.scanMcpServers(options),
-      api.scanClaudeSkills(options),
+      api.scanSkills(options),
     ]);
 
     setScanning(false);
@@ -127,7 +127,7 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
         .filter((r) => selectedSkills.has(r.name))
         .map((r) => ({ name: r.name, skillPath: r.skillPath }));
       if (toImport.length > 0) {
-        promises.push(api.importClaudeSkills(toImport));
+        promises.push(api.importSkills(toImport));
       }
     }
 
@@ -144,7 +144,7 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
   return (
     <Modal
       title="Scan & Import"
-      icon={<ScanSearch className="w-4 h-4 text-purple-400" />}
+      icon={<ScanSearch className="w-4 h-4 text-[#9ca3af]" />}
       onClose={onClose}
       width="lg"
       footer={
@@ -161,7 +161,7 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
               type="button"
               onClick={handleImport}
               disabled={totalSelected === 0 || importing}
-              className="px-4 py-1.5 text-xs font-medium text-purple-400 bg-purple-400/15 hover:bg-purple-400/25 rounded-lg disabled:opacity-50 disabled:pointer-events-none transition-colors duration-150"
+              className="px-4 py-1.5 text-xs font-medium text-teal-400 bg-teal-400/15 hover:bg-teal-400/25 rounded-lg disabled:opacity-50 disabled:pointer-events-none transition-colors duration-150"
             >
               {importing ? 'Importing...' : `Import ${totalSelected} item${totalSelected !== 1 ? 's' : ''}`}
             </button>
@@ -179,7 +179,7 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
               type="button"
               onClick={handleScan}
               disabled={scanning || (mode === 'folder' && !scanPath.trim())}
-              className="px-4 py-1.5 text-xs font-medium text-purple-400 bg-purple-400/15 hover:bg-purple-400/25 rounded-lg disabled:opacity-50 disabled:pointer-events-none transition-colors duration-150"
+              className="px-4 py-1.5 text-xs font-medium text-teal-400 bg-teal-400/15 hover:bg-teal-400/25 rounded-lg disabled:opacity-50 disabled:pointer-events-none transition-colors duration-150"
             >
               {scanning ? 'Scanning...' : 'Scan'}
             </button>

@@ -1,4 +1,4 @@
-import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail, McpServerSummary, McpServerDetail, McpDeploymentStatus, McpScanResult, SkillSummary, SkillDetail, SkillDeploymentStatus, PluginSummary, PluginDetail, AvailablePlugin, MarketplaceSummary, SkillScanResult } from '../types';
+import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail, McpServerSummary, McpServerDetail, McpDeploymentStatus, McpScanResult, SkillSummary, SkillDetail, SkillDeploymentStatus, SkillInstallRequest, PluginSummary, PluginDetail, AvailablePlugin, MarketplaceSummary, SkillScanResult } from '../types';
 
 // API functions now accept an optional serverUrl parameter
 // When null/undefined, they use relative URLs (for single-project web mode)
@@ -1261,13 +1261,13 @@ export async function undeployMcpServer(
   }
 }
 
-// -- Claude Skills API (registry-based) --
+// -- Skills API (registry-based, multi-agent) --
 
-export async function fetchClaudeSkills(
+export async function fetchSkills(
   serverUrl: string | null = null,
 ): Promise<{ skills: SkillSummary[]; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills`);
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills`);
     return await res.json();
   } catch (err) {
     return {
@@ -1277,14 +1277,12 @@ export async function fetchClaudeSkills(
   }
 }
 
-export async function fetchClaudeSkill(
+export async function fetchSkill(
   name: string,
   serverUrl: string | null = null,
-  location?: 'local',
 ): Promise<{ skill?: SkillDetail; error?: string }> {
   try {
-    const params = location ? `?location=${location}` : '';
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}${params}`);
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}`);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       return { error: (body as { error?: string }).error ?? `Failed (${res.status})` };
@@ -1297,12 +1295,12 @@ export async function fetchClaudeSkill(
   }
 }
 
-export async function createClaudeSkill(
-  data: { name: string; scope?: 'global' | 'local'; description?: string; allowedTools?: string; context?: string; agent?: string; model?: string; argumentHint?: string; disableModelInvocation?: boolean; userInvocable?: boolean; mode?: boolean; instructions?: string },
+export async function createSkill(
+  data: { name: string; description?: string; allowedTools?: string; context?: string; agent?: string; model?: string; argumentHint?: string; disableModelInvocation?: boolean; userInvocable?: boolean; mode?: boolean; instructions?: string },
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; skill?: SkillSummary; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -1316,15 +1314,13 @@ export async function createClaudeSkill(
   }
 }
 
-export async function updateClaudeSkill(
+export async function updateSkill(
   name: string,
   updates: { skillMd?: string; referenceMd?: string; examplesMd?: string; frontmatter?: Record<string, unknown> },
   serverUrl: string | null = null,
-  location?: 'local',
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const params = location ? `?location=${location}` : '';
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}${params}`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
@@ -1338,51 +1334,12 @@ export async function updateClaudeSkill(
   }
 }
 
-export async function duplicateSkillToProject(
+export async function deleteSkill(
   name: string,
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}/duplicate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope: 'local' }),
-    });
-    return await res.json();
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Failed to duplicate skill',
-    };
-  }
-}
-
-export async function createGlobalFromProject(
-  name: string,
-  newName: string,
-  serverUrl: string | null = null,
-): Promise<{ success: boolean; name?: string; error?: string }> {
-  try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}/create-global`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newName }),
-    });
-    return await res.json();
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Failed to create global skill',
-    };
-  }
-}
-
-export async function deleteClaudeSkill(
-  name: string,
-  serverUrl: string | null = null,
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     });
     return await res.json();
@@ -1398,7 +1355,7 @@ export async function fetchSkillDeploymentStatus(
   serverUrl: string | null = null,
 ): Promise<SkillDeploymentStatus> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/deployment-status`);
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/deployment-status`);
     if (!res.ok) return { status: {} };
     return await res.json();
   } catch {
@@ -1406,16 +1363,17 @@ export async function fetchSkillDeploymentStatus(
   }
 }
 
-export async function deployClaudeSkill(
+export async function deploySkill(
   name: string,
-  scope: 'global' | 'local',
+  agent: string,
+  scope: 'global' | 'project',
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}/deploy`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}/deploy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope }),
+      body: JSON.stringify({ agent, scope }),
     });
     return await res.json();
   } catch (err) {
@@ -1426,16 +1384,17 @@ export async function deployClaudeSkill(
   }
 }
 
-export async function undeployClaudeSkill(
+export async function undeploySkill(
   name: string,
-  scope: 'global' | 'local',
+  agent: string,
+  scope: 'global' | 'project',
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/${encodeURIComponent(name)}/undeploy`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}/undeploy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope }),
+      body: JSON.stringify({ agent, scope }),
     });
     return await res.json();
   } catch (err) {
@@ -1446,12 +1405,12 @@ export async function undeployClaudeSkill(
   }
 }
 
-export async function importClaudeSkills(
+export async function importSkills(
   skills: Array<{ name: string; skillPath: string }>,
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; imported?: string[]; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/import`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ skills }),
@@ -1462,6 +1421,36 @@ export async function importClaudeSkills(
       success: false,
       error: err instanceof Error ? err.message : 'Failed to import skills',
     };
+  }
+}
+
+export async function installSkill(
+  request: SkillInstallRequest,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; installed?: string[]; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/install`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to install skill',
+    };
+  }
+}
+
+export async function checkNpxSkillsAvailable(
+  serverUrl: string | null = null,
+): Promise<{ available: boolean }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/npx-available`);
+    return await res.json();
+  } catch {
+    return { available: false };
   }
 }
 
@@ -1640,12 +1629,12 @@ export async function updatePluginMarketplace(
   }
 }
 
-export async function scanClaudeSkills(
+export async function scanSkills(
   options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string },
   serverUrl: string | null = null,
 ): Promise<{ discovered: SkillScanResult[]; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/skills/scan`, {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/scan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(options ?? {}),

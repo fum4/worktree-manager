@@ -51,7 +51,7 @@ interface AgentsSidebarProps {
   deploymentStatus: Record<string, Record<string, { global?: boolean; project?: boolean }>>;
   skills: SkillSummary[];
   skillsLoading: boolean;
-  skillDeploymentStatus: Record<string, { global: boolean; local: boolean }>;
+  skillDeploymentStatus: Record<string, { inRegistry: boolean; agents: Record<string, { global?: boolean; project?: boolean }> }>;
   plugins: PluginSummary[];
   pluginsLoading: boolean;
   selection: AgentSelection;
@@ -194,10 +194,13 @@ export function AgentsSidebar({
     if (showGlobal && showProject) return true;
     const st = skillDeploymentStatus[skillName];
     if (!st) return true;
-    const isActive = st.global || st.local;
+    const agents = st.agents ?? {};
+    const hasGlobal = Object.values(agents).some((v) => v.global);
+    const hasProj = Object.values(agents).some((v) => v.project);
+    const isActive = hasGlobal || hasProj;
     if (!isActive) return true;
-    if (showGlobal && st.global) return true;
-    if (showProject && st.local) return true;
+    if (showGlobal && hasGlobal) return true;
+    if (showProject && hasProj) return true;
     return false;
   };
 
@@ -276,7 +279,7 @@ export function AgentsSidebar({
                 />
                 <div className="flex items-center justify-center gap-2 py-4">
                   <Spinner size="sm" className={text.muted} />
-                  <span className={`text-xs ${text.muted}`}>Loading...</span>
+                  <span className={`text-xs ${text.muted}`}>Loading servers...</span>
                 </div>
               </>
             ) : (
@@ -391,23 +394,23 @@ export function AgentsSidebar({
             {skillsLoading ? (
               <div className="flex items-center justify-center gap-2 py-4">
                 <Spinner size="sm" className={text.muted} />
-                <span className={`text-xs ${text.muted}`}>Loading...</span>
+                <span className={`text-xs ${text.muted}`}>Loading skills...</span>
               </div>
             ) : (
               <>
                 {[...filteredSkills]
                   .filter((s) => isSkillVisible(s.name))
                   .sort((a, b) => {
-                    const aStatus = skillDeploymentStatus[a.name];
-                    const bStatus = skillDeploymentStatus[b.name];
-                    const aActive = aStatus ? (aStatus.global || aStatus.local) : false;
-                    const bActive = bStatus ? (bStatus.global || bStatus.local) : false;
+                    const aAgents = skillDeploymentStatus[a.name]?.agents ?? {};
+                    const bAgents = skillDeploymentStatus[b.name]?.agents ?? {};
+                    const aActive = Object.values(aAgents).some((v) => v.global || v.project);
+                    const bActive = Object.values(bAgents).some((v) => v.global || v.project);
                     if (aActive !== bActive) return aActive ? -1 : 1;
                     return a.displayName.localeCompare(b.displayName);
                   })
                   .map((skill) => {
-                    const depStatus = skillDeploymentStatus[skill.name];
-                    const isDeployed = depStatus ? (depStatus.global || depStatus.local) : false;
+                    const agents = skillDeploymentStatus[skill.name]?.agents ?? {};
+                    const isDeployed = Object.values(agents).some((v) => v.global || v.project);
 
                     return (
                       <SkillItem
@@ -423,10 +426,8 @@ export function AgentsSidebar({
                             message: `The skill "${skill.displayName}" will be deleted.`,
                             confirmLabel: 'Delete',
                             action: async () => {
-                              if (depStatus?.global) await api.undeployClaudeSkill(skill.name, 'global');
-                              if (depStatus?.local) await api.undeployClaudeSkill(skill.name, 'local');
-                              await api.deleteClaudeSkill(skill.name);
-                              await queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
+                              await api.deleteSkill(skill.name);
+                              await queryClient.invalidateQueries({ queryKey: ['skills'] });
                               await queryClient.invalidateQueries({ queryKey: ['skillDeploymentStatus'] });
                               if (selection?.type === 'skill' && selection.name === skill.name) {
                                 onSelect(null as unknown as AgentSelection);
@@ -511,7 +512,7 @@ export function AgentsSidebar({
             {pluginsLoading ? (
               <div className="flex items-center justify-center gap-2 py-4">
                 <Spinner size="sm" className={text.muted} />
-                <span className={`text-xs ${text.muted}`}>Loading...</span>
+                <span className={`text-xs ${text.muted}`}>Loading plugins...</span>
               </div>
             ) : sortedPlugins.length === 0 ? (
               <div className="flex items-center justify-center py-4">
@@ -607,27 +608,21 @@ export function AgentsSidebar({
         title={`Deploy ${deployDialog.name}`}
         icon={deployDialog.type === 'mcp'
           ? <Server className="w-4 h-4 text-purple-400" />
-          : <Sparkles className="w-4 h-4 text-purple-400" />
+          : <Sparkles className="w-4 h-4 text-pink-400" />
         }
-        scopes={
-          deployDialog.type === 'mcp'
-            ? [
-                { key: 'global', label: 'Global', active: !!(deploymentStatus[deployDialog.id]?.claude?.global) },
-                { key: 'project', label: 'Project', active: !!(deploymentStatus[deployDialog.id]?.claude?.project) },
-              ]
-            : [
-                { key: 'global', label: 'Global', active: !!(skillDeploymentStatus[deployDialog.id]?.global) },
-                { key: 'local', label: 'Project', active: !!(skillDeploymentStatus[deployDialog.id]?.local) },
-              ]
-        }
-        mutuallyExclusive={deployDialog.type === 'skill'}
-        warning={deployDialog.type === 'skill' ? (draft) => {
-          const hasLocal = skillDeploymentStatus[deployDialog.id]?.local;
-          if (hasLocal && !draft.local) {
-            return `The project skill "${deployDialog.name}" will be deleted.`;
+        scopes={(() => {
+          if (deployDialog.type === 'mcp') {
+            return [
+              { key: 'global', label: 'Global', active: !!(deploymentStatus[deployDialog.id]?.claude?.global) },
+              { key: 'project', label: 'Project', active: !!(deploymentStatus[deployDialog.id]?.claude?.project) },
+            ];
           }
-          return null;
-        } : undefined}
+          const claudeAgent = skillDeploymentStatus[deployDialog.id]?.agents?.claude ?? {};
+          return [
+            { key: 'global', label: 'Global', active: !!claudeAgent.global },
+            { key: 'project', label: 'Project', active: !!claudeAgent.project },
+          ];
+        })()}
         onApply={async (desired) => {
           if (deployDialog.type === 'mcp') {
             const current = deploymentStatus[deployDialog.id]?.claude ?? {};
@@ -643,15 +638,15 @@ export function AgentsSidebar({
             }
             await queryClient.invalidateQueries({ queryKey: ['mcpDeploymentStatus'] });
           } else {
-            const current = skillDeploymentStatus[deployDialog.id] ?? { global: false, local: false };
-            for (const scope of ['global', 'local'] as const) {
+            const current = skillDeploymentStatus[deployDialog.id]?.agents?.claude ?? {};
+            for (const scope of ['global', 'project'] as const) {
               if (current[scope] && !desired[scope]) {
-                await api.undeployClaudeSkill(deployDialog.id, scope);
+                await api.undeploySkill(deployDialog.id, 'claude', scope);
               }
             }
-            for (const scope of ['global', 'local'] as const) {
+            for (const scope of ['global', 'project'] as const) {
               if (!current[scope] && desired[scope]) {
-                await api.deployClaudeSkill(deployDialog.id, scope);
+                await api.deploySkill(deployDialog.id, 'claude', scope);
               }
             }
             await queryClient.invalidateQueries({ queryKey: ['skillDeploymentStatus'] });

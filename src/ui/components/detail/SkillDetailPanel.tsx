@@ -1,14 +1,23 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { AlertTriangle, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { useClaudeSkillDetail, useSkillDeploymentStatus } from '../../hooks/useClaudeSkills';
+import { useSkillDetail, useSkillDeploymentStatus } from '../../hooks/useSkills';
 import { useApi } from '../../hooks/useApi';
-import { border, button, claudeSkill, text } from '../../theme';
+import { border, skill as skillTheme, text } from '../../theme';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { MarkdownContent } from '../MarkdownContent';
 import { Spinner } from '../Spinner';
 
+const AGENTS = [
+  { id: 'claude', label: 'Claude Code' },
+  { id: 'cursor', label: 'Cursor' },
+  { id: 'gemini', label: 'Gemini CLI' },
+  { id: 'vscode', label: 'VS Code' },
+  { id: 'codex', label: 'Codex' },
+] as const;
+
+const SCOPES = ['global', 'project'] as const;
 
 interface SkillDetailPanelProps {
   skillName: string;
@@ -20,40 +29,29 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
   const queryClient = useQueryClient();
   const { status: allDeploymentStatus, refetch: refetchDeployment } = useSkillDeploymentStatus();
 
-  const deploymentStatus = allDeploymentStatus[skillName] ?? { global: false, local: false, localIsSymlink: false, localIsCopy: false, inRegistry: true };
-  const hasLocalCopy = deploymentStatus.localIsCopy;
-  const inRegistry = deploymentStatus.inRegistry;
+  const skillStatus = allDeploymentStatus[skillName] ?? { inRegistry: true, agents: {} };
+  const agentDeployments = skillStatus.agents ?? {};
 
-  const [viewingLocation, setViewingLocation] = useState<'global' | 'local'>('global');
-  useEffect(() => {
-    if (!inRegistry) setViewingLocation('local');
-    else if (!hasLocalCopy) setViewingLocation('global');
-  }, [skillName, hasLocalCopy, inRegistry]);
-
-  const locationParam = viewingLocation === 'local' ? 'local' as const : undefined;
-  const { skill, isLoading, error, refetch } = useClaudeSkillDetail(skillName, locationParam);
+  const { skill, isLoading, error, refetch } = useSkillDetail(skillName);
 
   const [editingRef, setEditingRef] = useState(false);
   const [editingExamples, setEditingExamples] = useState(false);
   const [editingConfig, setEditingConfig] = useState<string | null>(null);
   const [configDraft, setConfigDraft] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteBoth, setDeleteBoth] = useState(false);
   const [deploying, setDeploying] = useState<string | null>(null);
-  const [duplicating, setDuplicating] = useState(false);
-  const [pendingDeploy, setPendingDeploy] = useState<{ scope: 'global' | 'local'; action: 'enable' | 'disable' } | null>(null);
 
   useEffect(() => {
     setEditingRef(false);
     setEditingExamples(false);
     setEditingConfig(null);
-  }, [skillName, viewingLocation]);
+  }, [skillName]);
 
-  const saveUpdate = useCallback(async (updates: Parameters<typeof api.updateClaudeSkill>[1]) => {
-    await api.updateClaudeSkill(skillName, updates, locationParam);
+  const saveUpdate = useCallback(async (updates: Parameters<typeof api.updateSkill>[1]) => {
+    await api.updateSkill(skillName, updates);
     refetch();
-    queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
-  }, [api, skillName, locationParam, refetch, queryClient]);
+    queryClient.invalidateQueries({ queryKey: ['skills'] });
+  }, [api, skillName, refetch, queryClient]);
 
   const handleSaveConfig = async (key: string, value: string | boolean) => {
     await saveUpdate({ frontmatter: { [key]: value } });
@@ -61,116 +59,31 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
   };
 
   const handleDelete = async () => {
-    const shouldDeleteBoth = deleteBoth;
     setShowDeleteConfirm(false);
-    setDeleteBoth(false);
     setDeploying('delete');
-
-    if (shouldDeleteBoth) {
-      // Delete both: remove project copy + delete from registry
-      await api.undeployClaudeSkill(skillName, 'local');
-      await api.deleteClaudeSkill(skillName);
-      setDeploying(null);
-      queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
-      onDeleted();
-    } else if (viewingLocation === 'local') {
-      // Remove the local/project copy
-      await api.undeployClaudeSkill(skillName, 'local');
-      setDeploying(null);
-      if (inRegistry) {
-        setViewingLocation('global');
-        refetchDeployment();
-      } else {
-        // Project-only skill — fully gone
-        queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
-        onDeleted();
-      }
-    } else {
-      // Delete from registry (also cleans up symlinks, but not local copies)
-      await api.deleteClaudeSkill(skillName);
-      setDeploying(null);
-      queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
-      if (hasLocalCopy) {
-        // Project copy survives — switch to it
-        refetchDeployment();
-        setViewingLocation('local');
-      } else {
-        onDeleted();
-      }
-    }
+    await api.deleteSkill(skillName);
+    setDeploying(null);
+    queryClient.invalidateQueries({ queryKey: ['skills'] });
+    queryClient.invalidateQueries({ queryKey: ['skillDeploymentStatus'] });
+    onDeleted();
   };
 
-  const handleDeploy = async (scope: 'global' | 'local', isDeployed: boolean) => {
+  const handleDeploy = async (agentId: string, scope: string, isDeployed: boolean) => {
+    const key = `${agentId}-${scope}`;
+    setDeploying(key);
     if (isDeployed) {
-      // Disabling local copy → files get deleted, confirm first
-      if (scope === 'local' && hasLocalCopy) {
-        setPendingDeploy({ scope: 'local', action: 'disable' });
-        return;
-      }
-      setDeploying(scope);
-      await api.undeployClaudeSkill(skillName, scope);
-      setDeploying(null);
-      refetchDeployment();
-      return;
-    }
-
-    // Enabling — check if the other scope is active (mutual exclusion)
-    const otherActive = scope === 'global' ? deploymentStatus.local : deploymentStatus.global;
-    if (otherActive) {
-      setPendingDeploy({ scope, action: 'enable' });
-      return;
-    }
-
-    setDeploying(scope);
-    await api.deployClaudeSkill(skillName, scope);
-    setDeploying(null);
-    refetchDeployment();
-  };
-
-  const handleConfirmDeploy = async () => {
-    if (!pendingDeploy) return;
-    const { scope, action } = pendingDeploy;
-    const otherScope = scope === 'global' ? 'local' : 'global';
-    setPendingDeploy(null);
-    setDeploying(scope);
-    if (action === 'disable') {
-      await api.undeployClaudeSkill(skillName, scope);
+      await api.undeploySkill(skillName, agentId, scope as 'global' | 'project');
     } else {
-      await api.undeployClaudeSkill(skillName, otherScope);
-      await api.deployClaudeSkill(skillName, scope);
+      await api.deploySkill(skillName, agentId, scope as 'global' | 'project');
     }
     setDeploying(null);
-    // If local copy was removed, switch to global view
-    if (scope === 'local' || otherScope === 'local') {
-      setViewingLocation(scope === 'local' && action === 'enable' ? 'local' : 'global');
-    }
     refetchDeployment();
   };
 
-  const handleDuplicate = async () => {
-    setDuplicating(true);
-    await api.duplicateSkillToProject(skillName);
-    if (deploymentStatus.global) {
-      await api.undeployClaudeSkill(skillName, 'global');
-    }
-    setDuplicating(false);
-    refetchDeployment();
-    setViewingLocation('local');
-  };
-
-  const handleMakeGlobal = async () => {
-    setDuplicating(true);
-    const displayName = skill?.frontmatter?.name || skillName;
-    await api.createGlobalFromProject(skillName, displayName);
-    // Remove project copy, deploy as global symlink
-    await api.undeployClaudeSkill(skillName, 'local');
-    await api.deployClaudeSkill(skillName, 'global');
-    setDuplicating(false);
-    queryClient.invalidateQueries({ queryKey: ['claudeSkills'] });
-    refetchDeployment();
-    setViewingLocation('global');
-  };
-
+  // Check if deployed to any agent
+  const isDeployedAnywhere = Object.values(agentDeployments).some(
+    (d) => d.global || d.project,
+  );
 
   // Redirect when source is deleted / not found
   useEffect(() => {
@@ -195,14 +108,14 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className={`text-[11px] font-mono ${claudeSkill.accent}`}>
+              <span className={`text-[11px] font-mono ${skillTheme.accent}`}>
                 {skill.name}
               </span>
               {fm.mode && (
-                <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${claudeSkill.badge}`}>mode</span>
+                <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${skillTheme.badge}`}>mode</span>
               )}
-              <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${claudeSkill.badge}`}>
-                {deploymentStatus.global ? 'Global' : deploymentStatus.local ? 'Project' : 'Not deployed'}
+              <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${skillTheme.badge}`}>
+                {isDeployedAnywhere ? 'Deployed' : 'Not deployed'}
               </span>
             </div>
             <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug px-2 py-1 -mx-2 -my-1`}>
@@ -210,60 +123,13 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
             </h2>
           </div>
           <div className="flex-shrink-0 pt-1 flex items-center gap-3">
-            {hasLocalCopy && inRegistry && (
-              <LocationSwitch
-                value={viewingLocation}
-                onChange={setViewingLocation}
-              />
-            )}
-            {duplicating ? (
-              <Spinner size="xs" className={text.dimmed} />
-            ) : viewingLocation === 'global' && inRegistry && !hasLocalCopy ? (
               <button
                 type="button"
-                onClick={handleDuplicate}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] ${button.secondary} transition-colors`}
+                onClick={() => setShowDeleteConfirm(true)}
+                className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
               >
-                Create project copy
+                <Trash2 className="w-4 h-4" />
               </button>
-            ) : !inRegistry ? (
-              <button
-                type="button"
-                onClick={handleMakeGlobal}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] ${button.secondary} transition-colors`}
-              >
-                Make global
-              </button>
-            ) : null}
-            <div className="flex items-center gap-1.5">
-              {deploying ? (
-                <Spinner size="xs" className={text.dimmed} />
-              ) : (
-                <DeployToggle
-                  active={viewingLocation === 'local' ? deploymentStatus.local : deploymentStatus.global}
-                  onToggle={() => {
-                    const scope = viewingLocation === 'local' ? 'local' : 'global';
-                    const isDeployed = scope === 'local' ? deploymentStatus.local : deploymentStatus.global;
-                    handleDeploy(scope, isDeployed);
-                  }}
-                  title={
-                    (viewingLocation === 'local' ? deploymentStatus.local : deploymentStatus.global)
-                      ? 'Deactivate'
-                      : 'Activate'
-                  }
-                />
-              )}
-              <span className={`text-[10px] ${text.dimmed} w-10`}>
-                {(viewingLocation === 'local' ? deploymentStatus.local : deploymentStatus.global) ? 'Enabled' : 'Disabled'}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </div>
@@ -272,13 +138,61 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
       <div className="flex-1 overflow-y-auto p-5 space-y-12">
         {/* Description — auto-save */}
         <AutoSaveTextSection
-          key={`desc-${skillName}-${viewingLocation}`}
+          key={`desc-${skillName}`}
           title="Description"
           content={fm.description || ''}
           emptyText="Click to add description..."
           rows={3}
           onSave={(v) => saveUpdate({ frontmatter: { description: v } })}
         />
+
+        {/* Deployment Matrix */}
+        <section>
+          <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>Deployment</h3>
+          <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] overflow-hidden">
+            {/* Header row */}
+            <div className={`grid grid-cols-[1fr_80px_80px] px-3 py-2 border-b ${border.subtle}`}>
+              <span className={`text-[10px] font-medium ${text.dimmed}`}>Agent</span>
+              <span className={`text-[10px] font-medium ${text.dimmed} text-center`}>Global</span>
+              <span className={`text-[10px] font-medium ${text.dimmed} text-center`}>Project</span>
+            </div>
+
+            {/* Agent rows */}
+            {AGENTS.map((agent) => {
+              const agentStatus = agentDeployments[agent.id] ?? {};
+              return (
+                <div key={agent.id} className={`grid grid-cols-[1fr_80px_80px] px-3 py-2 border-b last:border-b-0 ${border.subtle} hover:bg-white/[0.02]`}>
+                  <span className={`text-xs ${text.secondary}`}>{agent.label}</span>
+                  {SCOPES.map((scope) => {
+                    const isDeployed = !!agentStatus[scope];
+                    const isToggling = deploying === `${agent.id}-${scope}`;
+
+                    return (
+                      <div key={scope} className="flex justify-center items-center">
+                        {isToggling ? (
+                          <Spinner size="xs" className={text.dimmed} />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleDeploy(agent.id, scope, isDeployed)}
+                            className="relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none"
+                            style={{ backgroundColor: isDeployed ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
+                          >
+                            <span
+                              className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
+                                isDeployed ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'
+                              }`}
+                            />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         {/* Configuration */}
         <section>
@@ -303,7 +217,7 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
 
         {/* SKILL.md */}
         <AutoSaveFileSection
-          key={`md-${skillName}-${viewingLocation}`}
+          key={`md-${skillName}`}
           title="SKILL.md"
           content={skill.skillMd}
           rows={16}
@@ -313,7 +227,7 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
         {/* reference.md */}
         {skill.hasReference || editingRef ? (
           <AutoSaveFileSection
-            key={`ref-${skillName}-${viewingLocation}`}
+            key={`ref-${skillName}`}
             title="reference.md"
             content={skill.referenceMd ?? ''}
             rows={12}
@@ -338,7 +252,7 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
         {/* examples.md */}
         {skill.hasExamples || editingExamples ? (
           <AutoSaveFileSection
-            key={`ex-${skillName}-${viewingLocation}`}
+            key={`ex-${skillName}`}
             title="examples.md"
             content={skill.examplesMd ?? ''}
             rows={12}
@@ -364,95 +278,20 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
       {/* Delete confirmation */}
       {showDeleteConfirm && (
         <ConfirmDialog
-          title={hasLocalCopy && inRegistry ? `Delete ${viewingLocation === 'local' ? 'project' : 'global'} skill?` : 'Delete skill?'}
+          title="Delete skill?"
           onConfirm={handleDelete}
-          onCancel={() => { setShowDeleteConfirm(false); setDeleteBoth(false); }}
+          onCancel={() => setShowDeleteConfirm(false)}
         >
           <p className={`text-xs ${text.secondary}`}>
-            The {viewingLocation === 'local' ? 'project' : 'global'} skill "{skill.displayName}" will be deleted.
-          </p>
-          {hasLocalCopy && inRegistry && (
-            <label className="flex items-center gap-2 mt-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={deleteBoth}
-                onChange={(e) => setDeleteBoth(e.target.checked)}
-                className="accent-red-400"
-              />
-              <span className={`text-[11px] ${text.muted} group-hover:${text.secondary} transition-colors`}>
-                Delete both global and project skills
-              </span>
-            </label>
-          )}
-        </ConfirmDialog>
-      )}
-
-      {/* Deploy mutual exclusion confirmation */}
-      {pendingDeploy && (
-        <ConfirmDialog
-          title={
-            `${pendingDeploy.action.charAt(0).toUpperCase() +
-              pendingDeploy.action.slice(1)} ${pendingDeploy.scope === 'local' ? 'project' : 'global'} skill?`
-          }
-          icon={<AlertTriangle className="w-4 h-4 text-amber-400" />}
-          confirmLabel="Continue"
-          confirmClassName="text-amber-400 bg-amber-900/30 hover:bg-amber-900/50"
-          onConfirm={handleConfirmDeploy}
-          onCancel={() => setPendingDeploy(null)}
-        >
-          <p className={`text-xs ${text.secondary}`}>
-            {pendingDeploy.scope === 'local' && pendingDeploy.action === 'enable'
-              ? 'This will disable the global skill.'
-              : `The project skill "${skill.displayName}" will be deleted.`}
+            The skill "{skill.displayName}" will be deleted from the registry and all agent deployments will be cleaned up.
           </p>
         </ConfirmDialog>
       )}
-
     </div>
   );
 }
 
 // ─── Helper components ───────────────────────────────────────
-
-function DeployToggle({ active, onToggle, title, disabled }: { active: boolean; onToggle: () => void; title: string; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={disabled ? undefined : onToggle}
-      className={`relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
-      style={{ backgroundColor: active ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
-      title={title}
-      disabled={disabled}
-    >
-      <span
-        className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
-          active ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'
-        }`}
-      />
-    </button>
-  );
-}
-
-function LocationSwitch({ value, onChange }: { value: 'global' | 'local'; onChange: (v: 'global' | 'local') => void }) {
-  return (
-    <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5">
-      {(['global', 'local'] as const).map((loc) => (
-        <button
-          key={loc}
-          type="button"
-          onClick={() => onChange(loc)}
-          className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
-            value === loc
-              ? 'text-[#d1d5db] bg-white/[0.06]'
-              : `${text.dimmed} hover:${text.muted}`
-          }`}
-        >
-          {loc === 'global' ? 'Global' : 'Project'}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function ToggleConfigRow({ label, value, onToggle }: { label: string; value: boolean; onToggle: (v: boolean) => void }) {
   return (
@@ -677,7 +516,6 @@ function AutoSaveFileSection({
             type="button"
             onClick={onDelete}
             className={`p-0.5 rounded ${text.dimmed} hover:text-red-400 transition-colors`}
-            title={`Delete ${title}`}
           >
             <Trash2 className="w-3 h-3" />
           </button>

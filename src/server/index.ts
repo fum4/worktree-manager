@@ -24,7 +24,7 @@ import { registerLinearRoutes } from './routes/linear';
 import { registerEventRoutes } from './routes/events';
 import { registerMcpRoutes } from './routes/mcp';
 import { registerMcpServerRoutes } from './routes/mcp-servers';
-import { registerClaudeSkillRoutes } from './routes/claude-skills';
+import { registerSkillRoutes } from './routes/skills';
 import { registerClaudePluginRoutes } from './routes/claude-plugins';
 import { registerNotesRoutes } from './routes/notes';
 import { registerTaskRoutes } from './routes/tasks';
@@ -87,7 +87,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerEventRoutes(app, manager);
   registerMcpRoutes(app, manager);
   registerMcpServerRoutes(app, manager);
-  registerClaudeSkillRoutes(app, manager);
+  registerSkillRoutes(app, manager);
   registerClaudePluginRoutes(app, manager);
   registerTaskRoutes(app, manager, notesManager);
   registerNotesRoutes(app, manager, notesManager);
