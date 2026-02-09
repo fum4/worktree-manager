@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Info, ScanSearch, X } from 'lucide-react';
 
 import { APP_NAME } from '../../constants';
 import { useServer } from '../contexts/ServerContext';
@@ -15,6 +16,8 @@ import { SkillCreateModal } from './SkillCreateModal';
 import { ResizableHandle } from './ResizableHandle';
 import { WOK3_SERVER_ID, WOK3_SERVER } from './McpServerList';
 import { text } from '../theme';
+
+const BANNER_DISMISSED_KEY = `${APP_NAME}:agentsBannerDismissed`;
 
 const STORAGE_KEY = `${APP_NAME}:agentsSidebarWidth`;
 const DEFAULT_WIDTH = 300;
@@ -94,9 +97,19 @@ export function AgentsView() {
   const handleImported = () => {
     refetchServers();
     refetchDeployment();
+    refetchSkills();
+    refetchSkillDeployment();
   };
 
   const hasItems = servers.length > 0 || skills.length > 0;
+
+  const [bannerDismissed, setBannerDismissed] = useState(
+    () => localStorage.getItem(BANNER_DISMISSED_KEY) === '1',
+  );
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    localStorage.setItem(BANNER_DISMISSED_KEY, '1');
+  };
 
   return (
     <div className="absolute inset-0 flex p-5">
@@ -139,6 +152,29 @@ export function AgentsView() {
 
       {/* Right panel */}
       <main className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}>
+        {!bannerDismissed && (
+          <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-purple-400/20 bg-purple-400/[0.04]">
+            <Info className="w-4 h-4 text-purple-400 flex-shrink-0" />
+            <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
+              Manage all your agent tooling in one place. Import your MCP servers and skills, then enable or disable them globally or per project.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowScanModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-purple-300 bg-purple-400/10 hover:bg-purple-400/20 border border-purple-400/20 rounded-lg transition-colors flex-shrink-0"
+            >
+              <ScanSearch className="w-3.5 h-3.5" />
+              Scan &amp; Import
+            </button>
+            <button
+              type="button"
+              onClick={dismissBanner}
+              className="p-1 rounded-md hover:bg-purple-400/10 text-purple-400/40 hover:text-purple-400/70 transition-colors flex-shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
         {selection?.type === 'mcp-server' && selection.id !== WOK3_SERVER_ID ? (
           <McpServerDetailPanel
             serverId={selection.id}

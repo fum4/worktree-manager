@@ -558,7 +558,7 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
               className="accent-red-400"
             />
             <span className={`text-xs ${text.secondary}`}>
-              Also undeploy from all tool configs
+              Also remove server from all agents that use it
             </span>
           </label>
         </Modal>

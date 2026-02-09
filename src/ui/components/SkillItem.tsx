@@ -37,7 +37,7 @@ export function SkillItem({ skill, isSelected, onSelect, isDeployed, isProjectDe
           )}
         </div>
         {isDeployed && (
-          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 ${isProjectDeployed ? 'bg-teal-400' : 'bg-[#D4A574]'}`} />
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 bg-teal-400" />
         )}
       </div>
     </button>
