@@ -63,7 +63,7 @@ export function McpServerItem({ server, isSelected, onSelect, isActive, onDeploy
               <span
                 role="button"
                 onClick={handleRemove}
-                className="p-0.5 rounded text-red-400/70 hover:text-red-400 hover:bg-red-400/15 transition-colors cursor-pointer"
+                className="p-0.5 rounded text-white/30 hover:text-red-400 hover:bg-red-400/15 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3 h-3" />
               </span>
