@@ -144,7 +144,7 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
   return (
     <Modal
       title="Scan & Import"
-      icon={<ScanSearch className="w-4 h-4 text-purple-400" />}
+      icon={<ScanSearch className="w-4 h-4 text-[#9ca3af]" />}
       onClose={onClose}
       width="lg"
       footer={
@@ -300,11 +300,11 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
                 onClick={() => setMode(m.id)}
                 className={`w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg border transition-colors ${
                   isActive
-                    ? 'bg-purple-400/[0.06] border-purple-400/30'
+                    ? 'bg-white/[0.04] border-white/[0.15]'
                     : 'bg-transparent border-white/[0.06] hover:border-white/[0.10] hover:bg-white/[0.02]'
                 }`}
               >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-purple-400' : text.muted}`} />
+                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? text.primary : text.muted}`} />
                 <div>
                   <div className={`text-xs font-medium ${isActive ? text.primary : text.secondary}`}>
                     {m.label}

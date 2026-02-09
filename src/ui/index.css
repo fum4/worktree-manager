@@ -31,7 +31,7 @@ input[type="checkbox"] {
 }
 input[type="checkbox"]:checked {
   border-color: transparent;
-  background: var(--checkbox-accent, #2dd4bf);
+  background: var(--checkbox-accent, #0f766e);
 }
 input[type="checkbox"]:checked::after {
   content: '';
@@ -46,7 +46,7 @@ input[type="checkbox"]:checked::after {
 }
 
 /* Checkbox accent color variants */
-input[type="checkbox"].accent-teal-400 { --checkbox-accent: #2dd4bf; }
+input[type="checkbox"].accent-teal-400 { --checkbox-accent: #0f766e; }
 input[type="checkbox"].accent-red-400 { --checkbox-accent: #7f1d1d; }
 
 /* Thin custom scrollbar for dark theme */

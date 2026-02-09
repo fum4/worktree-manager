@@ -257,7 +257,7 @@ interface SkillScanResult {
   alreadyInRegistry: boolean;
 }
 
-function scanForSkills(roots: string[], maxDepth: number, registrySkills: Set<string>): SkillScanResult[] {
+function scanForSkills(roots: string[], maxDepth: number, knownSkills: Set<string>): SkillScanResult[] {
   const results: SkillScanResult[] = [];
   const seen = new Set<string>();
   const registryDir = getRegistryDir();
@@ -305,7 +305,7 @@ function scanForSkills(roots: string[], maxDepth: number, registrySkills: Set<st
                     displayName: frontmatter.name || skillEntry.name,
                     description: frontmatter.description || '',
                     skillPath: path.join(skillsDir, skillEntry.name),
-                    alreadyInRegistry: registrySkills.has(skillEntry.name),
+                    alreadyInRegistry: knownSkills.has(skillEntry.name),
                   });
                 } catch {
                   // Skip unreadable
@@ -531,7 +531,17 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
       await c.req.json().catch(() => ({}));
 
     const mode = body.mode ?? 'project';
-    const registrySkills = new Set(listRegistrySkills().map((s) => s.name));
+
+    // Collect all already-known skill names: registry + project-deployed
+    const knownSkills = new Set(listRegistrySkills().map((s) => s.name));
+    const projectSkillsDir = getProjectDeployDir(projectDir);
+    if (existsSync(projectSkillsDir)) {
+      try {
+        for (const entry of readdirSync(projectSkillsDir, { withFileTypes: true })) {
+          if (entry.isDirectory()) knownSkills.add(entry.name);
+        }
+      } catch { /* dir not readable */ }
+    }
 
     let scanRoots: string[];
     let maxDepth: number;
@@ -547,7 +557,7 @@ export function registerClaudeSkillRoutes(app: Hono, manager: WorktreeManager) {
       maxDepth = 5;
     }
 
-    const skills = scanForSkills(scanRoots, maxDepth, registrySkills);
+    const skills = scanForSkills(scanRoots, maxDepth, knownSkills);
     return c.json({ discovered: skills });
   });
 

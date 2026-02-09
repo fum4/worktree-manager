@@ -349,7 +349,7 @@ export const claudeSkill = {
   accentBg:        'bg-[#D4A574]/10',
   accentBorder:    'border-[#D4A574]/30',
   badge:           'text-[#D4A574] bg-[#D4A574]/15',
-  button:          'bg-teal-400/15 text-teal-400 hover:bg-teal-400/25 font-medium',
+  button:          'bg-[#D4A574]/15 text-[#D4A574] hover:bg-[#D4A574]/25 font-medium',
 } as const;
 
 // ─── MCP Servers ────────────────────────────────────────────────

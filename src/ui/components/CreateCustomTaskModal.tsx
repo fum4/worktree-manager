@@ -76,7 +76,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate }: CreateCu
           <button
             type="submit"
             disabled={!title.trim() || isCreating}
-            className={`px-4 py-1.5 text-xs rounded-lg ${customTask.button} disabled:opacity-50 transition-colors`}
+            className={`px-4 py-1.5 text-xs font-medium rounded-lg ${customTask.button} disabled:opacity-50 transition-colors`}
           >
             {isCreating ? 'Creating...' : 'Create Task'}
           </button>
@@ -92,7 +92,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate }: CreateCu
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="What needs to be done?"
-            className={`w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs ${text.primary} placeholder-[#4b5563] focus:outline-none focus:border-amber-400/30 transition-colors`}
+            className={`w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs ${text.primary} placeholder-[#4b5563] outline-none focus:border-white/[0.15] transition-colors`}
             autoFocus
           />
         </div>
@@ -134,7 +134,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate }: CreateCu
                 }
               }}
               placeholder="Add a label..."
-              className={`flex-1 px-3 py-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs ${text.primary} placeholder-[#4b5563] focus:outline-none focus:border-amber-400/30 transition-colors`}
+              className={`flex-1 px-3 py-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs ${text.primary} placeholder-[#4b5563] outline-none focus:border-white/[0.15] transition-colors`}
             />
             <button
               type="button"
@@ -177,7 +177,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate }: CreateCu
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add details, markdown supported..."
             rows={4}
-            className={`w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs ${text.primary} placeholder-[#4b5563] focus:outline-none focus:border-amber-400/30 transition-colors resize-none`}
+            className={`w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs ${text.primary} placeholder-[#4b5563] outline-none focus:border-white/[0.15] transition-colors resize-none`}
           />
         </div>
 

@@ -162,8 +162,8 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
     }
   };
 
-  const focusBorder = mode === 'jira' ? 'focus:border-blue-400/30' : mode === 'linear' ? 'focus:border-[#5E6AD2]/30' : 'focus:border-white/[0.12]';
-  const inputClass = `w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] ${focusBorder} transition-all text-xs`;
+  const focusBorder = 'focus:border-white/[0.15]';
+  const inputClass = `w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] outline-none focus:bg-white/[0.05] ${focusBorder} transition-all text-xs`;
 
   return (
     <>
@@ -188,7 +188,7 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
               disabled={mode === 'branch' ? !name.trim() : mode === 'jira' ? !taskId.trim() : !linearId.trim()}
               loading={isCreating}
             >
-              {mode === 'branch' ? 'Create' : 'Fetch & Create'}
+              {mode === 'branch' ? 'Create Worktree' : 'Pull & Create'}
             </Button>
           </>
         }

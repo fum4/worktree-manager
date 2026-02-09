@@ -3,7 +3,7 @@ import { Server } from 'lucide-react';
 
 import { useApi } from '../hooks/useApi';
 import { Modal } from './Modal';
-import { button, input, text } from '../theme';
+import { input, mcpServer, text } from '../theme';
 
 interface McpServerCreateModalProps {
   onCreated: () => void;
@@ -79,7 +79,7 @@ export function McpServerCreateModal({ onCreated, onClose }: McpServerCreateModa
           <button
             type="submit"
             disabled={!name.trim() || !command.trim() || creating}
-            className={`px-4 py-1.5 text-xs font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors duration-150`}
+            className={`px-4 py-1.5 text-xs font-medium ${mcpServer.button} rounded-lg disabled:opacity-50 transition-colors duration-150`}
           >
             {creating ? 'Adding...' : 'Add Server'}
           </button>

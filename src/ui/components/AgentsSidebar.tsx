@@ -350,10 +350,10 @@ function SettingsToggle({ label, checked, onToggle }: { label: string; checked: 
       className={`w-full px-3 py-1.5 flex items-center gap-2 text-left text-[11px] ${text.secondary} hover:bg-white/[0.04] transition-colors duration-150`}
     >
       <span className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
-        checked ? 'bg-purple-400/20 border-purple-400/40' : 'border-white/[0.15]'
+        checked ? 'bg-teal-400/20 border-teal-400/40' : 'border-white/[0.15]'
       }`}>
         {checked && (
-          <svg className="w-2 h-2 text-purple-400" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="w-2 h-2 text-teal-400" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2 6l3 3 5-5" />
           </svg>
         )}
