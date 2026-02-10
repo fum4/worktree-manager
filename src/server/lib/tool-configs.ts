@@ -19,8 +19,10 @@ export interface AgentSpec {
 }
 
 export interface McpServerEntry {
-  command: string;
-  args: string[];
+  type?: 'http' | 'sse';
+  command?: string;
+  args?: string[];
+  url?: string;
   env?: Record<string, string>;
 }
 
@@ -205,13 +207,20 @@ export function readAllServers(filePath: string, spec: ScopeSpec): Record<string
 
     const result: Record<string, McpServerEntry> = {};
     for (const [key, val] of Object.entries(obj as Record<string, unknown>)) {
-      if (val && typeof val === 'object' && 'command' in val) {
+      if (val && typeof val === 'object') {
         const entry = val as Record<string, unknown>;
-        result[key] = {
-          command: String(entry.command ?? ''),
-          args: Array.isArray(entry.args) ? entry.args.map(String) : [],
-          env: entry.env && typeof entry.env === 'object' ? entry.env as Record<string, string> : undefined,
-        };
+        if ('url' in entry && typeof entry.url === 'string') {
+          result[key] = {
+            type: (entry.type as 'http' | 'sse') ?? 'http',
+            url: entry.url,
+          };
+        } else if ('command' in entry) {
+          result[key] = {
+            command: String(entry.command ?? ''),
+            args: Array.isArray(entry.args) ? entry.args.map(String) : [],
+            env: entry.env && typeof entry.env === 'object' ? entry.env as Record<string, string> : undefined,
+          };
+        }
       }
     }
     return result;
@@ -269,7 +278,9 @@ function writeJsonServer(
     obj = obj[key] as Record<string, unknown>;
   }
 
-  const serverObj: Record<string, unknown> = { command: entry.command, args: entry.args };
+  const serverObj: Record<string, unknown> = entry.url
+    ? { type: entry.type ?? 'http', url: entry.url }
+    : { command: entry.command, args: entry.args ?? [] };
   if (entry.env && Object.keys(entry.env).length > 0) {
     serverObj.env = entry.env;
   }
@@ -324,6 +335,7 @@ function parseTomlServers(content: string): Record<string, McpServerEntry> {
     const block = content.slice(startIdx, nextSection === -1 ? undefined : nextSection);
 
     let command = '';
+    let url = '';
     let args: string[] = [];
     const env: Record<string, string> = {};
 
@@ -332,6 +344,9 @@ function parseTomlServers(content: string): Record<string, McpServerEntry> {
       const cmdMatch = trimmed.match(/^command\s*=\s*"([^"]*)"$/);
       if (cmdMatch) { command = cmdMatch[1]; continue; }
 
+      const urlMatch = trimmed.match(/^url\s*=\s*"([^"]*)"$/);
+      if (urlMatch) { url = urlMatch[1]; continue; }
+
       const argsMatch = trimmed.match(/^args\s*=\s*\[(.*)?\]$/);
       if (argsMatch && argsMatch[1]) {
         args = argsMatch[1].split(',').map((s) => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
@@ -339,13 +354,16 @@ function parseTomlServers(content: string): Record<string, McpServerEntry> {
       }
 
       const envMatch = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*"([^"]*)"$/);
-      if (envMatch && !['command', 'args'].includes(envMatch[1])) {
+      if (envMatch && !['command', 'args', 'url', 'type'].includes(envMatch[1])) {
         env[envMatch[1]] = envMatch[2];
       }
     }
 
-    if (command) {
-      result[serverKey] = { command, args, ...(Object.keys(env).length > 0 ? { env } : {}) };
+    const envObj = Object.keys(env).length > 0 ? { env } : {};
+    if (url) {
+      result[serverKey] = { type: 'http', url, ...envObj };
+    } else if (command) {
+      result[serverKey] = { command, args, ...envObj };
     }
   }
 
@@ -364,8 +382,13 @@ function writeTomlServer(
     content = removeTomlSection(content, serverKey);
   }
 
-  const argsStr = entry.args.map((a) => `"${a}"`).join(', ');
-  let tomlBlock = `\n[mcp_servers.${serverKey}]\ncommand = "${entry.command}"\nargs = [${argsStr}]\n`;
+  let tomlBlock: string;
+  if (entry.url) {
+    tomlBlock = `\n[mcp_servers.${serverKey}]\ntype = "${entry.type ?? 'http'}"\nurl = "${entry.url}"\n`;
+  } else {
+    const argsStr = (entry.args ?? []).map((a) => `"${a}"`).join(', ');
+    tomlBlock = `\n[mcp_servers.${serverKey}]\ncommand = "${entry.command}"\nargs = [${argsStr}]\n`;
+  }
 
   if (entry.env && Object.keys(entry.env).length > 0) {
     tomlBlock += `\n[mcp_servers.${serverKey}.env]\n`;
@@ -545,13 +568,20 @@ function extractServersFromFile(filePath: string): Record<string, McpServerEntry
 function extractServerEntries(obj: Record<string, unknown>): Record<string, McpServerEntry> {
   const result: Record<string, McpServerEntry> = {};
   for (const [key, val] of Object.entries(obj)) {
-    if (val && typeof val === 'object' && 'command' in val) {
+    if (val && typeof val === 'object') {
       const entry = val as Record<string, unknown>;
-      result[key] = {
-        command: String(entry.command ?? ''),
-        args: Array.isArray(entry.args) ? entry.args.map(String) : [],
-        env: entry.env && typeof entry.env === 'object' ? entry.env as Record<string, string> : undefined,
-      };
+      if ('url' in entry && typeof entry.url === 'string') {
+        result[key] = {
+          type: (entry.type as 'http' | 'sse') ?? 'http',
+          url: entry.url,
+        };
+      } else if ('command' in entry) {
+        result[key] = {
+          command: String(entry.command ?? ''),
+          args: Array.isArray(entry.args) ? entry.args.map(String) : [],
+          env: entry.env && typeof entry.env === 'object' ? entry.env as Record<string, string> : undefined,
+        };
+      }
     }
   }
   return result;

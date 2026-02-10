@@ -158,6 +158,9 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
   }
 
   const serverDeployment = deploymentStatus[serverId] ?? {};
+  const isDeployedAnywhere = Object.values(serverDeployment).some(
+    (scopes) => scopes.global || scopes.project,
+  );
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -174,6 +177,11 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
                   {tag}
                 </span>
               ))}
+              {isDeployedAnywhere && (
+                <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${mcpServer.badge}`}>
+                  Deployed
+                </span>
+              )}
             </div>
             {!isBuiltIn && editingName ? (
               <input

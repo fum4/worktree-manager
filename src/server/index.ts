@@ -26,6 +26,7 @@ import { registerMcpRoutes } from './routes/mcp';
 import { registerMcpServerRoutes } from './routes/mcp-servers';
 import { registerSkillRoutes } from './routes/skills';
 import { registerClaudePluginRoutes } from './routes/claude-plugins';
+import { registerMcpTransportRoute } from './routes/mcp-transport';
 import { registerNotesRoutes } from './routes/notes';
 import { registerTaskRoutes } from './routes/tasks';
 import { registerTerminalRoutes } from './routes/terminal';
@@ -92,6 +93,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerTaskRoutes(app, manager, notesManager);
   registerNotesRoutes(app, manager, notesManager);
   registerTerminalRoutes(app, manager, terminalManager, upgradeWebSocket);
+  registerMcpTransportRoute(app, { manager, notesManager });
 
   // Background verification of all integration connections
   app.get('/api/integrations/verify', async (c) => {

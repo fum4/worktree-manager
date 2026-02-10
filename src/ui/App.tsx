@@ -262,6 +262,7 @@ export default function App() {
     localStorage.setItem(WS_BANNER_KEY, '1');
   };
 
+  const [tabBarOverlaps, setTabBarOverlaps] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
@@ -479,7 +480,64 @@ export default function App() {
   }
 
   return (
-    <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
+    <div className={`h-screen flex flex-col ${surface.page} ${text.body} relative overflow-hidden`}>
+      {/* Animated background blobs — settings/integrations only */}
+      {(activeView === 'configuration' || activeView === 'integrations') && (
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute w-[1400px] h-[1000px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(45,212,191,0.045) 0%, transparent 55%)', top: '40%', left: '5%', animation: 'blob-drift-1 14s ease-in-out infinite' }} />
+          <div className="absolute w-[800px] h-[700px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(139,92,246,0.045) 0%, transparent 55%)', top: '10%', left: '70%', animation: 'blob-drift-2 16s ease-in-out infinite' }} />
+          <div className="absolute w-[800px] h-[500px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(59,130,246,0.035) 0%, transparent 55%)', top: '75%', left: '35%', animation: 'blob-drift-3 15s ease-in-out infinite' }} />
+          <div className="absolute w-[900px] h-[900px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(236,72,153,0.035) 0%, transparent 55%)', top: '20%', left: '30%', animation: 'blob-drift-4 18s ease-in-out infinite' }} />
+          <div className="absolute w-[1000px] h-[800px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(251,191,36,0.025) 0%, transparent 55%)', top: '60%', left: '75%', animation: 'blob-drift-5 13s ease-in-out infinite' }} />
+          <style>{`
+            @keyframes blob-drift-1 {
+              0% { transform: translate(0,0) scale(1) rotate(0deg); }
+              17% { transform: translate(60px,25px) scale(1.04) rotate(5deg); }
+              33% { transform: translate(80px,-30px) scale(1.07) rotate(10deg); }
+              50% { transform: translate(20px,-70px) scale(1.02) rotate(6deg); }
+              67% { transform: translate(-40px,-40px) scale(0.96) rotate(-2deg); }
+              83% { transform: translate(-30px,20px) scale(0.98) rotate(-4deg); }
+              100% { transform: translate(0,0) scale(1) rotate(0deg); }
+            }
+            @keyframes blob-drift-2 {
+              0% { transform: translate(0,0) scale(1) rotate(0deg); }
+              17% { transform: translate(-30px,-40px) scale(0.97) rotate(-4deg); }
+              33% { transform: translate(-70px,-20px) scale(1.04) rotate(-8deg); }
+              50% { transform: translate(-60px,40px) scale(1.06) rotate(-3deg); }
+              67% { transform: translate(-10px,70px) scale(0.98) rotate(3deg); }
+              83% { transform: translate(30px,30px) scale(1.02) rotate(6deg); }
+              100% { transform: translate(0,0) scale(1) rotate(0deg); }
+            }
+            @keyframes blob-drift-3 {
+              0% { transform: translate(0,0) scale(1) rotate(0deg); }
+              17% { transform: translate(-25px,50px) scale(1.05) rotate(4deg); }
+              33% { transform: translate(-65px,30px) scale(0.97) rotate(8deg); }
+              50% { transform: translate(-50px,-30px) scale(1.03) rotate(3deg); }
+              67% { transform: translate(10px,-60px) scale(0.95) rotate(-4deg); }
+              83% { transform: translate(40px,-20px) scale(1.06) rotate(-7deg); }
+              100% { transform: translate(0,0) scale(1) rotate(0deg); }
+            }
+            @keyframes blob-drift-4 {
+              0% { transform: translate(0,0) scale(1) rotate(0deg); }
+              17% { transform: translate(35px,-45px) scale(1.03) rotate(-5deg); }
+              33% { transform: translate(70px,-15px) scale(0.96) rotate(-9deg); }
+              50% { transform: translate(55px,45px) scale(1.05) rotate(-4deg); }
+              67% { transform: translate(10px,65px) scale(0.98) rotate(2deg); }
+              83% { transform: translate(-25px,25px) scale(1.04) rotate(6deg); }
+              100% { transform: translate(0,0) scale(1) rotate(0deg); }
+            }
+            @keyframes blob-drift-5 {
+              0% { transform: translate(0,0) scale(1) rotate(0deg); }
+              17% { transform: translate(20px,45px) scale(0.97) rotate(5deg); }
+              33% { transform: translate(-25px,70px) scale(1.04) rotate(8deg); }
+              50% { transform: translate(-65px,35px) scale(1.06) rotate(4deg); }
+              67% { transform: translate(-50px,-20px) scale(0.95) rotate(-3deg); }
+              83% { transform: translate(-15px,-10px) scale(1.02) rotate(-5deg); }
+              100% { transform: translate(0,0) scale(1) rotate(0deg); }
+            }
+          `}</style>
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -500,10 +558,11 @@ export default function App() {
         </div>
       )}
 
+      {(activeView === 'workspace' || activeView === 'agents') && (
       <div className="flex-1 min-h-0 relative">
           {activeView === 'workspace' && (
             <div
-              className="absolute inset-0 flex p-5"
+              className="absolute inset-0 flex px-5 pt-5 pb-1"
             >
               {/* Left sidebar */}
               <aside
@@ -701,9 +760,12 @@ export default function App() {
           {activeView === 'agents' && (
             <AgentsView />
           )}
+      </div>
+      )}
 
+      {(activeView === 'configuration' || activeView === 'integrations') && (
+      <div className={`flex-1 min-h-0 overflow-y-auto -mt-12 pt-12 ${tabBarOverlaps ? '-mb-12 pb-12' : ''}`}>
           {activeView === 'configuration' && (
-            <div className="absolute inset-0 flex flex-col p-4">
               <ConfigurationPanel
                 config={config}
                 onSaved={refetchConfig}
@@ -712,15 +774,13 @@ export default function App() {
                 linearConfigured={linearStatus?.configured ?? false}
                 onNavigateToIntegrations={() => setActiveView('integrations')}
               />
-            </div>
           )}
 
           {activeView === 'integrations' && (
-            <div className="absolute inset-0 flex flex-col p-4">
               <IntegrationsPanel onJiraStatusChange={refetchJiraStatus} onLinearStatusChange={refetchLinearStatus} />
-            </div>
           )}
       </div>
+      )}
 
       {/* Setup error banner */}
       {setupError && (
@@ -777,7 +837,7 @@ export default function App() {
       )}
 
       {/* Tab bar for multi-project (Electron only) */}
-      <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
+      <TabBar onOpenSettings={() => setShowSettingsModal(true)} onOverlapChange={setTabBarOverlaps} />
     </div>
   );
 }

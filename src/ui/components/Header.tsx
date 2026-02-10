@@ -1,5 +1,5 @@
 import type { View } from './NavBar';
-import { badge, nav, surface, text } from '../theme';
+import { badge, nav, text } from '../theme';
 
 const tabs: { id: View; label: string }[] = [
   { id: 'workspace', label: 'Workspace' },
@@ -25,12 +25,12 @@ export function Header({
 }: HeaderProps) {
   return (
     <header
-      className={`h-12 flex-shrink-0 relative ${surface.page}`}
+      className="h-12 flex-shrink-0 relative bg-[#0c0e12]/60 backdrop-blur-md z-40"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       {/* Center: nav tabs - using inset-x-0 + flex for pixel-perfect centering */}
       <div
-        className="absolute inset-x-0 bottom-2 flex justify-center"
+        className="absolute inset-x-0 bottom-0.5 flex justify-center"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <div className="flex items-center gap-0.5">
@@ -56,7 +56,7 @@ export function Header({
       {/* Right: config warning indicator */}
       {configNeedsPush && (
         <div
-          className="absolute right-4 bottom-2 flex items-center"
+          className="absolute right-4 bottom-0.5 flex items-center"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <div className="group relative">

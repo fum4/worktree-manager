@@ -1,4 +1,5 @@
 import { Plus, Settings, X, Folder, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useServer } from '../contexts/ServerContext';
 import type { Project } from '../contexts/ServerContext';
@@ -7,10 +8,40 @@ import { Tooltip } from './Tooltip';
 
 interface TabBarProps {
   onOpenSettings?: () => void;
+  onOverlapChange?: (overlaps: boolean) => void;
 }
 
-export function TabBar({ onOpenSettings }: TabBarProps) {
+export function TabBar({ onOpenSettings, onOverlapChange }: TabBarProps) {
   const { projects, activeProject, switchProject, closeProject, selectFolder, openProject, isElectron } = useServer();
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [overlaps, setOverlaps] = useState(false);
+
+  const checkOverlap = useCallback(() => {
+    if (!tabsRef.current) return;
+    const tabsRight = tabsRef.current.getBoundingClientRect().right;
+    // max-w-2xl = 672px, centered in viewport
+    const contentLeft = (window.innerWidth - 672) / 2;
+    setOverlaps(tabsRight > contentLeft);
+  }, []);
+
+  useEffect(() => {
+    onOverlapChange?.(overlaps);
+  }, [overlaps, onOverlapChange]);
+
+  useEffect(() => {
+    if (!isElectron || projects.length === 0) {
+      setOverlaps(false);
+      return;
+    }
+    checkOverlap();
+    window.addEventListener('resize', checkOverlap);
+    const observer = tabsRef.current ? new ResizeObserver(checkOverlap) : null;
+    if (tabsRef.current) observer?.observe(tabsRef.current);
+    return () => {
+      window.removeEventListener('resize', checkOverlap);
+      observer?.disconnect();
+    };
+  }, [isElectron, projects.length, checkOverlap]);
 
   // Only show in Electron mode with at least one project
   if (!isElectron || projects.length === 0) {
@@ -25,26 +56,28 @@ export function TabBar({ onOpenSettings }: TabBarProps) {
   };
 
   return (
-    <div className="flex-shrink-0 flex items-center bg-[#0c0e12] pl-5 pr-4 pb-5 gap-1">
-      {projects.map((project) => (
-        <Tab
-          key={project.id}
-          project={project}
-          isActive={project.id === activeProject?.id}
-          onSelect={() => switchProject(project.id)}
-          onClose={() => closeProject(project.id)}
-        />
-      ))}
+    <div className={`flex-shrink-0 flex items-center z-40 pl-5 pr-4 pb-5 pt-4 gap-1 ${overlaps ? 'bg-[#0c0e12]/60 backdrop-blur-md' : ''}`}>
+      <div ref={tabsRef} className="flex items-center gap-1">
+        {projects.map((project) => (
+          <Tab
+            key={project.id}
+            project={project}
+            isActive={project.id === activeProject?.id}
+            onSelect={() => switchProject(project.id)}
+            onClose={() => closeProject(project.id)}
+          />
+        ))}
 
-      {/* Add project button */}
-      <Tooltip text="Open Project">
-        <button
-          onClick={handleAddProject}
-          className="flex items-center justify-center w-7 h-7 rounded-md text-[#6b7280] hover:text-[#e5e7eb] hover:bg-white/[0.06] transition-colors duration-150"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-      </Tooltip>
+        {/* Add project button */}
+        <Tooltip text="Open Project">
+          <button
+            onClick={handleAddProject}
+            className="flex items-center justify-center w-7 h-7 rounded-md text-[#6b7280] hover:text-[#e5e7eb] hover:bg-white/[0.06] transition-colors duration-150"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </Tooltip>
+      </div>
 
       {/* Spacer */}
       <div className="ml-auto" />

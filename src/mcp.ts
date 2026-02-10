@@ -1,81 +1,96 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { existsSync, readFileSync } from 'fs';
+import path from 'path';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { z } from 'zod';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
-import { actions, MCP_INSTRUCTIONS } from './actions';
 import type { ActionContext } from './actions';
-import { APP_NAME } from './constants';
+import { CONFIG_DIR_NAME } from './constants';
 import { WorktreeManager } from './server/manager';
+import { createMcpServer } from './server/mcp-server-factory';
 import { NotesManager } from './server/notes-manager';
 import type { WorktreeConfig } from './server/types';
 
-function buildJsonSchema(params: Record<string, { type: string; description: string; required?: boolean }>) {
-  const properties: Record<string, { type: string; description: string }> = {};
-  const required: string[] = [];
+/**
+ * Read server.json to find a running wok3 server.
+ * Returns the server URL if found and the process is alive, null otherwise.
+ */
+function findRunningServer(configDir: string): string | null {
+  const serverJsonPath = path.join(configDir, CONFIG_DIR_NAME, 'server.json');
+  if (!existsSync(serverJsonPath)) return null;
 
-  for (const [key, param] of Object.entries(params)) {
-    properties[key] = { type: param.type, description: param.description };
-    if (param.required) required.push(key);
+  try {
+    const data = JSON.parse(readFileSync(serverJsonPath, 'utf-8'));
+    if (!data.url || !data.pid) return null;
+
+    // Check if the process is still running
+    process.kill(data.pid, 0); // Throws if process doesn't exist
+    return data.url;
+  } catch {
+    return null;
   }
-
-  return { properties, required };
 }
 
-export async function startMcpServer(config: WorktreeConfig, configFilePath: string | null) {
+/**
+ * Proxy mode: relay JSON-RPC messages between stdio and the running HTTP server.
+ * This gives us shared state with the UI.
+ */
+async function startProxyMode(serverUrl: string) {
+  const stdioTransport = new StdioServerTransport();
+  const httpTransport = new StreamableHTTPClientTransport(
+    new URL(`${serverUrl}/mcp`),
+  );
+
+  // Relay: Claude Code (stdio) → HTTP server
+  stdioTransport.onmessage = (message) => {
+    httpTransport.send(message).catch((err) => {
+      process.stderr.write(`wok3 mcp proxy send error: ${err}\n`);
+    });
+  };
+
+  // Relay: HTTP server → Claude Code (stdio)
+  httpTransport.onmessage = (message) => {
+    stdioTransport.send(message).catch((err) => {
+      process.stderr.write(`wok3 mcp proxy reply error: ${err}\n`);
+    });
+  };
+
+  httpTransport.onerror = (err) => {
+    process.stderr.write(`wok3 mcp proxy HTTP error: ${err.message}\n`);
+  };
+
+  stdioTransport.onclose = async () => {
+    await httpTransport.close();
+    process.exit(0);
+  };
+
+  httpTransport.onclose = async () => {
+    await stdioTransport.close();
+    process.exit(0);
+  };
+
+  await httpTransport.start();
+  await stdioTransport.start();
+
+  const cleanup = async () => {
+    await httpTransport.close();
+    await stdioTransport.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+}
+
+/**
+ * Standalone mode: create own WorktreeManager (no running server).
+ */
+async function startStandaloneMode(config: WorktreeConfig, configFilePath: string | null) {
   const manager = new WorktreeManager(config, configFilePath);
   await manager.initGitHub();
 
   const notesManager = new NotesManager(manager.getConfigDir());
   const ctx: ActionContext = { manager, notesManager };
-
-  const server = new McpServer(
-    { name: APP_NAME, version: '0.1.0' },
-    { instructions: MCP_INSTRUCTIONS },
-  );
-
-  for (const action of actions) {
-    const schema = buildJsonSchema(action.params);
-
-    server.tool(
-      action.name,
-      action.description,
-      schema.properties,
-      async (params) => {
-        try {
-          const result = await action.handler(ctx, params as Record<string, unknown>);
-          return {
-            content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
-          };
-        } catch (err) {
-          return {
-            isError: true,
-            content: [{ type: 'text' as const, text: err instanceof Error ? err.message : String(err) }],
-          };
-        }
-      },
-    );
-  }
-
-  server.prompt(
-    'work-on-task',
-    'Create a worktree from an issue and start working on it',
-    { issueId: z.string().describe('Issue ID (e.g., PROJ-123, ENG-42, or just a number)') },
-    async ({ issueId }) => ({
-      messages: [{
-        role: 'user' as const,
-        content: {
-          type: 'text' as const,
-          text: `Use the wok3 MCP server tools to create a worktree for issue "${issueId}". Follow this workflow:
-1. Determine the issue type and call the appropriate wok3 tool: create_from_jira or create_from_linear
-2. The response will include full task context and the worktree path
-3. Poll the wok3 list_worktrees tool until the worktree status is 'stopped' (creation complete)
-4. Navigate to the worktree directory
-5. Read TASK.md for full context
-6. Start implementing the task`,
-        },
-      }],
-    }),
-  );
+  const server = createMcpServer(ctx);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -88,4 +103,17 @@ export async function startMcpServer(config: WorktreeConfig, configFilePath: str
 
   process.on('SIGINT', cleanup);
   process.on('SIGTERM', cleanup);
+}
+
+export async function startMcpServer(config: WorktreeConfig, configFilePath: string | null) {
+  const configDir = configFilePath ? path.dirname(path.dirname(configFilePath)) : process.cwd();
+  const serverUrl = findRunningServer(configDir);
+
+  if (serverUrl) {
+    process.stderr.write(`wok3 mcp: connecting to running server at ${serverUrl}\n`);
+    await startProxyMode(serverUrl);
+  } else {
+    process.stderr.write('wok3 mcp: no running server found, starting standalone\n');
+    await startStandaloneMode(config, configFilePath);
+  }
 }

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Check, ChevronDown, GitCommit, Loader2, Settings, Sparkles } from 'lucide-react';
+import { Check, ChevronDown, GitCommit, Loader2, Plug, Settings, Sparkles } from 'lucide-react';
 
 import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
 import { useApi } from '../hooks/useApi';
 import type { DetectedConfig } from '../hooks/api';
 import { button, input, surface, text } from '../theme';
+import { AGENT_CONFIGS, type AgentId, type McpScope } from '../agent-configs';
 
 interface ProjectSetupScreenProps {
   projectName: string | null;
@@ -12,7 +13,7 @@ interface ProjectSetupScreenProps {
   onRememberChoice?: (choice: 'auto' | 'manual') => void;
 }
 
-type SetupMode = 'choice' | 'manual' | 'commit-prompt';
+type SetupMode = 'choice' | 'manual' | 'agents' | 'commit-prompt';
 
 export function ProjectSetupScreen({
   projectName,
@@ -42,6 +43,12 @@ export function ProjectSetupScreen({
   // Commit message for the commit prompt
   const [commitMessage, setCommitMessage] = useState(`chore: initialize ${APP_NAME} configuration`);
 
+  // Agents step state
+  const [agentStatuses, setAgentStatuses] = useState<Record<string, { global?: boolean; project?: boolean }>>({});
+  const [agentDesired, setAgentDesired] = useState<Record<string, { global: boolean; project: boolean }>>({});
+  const [agentsApplying, setAgentsApplying] = useState(false);
+  const [agentsError, setAgentsError] = useState<string | null>(null);
+
   // Load detected config on mount
   useEffect(() => {
     api.detectConfig().then((result) => {
@@ -51,6 +58,23 @@ export function ProjectSetupScreen({
       }
     });
   }, []);
+
+  // Fetch agent statuses when entering agents step
+  useEffect(() => {
+    if (mode === 'agents') {
+      api.fetchMcpStatus().then((result) => {
+        setAgentStatuses(result.statuses);
+        const desired: Record<string, { global: boolean; project: boolean }> = {};
+        for (const agent of AGENT_CONFIGS) {
+          desired[agent.id] = {
+            global: result.statuses[agent.id]?.global === true,
+            project: result.statuses[agent.id]?.project === true,
+          };
+        }
+        setAgentDesired(desired);
+      });
+    }
+  }, [mode]);
 
   const handleAutoSetup = async () => {
     setIsLoading(true);
@@ -62,7 +86,7 @@ export function ProjectSetupScreen({
         if (rememberChoice) {
           onRememberChoice?.('auto');
         }
-        setMode('commit-prompt');
+        setMode('agents');
       } else {
         setError(result.error ?? 'Failed to initialize config');
       }
@@ -87,7 +111,7 @@ export function ProjectSetupScreen({
         if (rememberChoice) {
           onRememberChoice?.('manual');
         }
-        setMode('commit-prompt');
+        setMode('agents');
       } else {
         setError(result.error ?? 'Failed to initialize config');
       }
@@ -101,6 +125,50 @@ export function ProjectSetupScreen({
   const handleBack = () => {
     setMode('choice');
     setError(null);
+  };
+
+  const handleAgentsSetup = async () => {
+    const changes: { agentId: AgentId; scope: McpScope; action: 'setup' | 'remove' }[] = [];
+
+    for (const agent of AGENT_CONFIGS) {
+      const desired = agentDesired[agent.id];
+      const current = agentStatuses[agent.id];
+      if (!desired) continue;
+
+      for (const scope of ['global', 'project'] as McpScope[]) {
+        const wantEnabled = desired[scope];
+        const isEnabled = current?.[scope] === true;
+        if (wantEnabled && !isEnabled) changes.push({ agentId: agent.id, scope, action: 'setup' });
+        if (!wantEnabled && isEnabled) changes.push({ agentId: agent.id, scope, action: 'remove' });
+      }
+    }
+
+    if (changes.length === 0) {
+      setMode('commit-prompt');
+      return;
+    }
+
+    setAgentsApplying(true);
+    setAgentsError(null);
+
+    const errors: string[] = [];
+    for (const { agentId, scope, action } of changes) {
+      const result = action === 'setup'
+        ? await api.setupMcpAgent(agentId, scope)
+        : await api.removeMcpAgent(agentId, scope);
+      if (!result.success) {
+        const agent = AGENT_CONFIGS.find((a) => a.id === agentId)!;
+        errors.push(`${agent.name} (${scope}): ${result.error ?? 'failed'}`);
+      }
+    }
+
+    setAgentsApplying(false);
+
+    if (errors.length > 0) {
+      setAgentsError(errors.join(', '));
+    } else {
+      setMode('commit-prompt');
+    }
   };
 
   const handleCommitConfig = async () => {
@@ -129,6 +197,113 @@ export function ProjectSetupScreen({
   const handleSkipCommit = () => {
     onSetupComplete();
   };
+
+  if (mode === 'agents') {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center max-w-md w-full">
+          <div className="mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-purple-400">
+                <path d="M12 8V4H8" />
+                <rect width="16" height="12" x="4" y="8" rx="2" />
+                <path d="M2 14h2" />
+                <path d="M20 14h2" />
+                <path d="M15 13v2" />
+                <path d="M9 13v2" />
+              </svg>
+            </div>
+            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>
+              Connect Coding Agents
+            </h1>
+            <p className={`text-sm ${text.secondary} leading-relaxed`}>
+              Set up MCP integration so your AI coding agents can
+              <br />
+              manage worktrees, start dev servers, and more.
+            </p>
+          </div>
+
+          <div className="space-y-2 mb-6">
+            {AGENT_CONFIGS.map((agent) => {
+              const desired = agentDesired[agent.id];
+              const globalOn = desired?.global ?? false;
+              const projectOn = desired?.project ?? false;
+
+              return (
+                <div
+                  key={agent.id}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg ${surface.panel} border border-white/[0.08]`}
+                >
+                  <span className={`text-xs font-medium ${text.primary} flex-1 text-left`}>{agent.name}</span>
+                  <button
+                    onClick={() => setAgentDesired((prev) => ({
+                      ...prev,
+                      [agent.id]: { ...prev[agent.id], global: !globalOn },
+                    }))}
+                    disabled={agentsApplying || !agent.global}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                      globalOn
+                        ? 'bg-[#2dd4bf]/10 hover:bg-[#2dd4bf]/15'
+                        : 'bg-white/[0.03] hover:bg-white/[0.06]'
+                    } disabled:opacity-40`}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${globalOn ? 'bg-[#2dd4bf]' : 'bg-white/[0.15]'}`} />
+                    <span className={globalOn ? 'text-[#2dd4bf]' : text.dimmed}>Global</span>
+                  </button>
+                  <button
+                    onClick={() => setAgentDesired((prev) => ({
+                      ...prev,
+                      [agent.id]: { ...prev[agent.id], project: !projectOn },
+                    }))}
+                    disabled={agentsApplying || !agent.project}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                      projectOn
+                        ? 'bg-[#2dd4bf]/10 hover:bg-[#2dd4bf]/15'
+                        : 'bg-white/[0.03] hover:bg-white/[0.06]'
+                    } disabled:opacity-40`}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${projectOn ? 'bg-[#2dd4bf]' : 'bg-white/[0.15]'}`} />
+                    <span className={projectOn ? 'text-[#2dd4bf]' : text.dimmed}>Project</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {agentsError && (
+            <p className={`mb-4 text-xs ${text.error}`}>{agentsError}</p>
+          )}
+
+          <div className="space-y-3">
+            <button
+              onClick={handleAgentsSetup}
+              disabled={agentsApplying}
+              className={`w-full px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
+            >
+              {agentsApplying ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Plug className="w-4 h-4" />
+                  Connect MCPs
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => setMode('commit-prompt')}
+              disabled={agentsApplying}
+              className={`w-full px-4 py-2 text-xs ${text.muted} hover:${text.secondary} transition-colors`}
+            >
+              Skip for now
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (mode === 'commit-prompt') {
     return (
@@ -447,40 +622,36 @@ export function ProjectSetupScreen({
 
         {/* Remember choice checkbox */}
         {onRememberChoice && (
-          <label className="flex items-center justify-center gap-2 cursor-pointer group">
-            <div className="relative">
-              <input
-                type="checkbox"
-                checked={rememberChoice}
-                onChange={(e) => setRememberChoice(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className={`
-                w-4 h-4 rounded border transition-all duration-150
-                ${rememberChoice
-                  ? 'bg-[#2dd4bf]/20 border-[#2dd4bf]/50'
-                  : 'bg-white/[0.04] border-white/[0.1] group-hover:border-white/[0.2]'
-                }
-              `}>
-                {rememberChoice && (
-                  <svg
-                    className="w-4 h-4 text-[#2dd4bf]"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M4 8l3 3 5-6" />
-                  </svg>
-                )}
-              </div>
+          <button
+            type="button"
+            onClick={() => setRememberChoice(!rememberChoice)}
+            className="mx-auto flex items-center justify-center gap-2 cursor-pointer group"
+          >
+            <div className={`
+              w-4 h-4 rounded border transition-all duration-150
+              ${rememberChoice
+                ? 'bg-[#2dd4bf]/20 border-[#2dd4bf]/50'
+                : 'bg-white/[0.04] border-white/[0.1] group-hover:border-white/[0.2]'
+              }
+            `}>
+              {rememberChoice && (
+                <svg
+                  className="w-4 h-4 text-[#2dd4bf]"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 8l3 3 5-6" />
+                </svg>
+              )}
             </div>
             <span className={`text-xs ${text.muted} group-hover:${text.secondary} transition-colors`}>
               Remember my choice for future projects
             </span>
-          </label>
+          </button>
         )}
 
         {error && (

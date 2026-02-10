@@ -289,8 +289,8 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
     for (const [key, { entry, foundIn }] of serverMap) {
       discovered.push({
         key,
-        command: entry.command,
-        args: entry.args,
+        command: entry.command ?? '',
+        args: entry.args ?? [],
         env: entry.env ?? {},
         foundIn,
         alreadyInRegistry: !!registry.servers[key],

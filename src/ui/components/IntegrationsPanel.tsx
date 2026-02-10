@@ -1,5 +1,5 @@
 import { Check, Copy, ExternalLink, Unplug, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { APP_NAME } from '../../constants';
 import { useApi } from '../hooks/useApi';
@@ -708,101 +708,12 @@ function LinearCard({
   );
 }
 
-type AgentId = 'claude' | 'gemini' | 'codex' | 'cursor' | 'vscode';
-type McpScope = 'global' | 'project';
-
-interface ScopeConfig {
-  config: string;
-  configPath: string;
-}
-
-interface AgentConfig {
-  id: AgentId;
-  name: string;
-  docsUrl?: string;
-  global?: ScopeConfig;
-  project?: ScopeConfig;
-}
-
-const MCP_JSON_SNIPPET = `{
-  "mcpServers": {
-    "wok3": {
-      "command": "wok3",
-      "args": ["mcp"]
-    }
-  }
-}`;
-
-const AGENT_CONFIGS: AgentConfig[] = [
-  {
-    id: 'claude',
-    name: 'Claude Code',
-    docsUrl: 'https://docs.anthropic.com/en/docs/claude-code',
-    global: { config: MCP_JSON_SNIPPET, configPath: '~/.claude/settings.json' },
-    project: { config: MCP_JSON_SNIPPET, configPath: '.mcp.json' },
-  },
-  {
-    id: 'gemini',
-    name: 'Gemini CLI',
-    docsUrl: 'https://geminicli.com/docs/tools/mcp-server/',
-    global: { config: MCP_JSON_SNIPPET, configPath: '~/.gemini/settings.json' },
-    project: { config: MCP_JSON_SNIPPET, configPath: '.gemini/settings.json' },
-  },
-  {
-    id: 'codex',
-    name: 'OpenAI Codex',
-    docsUrl: 'https://developers.openai.com/codex/mcp/',
-    global: {
-      config: `[mcp_servers.wok3]\ncommand = "wok3"\nargs = ["mcp"]`,
-      configPath: '~/.codex/config.toml',
-    },
-    project: {
-      config: `[mcp_servers.wok3]\ncommand = "wok3"\nargs = ["mcp"]`,
-      configPath: '.codex/config.toml',
-    },
-  },
-  {
-    id: 'cursor',
-    name: 'Cursor',
-    docsUrl: 'https://docs.cursor.com/context/model-context-protocol',
-    global: { config: MCP_JSON_SNIPPET, configPath: '~/.cursor/mcp.json' },
-    project: { config: MCP_JSON_SNIPPET, configPath: '.cursor/mcp.json' },
-  },
-  {
-    id: 'vscode',
-    name: 'VS Code',
-    docsUrl: 'https://code.visualstudio.com/docs/copilot/chat/mcp-servers',
-    global: {
-      config: `{
-  "mcp": {
-    "servers": {
-      "wok3": {
-        "command": "wok3",
-        "args": ["mcp"]
-      }
-    }
-  }
-}`,
-      configPath: '~/Library/Application Support/Code/User/settings.json',
-    },
-    project: {
-      config: `{
-  "mcp": {
-    "servers": {
-      "wok3": {
-        "command": "wok3",
-        "args": ["mcp"]
-      }
-    }
-  }
-}`,
-      configPath: '.vscode/settings.json',
-    },
-  },
-];
+import { buildAgentConfigs, type AgentId, type McpScope } from '../agent-configs';
 
 function CodingAgentsCard() {
   const api = useApi();
+  const serverUrl = useServerUrlOptional();
+  const agentConfigs = useMemo(() => buildAgentConfigs(serverUrl ?? 'http://localhost:6969'), [serverUrl]);
   const [selectedAgent, setSelectedAgent] = useState<AgentId>('claude');
   const [scope, setScope] = useState<McpScope>('global');
   const [copied, setCopied] = useState(false);
@@ -810,7 +721,7 @@ function CodingAgentsCard() {
   const [settingUp, setSettingUp] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const agent = AGENT_CONFIGS.find((a) => a.id === selectedAgent)!;
+  const agent = agentConfigs.find((a) => a.id === selectedAgent)!;
   const scopeConfig = agent[scope];
   const isConfigured = statuses[selectedAgent]?.[scope] === true;
   const hasGlobal = !!agent.global;
@@ -818,11 +729,11 @@ function CodingAgentsCard() {
 
   // Pick a valid scope when agent changes
   useEffect(() => {
-    const a = AGENT_CONFIGS.find((c) => c.id === selectedAgent)!;
+    const a = agentConfigs.find((c) => c.id === selectedAgent)!;
     if (!a[scope]) {
       setScope(a.global ? 'global' : 'project');
     }
-  }, [selectedAgent, scope]);
+  }, [selectedAgent, scope, agentConfigs]);
 
   useEffect(() => {
     api.fetchMcpStatus().then((result) => {
@@ -852,10 +763,10 @@ function CodingAgentsCard() {
         [selectedAgent]: { ...prev[selectedAgent], [scope]: true },
       }));
       setFeedback({ type: 'success', message: `Added to ${scopeConfig!.configPath}` });
+      setTimeout(() => setFeedback(null), 4000);
     } else {
       setFeedback({ type: 'error', message: result.error ?? 'Setup failed' });
     }
-    setTimeout(() => setFeedback(null), 4000);
   };
 
   const handleRemove = async () => {
@@ -869,10 +780,10 @@ function CodingAgentsCard() {
         [selectedAgent]: { ...prev[selectedAgent], [scope]: false },
       }));
       setFeedback({ type: 'success', message: `Removed from ${scopeConfig!.configPath}` });
+      setTimeout(() => setFeedback(null), 4000);
     } else {
       setFeedback({ type: 'error', message: result.error ?? 'Remove failed' });
     }
-    setTimeout(() => setFeedback(null), 4000);
   };
 
   return (
@@ -902,7 +813,7 @@ function CodingAgentsCard() {
       {/* Agent tabs */}
       <div className="flex flex-col gap-2">
         <div className="flex gap-1">
-          {AGENT_CONFIGS.map((a) => (
+          {agentConfigs.map((a) => (
             <button
               key={a.id}
               onClick={() => {
@@ -1120,7 +1031,7 @@ export function IntegrationsPanel({ onJiraStatusChange, onLinearStatusChange }: 
   }, [linearRefreshKey, onLinearStatusChange, serverUrl]);
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div>
       <div className="max-w-2xl mx-auto p-6 flex flex-col gap-8">
         {showBanner && (
           <div className={`relative p-4 pl-5 pr-10 rounded-xl ${infoBanner.bg} border ${infoBanner.border}`}>

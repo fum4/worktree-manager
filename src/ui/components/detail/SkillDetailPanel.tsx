@@ -34,6 +34,8 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
 
   const { skill, isLoading, error, refetch } = useSkillDetail(skillName);
 
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
   const [editingRef, setEditingRef] = useState(false);
   const [editingExamples, setEditingExamples] = useState(false);
   const [editingConfig, setEditingConfig] = useState<string | null>(null);
@@ -42,6 +44,7 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
   const [deploying, setDeploying] = useState<string | null>(null);
 
   useEffect(() => {
+    setEditingName(false);
     setEditingRef(false);
     setEditingExamples(false);
     setEditingConfig(null);
@@ -118,9 +121,34 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
                 {isDeployedAnywhere ? 'Deployed' : 'Not deployed'}
               </span>
             </div>
-            <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug px-2 py-1 -mx-2 -my-1`}>
-              {skill.displayName}
-            </h2>
+            {editingName ? (
+              <input
+                autoFocus
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && nameDraft.trim()) {
+                    saveUpdate({ frontmatter: { name: nameDraft.trim() } });
+                    setEditingName(false);
+                  }
+                  if (e.key === 'Escape') setEditingName(false);
+                }}
+                onBlur={() => {
+                  if (nameDraft.trim() && nameDraft.trim() !== skill.displayName) {
+                    saveUpdate({ frontmatter: { name: nameDraft.trim() } });
+                  }
+                  setEditingName(false);
+                }}
+                className={`text-[15px] font-semibold ${text.primary} leading-snug px-2 py-1 -mx-2 -my-1 bg-white/[0.04] border border-white/[0.12] rounded-md focus:outline-none w-full`}
+              />
+            ) : (
+              <h2
+                className={`text-[15px] font-semibold ${text.primary} leading-snug px-2 py-1 -mx-2 -my-1 rounded-md hover:bg-white/[0.04] cursor-pointer transition-colors`}
+                onClick={() => { setNameDraft(skill.displayName); setEditingName(true); }}
+              >
+                {skill.displayName}
+              </h2>
+            )}
           </div>
           <div className="flex-shrink-0 pt-1 flex items-center gap-3">
               <button

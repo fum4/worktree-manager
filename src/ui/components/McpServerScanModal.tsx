@@ -3,7 +3,7 @@ import { FolderOpen, FolderSearch, HardDrive, ScanSearch, Settings2 } from 'luci
 
 import { useServer } from '../contexts/ServerContext';
 import { useApi } from '../hooks/useApi';
-import type { McpScanResult, SkillScanResult } from '../types';
+import type { McpScanResult, PluginSummary, SkillScanResult } from '../types';
 import { Modal } from './Modal';
 import { input, text } from '../theme';
 import { Spinner } from './Spinner';
@@ -12,11 +12,12 @@ const isWok3Server = (r: McpScanResult) =>
   r.key === 'wok3' || (r.command === 'npx' && r.args.includes('wok3'));
 
 type ScanMode = 'project' | 'folder' | 'device';
-type ResultTab = 'servers' | 'skills';
+type ResultTab = 'servers' | 'skills' | 'plugins';
 
 interface McpServerScanModalProps {
   onImported: () => void;
   onClose: () => void;
+  plugins?: PluginSummary[];
 }
 
 const MODES: { id: ScanMode; label: string; description: string; icon: typeof ScanSearch }[] = [
@@ -25,7 +26,7 @@ const MODES: { id: ScanMode; label: string; description: string; icon: typeof Sc
   { id: 'device', label: 'Entire Device', description: 'Search common locations on this machine', icon: HardDrive },
 ];
 
-export function McpServerScanModal({ onImported, onClose }: McpServerScanModalProps) {
+export function McpServerScanModal({ onImported, onClose, plugins = [] }: McpServerScanModalProps) {
   const api = useApi();
   const { isElectron, selectFolder } = useServer();
   const [mode, setMode] = useState<ScanMode>('project');
@@ -221,6 +222,19 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
             >
               Skills{skillCount > 0 ? ` (${skillCount})` : ''}
             </button>
+            {plugins.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setTab('plugins')}
+                className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-colors ${
+                  tab === 'plugins'
+                    ? 'text-[#d1d5db] bg-white/[0.06]'
+                    : `${text.dimmed} hover:${text.muted}`
+                }`}
+              >
+                Plugins ({plugins.length})
+              </button>
+            )}
           </div>
 
           {tab === 'servers' ? (
@@ -256,7 +270,7 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
                 </div>
               )}
             </div>
-          ) : (
+          ) : tab === 'skills' ? (
             <div key="skills-tab">
               {skillCount === 0 ? (
                 <p className={`${text.muted} text-xs py-6 text-center`}>No new skills found.</p>
@@ -284,6 +298,31 @@ export function McpServerScanModal({ onImported, onClose }: McpServerScanModalPr
                   ))}
                 </div>
               )}
+            </div>
+          ) : (
+            <div key="plugins-tab">
+              <p className={`${text.dimmed} text-[11px] mb-3`}>
+                Plugins are managed by Claude CLI and appear automatically in the sidebar. No import needed.
+              </p>
+              <div className="space-y-1 max-h-72 overflow-y-auto">
+                {plugins.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/[0.02]"
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${p.enabled ? 'bg-teal-400' : 'bg-white/20'}`} />
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-xs font-medium ${text.primary}`}>{p.name.replace(/@.*$/, '')}</span>
+                      {p.description && (
+                        <div className={`text-[11px] ${text.muted} truncate`}>{p.description}</div>
+                      )}
+                    </div>
+                    <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>
+                      {p.enabled ? 'enabled' : 'disabled'}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

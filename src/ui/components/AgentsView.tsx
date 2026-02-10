@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Info, ScanSearch, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Info, Radar, ScanSearch, X } from 'lucide-react';
 
 import { APP_NAME } from '../../constants';
 import { useServer } from '../contexts/ServerContext';
+import { useApi } from '../hooks/useApi';
 import { useMcpServers, useMcpDeploymentStatus } from '../hooks/useMcpServers';
 import { useSkills, useSkillDeploymentStatus, useClaudePlugins } from '../hooks/useSkills';
 import { surface } from '../theme';
@@ -20,6 +21,7 @@ import { WOK3_SERVER } from './AgentsSidebar';
 import { text } from '../theme';
 
 const BANNER_DISMISSED_KEY = `${APP_NAME}:agentsBannerDismissed`;
+const DISCOVERY_DISMISSED_KEY = `${APP_NAME}:agentsDiscoveryDismissed`;
 
 const STORAGE_KEY = `${APP_NAME}:agentsSidebarWidth`;
 const DEFAULT_WIDTH = 300;
@@ -128,8 +130,39 @@ export function AgentsView() {
     localStorage.setItem(BANNER_DISMISSED_KEY, '1');
   };
 
+  // Auto-detect: background device scan when registries are empty
+  const api = useApi();
+  const [discoveryDismissed, setDiscoveryDismissed] = useState(
+    () => localStorage.getItem(DISCOVERY_DISMISSED_KEY) === '1',
+  );
+  const [discoveryCounts, setDiscoveryCounts] = useState<{ servers: number; skills: number } | null>(null);
+  const discoveryRan = useRef(false);
+
+  useEffect(() => {
+    if (discoveryRan.current || discoveryDismissed) return;
+    if (serversLoading || skillsLoading) return;
+    // Only auto-scan when registries are empty
+    if (servers.length > 0 || skills.length > 0) return;
+
+    discoveryRan.current = true;
+    const options = { mode: 'device' as const };
+    Promise.all([api.scanMcpServers(options), api.scanSkills(options)]).then(([mcpRes, skillRes]) => {
+      const mcpCount = (mcpRes.discovered ?? []).filter((r) => !r.alreadyInRegistry && r.key !== 'wok3').length;
+      const skillCount = (skillRes.discovered ?? []).filter((r) => !r.alreadyInRegistry).length;
+      if (mcpCount > 0 || skillCount > 0) {
+        setDiscoveryCounts({ servers: mcpCount, skills: skillCount });
+      }
+    });
+  }, [serversLoading, skillsLoading, servers.length, skills.length, discoveryDismissed]);
+
+  const dismissDiscovery = () => {
+    setDiscoveryCounts(null);
+    setDiscoveryDismissed(true);
+    localStorage.setItem(DISCOVERY_DISMISSED_KEY, '1');
+  };
+
   return (
-    <div className="absolute inset-0 flex p-5">
+    <div className="absolute inset-0 flex px-5 pt-5 pb-1">
       {/* Left sidebar */}
       <aside
         style={{ width: sidebarWidth }}
@@ -159,6 +192,7 @@ export function AgentsView() {
           onAddServer={() => setShowCreateServerModal(true)}
           onAddSkill={() => setShowCreateSkillModal(true)}
           onAddPlugin={() => setShowInstallPluginModal(true)}
+          onScanImport={() => setShowScanModal(true)}
           pluginActing={pluginActing}
           onPluginActingChange={setPluginActing}
         />
@@ -174,7 +208,33 @@ export function AgentsView() {
 
       {/* Right panel */}
       <main className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}>
-        {!bannerDismissed && (
+        {discoveryCounts && (
+          <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-teal-400/20 bg-teal-400/[0.04]">
+            <Radar className="w-4 h-4 text-teal-400 flex-shrink-0" />
+            <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
+              Found{discoveryCounts.servers > 0 ? ` ${discoveryCounts.servers} MCP server${discoveryCounts.servers !== 1 ? 's' : ''}` : ''}
+              {discoveryCounts.servers > 0 && discoveryCounts.skills > 0 ? ' and' : ''}
+              {discoveryCounts.skills > 0 ? ` ${discoveryCounts.skills} skill${discoveryCounts.skills !== 1 ? 's' : ''}` : ''}
+              {' '}on this device.
+            </p>
+            <button
+              type="button"
+              onClick={() => { setShowScanModal(true); dismissDiscovery(); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-teal-300 bg-teal-400/10 hover:bg-teal-400/20 border border-teal-400/20 rounded-lg transition-colors flex-shrink-0"
+            >
+              <ScanSearch className="w-3.5 h-3.5" />
+              Import
+            </button>
+            <button
+              type="button"
+              onClick={dismissDiscovery}
+              className="p-1 rounded-md hover:bg-teal-400/10 text-teal-400/40 hover:text-teal-400/70 transition-colors flex-shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+        {!bannerDismissed && !discoveryCounts && (
           <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-purple-400/20 bg-purple-400/[0.04]">
             <Info className="w-4 h-4 text-purple-400 flex-shrink-0" />
             <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
@@ -262,6 +322,7 @@ export function AgentsView() {
         <McpServerScanModal
           onImported={handleImported}
           onClose={() => setShowScanModal(false)}
+          plugins={plugins}
         />
       )}
     </div>

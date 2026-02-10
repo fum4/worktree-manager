@@ -1,9 +1,13 @@
+import { existsSync, readFileSync } from 'fs';
+import path from 'path';
 import type { Hono } from 'hono';
 
+import { CONFIG_DIR_NAME } from '../../constants';
 import type { WorktreeManager } from '../manager';
 import { deployAgentInstructions, removeAgentInstructions } from '../lib/builtin-instructions';
 import {
   type AgentId,
+  type McpServerEntry,
   type Scope,
   AGENT_SPECS,
   VALID_AGENTS,
@@ -14,7 +18,21 @@ import {
   removeServerFromConfig,
 } from '../lib/tool-configs';
 
-const WOK3_MCP_ENTRY = { command: 'wok3', args: ['mcp'] };
+function deriveServerUrl(requestUrl: string): string {
+  const url = new URL(requestUrl);
+  return `${url.protocol}//${url.host}`;
+}
+
+function getServerUrl(projectDir: string): string | null {
+  const serverJsonPath = path.join(projectDir, CONFIG_DIR_NAME, 'server.json');
+  if (!existsSync(serverJsonPath)) return null;
+  try {
+    const data = JSON.parse(readFileSync(serverJsonPath, 'utf-8'));
+    return data.url ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function registerMcpRoutes(app: Hono, manager: WorktreeManager) {
   app.get('/api/mcp/status', (c) => {
@@ -52,8 +70,17 @@ export function registerMcpRoutes(app: Hono, manager: WorktreeManager) {
       }
 
       const projectDir = manager.getConfigDir();
+      let mcpEntry: McpServerEntry;
+      if (scope === 'project') {
+        // Project scope is versioned — use command entry (portable, no local port)
+        mcpEntry = { command: 'wok3', args: ['mcp'] };
+      } else {
+        // Global scope is local — use URL entry (shared state with running server)
+        const serverUrl = getServerUrl(projectDir) ?? deriveServerUrl(c.req.url);
+        mcpEntry = { type: 'http', url: `${serverUrl}/mcp` };
+      }
       const filePath = resolveConfigPath(spec.configPath, projectDir);
-      const result = writeServerToConfig(filePath, spec, 'wok3', WOK3_MCP_ENTRY);
+      const result = writeServerToConfig(filePath, spec, 'wok3', mcpEntry);
 
       if (result.success) {
         deployAgentInstructions(agent, projectDir, scope);

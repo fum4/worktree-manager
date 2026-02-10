@@ -60,6 +60,7 @@ interface AgentsSidebarProps {
   onAddServer: () => void;
   onAddSkill: () => void;
   onAddPlugin: () => void;
+  onScanImport: () => void;
   pluginActing?: boolean;
   onPluginActingChange?: (acting: boolean) => void;
 }
@@ -79,6 +80,7 @@ export function AgentsSidebar({
   onAddServer,
   onAddSkill,
   onAddPlugin,
+  onScanImport,
   pluginActing,
   onPluginActingChange,
 }: AgentsSidebarProps) {
@@ -360,6 +362,17 @@ export function AgentsSidebar({
                 });
               })()
             )}
+            {!serversLoading && filteredServers.length === 0 && !search && (
+              <div className="flex justify-center py-2">
+                <button
+                  type="button"
+                  onClick={onScanImport}
+                  className={`text-[10px] ${text.muted} hover:text-purple-400 transition-colors`}
+                >
+                  Scan &amp; Import
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -439,8 +452,17 @@ export function AgentsSidebar({
                     );
                   })}
                 {filteredSkills.filter((s) => isSkillVisible(s.name)).length === 0 && (
-                  <div className="flex items-center justify-center py-4">
-                    <p className={`text-xs ${text.dimmed}`}>No skills</p>
+                  <div className="flex flex-col items-center gap-1.5 py-4">
+                    <p className={`text-xs ${text.dimmed}`}>No skills yet</p>
+                    {!search && (
+                      <button
+                        type="button"
+                        onClick={onScanImport}
+                        className={`text-[10px] ${text.muted} hover:text-purple-400 transition-colors`}
+                      >
+                        Scan &amp; Import
+                      </button>
+                    )}
                   </div>
                 )}
               </>
@@ -515,8 +537,8 @@ export function AgentsSidebar({
                 <span className={`text-xs ${text.muted}`}>Loading plugins...</span>
               </div>
             ) : sortedPlugins.length === 0 ? (
-              <div className="flex items-center justify-center py-4">
-                <p className={`text-xs ${text.dimmed}`}>No plugins</p>
+              <div className="flex flex-col items-center gap-1.5 py-4">
+                <p className={`text-xs ${text.dimmed}`}>No plugins yet</p>
               </div>
             ) : (
               sortedPlugins.map((plugin) => (

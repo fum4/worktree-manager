@@ -43,6 +43,10 @@ IMPORTANT: Use ONLY the wok3 MCP tools (mcp__wok3__*) to interact with wok3. Do 
 
 4. **Start implementing** based on the task description and AI context
 
+## Prerequisites
+
+The wok3 server must be running for MCP tools to work. Start it with \`wok3\` or via the Electron app.
+
 ## Available MCP tools
 
 - \`mcp__wok3__create_from_jira\` — create worktree from Jira issue
@@ -66,6 +70,8 @@ description: wok3 worktree management — use wok3 MCP tools when user mentions 
 alwaysApply: true
 ---
 
+Note: The wok3 server must be running for MCP tools to work.
+
 ${WOK3_WORKFLOW}
 `;
 
@@ -74,6 +80,8 @@ ${WOK3_WORKFLOW}
 const VSCODE_PROMPT = `---
 description: Create a worktree from an issue and start working on it using wok3
 ---
+
+Note: The wok3 server must be running for MCP tools to work.
 
 ${WOK3_WORKFLOW}
 `;
