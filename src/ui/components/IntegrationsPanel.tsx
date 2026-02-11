@@ -1,4 +1,4 @@
-import { Check, Copy, ExternalLink, Unplug, X } from 'lucide-react';
+import { Check, ChevronDown, Copy, ExternalLink, Plus, Unplug, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { APP_NAME } from '../../constants';
@@ -6,12 +6,208 @@ import { useApi } from '../hooks/useApi';
 import { fetchGitHubStatus, fetchJiraStatus, fetchLinearStatus, verifyIntegrations } from '../hooks/api';
 import { useGitHubStatus, useJiraStatus, useLinearStatus } from '../hooks/useWorktrees';
 import { useServerUrlOptional } from '../contexts/ServerContext';
-import type { GitHubStatus, JiraStatus, LinearStatus } from '../types';
+import type { DataLifecycleConfig, GitHubStatus, JiraStatus, LinearStatus } from '../types';
 import { button, infoBanner, input, settings, surface, text } from '../theme';
 import { GitHubSetupModal } from './GitHubSetupModal';
 import { Spinner } from './Spinner';
 
 const integrationInput = `px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`;
+
+const DEFAULT_LIFECYCLE: DataLifecycleConfig = {
+  saveOn: 'view',
+  autoCleanup: {
+    enabled: false,
+    statusTriggers: [],
+    actions: { issueData: true, attachments: true, notes: false, linkedWorktree: false },
+  },
+};
+
+function DataLifecycleSection({
+  dataLifecycle,
+  onChange,
+}: {
+  dataLifecycle: DataLifecycleConfig;
+  onChange: (config: DataLifecycleConfig) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [addingTrigger, setAddingTrigger] = useState(false);
+  const [triggerInput, setTriggerInput] = useState('');
+  const triggerInputRef = useRef<HTMLInputElement>(null);
+
+  const { saveOn, autoCleanup } = dataLifecycle;
+  const { enabled, statusTriggers, actions } = autoCleanup;
+
+  const commitTrigger = () => {
+    const trimmed = triggerInput.trim();
+    if (trimmed && !statusTriggers.some((t) => t.toLowerCase() === trimmed.toLowerCase())) {
+      onChange({
+        ...dataLifecycle,
+        autoCleanup: { ...autoCleanup, statusTriggers: [...statusTriggers, trimmed] },
+      });
+    }
+    setTriggerInput('');
+    setAddingTrigger(false);
+  };
+
+  const removeTrigger = (index: number) => {
+    onChange({
+      ...dataLifecycle,
+      autoCleanup: { ...autoCleanup, statusTriggers: statusTriggers.filter((_, i) => i !== index) },
+    });
+  };
+
+  const toggleAction = (key: keyof typeof actions) => {
+    onChange({
+      ...dataLifecycle,
+      autoCleanup: { ...autoCleanup, actions: { ...actions, [key]: !actions[key] } },
+    });
+  };
+
+  const saveOnOptions = [
+    { value: 'view' as const, label: 'When viewing' },
+    { value: 'worktree-creation' as const, label: 'On worktree creation' },
+    { value: 'never' as const, label: 'Never' },
+  ];
+
+  return (
+    <div className="border-t border-white/[0.06] pt-3 mt-2">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className={`flex items-center gap-1.5 text-[11px] font-medium ${text.secondary} hover:text-white transition-colors duration-150 w-full`}
+      >
+        <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${expanded ? '' : '-rotate-90'}`} />
+        Local Storage
+      </button>
+
+      {expanded && (
+        <div className="flex flex-col gap-3 mt-4 pl-0.5">
+          {/* Save On toggle */}
+          <div className="flex flex-col gap-1.5">
+            <label className={`text-[10px] ${settings.label}`}>Save issue data to disk</label>
+            <div className="flex gap-0.5 bg-white/[0.04] rounded-md p-0.5 self-start">
+              {saveOnOptions.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => onChange({ ...dataLifecycle, saveOn: value })}
+                  className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors duration-150 ${
+                    saveOn === value
+                      ? 'text-white bg-white/[0.10]'
+                      : `${text.muted} hover:text-[#9ca3af]`
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className={`text-[10px] ${text.dimmed} leading-relaxed`}>
+              {saveOn === 'view'
+                ? 'Issue details, comments, and attachments are saved locally when you open an issue.'
+                : saveOn === 'worktree-creation'
+                  ? 'Nothing is saved until you create a worktree from the issue.'
+                  : 'Issue data is never saved to disk. Disables auto-deletion.'}
+            </span>
+          </div>
+
+          {saveOn !== 'never' && (
+            <>
+              {/* Auto-delete toggle */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => onChange({
+                    ...dataLifecycle,
+                    autoCleanup: { ...autoCleanup, enabled: !enabled },
+                  })}
+                  className={`relative w-7 h-4 rounded-full transition-colors duration-200 flex-shrink-0 ${
+                    enabled ? 'bg-accent' : 'bg-white/[0.12]'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                    enabled ? 'left-[14px]' : 'left-0.5'
+                  }`} />
+                </button>
+                <div className="flex flex-col gap-0.5">
+                  <label className={`text-[10px] ${settings.label}`}>Delete local data on status change</label>
+                  <span className={`text-[10px] ${text.dimmed}`}>Remove cached files when an issue is closed or done</span>
+                </div>
+              </div>
+
+              {enabled && (
+                <>
+                  {/* Status triggers */}
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    <label className={`text-[10px] ${settings.label}`}>Trigger on status</label>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {statusTriggers.map((trigger, i) => (
+                        <span
+                          key={i}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] ${text.secondary} bg-white/[0.06]`}
+                        >
+                          {trigger}
+                          <button
+                            onClick={() => removeTrigger(i)}
+                            className={`${text.muted} hover:text-white transition-colors`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                      {addingTrigger ? (
+                        <input
+                          ref={triggerInputRef}
+                          autoFocus
+                          value={triggerInput}
+                          onChange={(e) => setTriggerInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitTrigger();
+                            if (e.key === 'Escape') { setTriggerInput(''); setAddingTrigger(false); }
+                          }}
+                          onBlur={commitTrigger}
+                          placeholder="e.g. Done"
+                          className={`${integrationInput} w-28 !py-[3px] !px-2.5 text-[11px]`}
+                        />
+                      ) : (
+                        <button
+                          onClick={() => setAddingTrigger(true)}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] ${text.muted} hover:text-[#9ca3af] hover:bg-white/[0.04] transition-colors`}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Add
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* What to delete */}
+                  <div className="flex flex-col gap-2.5">
+                    <label className={`text-[10px] ${settings.label}`}>What to delete</label>
+                    <div className="flex flex-wrap gap-x-6 gap-y-1.5">
+                      {([
+                        ['issueData', 'Cached issue data'],
+                        ['attachments', 'Downloaded attachments'],
+                        ['notes', 'Notes & todos'],
+                        ['linkedWorktree', 'Linked worktree'],
+                      ] as const).map(([key, label]) => (
+                        <label key={key} className={`flex items-center gap-1.5 text-[10px] ${text.secondary} cursor-pointer`}>
+                          <input
+                            type="checkbox"
+                            checked={actions[key]}
+                            onChange={() => toggleAction(key)}
+                            className="w-3 h-3 rounded border-white/20 bg-white/[0.04] accent-accent"
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StatusDot({ active }: { active: boolean }) {
   return (
@@ -302,8 +498,11 @@ function JiraCard({
   const [token, setToken] = useState('');
   const [projectKey, setProjectKey] = useState('');
   const [refreshInterval, setRefreshInterval] = useState(5);
+  const [lifecycle, setLifecycle] = useState<DataLifecycleConfig>(DEFAULT_LIFECYCLE);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const configReadyRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (status?.defaultProjectKey) {
@@ -312,7 +511,25 @@ function JiraCard({
     if (status?.refreshIntervalMinutes) {
       setRefreshInterval(status.refreshIntervalMinutes);
     }
-  }, [status?.defaultProjectKey, status?.refreshIntervalMinutes]);
+    if (status?.dataLifecycle) {
+      setLifecycle(status.dataLifecycle);
+    }
+    if (status?.configured) {
+      const t = setTimeout(() => { configReadyRef.current = true; }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [status?.defaultProjectKey, status?.refreshIntervalMinutes, status?.dataLifecycle, status?.configured]);
+
+  // Auto-save config on change
+  useEffect(() => {
+    if (!configReadyRef.current) return;
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      const result = await api.updateJiraConfig(projectKey, refreshInterval, lifecycle);
+      if (result.success) onStatusChange();
+    }, 300);
+    return () => clearTimeout(saveTimerRef.current);
+  }, [projectKey, refreshInterval, lifecycle, api, onStatusChange]);
 
   const handleConnect = async () => {
     if (!baseUrl || !email || !token) return;
@@ -338,19 +555,6 @@ function JiraCard({
     setSaving(false);
     if (result.success) {
       onStatusChange();
-    }
-  };
-
-  const handleSaveConfig = async () => {
-    setSaving(true);
-    setFeedback(null);
-    const result = await api.updateJiraConfig(projectKey, refreshInterval);
-    setSaving(false);
-    if (result.success) {
-      onStatusChange();
-    } else {
-      setFeedback({ type: 'error', message: result.error ?? 'Failed to save' });
-      setTimeout(() => setFeedback(null), 3000);
     }
   };
 
@@ -404,19 +608,14 @@ function JiraCard({
                 className={integrationInput}
               />
             </div>
-            <button
-              onClick={handleSaveConfig}
-              disabled={saving || (projectKey === (status.defaultProjectKey ?? '') && refreshInterval === (status.refreshIntervalMinutes ?? 5))}
-              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.primary} disabled:opacity-50 transition-colors duration-150`}
-            >
-              Apply
-            </button>
           </div>
+
+          <DataLifecycleSection dataLifecycle={lifecycle} onChange={setLifecycle} />
 
           <button
             onClick={handleDisconnect}
             disabled={saving}
-            className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150 self-start mt-2`}
+            className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150 self-start mt-4`}
           >
             <Unplug className="w-3 h-3" />
             Disconnect
@@ -522,8 +721,11 @@ function LinearCard({
   const [apiKey, setApiKey] = useState('');
   const [teamKey, setTeamKey] = useState('');
   const [refreshInterval, setRefreshInterval] = useState(5);
+  const [lifecycle, setLifecycle] = useState<DataLifecycleConfig>(DEFAULT_LIFECYCLE);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const configReadyRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (status?.defaultTeamKey) {
@@ -532,7 +734,25 @@ function LinearCard({
     if (status?.refreshIntervalMinutes) {
       setRefreshInterval(status.refreshIntervalMinutes);
     }
-  }, [status?.defaultTeamKey, status?.refreshIntervalMinutes]);
+    if (status?.dataLifecycle) {
+      setLifecycle(status.dataLifecycle);
+    }
+    if (status?.configured) {
+      const t = setTimeout(() => { configReadyRef.current = true; }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [status?.defaultTeamKey, status?.refreshIntervalMinutes, status?.dataLifecycle, status?.configured]);
+
+  // Auto-save config on change
+  useEffect(() => {
+    if (!configReadyRef.current) return;
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      const result = await api.updateLinearConfig(teamKey, refreshInterval, lifecycle);
+      if (result.success) onStatusChange();
+    }, 300);
+    return () => clearTimeout(saveTimerRef.current);
+  }, [teamKey, refreshInterval, lifecycle, api, onStatusChange]);
 
   const handleConnect = async () => {
     if (!apiKey) return;
@@ -556,19 +776,6 @@ function LinearCard({
     setSaving(false);
     if (result.success) {
       onStatusChange();
-    }
-  };
-
-  const handleSaveConfig = async () => {
-    setSaving(true);
-    setFeedback(null);
-    const result = await api.updateLinearConfig(teamKey, refreshInterval);
-    setSaving(false);
-    if (result.success) {
-      onStatusChange();
-    } else {
-      setFeedback({ type: 'error', message: result.error ?? 'Failed to save' });
-      setTimeout(() => setFeedback(null), 3000);
     }
   };
 
@@ -620,19 +827,14 @@ function LinearCard({
                 className={integrationInput}
               />
             </div>
-            <button
-              onClick={handleSaveConfig}
-              disabled={saving || (teamKey === (status.defaultTeamKey ?? '') && refreshInterval === (status.refreshIntervalMinutes ?? 5))}
-              className={`text-[11px] px-2.5 py-1.5 rounded-md ${button.primary} disabled:opacity-50 transition-colors duration-150`}
-            >
-              Apply
-            </button>
           </div>
+
+          <DataLifecycleSection dataLifecycle={lifecycle} onChange={setLifecycle} />
 
           <button
             onClick={handleDisconnect}
             disabled={saving}
-            className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150 self-start mt-2`}
+            className={`flex items-center gap-1 text-[11px] ${text.muted} hover:text-red-400 disabled:opacity-50 transition-colors duration-150 self-start mt-4`}
           >
             <Unplug className="w-3 h-3" />
             Disconnect

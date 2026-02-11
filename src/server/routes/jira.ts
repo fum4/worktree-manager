@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'fs';
 import { Hono } from 'hono';
 import path from 'path';
 
@@ -11,7 +11,8 @@ import {
 } from '../../integrations/jira/credentials';
 import { getApiBase, getAuthHeaders, testConnection } from '../../integrations/jira/auth';
 import { downloadAttachments, fetchIssue, saveTaskData } from '../../integrations/jira/api';
-import type { JiraCredentials } from '../../integrations/jira/types';
+import type { DataLifecycleConfig, JiraCredentials } from '../../integrations/jira/types';
+import { log } from '../../logger';
 import type { WorktreeManager } from '../manager';
 
 export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
@@ -46,6 +47,7 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
       refreshIntervalMinutes: projectConfig.refreshIntervalMinutes ?? 5,
       email,
       domain,
+      dataLifecycle: projectConfig.dataLifecycle ?? null,
     });
   });
 
@@ -95,7 +97,7 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
 
   app.patch('/api/jira/config', async (c) => {
     try {
-      const body = await c.req.json<{ defaultProjectKey?: string; refreshIntervalMinutes?: number }>();
+      const body = await c.req.json<{ defaultProjectKey?: string; refreshIntervalMinutes?: number; dataLifecycle?: DataLifecycleConfig }>();
       const configDir = manager.getConfigDir();
       const current = loadJiraProjectConfig(configDir);
       if (body.defaultProjectKey !== undefined) {
@@ -103,6 +105,9 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
       }
       if (body.refreshIntervalMinutes !== undefined) {
         current.refreshIntervalMinutes = Math.max(1, Math.min(60, body.refreshIntervalMinutes));
+      }
+      if (body.dataLifecycle !== undefined) {
+        current.dataLifecycle = body.dataLifecycle;
       }
       saveJiraProjectConfig(configDir, current);
       return c.json({ success: true });
@@ -197,6 +202,41 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
         url: `${baseUrl}/browse/${issue.key}`,
       }));
 
+      // Fire-and-forget: auto-cleanup cached issues whose status matches triggers
+      const projectConfig = loadJiraProjectConfig(configDir);
+      const lifecycle = projectConfig.dataLifecycle;
+      if (lifecycle?.autoCleanup?.enabled && lifecycle.autoCleanup.statusTriggers.length > 0) {
+        const triggers = lifecycle.autoCleanup.statusTriggers.map((t) => t.toLowerCase());
+        const liveStatusMap = new Map(issues.map((i) => [i.key, i.status]));
+
+        // Scan cached issue directories
+        const jiraIssuesDir = path.join(configDir, CONFIG_DIR_NAME, 'issues', 'jira');
+        if (existsSync(jiraIssuesDir)) {
+          try {
+            const cachedDirs = readdirSync(jiraIssuesDir, { withFileTypes: true });
+            for (const dir of cachedDirs) {
+              if (!dir.isDirectory()) continue;
+              const issueKey = dir.name;
+              // Check live status first, then fall back to cached issue.json
+              let status = liveStatusMap.get(issueKey);
+              if (!status) {
+                const issueFile = path.join(jiraIssuesDir, issueKey, 'issue.json');
+                if (existsSync(issueFile)) {
+                  try {
+                    const cached = JSON.parse(readFileSync(issueFile, 'utf-8'));
+                    status = cached.status;
+                  } catch { /* ignore */ }
+                }
+              }
+              if (status && triggers.includes(status.toLowerCase())) {
+                manager.cleanupIssueData('jira', issueKey, lifecycle.autoCleanup.actions)
+                  .catch((err) => log.warn(`Auto-cleanup failed for ${issueKey}: ${err}`));
+              }
+            }
+          } catch { /* ignore scan errors */ }
+        }
+      }
+
       return c.json({ issues });
     } catch (error) {
       return c.json(
@@ -217,34 +257,40 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
       const key = c.req.param('key');
       const issue = await fetchIssue(key, creds, configDir);
 
-      // Save issue data to disk
-      const tasksDir = path.join(configDir, CONFIG_DIR_NAME, 'tasks');
-      saveTaskData(issue, tasksDir);
+      // Check saveOn preference — skip persisting when set to 'worktree-creation'
+      const projectConfig = loadJiraProjectConfig(configDir);
+      const saveOn = projectConfig.dataLifecycle?.saveOn ?? 'view';
 
-      // Download attachments in background (don't block the response)
-      if (issue.attachments.length > 0) {
-        const issueDir = path.join(configDir, CONFIG_DIR_NAME, 'issues', 'jira', issue.key);
-        const attachDir = path.join(issueDir, 'attachments');
-        downloadAttachments(
-          issue.attachments.filter((a) => a.contentUrl).map((a) => ({
-            filename: a.filename,
-            content: a.contentUrl!,
-            mimeType: a.mimeType,
-            size: a.size,
-          })),
-          attachDir,
-          creds,
-          configDir,
-        ).then((downloaded) => {
-          // Update issue.json with local paths
-          if (downloaded.length > 0) {
-            for (const dl of downloaded) {
-              const att = issue.attachments.find((a) => a.filename === dl.filename);
-              if (att) att.localPath = dl.localPath;
+      if (saveOn === 'view') {
+        // Save issue data to disk
+        const tasksDir = path.join(configDir, CONFIG_DIR_NAME, 'tasks');
+        saveTaskData(issue, tasksDir);
+
+        // Download attachments in background (don't block the response)
+        if (issue.attachments.length > 0) {
+          const issueDir = path.join(configDir, CONFIG_DIR_NAME, 'issues', 'jira', issue.key);
+          const attachDir = path.join(issueDir, 'attachments');
+          downloadAttachments(
+            issue.attachments.filter((a) => a.contentUrl).map((a) => ({
+              filename: a.filename,
+              content: a.contentUrl!,
+              mimeType: a.mimeType,
+              size: a.size,
+            })),
+            attachDir,
+            creds,
+            configDir,
+          ).then((downloaded) => {
+            // Update issue.json with local paths
+            if (downloaded.length > 0) {
+              for (const dl of downloaded) {
+                const att = issue.attachments.find((a) => a.filename === dl.filename);
+                if (att) att.localPath = dl.localPath;
+              }
+              saveTaskData(issue, path.join(configDir, CONFIG_DIR_NAME, 'tasks'));
             }
-            saveTaskData(issue, tasksDir);
-          }
-        }).catch(() => { /* non-critical */ });
+          }).catch(() => { /* non-critical */ });
+        }
       }
 
       return c.json({ issue });

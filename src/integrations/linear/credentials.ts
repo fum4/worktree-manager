@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 
 import { CONFIG_DIR_NAME } from '../../constants';
-import type { LinearCredentials, LinearProjectConfig } from './types';
+import type { DataLifecycleConfig, LinearCredentials, LinearProjectConfig } from './types';
 
 const INTEGRATIONS_FILE = 'integrations.json';
 
@@ -39,6 +39,7 @@ export function loadLinearProjectConfig(configDir: string): LinearProjectConfig 
   return {
     defaultTeamKey: linear.defaultTeamKey as string | undefined,
     refreshIntervalMinutes: linear.refreshIntervalMinutes as number | undefined,
+    dataLifecycle: linear.dataLifecycle as DataLifecycleConfig | undefined,
   };
 }
 

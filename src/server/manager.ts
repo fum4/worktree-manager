@@ -1,5 +1,5 @@
 import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 
@@ -1005,6 +1005,45 @@ export class WorktreeManager {
     await Promise.all(stopPromises);
   }
 
+  async cleanupIssueData(
+    source: 'jira' | 'linear',
+    issueId: string,
+    actions: { issueData: boolean; attachments: boolean; notes: boolean; linkedWorktree: boolean },
+  ): Promise<void> {
+    const issueDir = this.notesManager.getIssueDir(source, issueId);
+    if (!existsSync(issueDir)) return;
+
+    // If linkedWorktree action: find linked worktree, stop and remove it
+    if (actions.linkedWorktree) {
+      const notes = this.notesManager.loadNotes(source, issueId);
+      if (notes.linkedWorktreeId) {
+        await this.stopWorktree(notes.linkedWorktreeId);
+        await this.removeWorktree(notes.linkedWorktreeId);
+      }
+    }
+
+    if (actions.issueData) {
+      const issueFile = path.join(issueDir, 'issue.json');
+      if (existsSync(issueFile)) unlinkSync(issueFile);
+    }
+
+    if (actions.attachments) {
+      const attachDir = path.join(issueDir, 'attachments');
+      if (existsSync(attachDir)) rmSync(attachDir, { recursive: true });
+    }
+
+    if (actions.notes) {
+      const notesFile = path.join(issueDir, 'notes.json');
+      if (existsSync(notesFile)) unlinkSync(notesFile);
+    }
+
+    // Remove empty issue directory
+    try {
+      const remaining = readdirSync(issueDir);
+      if (remaining.length === 0) rmSync(issueDir, { recursive: true });
+    } catch { /* ignore */ }
+  }
+
   getProjectName(): string | null {
     try {
       const pkgPath = path.join(this.configDir, 'package.json');
@@ -1258,33 +1297,36 @@ export class WorktreeManager {
       };
     }
 
-    // Save issue data locally (writes to issues/jira/<KEY>/issue.json + notes.json)
-    const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
-    saveTaskData(taskData, tasksDir);
+    // Save issue data locally unless saveOn is 'never'
+    const saveOn = projectConfig.dataLifecycle?.saveOn ?? 'view';
+    if (saveOn !== 'never') {
+      const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
+      saveTaskData(taskData, tasksDir);
 
-    // Download attachments in background
-    if (taskData.attachments.length > 0) {
-      const issueDir = path.join(this.configDir, CONFIG_DIR_NAME, 'issues', 'jira', taskData.key);
-      const attachDir = path.join(issueDir, 'attachments');
-      downloadAttachments(
-        taskData.attachments.filter((a) => a.contentUrl).map((a) => ({
-          filename: a.filename,
-          content: a.contentUrl!,
-          mimeType: a.mimeType,
-          size: a.size,
-        })),
-        attachDir,
-        creds,
-        this.configDir,
-      ).then((downloaded) => {
-        if (downloaded.length > 0) {
-          for (const dl of downloaded) {
-            const att = taskData.attachments.find((a) => a.filename === dl.filename);
-            if (att) att.localPath = dl.localPath;
+      // Download attachments in background
+      if (taskData.attachments.length > 0) {
+        const issueDir = path.join(this.configDir, CONFIG_DIR_NAME, 'issues', 'jira', taskData.key);
+        const attachDir = path.join(issueDir, 'attachments');
+        downloadAttachments(
+          taskData.attachments.filter((a) => a.contentUrl).map((a) => ({
+            filename: a.filename,
+            content: a.contentUrl!,
+            mimeType: a.mimeType,
+            size: a.size,
+          })),
+          attachDir,
+          creds,
+          this.configDir,
+        ).then((downloaded) => {
+          if (downloaded.length > 0) {
+            for (const dl of downloaded) {
+              const att = taskData.attachments.find((a) => a.filename === dl.filename);
+              if (att) att.localPath = dl.localPath;
+            }
+            saveTaskData(taskData, path.join(this.configDir, CONFIG_DIR_NAME, 'tasks'));
           }
-          saveTaskData(taskData, tasksDir);
-        }
-      }).catch(() => { /* non-critical */ });
+        }).catch(() => { /* non-critical */ });
+      }
     }
 
     // Load AI context notes
@@ -1391,26 +1433,29 @@ export class WorktreeManager {
       };
     }
 
-    // Save issue data locally (writes to issues/linear/<ID>/issue.json + notes.json)
-    const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
-    const taskData: LinearTaskData = {
-      source: 'linear',
-      identifier: issueDetail.identifier,
-      title: issueDetail.title,
-      description: issueDetail.description,
-      status: issueDetail.state.name,
-      priority: issueDetail.priority,
-      assignee: issueDetail.assignee,
-      labels: issueDetail.labels,
-      createdAt: issueDetail.createdAt,
-      updatedAt: issueDetail.updatedAt,
-      comments: issueDetail.comments,
-      attachments: issueDetail.attachments,
-      linkedWorktree: null,
-      fetchedAt: new Date().toISOString(),
-      url: issueDetail.url,
-    };
-    saveLinearTaskData(taskData, tasksDir);
+    // Save issue data locally unless saveOn is 'never'
+    const linearSaveOn = projectConfig.dataLifecycle?.saveOn ?? 'view';
+    if (linearSaveOn !== 'never') {
+      const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
+      const taskData: LinearTaskData = {
+        source: 'linear',
+        identifier: issueDetail.identifier,
+        title: issueDetail.title,
+        description: issueDetail.description,
+        status: issueDetail.state.name,
+        priority: issueDetail.priority,
+        assignee: issueDetail.assignee,
+        labels: issueDetail.labels,
+        createdAt: issueDetail.createdAt,
+        updatedAt: issueDetail.updatedAt,
+        comments: issueDetail.comments,
+        attachments: issueDetail.attachments,
+        linkedWorktree: null,
+        fetchedAt: new Date().toISOString(),
+        url: issueDetail.url,
+      };
+      saveLinearTaskData(taskData, tasksDir);
+    }
 
     // Load AI context notes
     const notes = this.notesManager.loadNotes('linear', resolvedId);

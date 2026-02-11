@@ -70,8 +70,8 @@ export function useApi() {
       setupJira: (baseUrl: string, email: string, token: string) =>
         api.setupJira(baseUrl, email, token, serverUrl),
 
-      updateJiraConfig: (defaultProjectKey: string, refreshIntervalMinutes?: number) =>
-        api.updateJiraConfig(defaultProjectKey, refreshIntervalMinutes, serverUrl),
+      updateJiraConfig: (defaultProjectKey: string, refreshIntervalMinutes?: number, dataLifecycle?: Parameters<typeof api.updateJiraConfig>[2]) =>
+        api.updateJiraConfig(defaultProjectKey, refreshIntervalMinutes, dataLifecycle, serverUrl),
 
       disconnectJira: () =>
         api.disconnectJira(serverUrl),
@@ -82,8 +82,8 @@ export function useApi() {
       setupLinear: (apiKey: string) =>
         api.setupLinear(apiKey, serverUrl),
 
-      updateLinearConfig: (defaultTeamKey: string, refreshIntervalMinutes?: number) =>
-        api.updateLinearConfig(defaultTeamKey, refreshIntervalMinutes, serverUrl),
+      updateLinearConfig: (defaultTeamKey: string, refreshIntervalMinutes?: number, dataLifecycle?: Parameters<typeof api.updateLinearConfig>[2]) =>
+        api.updateLinearConfig(defaultTeamKey, refreshIntervalMinutes, dataLifecycle, serverUrl),
 
       disconnectLinear: () =>
         api.disconnectLinear(serverUrl),

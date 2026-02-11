@@ -50,6 +50,10 @@ Do NOT read .wok3/ files or make HTTP requests to the wok3 server. All communica
 - start_worktree — launch the dev server
 - commit, push, create_pr — git operations
 
+## Issue Data
+- get_jira_issue and get_linear_issue check locally cached data first. They only fetch from the remote API if no local data is found.
+- Prefer these tools over reading .wok3/ files directly.
+
 ## Todo Workflow
 Todos are a checklist of sub-tasks defined by the user. They appear in TASK.md and in get_task_context output.
 1. Before starting work, read the todos to understand what needs to be done
@@ -79,12 +83,19 @@ export const actions: Action[] = [
   },
   {
     name: 'get_jira_issue',
-    description: 'Get full details of a Jira issue including description and comments. Use this to show issue details before creating a worktree.',
+    description: 'Get full details of a Jira issue including description and comments. Checks locally cached data first, only fetches from Jira API if not found locally. Use this to show issue details before creating a worktree.',
     params: {
       issueKey: { type: 'string', description: 'Jira issue key (e.g. PROJ-123 or just 123 if default project is configured)', required: true },
     },
     handler: async (ctx, params) => {
       const issueKey = params.issueKey as string;
+      // Check local cache first
+      const issueFile = path.join(ctx.manager.getConfigDir(), CONFIG_DIR_NAME, 'issues', 'jira', issueKey, 'issue.json');
+      if (existsSync(issueFile)) {
+        try {
+          return JSON.parse(readFileSync(issueFile, 'utf-8'));
+        } catch { /* fall through to API */ }
+      }
       return ctx.manager.getJiraIssue(issueKey);
     },
   },
@@ -101,12 +112,19 @@ export const actions: Action[] = [
   },
   {
     name: 'get_linear_issue',
-    description: 'Get full details of a Linear issue including description. Use this to show issue details before creating a worktree.',
+    description: 'Get full details of a Linear issue including description. Checks locally cached data first, only fetches from Linear API if not found locally. Use this to show issue details before creating a worktree.',
     params: {
       identifier: { type: 'string', description: 'Linear issue identifier (e.g. ENG-123 or just 123 if default team is configured)', required: true },
     },
     handler: async (ctx, params) => {
       const identifier = params.identifier as string;
+      // Check local cache first
+      const issueFile = path.join(ctx.manager.getConfigDir(), CONFIG_DIR_NAME, 'issues', 'linear', identifier, 'issue.json');
+      if (existsSync(issueFile)) {
+        try {
+          return JSON.parse(readFileSync(issueFile, 'utf-8'));
+        } catch { /* fall through to API */ }
+      }
       return ctx.manager.getLinearIssue(identifier);
     },
   },

@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 
 import { CONFIG_DIR_NAME } from '../../constants';
-import type { JiraCredentials, JiraProjectConfig } from './types';
+import type { DataLifecycleConfig, JiraCredentials, JiraProjectConfig } from './types';
 
 const INTEGRATIONS_FILE = 'integrations.json';
 
@@ -39,6 +39,7 @@ export function loadJiraProjectConfig(configDir: string): JiraProjectConfig {
   return {
     defaultProjectKey: jira.defaultProjectKey as string | undefined,
     refreshIntervalMinutes: jira.refreshIntervalMinutes as number | undefined,
+    dataLifecycle: jira.dataLifecycle as DataLifecycleConfig | undefined,
   };
 }
 

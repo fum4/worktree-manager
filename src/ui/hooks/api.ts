@@ -1,4 +1,4 @@
-import type { JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail, McpServerSummary, McpServerDetail, McpDeploymentStatus, McpScanResult, SkillSummary, SkillDetail, SkillDeploymentStatus, SkillInstallRequest, PluginSummary, PluginDetail, AvailablePlugin, MarketplaceSummary, SkillScanResult } from '../types';
+import type { DataLifecycleConfig, JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail, McpServerSummary, McpServerDetail, McpDeploymentStatus, McpScanResult, SkillSummary, SkillDetail, SkillDeploymentStatus, SkillInstallRequest, PluginSummary, PluginDetail, AvailablePlugin, MarketplaceSummary, SkillScanResult } from '../types';
 
 // API functions now accept an optional serverUrl parameter
 // When null/undefined, they use relative URLs (for single-project web mode)
@@ -495,11 +495,13 @@ export async function setupJira(
 export async function updateJiraConfig(
   defaultProjectKey: string,
   refreshIntervalMinutes?: number,
+  dataLifecycle?: DataLifecycleConfig,
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const body: { defaultProjectKey: string; refreshIntervalMinutes?: number } = { defaultProjectKey };
+    const body: { defaultProjectKey: string; refreshIntervalMinutes?: number; dataLifecycle?: DataLifecycleConfig } = { defaultProjectKey };
     if (refreshIntervalMinutes !== undefined) body.refreshIntervalMinutes = refreshIntervalMinutes;
+    if (dataLifecycle !== undefined) body.dataLifecycle = dataLifecycle;
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/config`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -619,11 +621,13 @@ export async function setupLinear(
 export async function updateLinearConfig(
   defaultTeamKey: string,
   refreshIntervalMinutes?: number,
+  dataLifecycle?: DataLifecycleConfig,
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const body: { defaultTeamKey: string; refreshIntervalMinutes?: number } = { defaultTeamKey };
+    const body: { defaultTeamKey: string; refreshIntervalMinutes?: number; dataLifecycle?: DataLifecycleConfig } = { defaultTeamKey };
     if (refreshIntervalMinutes !== undefined) body.refreshIntervalMinutes = refreshIntervalMinutes;
+    if (dataLifecycle !== undefined) body.dataLifecycle = dataLifecycle;
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/config`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

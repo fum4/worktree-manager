@@ -28,12 +28,27 @@ export interface PortsInfo {
   offsetStep: number;
 }
 
+export interface DataLifecycleConfig {
+  saveOn: 'view' | 'worktree-creation' | 'never';
+  autoCleanup: {
+    enabled: boolean;
+    statusTriggers: string[];
+    actions: {
+      issueData: boolean;
+      attachments: boolean;
+      notes: boolean;
+      linkedWorktree: boolean;
+    };
+  };
+}
+
 export interface JiraStatus {
   configured: boolean;
   defaultProjectKey: string | null;
   refreshIntervalMinutes: number;
   email: string | null;
   domain: string | null;
+  dataLifecycle: DataLifecycleConfig | null;
 }
 
 export interface GitHubStatus {
@@ -62,6 +77,7 @@ export interface LinearStatus {
   defaultTeamKey: string | null;
   refreshIntervalMinutes: number;
   displayName: string | null;
+  dataLifecycle: DataLifecycleConfig | null;
 }
 
 export interface LinearState {

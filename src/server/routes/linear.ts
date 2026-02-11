@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'fs';
 import { Hono } from 'hono';
 import path from 'path';
 
@@ -10,6 +10,8 @@ import {
   saveLinearProjectConfig,
 } from '../../integrations/linear/credentials';
 import { testConnection, fetchIssues, fetchIssue, saveTaskData } from '../../integrations/linear/api';
+import type { DataLifecycleConfig } from '../../integrations/linear/types';
+import { log } from '../../logger';
 import type { WorktreeManager } from '../manager';
 
 export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
@@ -23,6 +25,7 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
       defaultTeamKey: projectConfig.defaultTeamKey ?? null,
       refreshIntervalMinutes: projectConfig.refreshIntervalMinutes ?? 5,
       displayName: creds?.displayName ?? null,
+      dataLifecycle: projectConfig.dataLifecycle ?? null,
     });
   });
 
@@ -66,7 +69,7 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
 
   app.patch('/api/linear/config', async (c) => {
     try {
-      const body = await c.req.json<{ defaultTeamKey?: string; refreshIntervalMinutes?: number }>();
+      const body = await c.req.json<{ defaultTeamKey?: string; refreshIntervalMinutes?: number; dataLifecycle?: DataLifecycleConfig }>();
       const configDir = manager.getConfigDir();
       const current = loadLinearProjectConfig(configDir);
       if (body.defaultTeamKey !== undefined) {
@@ -74,6 +77,9 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
       }
       if (body.refreshIntervalMinutes !== undefined) {
         current.refreshIntervalMinutes = Math.max(1, Math.min(60, body.refreshIntervalMinutes));
+      }
+      if (body.dataLifecycle !== undefined) {
+        current.dataLifecycle = body.dataLifecycle;
       }
       saveLinearProjectConfig(configDir, current);
       return c.json({ success: true });
@@ -114,6 +120,39 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
       const projectConfig = loadLinearProjectConfig(configDir);
       const query = c.req.query('query');
       const issues = await fetchIssues(creds, projectConfig.defaultTeamKey, query || undefined);
+
+      // Fire-and-forget: auto-cleanup cached issues whose status matches triggers
+      const lifecycle = projectConfig.dataLifecycle;
+      if (lifecycle?.autoCleanup?.enabled && lifecycle.autoCleanup.statusTriggers.length > 0) {
+        const triggers = lifecycle.autoCleanup.statusTriggers.map((t) => t.toLowerCase());
+        const liveStatusMap = new Map(issues.map((i) => [i.identifier, i.state.name]));
+
+        const linearIssuesDir = path.join(configDir, CONFIG_DIR_NAME, 'issues', 'linear');
+        if (existsSync(linearIssuesDir)) {
+          try {
+            const cachedDirs = readdirSync(linearIssuesDir, { withFileTypes: true });
+            for (const dir of cachedDirs) {
+              if (!dir.isDirectory()) continue;
+              const issueId = dir.name;
+              let status = liveStatusMap.get(issueId);
+              if (!status) {
+                const issueFile = path.join(linearIssuesDir, issueId, 'issue.json');
+                if (existsSync(issueFile)) {
+                  try {
+                    const cached = JSON.parse(readFileSync(issueFile, 'utf-8'));
+                    status = cached.status;
+                  } catch { /* ignore */ }
+                }
+              }
+              if (status && triggers.includes(status.toLowerCase())) {
+                manager.cleanupIssueData('linear', issueId, lifecycle.autoCleanup.actions)
+                  .catch((err) => log.warn(`Auto-cleanup failed for ${issueId}: ${err}`));
+              }
+            }
+          } catch { /* ignore scan errors */ }
+        }
+      }
+
       return c.json({ issues });
     } catch (error) {
       return c.json(
@@ -134,25 +173,31 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
       const identifier = c.req.param('identifier');
       const issue = await fetchIssue(identifier, creds);
 
-      // Persist issue data to disk for TASK.md generation and MCP tools
-      const tasksDir = path.join(configDir, CONFIG_DIR_NAME, 'tasks');
-      saveTaskData({
-        source: 'linear',
-        identifier: issue.identifier,
-        title: issue.title,
-        description: issue.description,
-        status: issue.state.name,
-        priority: issue.priority,
-        assignee: issue.assignee,
-        labels: issue.labels,
-        createdAt: issue.createdAt,
-        updatedAt: issue.updatedAt,
-        comments: issue.comments,
-        attachments: issue.attachments,
-        linkedWorktree: null,
-        fetchedAt: new Date().toISOString(),
-        url: issue.url,
-      }, tasksDir);
+      // Check saveOn preference — skip persisting when set to 'worktree-creation'
+      const projectConfig = loadLinearProjectConfig(configDir);
+      const saveOn = projectConfig.dataLifecycle?.saveOn ?? 'view';
+
+      if (saveOn === 'view') {
+        // Persist issue data to disk for TASK.md generation and MCP tools
+        const tasksDir = path.join(configDir, CONFIG_DIR_NAME, 'tasks');
+        saveTaskData({
+          source: 'linear',
+          identifier: issue.identifier,
+          title: issue.title,
+          description: issue.description,
+          status: issue.state.name,
+          priority: issue.priority,
+          assignee: issue.assignee,
+          labels: issue.labels,
+          createdAt: issue.createdAt,
+          updatedAt: issue.updatedAt,
+          comments: issue.comments,
+          attachments: issue.attachments,
+          linkedWorktree: null,
+          fetchedAt: new Date().toISOString(),
+          url: issue.url,
+        }, tasksDir);
+      }
 
       return c.json({ issue });
     } catch (error) {

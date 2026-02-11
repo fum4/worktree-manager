@@ -1,8 +1,23 @@
 // -- Config types (stored in integrations.json) --
 
+export interface DataLifecycleConfig {
+  saveOn: 'view' | 'worktree-creation' | 'never';
+  autoCleanup: {
+    enabled: boolean;
+    statusTriggers: string[];
+    actions: {
+      issueData: boolean;
+      attachments: boolean;
+      notes: boolean;
+      linkedWorktree: boolean;
+    };
+  };
+}
+
 export interface LinearProjectConfig {
   defaultTeamKey?: string;
   refreshIntervalMinutes?: number;
+  dataLifecycle?: DataLifecycleConfig;
 }
 
 export interface LinearCredentials {
