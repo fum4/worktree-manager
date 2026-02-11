@@ -12,9 +12,15 @@ import {
 import {
   runOAuthFlow,
   discoverCloudId,
-  testConnection,
+  testConnection as testJiraConnection,
 } from '../integrations/jira/auth';
 import type { JiraCredentials } from '../integrations/jira/types';
+import {
+  loadLinearCredentials,
+  saveLinearCredentials,
+  saveLinearProjectConfig,
+} from '../integrations/linear/credentials';
+import { testConnection as testLinearConnection } from '../integrations/linear/api';
 import { findConfigDir } from './config';
 
 interface Integration {
@@ -31,12 +37,23 @@ const INTEGRATIONS: Integration[] = [
     getStatus: () => {
       try {
         execFileSync('which', ['gh'], { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
-        return 'ready (gh installed)';
       } catch {
-        return 'gh not installed';
+        return 'not installed';
+      }
+      try {
+        execFileSync('gh', ['auth', 'status'], { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+        return 'ready';
+      } catch {
+        return 'not authenticated';
       }
     },
     setup: runConnectGitHub,
+  },
+  {
+    name: 'linear',
+    description: 'Linear (issue tracking)',
+    getStatus: (configDir) => loadLinearCredentials(configDir) ? 'connected' : 'not configured',
+    setup: runConnectLinear,
   },
   {
     name: 'jira',
@@ -46,7 +63,7 @@ const INTEGRATIONS: Integration[] = [
   },
 ];
 
-export async function runConnect() {
+export async function runAdd() {
   const configDir = findConfigDir();
   if (!configDir) {
     log.error(`No config found. Run "${APP_NAME} init" first.`);
@@ -74,7 +91,7 @@ export async function runConnect() {
   const chosen = await select({
     message: 'Select integration to set up',
     choices: items.map((item) => {
-      const marker = item.status === 'connected' ? '✓' : '○';
+      const marker = item.status === 'connected' || item.status === 'ready' ? '✓' : '○';
       return {
         name: `${marker} ${item.name} — ${item.description} (${item.status})`,
         value: item.name,
@@ -130,6 +147,44 @@ async function runConnectGitHub() {
   }
 
   log.success('\nGitHub is ready! PR detection, commit, and push will work automatically.');
+}
+
+async function runConnectLinear() {
+  const configDir = findConfigDir();
+  if (!configDir) {
+    log.error(`No config found. Run "${APP_NAME} init" first.`);
+    process.exit(1);
+  }
+
+  log.info('Connect to Linear\n');
+  console.log('Create an API key at: https://linear.app/settings/account/security/api-keys/new\n');
+
+  const apiKey = await password({
+    message: 'API Key',
+    validate: (v) => v.trim() ? true : 'API key is required.',
+  });
+
+  log.info('\nTesting connection...');
+  try {
+    const viewer = await testLinearConnection({ apiKey });
+    log.success(`Connected as: ${viewer.name} (${viewer.email})`);
+  } catch (err) {
+    log.error(`Connection test failed: ${err}`);
+    process.exit(1);
+  }
+
+  const defaultTeamKey = await input({
+    message: 'Default team key (e.g. ENG, optional)',
+  });
+
+  saveLinearCredentials(configDir, { apiKey });
+
+  if (defaultTeamKey) {
+    saveLinearProjectConfig(configDir, { defaultTeamKey: defaultTeamKey.toUpperCase() });
+  }
+
+  log.success('\nLinear connected successfully!');
+  log.info(`Credentials saved to ${CONFIG_DIR_NAME}/integrations.json (make sure it's gitignored)`);
 }
 
 async function runConnectJira() {
@@ -218,6 +273,16 @@ async function runConnectJira() {
     };
   }
 
+  // Test connection before saving
+  log.info('\nTesting connection...');
+  try {
+    const user = await testJiraConnection(creds, configDir);
+    log.success(`Connected as: ${user}`);
+  } catch (err) {
+    log.error(`Connection test failed: ${err}`);
+    process.exit(1);
+  }
+
   const defaultProjectKey = await input({
     message: 'Project key (e.g. PROJ, optional)',
   });
@@ -226,16 +291,6 @@ async function runConnectJira() {
 
   if (defaultProjectKey) {
     saveJiraProjectConfig(configDir, { defaultProjectKey: defaultProjectKey.toUpperCase() });
-  }
-
-  // Test connection
-  log.info('\nTesting connection...');
-  try {
-    const user = await testConnection(creds, configDir);
-    log.success(`Connected as: ${user}`);
-  } catch (err) {
-    log.error(`Connection test failed: ${err}`);
-    process.exit(1);
   }
 
   log.success('\nJira connected successfully!');

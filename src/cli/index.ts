@@ -112,7 +112,7 @@ Usage: ${APP_NAME} [command] [options]
 Commands:
   (default)     Start the server and open the UI
   init          Interactive setup wizard to create .wok3/config.json
-  connect       Connect to an existing ${APP_NAME} server
+  add [name]    Set up an integration (github, linear, jira)
   mcp           Start as an MCP server (for AI coding agents)
   task <ID>     Create a worktree from an issue ID (e.g., PROJ-123)
 
@@ -142,9 +142,9 @@ async function main() {
     return;
   }
 
-  if (subcommand === 'connect') {
-    const { runConnect } = await import('./connect');
-    await runConnect();
+  if (subcommand === 'add') {
+    const { runAdd } = await import('./add');
+    await runAdd();
     return;
   }
 
