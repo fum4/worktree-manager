@@ -107,6 +107,15 @@ export default function App() {
   const showLoadingState = isElectron && projects.length > 0 && !serverUrl;
 
   const handleSetupComplete = () => {
+    // Clear stale workspace state from a previous config
+    if (serverUrl) {
+      localStorage.removeItem(`wok3:wsSel:${serverUrl}`);
+      localStorage.removeItem(`wok3:wsTab:${serverUrl}`);
+      localStorage.removeItem(`wok3:view:${serverUrl}`);
+    }
+    setSelectionState(null);
+    setActiveCreateTabState('branch');
+    setActiveViewState('workspace');
     refetchConfig();
     setHadConfigOnConnect(true);
   };
@@ -456,6 +465,10 @@ export default function App() {
           projectName={projectName ?? activeProject?.name ?? null}
           onSetupComplete={handleSetupComplete}
           onRememberChoice={handleRememberChoice}
+          onCreateWorktree={() => { setCreateModalMode('branch'); setShowCreateModal(true); }}
+          onCreateTask={() => { setCreateModalMode('custom'); setShowCreateModal(true); }}
+          onNavigateToIntegrations={() => setActiveView('integrations')}
+          onNavigateToAgents={() => setActiveView('agents')}
         />
         <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
       </div>

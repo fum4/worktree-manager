@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Check, ChevronDown, GitCommit, Loader2, Plug, Settings, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Bot, Check, ChevronDown, GitBranch, GitCommit, Link, ListTodo, Loader2, Plug, Settings, Sparkles } from 'lucide-react';
 
 import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
 import { useApi } from '../hooks/useApi';
@@ -11,14 +11,22 @@ interface ProjectSetupScreenProps {
   projectName: string | null;
   onSetupComplete: () => void;
   onRememberChoice?: (choice: 'auto' | 'manual') => void;
+  onCreateWorktree?: () => void;
+  onCreateTask?: () => void;
+  onNavigateToIntegrations?: () => void;
+  onNavigateToAgents?: () => void;
 }
 
-type SetupMode = 'choice' | 'manual' | 'agents' | 'commit-prompt';
+type SetupMode = 'choice' | 'manual' | 'agents' | 'commit-prompt' | 'getting-started';
 
 export function ProjectSetupScreen({
   projectName,
   onSetupComplete,
   onRememberChoice,
+  onCreateWorktree,
+  onCreateTask,
+  onNavigateToIntegrations,
+  onNavigateToAgents,
 }: ProjectSetupScreenProps) {
   const api = useApi();
   const [mode, setMode] = useState<SetupMode>('choice');
@@ -48,6 +56,18 @@ export function ProjectSetupScreen({
   const [agentDesired, setAgentDesired] = useState<Record<string, { global: boolean; project: boolean }>>({});
   const [agentsApplying, setAgentsApplying] = useState(false);
   const [agentsError, setAgentsError] = useState<string | null>(null);
+
+  const hasAgentChanges = useMemo(() => {
+    for (const agent of AGENT_CONFIGS) {
+      const desired = agentDesired[agent.id];
+      const current = agentStatuses[agent.id];
+      if (!desired) continue;
+      for (const scope of ['global', 'project'] as McpScope[]) {
+        if (desired[scope] !== (current?.[scope] === true)) return true;
+      }
+    }
+    return false;
+  }, [agentDesired, agentStatuses]);
 
   // Load detected config on mount
   useEffect(() => {
@@ -183,7 +203,7 @@ export function ProjectSetupScreen({
     try {
       const result = await api.commitSetup(commitMessage.trim());
       if (result.success) {
-        onSetupComplete();
+        setMode('getting-started');
       } else {
         setError(result.error ?? 'Failed to commit config');
       }
@@ -195,8 +215,60 @@ export function ProjectSetupScreen({
   };
 
   const handleSkipCommit = () => {
-    onSetupComplete();
+    setMode('getting-started');
   };
+
+  if (mode === 'getting-started') {
+    const actions = [
+      { icon: GitBranch, color: 'text-[#2dd4bf]', bg: 'from-[#2dd4bf]/15 to-[#2dd4bf]/5', label: 'Create a worktree', desc: 'Branch off and start developing in isolation', onClick: () => { onSetupComplete(); onCreateWorktree?.(); } },
+      { icon: ListTodo, color: 'text-amber-400', bg: 'from-amber-400/15 to-amber-400/5', label: 'Create a task', desc: 'Track work with local issues', onClick: () => { onSetupComplete(); onCreateTask?.(); } },
+      { icon: Link, color: 'text-blue-400', bg: 'from-blue-400/15 to-blue-400/5', label: 'Connect integrations', desc: 'Pull issues from Jira or Linear', onClick: () => { onSetupComplete(); onNavigateToIntegrations?.(); } },
+      { icon: Bot, color: 'text-purple-400', bg: 'from-purple-400/15 to-purple-400/5', label: 'Set up AI agents', desc: 'Connect Claude or other coding agents', onClick: () => { onSetupComplete(); onNavigateToAgents?.(); } },
+    ];
+
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center max-w-md w-full">
+          <div className="mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2dd4bf]/20 to-[#2dd4bf]/5 mb-4">
+              <Sparkles className="w-8 h-8 text-[#2dd4bf]" />
+            </div>
+            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>
+              You're all set!
+            </h1>
+            <p className={`text-sm ${text.secondary} leading-relaxed`}>
+              What would you like to do first?
+            </p>
+          </div>
+
+          <div className="space-y-3 mb-8">
+            {actions.map((a) => (
+              <button
+                key={a.label}
+                onClick={a.onClick}
+                className={`group flex items-center gap-3.5 w-full p-4 rounded-xl ${surface.panel} border border-white/[0.08] hover:border-white/[0.15] hover:bg-white/[0.04] transition-all duration-200 text-left`}
+              >
+                <div className={`flex-shrink-0 p-2 rounded-lg bg-gradient-to-br ${a.bg} flex items-center justify-center`}>
+                  <a.icon className={`w-5 h-5 ${a.color}`} />
+                </div>
+                <div>
+                  <h3 className={`text-sm font-medium ${text.primary} group-hover:text-white transition-colors mb-0.5`}>{a.label}</h3>
+                  <p className={`text-xs ${text.muted} leading-relaxed`}>{a.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={onSetupComplete}
+            className={`w-full py-2.5 rounded-xl text-sm font-medium ${button.primary} transition-colors`}
+          >
+            Go to workspace →
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (mode === 'agents') {
     return (
@@ -277,7 +349,7 @@ export function ProjectSetupScreen({
           <div className="space-y-3">
             <button
               onClick={handleAgentsSetup}
-              disabled={agentsApplying}
+              disabled={agentsApplying || !hasAgentChanges}
               className={`w-full px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
             >
               {agentsApplying ? (
@@ -288,7 +360,7 @@ export function ProjectSetupScreen({
               ) : (
                 <>
                   <Plug className="w-4 h-4" />
-                  Connect MCPs
+                  Connect Agents
                 </>
               )}
             </button>
