@@ -575,7 +575,7 @@ export default function App() {
       <div className="flex-1 min-h-0 relative">
           {activeView === 'workspace' && (
             <div
-              className="absolute inset-0 flex px-5 pt-5 pb-1"
+              className="absolute inset-0 flex px-5 pb-1"
             >
               {/* Left sidebar */}
               <aside
@@ -777,7 +777,7 @@ export default function App() {
       )}
 
       {(activeView === 'configuration' || activeView === 'integrations') && (
-      <div className={`flex-1 min-h-0 overflow-y-auto -mt-12 pt-12 ${tabBarOverlaps ? '-mb-12 pb-12' : ''}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto -mt-12 pt-12 ${tabBarOverlaps ? '-mb-12 pb-20' : 'pb-8'}`}>
           {activeView === 'configuration' && (
               <ConfigurationPanel
                 config={config}
