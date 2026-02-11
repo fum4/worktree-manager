@@ -1,5 +1,5 @@
 import { Check, Copy, ExternalLink, Unplug, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { APP_NAME } from '../../constants';
 import { useApi } from '../hooks/useApi';
@@ -708,12 +708,10 @@ function LinearCard({
   );
 }
 
-import { buildAgentConfigs, type AgentId, type McpScope } from '../agent-configs';
+import { AGENT_CONFIGS, type AgentId, type McpScope } from '../agent-configs';
 
 function CodingAgentsCard() {
   const api = useApi();
-  const serverUrl = useServerUrlOptional();
-  const agentConfigs = useMemo(() => buildAgentConfigs(serverUrl ?? 'http://localhost:6969'), [serverUrl]);
   const [selectedAgent, setSelectedAgent] = useState<AgentId>('claude');
   const [scope, setScope] = useState<McpScope>('global');
   const [copied, setCopied] = useState(false);
@@ -721,7 +719,7 @@ function CodingAgentsCard() {
   const [settingUp, setSettingUp] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const agent = agentConfigs.find((a) => a.id === selectedAgent)!;
+  const agent = AGENT_CONFIGS.find((a) => a.id === selectedAgent)!;
   const scopeConfig = agent[scope];
   const isConfigured = statuses[selectedAgent]?.[scope] === true;
   const hasGlobal = !!agent.global;
@@ -729,11 +727,11 @@ function CodingAgentsCard() {
 
   // Pick a valid scope when agent changes
   useEffect(() => {
-    const a = agentConfigs.find((c) => c.id === selectedAgent)!;
+    const a = AGENT_CONFIGS.find((c) => c.id === selectedAgent)!;
     if (!a[scope]) {
       setScope(a.global ? 'global' : 'project');
     }
-  }, [selectedAgent, scope, agentConfigs]);
+  }, [selectedAgent, scope]);
 
   useEffect(() => {
     api.fetchMcpStatus().then((result) => {
@@ -813,7 +811,7 @@ function CodingAgentsCard() {
       {/* Agent tabs */}
       <div className="flex flex-col gap-2">
         <div className="flex gap-1">
-          {agentConfigs.map((a) => (
+          {AGENT_CONFIGS.map((a) => (
             <button
               key={a.id}
               onClick={() => {

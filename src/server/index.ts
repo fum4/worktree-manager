@@ -1,12 +1,16 @@
 import { createAdaptorServer } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { createNodeWebSocket } from '@hono/node-ws';
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { execFileSync } from 'child_process';
+import { existsSync, mkdirSync, readFileSync, symlinkSync, unlinkSync, writeFileSync } from 'fs';
 import net from 'net';
+import os from 'os';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+import { APP_NAME } from '../constants';
 
 import { CONFIG_DIR_NAME, DEFAULT_PORT } from '../constants';
 import { log } from '../logger';
@@ -151,6 +155,51 @@ export function createWorktreeServer(manager: WorktreeManager) {
   return { app, injectWebSocket, terminalManager };
 }
 
+/**
+ * Ensure the wok3 CLI is available in PATH.
+ * If not found, creates a symlink in ~/.local/bin/ pointing to the CLI entry point.
+ */
+function ensureCliInPath() {
+  try {
+    execFileSync('which', [APP_NAME], { stdio: 'ignore' });
+    return; // Already in PATH
+  } catch {
+    // Not in PATH — set it up
+  }
+
+  const cliPath = path.join(currentDir, isDev ? '../cli/index.ts' : 'cli/index.js');
+  const resolvedCliPath = path.resolve(cliPath);
+  if (!existsSync(resolvedCliPath)) {
+    log.warn(`CLI entry not found at ${resolvedCliPath}, skipping PATH setup`);
+    return;
+  }
+
+  const binDir = path.join(os.homedir(), '.local', 'bin');
+  const symlinkPath = path.join(binDir, APP_NAME);
+
+  try {
+    if (!existsSync(binDir)) {
+      mkdirSync(binDir, { recursive: true });
+    }
+
+    // Remove stale symlink if it exists
+    if (existsSync(symlinkPath)) {
+      unlinkSync(symlinkPath);
+    }
+
+    symlinkSync(resolvedCliPath, symlinkPath);
+    log.success(`Linked ${APP_NAME} CLI → ${symlinkPath}`);
+
+    // Check if ~/.local/bin is actually in PATH
+    const pathDirs = (process.env.PATH ?? '').split(':');
+    if (!pathDirs.includes(binDir)) {
+      log.warn(`${binDir} is not in your PATH. Add it to your shell profile: export PATH="$HOME/.local/bin:$PATH"`);
+    }
+  } catch (err) {
+    log.warn(`Could not link ${APP_NAME} CLI: ${err instanceof Error ? err.message : err}`);
+  }
+}
+
 export async function startWorktreeServer(
   config: WorktreeConfig,
   configFilePath?: string | null,
@@ -160,6 +209,7 @@ export async function startWorktreeServer(
   const requestedPort = options?.port ?? DEFAULT_PORT;
   const manager = new WorktreeManager(config, configFilePath ?? null);
   await manager.initGitHub();
+  ensureCliInPath();
   const { app, injectWebSocket, terminalManager } =
     createWorktreeServer(manager);
 

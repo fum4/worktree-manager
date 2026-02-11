@@ -42,16 +42,16 @@ export function McpServerScanModal({ onImported, onClose, plugins = [] }: McpSer
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
-  const handleScan = async () => {
-    if (mode === 'folder' && !scanPath.trim()) return;
+  const handleScanWithMode = async (scanMode: ScanMode) => {
+    if (scanMode === 'folder' && !scanPath.trim()) return;
 
     setScanning(true);
     setError(null);
     setMcpResults(null);
     setSkillResults(null);
 
-    const options: { mode: ScanMode; scanPath?: string } = { mode };
-    if (mode === 'folder') options.scanPath = scanPath.trim();
+    const options: { mode: ScanMode; scanPath?: string } = { mode: scanMode };
+    if (scanMode === 'folder') options.scanPath = scanPath.trim();
 
     const [mcpRes, skillRes] = await Promise.all([
       api.scanMcpServers(options),
@@ -80,6 +80,8 @@ export function McpServerScanModal({ onImported, onClose, plugins = [] }: McpSer
     if (newMcps.length > 0) setTab('servers');
     else if (newSkills.length > 0) setTab('skills');
   };
+
+  const handleScan = () => handleScanWithMode(mode);
 
   const toggleMcp = (key: string) => {
     setSelectedMcps((prev) => {
@@ -340,7 +342,7 @@ export function McpServerScanModal({ onImported, onClose, plugins = [] }: McpSer
               <button
                 key={m.id}
                 type="button"
-                onClick={() => setMode(m.id)}
+                onClick={() => { setMode(m.id); if (m.id !== 'folder') handleScanWithMode(m.id); }}
                 className={`w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg border transition-colors ${
                   isActive
                     ? 'bg-white/[0.04] border-white/[0.15]'

@@ -232,7 +232,7 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
               <button
                 key={m.id}
                 type="button"
-                onClick={() => setSkillMode(m.id)}
+                onClick={() => { setSkillMode(m.id); setStep('form'); }}
                 className={`w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg border transition-colors ${
                   isActive
                     ? 'bg-white/[0.04] border-white/[0.15]'
