@@ -29,6 +29,13 @@ export interface LinearComment {
   createdAt: string;
 }
 
+export interface LinearAttachment {
+  title: string;
+  subtitle: string | null;
+  url: string;
+  sourceType: string | null;
+}
+
 export interface LinearIssueSummary {
   identifier: string;
   title: string;
@@ -44,6 +51,7 @@ export interface LinearIssueDetail extends LinearIssueSummary {
   description: string | null;
   createdAt: string;
   comments: LinearComment[];
+  attachments: LinearAttachment[];
 }
 
 export interface LinearTaskData {
@@ -58,6 +66,7 @@ export interface LinearTaskData {
   createdAt: string;
   updatedAt: string;
   comments: LinearComment[];
+  attachments: LinearAttachment[];
   linkedWorktree: string | null;
   fetchedAt: string;
   url: string;

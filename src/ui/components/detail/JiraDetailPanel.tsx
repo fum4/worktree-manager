@@ -2,13 +2,17 @@ import { useState } from 'react';
 
 import { useJiraIssueDetail } from '../../hooks/useJiraIssueDetail';
 import { useApi } from '../../hooks/useApi';
+import { useServerUrlOptional } from '../../contexts/ServerContext';
 import type { JiraIssueDetail } from '../../types';
-import { badge, border, button, jiraPriority, jiraStatus, jiraType, surface, text } from '../../theme';
+import { badge, border, button, jiraPriority, jiraStatus, jiraType, text } from '../../theme';
 import { Tooltip } from '../Tooltip';
+import { TruncatedTooltip } from '../TruncatedTooltip';
+import { AttachmentImage } from '../AttachmentImage';
 import { MarkdownContent } from '../MarkdownContent';
 import { NotesSection } from './NotesSection';
 import { Spinner } from '../Spinner';
 import { WorktreeExistsModal } from '../WorktreeExistsModal';
+import { ImageModal } from '../ImageModal';
 
 interface JiraDetailPanelProps {
   issueKey: string;
@@ -43,8 +47,8 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function proxyUrl(url: string) {
-  return `/api/jira/attachment?url=${encodeURIComponent(url)}`;
+function proxyUrl(url: string, serverUrl: string | null) {
+  return `${serverUrl ?? ''}/api/jira/attachment?url=${encodeURIComponent(url)}`;
 }
 
 function isImage(mimeType: string) {
@@ -59,95 +63,64 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ImageModal({ src, filename, onClose }: { src: string; filename: string; onClose: () => void }) {
-  return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center ${surface.overlay}`}
-      onClick={onClose}
-    >
-      <div
-        className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between w-full mb-2 px-1">
-          <span className={`text-xs ${text.secondary} truncate`}>{filename}</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className={`${text.muted} hover:${text.primary} transition-colors ml-3 flex-shrink-0`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-              <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-            </svg>
-          </button>
-        </div>
-        <img
-          src={src}
-          alt={filename}
-          className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-        />
-      </div>
-    </div>
-  );
-}
-
 function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail['attachments'] }) {
-  const [modalImage, setModalImage] = useState<{ src: string; filename: string } | null>(null);
-  const images = attachments.filter((a) => isImage(a.mimeType) && a.contentUrl);
-  const files = attachments.filter((a) => !isImage(a.mimeType) || !a.contentUrl);
+  const serverUrl = useServerUrlOptional();
+  const [preview, setPreview] = useState<{ src: string; filename: string; type: 'image' | 'pdf' } | null>(null);
 
   return (
-    <div className="space-y-3">
-      {images.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
-          {images.map((att, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setModalImage({ src: proxyUrl(att.contentUrl!), filename: att.filename })}
-              className="group relative rounded-lg overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-colors bg-black/20"
-            >
-              <img
-                src={proxyUrl(att.thumbnail || att.contentUrl!)}
-                alt={att.filename}
-                className="w-full h-32 object-cover"
-                loading="lazy"
-              />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
-                <span className={`text-[10px] ${text.primary} truncate block`}>{att.filename}</span>
+    <>
+      <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-3">
+        <div className="flex flex-wrap gap-3">
+          {attachments.map((att, i) => {
+            const isImg = isImage(att.mimeType) && att.contentUrl;
+            const isPdf = att.mimeType === 'application/pdf' && att.contentUrl;
+            const url = att.contentUrl ? proxyUrl(att.contentUrl, serverUrl) : null;
+
+            return (
+              <div key={i} className="group flex flex-col w-36">
+                <div className="relative">
+                  {isImg ? (
+                    <button
+                      type="button"
+                      onClick={() => setPreview({ src: url!, filename: att.filename, type: 'image' })}
+                      className="rounded overflow-hidden block"
+                    >
+                      <AttachmentImage
+                        src={proxyUrl(att.thumbnail || att.contentUrl!, serverUrl)}
+                        alt={att.filename}
+                        className="w-36 h-28 object-cover transition-transform hover:scale-105"
+                      />
+                    </button>
+                  ) : isPdf ? (
+                    <button
+                      type="button"
+                      onClick={() => setPreview({ src: url!, filename: att.filename, type: 'pdf' })}
+                      className="w-36 h-28 rounded bg-white/[0.03] flex flex-col items-center justify-center gap-1 hover:gap-1.5 hover:bg-white/[0.06] transition-all group/pdf"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-red-400/70 transition-transform group-hover/pdf:scale-110">
+                        <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625Z" />
+                        <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
+                      </svg>
+                      <span className={`text-[10px] font-semibold ${text.secondary} transition-transform group-hover/pdf:scale-110`}>PDF</span>
+                    </button>
+                  ) : (
+                    <div className="w-36 h-28 rounded bg-white/[0.03] flex items-center justify-center">
+                      <FileIcon mimeType={att.mimeType} />
+                    </div>
+                  )}
+                </div>
+                <TruncatedTooltip text={att.filename} className={`text-[10px] ${text.muted} mt-1.5`} />
                 <span className={`text-[9px] ${text.dimmed}`}>{formatSize(att.size)}</span>
               </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
-      )}
+      </div>
 
-      {files.length > 0 && (
-        <div className="space-y-1">
-          {files.map((att, i) => (
-            <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/[0.03]">
-              <FileIcon mimeType={att.mimeType} />
-              <span className={`text-xs ${text.secondary} truncate flex-1`}>{att.filename}</span>
-              <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>{formatSize(att.size)}</span>
-              {att.contentUrl && (
-                <a
-                  href={proxyUrl(att.contentUrl)}
-                  download={att.filename}
-                  className="text-[10px] text-accent hover:text-accent-muted flex-shrink-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Download
-                </a>
-              )}
-            </div>
-          ))}
-        </div>
+      {preview && (
+        <ImageModal src={preview.src} filename={preview.filename} type={preview.type} onClose={() => setPreview(null)} />
       )}
-
-      {modalImage && (
-        <ImageModal src={modalImage.src} filename={modalImage.filename} onClose={() => setModalImage(null)} />
-      )}
-    </div>
+    </>
   );
 }
 

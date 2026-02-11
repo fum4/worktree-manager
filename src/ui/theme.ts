@@ -382,6 +382,9 @@ export const notes = {
   aiAccent:        'bg-white/[0.02]',
   aiBorder:        'border-white/[0.06]',
   emptyText:     'text-[#4b5563]',
+  todoCheckbox:    'border-teal-400/40',
+  todoChecked:     'bg-teal-400/20 border-teal-400/60',
+  todoCheckIcon:   'text-teal-400',
 } as const;
 
 // ─── Detail panel tabs (Logs / Terminal) ────────────────────────

@@ -17,6 +17,7 @@ import {
   loadJiraProjectConfig,
 } from '../integrations/jira/credentials';
 import {
+  downloadAttachments,
   fetchIssue,
   resolveTaskKey,
   saveTaskData,
@@ -1261,6 +1262,31 @@ export class WorktreeManager {
     const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
     saveTaskData(taskData, tasksDir);
 
+    // Download attachments in background
+    if (taskData.attachments.length > 0) {
+      const issueDir = path.join(this.configDir, CONFIG_DIR_NAME, 'issues', 'jira', taskData.key);
+      const attachDir = path.join(issueDir, 'attachments');
+      downloadAttachments(
+        taskData.attachments.filter((a) => a.contentUrl).map((a) => ({
+          filename: a.filename,
+          content: a.contentUrl!,
+          mimeType: a.mimeType,
+          size: a.size,
+        })),
+        attachDir,
+        creds,
+        this.configDir,
+      ).then((downloaded) => {
+        if (downloaded.length > 0) {
+          for (const dl of downloaded) {
+            const att = taskData.attachments.find((a) => a.filename === dl.filename);
+            if (att) att.localPath = dl.localPath;
+          }
+          saveTaskData(taskData, tasksDir);
+        }
+      }).catch(() => { /* non-critical */ });
+    }
+
     // Load AI context notes
     const notes = this.notesManager.loadNotes('jira', resolvedKey);
     const aiContext = notes.aiContext?.content ?? null;
@@ -1279,6 +1305,11 @@ export class WorktreeManager {
         status: taskData.status,
         url: taskData.url,
         comments: taskData.comments.slice(0, 10),
+        attachments: taskData.attachments.filter((a) => a.localPath).map((a) => ({
+          filename: a.filename,
+          localPath: a.localPath,
+          mimeType: a.mimeType,
+        })),
       },
       aiContext,
     });
@@ -1374,6 +1405,7 @@ export class WorktreeManager {
       createdAt: issueDetail.createdAt,
       updatedAt: issueDetail.updatedAt,
       comments: issueDetail.comments,
+      attachments: issueDetail.attachments,
       linkedWorktree: null,
       fetchedAt: new Date().toISOString(),
       url: issueDetail.url,
@@ -1404,6 +1436,11 @@ export class WorktreeManager {
         status: issueDetail.state.name,
         url: issueDetail.url,
         comments: linearComments,
+        linkedResources: issueDetail.attachments.map((a) => ({
+          title: a.title,
+          url: a.url,
+          sourceType: a.sourceType,
+        })),
       },
       aiContext,
     });

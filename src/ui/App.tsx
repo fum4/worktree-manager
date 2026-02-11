@@ -835,6 +835,7 @@ export default function App() {
       {showCreateModal && createModalMode === 'custom' && (
         <CreateCustomTaskModal
           onCreate={(data) => api.createCustomTask(data)}
+          onUploadAttachment={(taskId, file) => api.uploadTaskAttachment(taskId, file)}
           onCreated={(taskId) => {
             refetchCustomTasks();
             setActiveCreateTab('issues');

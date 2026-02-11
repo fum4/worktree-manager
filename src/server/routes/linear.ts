@@ -9,7 +9,7 @@ import {
   saveLinearCredentials,
   saveLinearProjectConfig,
 } from '../../integrations/linear/credentials';
-import { testConnection, fetchIssues, fetchIssue } from '../../integrations/linear/api';
+import { testConnection, fetchIssues, fetchIssue, saveTaskData } from '../../integrations/linear/api';
 import type { WorktreeManager } from '../manager';
 
 export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
@@ -133,6 +133,27 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
 
       const identifier = c.req.param('identifier');
       const issue = await fetchIssue(identifier, creds);
+
+      // Persist issue data to disk for TASK.md generation and MCP tools
+      const tasksDir = path.join(configDir, CONFIG_DIR_NAME, 'tasks');
+      saveTaskData({
+        source: 'linear',
+        identifier: issue.identifier,
+        title: issue.title,
+        description: issue.description,
+        status: issue.state.name,
+        priority: issue.priority,
+        assignee: issue.assignee,
+        labels: issue.labels,
+        createdAt: issue.createdAt,
+        updatedAt: issue.updatedAt,
+        comments: issue.comments,
+        attachments: issue.attachments,
+        linkedWorktree: null,
+        fetchedAt: new Date().toISOString(),
+        url: issue.url,
+      }, tasksDir);
+
       return c.json({ issue });
     } catch (error) {
       return c.json(

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'fs';
 import path from 'path';
 
@@ -5,16 +6,25 @@ import { CONFIG_DIR_NAME } from '../constants';
 
 export type IssueSource = 'jira' | 'linear' | 'local';
 
+export interface TodoItem {
+  id: string;
+  text: string;
+  checked: boolean;
+  createdAt: string;
+}
+
 export interface IssueNotes {
   linkedWorktreeId: string | null;
   personal: { content: string; updatedAt: string } | null;
   aiContext: { content: string; updatedAt: string } | null;
+  todos: TodoItem[];
 }
 
 const EMPTY_NOTES: IssueNotes = {
   linkedWorktreeId: null,
   personal: null,
   aiContext: null,
+  todos: [],
 };
 
 export class NotesManager {
@@ -34,11 +44,13 @@ export class NotesManager {
 
   loadNotes(source: IssueSource, id: string): IssueNotes {
     const filePath = this.notesPath(source, id);
-    if (!existsSync(filePath)) return { ...EMPTY_NOTES };
+    if (!existsSync(filePath)) return { ...EMPTY_NOTES, todos: [] };
     try {
-      return JSON.parse(readFileSync(filePath, 'utf-8')) as IssueNotes;
+      const notes = JSON.parse(readFileSync(filePath, 'utf-8')) as IssueNotes;
+      notes.todos ??= [];
+      return notes;
     } catch {
-      return { ...EMPTY_NOTES };
+      return { ...EMPTY_NOTES, todos: [] };
     }
   }
 
@@ -63,6 +75,30 @@ export class NotesManager {
     const notes = this.loadNotes(source, id);
     notes.linkedWorktreeId = worktreeId;
     this.saveNotes(source, id, notes);
+  }
+
+  addTodo(source: IssueSource, id: string, text: string): IssueNotes {
+    const notes = this.loadNotes(source, id);
+    notes.todos.push({ id: randomUUID(), text, checked: false, createdAt: new Date().toISOString() });
+    this.saveNotes(source, id, notes);
+    return notes;
+  }
+
+  updateTodo(source: IssueSource, id: string, todoId: string, updates: { text?: string; checked?: boolean }): IssueNotes {
+    const notes = this.loadNotes(source, id);
+    const todo = notes.todos.find((t) => t.id === todoId);
+    if (!todo) throw new Error(`Todo "${todoId}" not found`);
+    if (updates.text !== undefined) todo.text = updates.text;
+    if (updates.checked !== undefined) todo.checked = updates.checked;
+    this.saveNotes(source, id, notes);
+    return notes;
+  }
+
+  deleteTodo(source: IssueSource, id: string, todoId: string): IssueNotes {
+    const notes = this.loadNotes(source, id);
+    notes.todos = notes.todos.filter((t) => t.id !== todoId);
+    this.saveNotes(source, id, notes);
+    return notes;
   }
 
   /**

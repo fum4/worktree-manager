@@ -53,4 +53,77 @@ export function registerNotesRoutes(app: Hono, manager: WorktreeManager, notesMa
 
     return c.json(notes);
   });
+
+  // Add a todo
+  app.post('/api/notes/:source/:id/todos', async (c) => {
+    const source = c.req.param('source') as IssueSource;
+    const id = c.req.param('id');
+
+    if (!['jira', 'linear', 'local'].includes(source)) {
+      return c.json({ error: 'Invalid source' }, 400);
+    }
+
+    const body = await c.req.json<{ text: string }>();
+    if (!body.text || typeof body.text !== 'string') {
+      return c.json({ error: 'Text is required' }, 400);
+    }
+
+    const notes = notesManager.addTodo(source, id, body.text);
+
+    if (notes.linkedWorktreeId) {
+      try {
+        regenerateTaskMd(source, id, notes.linkedWorktreeId, notesManager, configDir, worktreesPath);
+      } catch { /* non-critical */ }
+    }
+
+    return c.json(notes);
+  });
+
+  // Update a todo
+  app.patch('/api/notes/:source/:id/todos/:todoId', async (c) => {
+    const source = c.req.param('source') as IssueSource;
+    const id = c.req.param('id');
+    const todoId = c.req.param('todoId');
+
+    if (!['jira', 'linear', 'local'].includes(source)) {
+      return c.json({ error: 'Invalid source' }, 400);
+    }
+
+    const body = await c.req.json<{ text?: string; checked?: boolean }>();
+
+    try {
+      const notes = notesManager.updateTodo(source, id, todoId, body);
+
+      if (notes.linkedWorktreeId) {
+        try {
+          regenerateTaskMd(source, id, notes.linkedWorktreeId, notesManager, configDir, worktreesPath);
+        } catch { /* non-critical */ }
+      }
+
+      return c.json(notes);
+    } catch (err) {
+      return c.json({ error: err instanceof Error ? err.message : 'Failed to update todo' }, 404);
+    }
+  });
+
+  // Delete a todo
+  app.delete('/api/notes/:source/:id/todos/:todoId', async (c) => {
+    const source = c.req.param('source') as IssueSource;
+    const id = c.req.param('id');
+    const todoId = c.req.param('todoId');
+
+    if (!['jira', 'linear', 'local'].includes(source)) {
+      return c.json({ error: 'Invalid source' }, 400);
+    }
+
+    const notes = notesManager.deleteTodo(source, id, todoId);
+
+    if (notes.linkedWorktreeId) {
+      try {
+        regenerateTaskMd(source, id, notes.linkedWorktreeId, notesManager, configDir, worktreesPath);
+      } catch { /* non-critical */ }
+    }
+
+    return c.json(notes);
+  });
 }

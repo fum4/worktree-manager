@@ -10,7 +10,7 @@ import {
   saveJiraProjectConfig,
 } from '../../integrations/jira/credentials';
 import { getApiBase, getAuthHeaders, testConnection } from '../../integrations/jira/auth';
-import { fetchIssue } from '../../integrations/jira/api';
+import { downloadAttachments, fetchIssue, saveTaskData } from '../../integrations/jira/api';
 import type { JiraCredentials } from '../../integrations/jira/types';
 import type { WorktreeManager } from '../manager';
 
@@ -216,6 +216,37 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
 
       const key = c.req.param('key');
       const issue = await fetchIssue(key, creds, configDir);
+
+      // Save issue data to disk
+      const tasksDir = path.join(configDir, CONFIG_DIR_NAME, 'tasks');
+      saveTaskData(issue, tasksDir);
+
+      // Download attachments in background (don't block the response)
+      if (issue.attachments.length > 0) {
+        const issueDir = path.join(configDir, CONFIG_DIR_NAME, 'issues', 'jira', issue.key);
+        const attachDir = path.join(issueDir, 'attachments');
+        downloadAttachments(
+          issue.attachments.filter((a) => a.contentUrl).map((a) => ({
+            filename: a.filename,
+            content: a.contentUrl!,
+            mimeType: a.mimeType,
+            size: a.size,
+          })),
+          attachDir,
+          creds,
+          configDir,
+        ).then((downloaded) => {
+          // Update issue.json with local paths
+          if (downloaded.length > 0) {
+            for (const dl of downloaded) {
+              const att = issue.attachments.find((a) => a.filename === dl.filename);
+              if (att) att.localPath = dl.localPath;
+            }
+            saveTaskData(issue, tasksDir);
+          }
+        }).catch(() => { /* non-critical */ });
+      }
+
       return c.json({ issue });
     } catch (error) {
       return c.json(

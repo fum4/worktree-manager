@@ -1,8 +1,8 @@
-import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, appendFileSync } from 'fs';
 import path from 'path';
 
 import { CONFIG_DIR_NAME } from '../constants';
-import type { NotesManager, IssueSource } from './notes-manager';
+import type { NotesManager, IssueSource, TodoItem } from './notes-manager';
 
 export interface TaskContextData {
   source: IssueSource;
@@ -13,6 +13,8 @@ export interface TaskContextData {
   status: string;
   url: string;
   comments?: Array<{ author: string; body: string; created?: string }>;
+  attachments?: Array<{ filename: string; localPath: string; mimeType: string }>;
+  linkedResources?: Array<{ title: string; url: string; sourceType?: string | null }>;
 }
 
 export interface PendingTaskContext {
@@ -20,7 +22,7 @@ export interface PendingTaskContext {
   aiContext?: string | null;
 }
 
-export function generateTaskMd(data: TaskContextData, aiContext?: string | null): string {
+export function generateTaskMd(data: TaskContextData, aiContext?: string | null, todos?: TodoItem[]): string {
   const lines: string[] = [];
 
   lines.push(`# ${data.identifier} — ${data.title}`);
@@ -52,6 +54,39 @@ export function generateTaskMd(data: TaskContextData, aiContext?: string | null)
     lines.push('## AI Context');
     lines.push('');
     lines.push(aiContext);
+  }
+
+  if (todos && todos.length > 0) {
+    lines.push('');
+    lines.push('## Todos');
+    lines.push('');
+    lines.push('> Work through these items in order. Use the `update_todo` MCP tool with action="toggle" to check off each item as you complete it. The user tracks your progress in real-time.');
+    lines.push('');
+    for (const todo of todos) {
+      lines.push(`- [${todo.checked ? 'x' : ' '}] ${todo.text}`);
+    }
+  }
+
+  const attachmentsWithPaths = data.attachments?.filter((a) => a.localPath) ?? [];
+  if (attachmentsWithPaths.length > 0) {
+    lines.push('');
+    lines.push('## Attachments');
+    lines.push('');
+    lines.push('> These files have been downloaded locally. Read them to understand the full context of the issue.');
+    lines.push('');
+    for (const att of attachmentsWithPaths) {
+      lines.push(`- \`${att.filename}\` (${att.mimeType}) — \`${att.localPath}\``);
+    }
+  }
+
+  if (data.linkedResources && data.linkedResources.length > 0) {
+    lines.push('');
+    lines.push('## Linked Resources');
+    lines.push('');
+    for (const res of data.linkedResources) {
+      const label = res.sourceType ? ` (${res.sourceType})` : '';
+      lines.push(`- [${res.title}](${res.url})${label}`);
+    }
   }
 
   lines.push('');
@@ -111,7 +146,7 @@ export function writeWorktreeTaskMd(
 ): void {
   const notes = notesManager.loadNotes(data.source, data.issueId);
   const aiContext = notes.aiContext?.content ?? null;
-  const content = generateTaskMd(data, aiContext);
+  const content = generateTaskMd(data, aiContext, notes.todos);
   writeTaskMd(worktreePath, content);
 }
 
@@ -127,6 +162,25 @@ function loadIssueData(
     if (!existsSync(taskFile)) return null;
     try {
       const task = JSON.parse(readFileSync(taskFile, 'utf-8'));
+
+      // Load local attachments
+      const attDir = path.join(configDir, CONFIG_DIR_NAME, 'issues', 'local', issueId, 'attachments');
+      let attachments: TaskContextData['attachments'];
+      if (existsSync(attDir)) {
+        const metaFile = path.join(attDir, '.meta.json');
+        const meta: Record<string, string> = existsSync(metaFile)
+          ? JSON.parse(readFileSync(metaFile, 'utf-8'))
+          : {};
+        attachments = readdirSync(attDir)
+          .filter((f) => !f.startsWith('.') && statSync(path.join(attDir, f)).isFile())
+          .map((f) => ({
+            filename: f,
+            localPath: path.join(attDir, f),
+            mimeType: meta[f] || 'application/octet-stream',
+          }));
+        if (attachments.length === 0) attachments = undefined;
+      }
+
       return {
         source: 'local',
         issueId,
@@ -135,6 +189,7 @@ function loadIssueData(
         description: task.description ?? '',
         status: task.status ?? 'unknown',
         url: '',
+        attachments,
       };
     } catch {
       return null;
@@ -198,6 +253,6 @@ export function regenerateTaskMd(
 
   const notes = notesManager.loadNotes(source, issueId);
   const aiContext = notes.aiContext?.content ?? null;
-  const content = generateTaskMd(data, aiContext);
+  const content = generateTaskMd(data, aiContext, notes.todos);
   writeTaskMd(worktreePath, content);
 }

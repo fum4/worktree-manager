@@ -83,6 +83,7 @@ export async function fetchIssue(
   const issueUrl = `${siteUrl.replace(/\/$/, '')}/browse/${key}`;
 
   const rawAttachments = (fields.attachment ?? []) as Array<{
+    id: string;
     filename: string;
     content: string;
     thumbnail?: string;
@@ -90,11 +91,13 @@ export async function fetchIssue(
     size: number;
   }>;
 
-  // Build attachment lookup for ADF media nodes
+  // Build attachment lookup for ADF media nodes (keyed by both filename and id)
   const attachmentMap = new Map<string, { url: string; mimeType: string }>();
   for (const a of rawAttachments) {
     if (a.content) {
-      attachmentMap.set(a.filename, { url: a.content, mimeType: a.mimeType });
+      const entry = { url: a.content, mimeType: a.mimeType };
+      attachmentMap.set(a.filename, entry);
+      if (a.id) attachmentMap.set(a.id, entry);
     }
   }
 

@@ -90,6 +90,15 @@ export interface LinearIssueDetail extends LinearIssueSummary {
   description: string | null;
   createdAt: string;
   comments: Array<{ author: string; body: string; createdAt: string }>;
+  attachments: Array<{ title: string; subtitle: string | null; url: string; sourceType: string | null }>;
+}
+
+export interface CustomTaskAttachment {
+  filename: string;
+  mimeType: string;
+  size: number;
+  localPath: string;
+  createdAt: string;
 }
 
 export interface CustomTaskSummary {
@@ -100,12 +109,14 @@ export interface CustomTaskSummary {
   priority: 'high' | 'medium' | 'low';
   labels: string[];
   linkedWorktreeId: string | null;
+  attachmentCount?: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CustomTaskDetail extends CustomTaskSummary {
   description: string;
+  attachments: CustomTaskAttachment[];
 }
 
 // ─── MCP Server Manager types ───────────────────────────────────

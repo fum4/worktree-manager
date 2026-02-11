@@ -995,12 +995,64 @@ export async function createWorktreeFromCustomTask(
   }
 }
 
+// -- Custom Task Attachments API --
+
+export async function uploadTaskAttachment(
+  taskId: string,
+  file: File,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; attachment?: { filename: string; mimeType: string; size: number }; error?: string }> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(taskId)}/attachments`, {
+      method: 'POST',
+      body: formData,
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to upload attachment' };
+  }
+}
+
+export async function deleteTaskAttachment(
+  taskId: string,
+  filename: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(taskId)}/attachments/${encodeURIComponent(filename)}`,
+      { method: 'DELETE' },
+    );
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to delete attachment' };
+  }
+}
+
+export function getTaskAttachmentUrl(
+  taskId: string,
+  filename: string,
+  serverUrl: string | null = null,
+): string {
+  return `${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(taskId)}/attachments/${encodeURIComponent(filename)}`;
+}
+
 // -- Notes API --
+
+export interface TodoItem {
+  id: string;
+  text: string;
+  checked: boolean;
+  createdAt: string;
+}
 
 export interface IssueNotes {
   linkedWorktreeId: string | null;
   personal: { content: string; updatedAt: string } | null;
   aiContext: { content: string; updatedAt: string } | null;
+  todos: TodoItem[];
 }
 
 export async function fetchNotes(
@@ -1012,7 +1064,7 @@ export async function fetchNotes(
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}`);
     return await res.json();
   } catch {
-    return { linkedWorktreeId: null, personal: null, aiContext: null };
+    return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
   }
 }
 
@@ -1031,7 +1083,62 @@ export async function updateNotes(
     });
     return await res.json();
   } catch {
-    return { linkedWorktreeId: null, personal: null, aiContext: null };
+    return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
+  }
+}
+
+// -- Todo API --
+
+export async function addTodo(
+  source: string,
+  id: string,
+  text: string,
+  serverUrl: string | null = null,
+): Promise<IssueNotes> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/todos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    return await res.json();
+  } catch {
+    return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
+  }
+}
+
+export async function updateTodo(
+  source: string,
+  id: string,
+  todoId: string,
+  updates: { text?: string; checked?: boolean },
+  serverUrl: string | null = null,
+): Promise<IssueNotes> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/todos/${encodeURIComponent(todoId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    return await res.json();
+  } catch {
+    return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
+  }
+}
+
+export async function deleteTodo(
+  source: string,
+  id: string,
+  todoId: string,
+  serverUrl: string | null = null,
+): Promise<IssueNotes> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/todos/${encodeURIComponent(todoId)}`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch {
+    return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
   }
 }
 

@@ -83,16 +83,27 @@ function convertNode(node: AdfNode, listDepth: number, attachments?: AttachmentM
       return (node.content ?? []).map((child) => convertNode(child, listDepth, attachments)).join('');
 
     case 'media': {
-      const filename = (node.attrs?.alt as string) ?? (node.attrs?.id as string) ?? 'file';
-      const att = attachments?.get(filename);
+      // Try multiple attributes to find the attachment: alt, __fileName, filename, id
+      const candidates = [
+        node.attrs?.alt as string,
+        node.attrs?.__fileName as string,
+        node.attrs?.filename as string,
+        node.attrs?.id as string,
+      ].filter(Boolean) as string[];
+      const displayName = candidates[0] ?? 'file';
+      let att: { url: string; mimeType: string } | undefined;
+      for (const key of candidates) {
+        att = attachments?.get(key);
+        if (att) break;
+      }
       if (att) {
         const proxyUrl = `/api/jira/attachment?url=${encodeURIComponent(att.url)}`;
         if (att.mimeType.startsWith('image/')) {
-          return `![${filename}](${proxyUrl})\n\n`;
+          return `![${displayName}](${proxyUrl})\n\n`;
         }
-        return `[${filename}](${proxyUrl})\n\n`;
+        return `[${displayName}](${proxyUrl})\n\n`;
       }
-      return `[attachment: ${filename}]`;
+      return `[attachment: ${displayName}]`;
     }
 
     case 'inlineCard': {

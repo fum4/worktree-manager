@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import path from 'path';
 
 import { APP_NAME, CONFIG_DIR_NAME } from './constants';
@@ -40,13 +40,22 @@ Do NOT read .wok3/ files or make HTTP requests to the wok3 server. All communica
 ## After Creating a Worktree
 1. Poll list_worktrees until status is 'stopped' (creation done)
 2. Navigate to the worktree path returned in the response
-3. Read TASK.md for full context
-4. Implement the task
+3. Read TASK.md for full context (includes issue details, AI directions, and a todo checklist)
+4. Work through the todo items in order — toggle each one as you complete it using update_todo
+5. Follow any directions in the AI Context section
 
 ## While Working in a Worktree
-- get_task_context — refresh full task details at any time
+- get_task_context — refresh full task details, AI context, and todo checklist
+- update_todo — IMPORTANT: mark todo items as done (toggle) as you complete them. The user tracks your progress through these checkboxes in real-time.
 - start_worktree — launch the dev server
-- commit, push, create_pr — git operations`;
+- commit, push, create_pr — git operations
+
+## Todo Workflow
+Todos are a checklist of sub-tasks defined by the user. They appear in TASK.md and in get_task_context output.
+1. Before starting work, read the todos to understand what needs to be done
+2. As you complete each item, call update_todo with action="toggle" to check it off
+3. The user sees checkbox state update in real-time in the UI
+4. You can also add new todos with action="add" if you discover additional sub-tasks`;
 
 function findWorktreeOrThrow(ctx: ActionContext, id: string) {
   const worktrees = ctx.manager.getWorktrees();
@@ -258,7 +267,7 @@ export const actions: Action[] = [
   // -- Notes --
   {
     name: 'read_issue_notes',
-    description: 'Read AI context notes for a worktree or issue. Returns user-provided directions for AI agents. Use this before starting work on a worktree to get context.',
+    description: 'Read AI context notes for a worktree or issue. Returns directions and todo checklist for AI agents. Use this before starting work on a worktree to get context.',
     params: {
       worktreeId: { type: 'string', description: 'Worktree ID to find linked issue notes for' },
       source: { type: 'string', description: 'Issue source: "jira", "linear", or "local" (use with issueId)' },
@@ -281,7 +290,7 @@ export const actions: Action[] = [
           source: linked.source,
           issueId: linked.issueId,
           aiContext: notes.aiContext?.content ?? null,
-          personal: notes.personal?.content ?? null,
+          todos: notes.todos,
         };
       }
 
@@ -294,7 +303,7 @@ export const actions: Action[] = [
           source,
           issueId,
           aiContext: notes.aiContext?.content ?? null,
-          personal: notes.personal?.content ?? null,
+          todos: notes.todos,
         };
       }
 
@@ -305,7 +314,7 @@ export const actions: Action[] = [
   // -- Task context --
   {
     name: 'get_task_context',
-    description: 'Get full task context for a worktree. Returns issue details, description, comments, AI context notes, and worktree path. Call this before starting work on a worktree to understand the full scope. Also regenerates the TASK.md file in the worktree.',
+    description: 'Get full task context for a worktree. Returns issue details, description, comments, AI context directions, todo checklist, and worktree path. Call this before starting work to understand the full scope and see which todos need to be completed. Also regenerates TASK.md.',
     params: {
       worktreeId: { type: 'string', description: 'Worktree ID (e.g., PROJ-123)', required: true },
     },
@@ -324,10 +333,9 @@ export const actions: Action[] = [
       const configDir = ctx.manager.getConfigDir();
       const issuesDir = path.join(configDir, CONFIG_DIR_NAME, 'issues');
 
-      // Load notes
+      // Load notes (personal notes are private — not exposed to agents)
       const notes = ctx.notesManager.loadNotes(source, issueId);
       const aiContext = notes.aiContext?.content ?? null;
-      const personal = notes.personal?.content ?? null;
 
       // Load issue data based on source
       let taskData: TaskContextData | null = null;
@@ -337,6 +345,25 @@ export const actions: Action[] = [
         if (existsSync(taskFile)) {
           try {
             const raw = JSON.parse(readFileSync(taskFile, 'utf-8'));
+
+            // Load local attachments from filesystem
+            const attDir = path.join(issuesDir, 'local', issueId, 'attachments');
+            let localAttachments: TaskContextData['attachments'];
+            if (existsSync(attDir)) {
+              const metaFile = path.join(attDir, '.meta.json');
+              const meta: Record<string, string> = existsSync(metaFile)
+                ? JSON.parse(readFileSync(metaFile, 'utf-8'))
+                : {};
+              localAttachments = readdirSync(attDir)
+                .filter((f) => !f.startsWith('.') && statSync(path.join(attDir, f)).isFile())
+                .map((f) => ({
+                  filename: f,
+                  localPath: path.join(attDir, f),
+                  mimeType: meta[f] || 'application/octet-stream',
+                }));
+              if (localAttachments.length === 0) localAttachments = undefined;
+            }
+
             taskData = {
               source: 'local',
               issueId,
@@ -345,6 +372,7 @@ export const actions: Action[] = [
               description: raw.description ?? '',
               status: raw.status ?? 'unknown',
               url: '',
+              attachments: localAttachments,
             };
           } catch { /* ignore */ }
         }
@@ -363,6 +391,11 @@ export const actions: Action[] = [
                 status: raw.status ?? 'Unknown',
                 url: raw.url ?? '',
                 comments: raw.comments?.slice(0, 10),
+                attachments: raw.attachments?.filter((a: { localPath?: string }) => a.localPath).map((a: { filename: string; localPath: string; mimeType: string }) => ({
+                  filename: a.filename,
+                  localPath: a.localPath,
+                  mimeType: a.mimeType,
+                })),
               };
             } else if (source === 'linear') {
               taskData = {
@@ -378,6 +411,11 @@ export const actions: Action[] = [
                   body: c.body ?? '',
                   created: c.createdAt,
                 })),
+                linkedResources: raw.attachments?.map((a: { title?: string; url?: string; sourceType?: string }) => ({
+                  title: a.title ?? '',
+                  url: a.url ?? '',
+                  sourceType: a.sourceType,
+                })),
               };
             }
           } catch { /* ignore */ }
@@ -390,7 +428,7 @@ export const actions: Action[] = [
           source,
           issueId,
           aiContext,
-          personal,
+          todos: notes.todos,
           error: 'Issue data file not found on disk. Notes are still available.',
         };
       }
@@ -401,7 +439,7 @@ export const actions: Action[] = [
 
       if (worktreePath && existsSync(worktreePath)) {
         try {
-          const content = generateTaskMd(taskData, aiContext);
+          const content = generateTaskMd(taskData, aiContext, notes.todos);
           writeTaskMd(worktreePath, content);
         } catch { /* non-critical */ }
       }
@@ -411,8 +449,57 @@ export const actions: Action[] = [
         worktreePath,
         task: taskData,
         aiContext,
-        personal,
+        todos: notes.todos,
       };
+    },
+  },
+
+  // -- Todos --
+  {
+    name: 'update_todo',
+    description: 'Add, toggle, or delete a todo checklist item on an issue. IMPORTANT: As you complete each sub-task, call this with action="toggle" to check it off — the user monitors your progress through these checkboxes in real-time.',
+    params: {
+      source: { type: 'string', description: 'Issue source: "jira", "linear", or "local"', required: true },
+      issueId: { type: 'string', description: 'Issue ID', required: true },
+      action: { type: 'string', description: 'Action to perform: "add", "toggle", or "delete"', required: true },
+      todoId: { type: 'string', description: 'Todo ID (required for toggle and delete)' },
+      text: { type: 'string', description: 'Todo text (required for add)' },
+    },
+    handler: async (ctx, params) => {
+      const source = params.source as string;
+      const issueId = params.issueId as string;
+      const action = params.action as string;
+      const todoId = params.todoId as string | undefined;
+      const text = params.text as string | undefined;
+
+      if (!['jira', 'linear', 'local'].includes(source)) {
+        return { error: 'Invalid source (must be "jira", "linear", or "local")' };
+      }
+      if (!['add', 'toggle', 'delete'].includes(action)) {
+        return { error: 'Invalid action (must be "add", "toggle", or "delete")' };
+      }
+
+      const src = source as 'jira' | 'linear' | 'local';
+
+      if (action === 'add') {
+        if (!text) return { error: 'Text is required for add action' };
+        const notes = ctx.notesManager.addTodo(src, issueId, text);
+        return { success: true, todos: notes.todos };
+      }
+
+      if (!todoId) return { error: 'todoId is required for toggle and delete actions' };
+
+      if (action === 'toggle') {
+        const currentNotes = ctx.notesManager.loadNotes(src, issueId);
+        const todo = currentNotes.todos.find((t) => t.id === todoId);
+        if (!todo) return { error: `Todo "${todoId}" not found` };
+        const notes = ctx.notesManager.updateTodo(src, issueId, todoId, { checked: !todo.checked });
+        return { success: true, todos: notes.todos };
+      }
+
+      // delete
+      const notes = ctx.notesManager.deleteTodo(src, issueId, todoId);
+      return { success: true, todos: notes.todos };
     },
   },
 ];

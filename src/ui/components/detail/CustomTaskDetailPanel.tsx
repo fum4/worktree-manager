@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { Trash2, X } from 'lucide-react';
+import { Paperclip, Trash2, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useCustomTaskDetail } from '../../hooks/useCustomTaskDetail';
@@ -8,6 +8,9 @@ import { border, button, customTask, getLabelColor, text } from '../../theme';
 import { MarkdownContent } from '../MarkdownContent';
 import { NotesSection } from './NotesSection';
 import { Spinner } from '../Spinner';
+import { ImageModal } from '../ImageModal';
+import { TruncatedTooltip } from '../TruncatedTooltip';
+import type { CustomTaskAttachment } from '../../types';
 
 
 interface CustomTaskDetailPanelProps {
@@ -32,9 +35,9 @@ const statusOptions = [
 ] as const;
 
 const priorityOptions = [
-  { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' },
   { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
 ] as const;
 
 export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onViewWorktree }: CustomTaskDetailPanelProps) {
@@ -51,6 +54,10 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
   const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [previewImage, setPreviewImage] = useState<{ src: string; filename: string; type: 'image' | 'pdf' } | null>(null);
 
   const update = async (updates: Record<string, unknown>) => {
     await api.updateCustomTask(taskId, updates);
@@ -116,6 +123,20 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
     el.style.height = Math.max(el.scrollHeight, descriptionMinHeight) + 'px';
     el.focus();
   }, [descriptionMinHeight]);
+
+  const handleUploadFiles = async (files: FileList | File[]) => {
+    setIsUploading(true);
+    for (const file of Array.from(files)) {
+      await api.uploadTaskAttachment(taskId, file);
+    }
+    setIsUploading(false);
+    refetch();
+  };
+
+  const handleDeleteAttachment = async (filename: string) => {
+    await api.deleteTaskAttachment(taskId, filename);
+    refetch();
+  };
 
   const addLabel = async (value?: string) => {
     const raw = value ?? labelInput;
@@ -354,6 +375,129 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
           )}
         </section>
 
+        {/* Attachments */}
+        <section
+          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragOver(false);
+            if (e.dataTransfer.files.length) handleUploadFiles(e.dataTransfer.files);
+          }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className={`text-[11px] font-medium ${text.muted}`}>
+              Attachments{task.attachments?.length > 0 ? ` (${task.attachments.length})` : ''}
+            </h3>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium ${text.muted} hover:${text.secondary} rounded-md hover:bg-white/[0.06] transition-colors disabled:opacity-50`}
+            >
+              <Paperclip className="w-3.5 h-3.5" />
+              {isUploading ? 'Uploading...' : 'Add file'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) {
+                  handleUploadFiles(e.target.files);
+                  e.target.value = '';
+                }
+              }}
+            />
+          </div>
+          {task.attachments?.length > 0 ? (
+            <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-3">
+              <div className="flex flex-wrap gap-3 items-center">
+                {[...task.attachments].reverse().map((att: CustomTaskAttachment) => {
+                  const isImage = att.mimeType.startsWith('image/');
+                  const isPdf = att.mimeType === 'application/pdf';
+                  const url = api.getTaskAttachmentUrl(taskId, att.filename);
+                  return (
+                    <div key={att.filename} className="group flex flex-col w-36">
+                      <div className="relative">
+                        {isImage ? (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImage({ src: url, filename: att.filename, type: 'image' })}
+                            className="rounded overflow-hidden block"
+                          >
+                            <img
+                              src={url}
+                              alt={att.filename}
+                              className="w-36 h-28 object-cover transition-transform hover:scale-105"
+                            />
+                          </button>
+                        ) : isPdf ? (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImage({ src: url, filename: att.filename, type: 'pdf' })}
+                            className="w-36 h-28 rounded bg-white/[0.03] flex flex-col items-center justify-center gap-1 hover:gap-1.5 hover:bg-white/[0.06] transition-all group/pdf"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-red-400/70 transition-transform group-hover/pdf:scale-110">
+                              <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625Z" />
+                              <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
+                            </svg>
+                            <span className={`text-[10px] font-semibold ${text.secondary} transition-transform group-hover/pdf:scale-110`}>PDF</span>
+                          </button>
+                        ) : (
+                          <div className="w-36 h-28 rounded bg-white/[0.03] flex items-center justify-center">
+                            <Paperclip className={`w-6 h-6 ${text.dimmed}`} />
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAttachment(att.filename)}
+                          className="absolute top-1 right-1 p-0.5 rounded bg-black/60 opacity-0 group-hover:opacity-100 text-white transition-all hover:scale-125"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <TruncatedTooltip text={att.filename} className={`text-[10px] ${text.muted} mt-1.5`} />
+                      <span className={`text-[9px] ${text.dimmed}`}>
+                        {att.size < 1024 ? `${att.size}B` : att.size < 1048576 ? `${Math.round(att.size / 1024)}KB` : `${(att.size / 1048576).toFixed(1)}MB`}
+                        {att.createdAt && ` · ${new Date(att.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
+                      </span>
+                    </div>
+                  );
+                })}
+                {/* Add tile */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-10 h-10 ml-5 -mt-8 rounded-full bg-white/[0.04] hover:bg-white/[0.07] transition-colors self-center"
+                  style={{ display: 'grid', placeItems: 'center' }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-4 h-4 ${text.dimmed}`}>
+                    <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className={`rounded-lg border border-dashed ${isDragOver ? 'border-amber-400/40 bg-amber-400/[0.04]' : 'border-white/[0.08]'} px-4 py-6 text-center transition-colors cursor-pointer hover:border-white/[0.15]`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOver(false);
+                if (e.dataTransfer.files.length) handleUploadFiles(e.dataTransfer.files);
+              }}
+            >
+              <p className={`text-xs ${text.dimmed}`}>
+                {isUploading ? 'Uploading...' : 'Drop files here or click to upload'}
+              </p>
+            </div>
+          )}
+        </section>
+
         <NotesSection source="local" issueId={taskId} />
 
         {/* Timestamps */}
@@ -392,6 +536,10 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
             </div>
           </div>
         </>
+      )}
+
+      {previewImage && (
+        <ImageModal src={previewImage.src} filename={previewImage.filename} type={previewImage.type} onClose={() => setPreviewImage(null)} />
       )}
     </div>
   );

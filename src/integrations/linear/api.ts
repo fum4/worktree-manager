@@ -155,6 +155,14 @@ export async function fetchIssue(
             createdAt: string;
           }>;
         };
+        attachments: {
+          nodes: Array<{
+            title: string;
+            subtitle: string | null;
+            url: string;
+            sourceType: string | null;
+          }>;
+        };
       }>;
     };
   }>(
@@ -177,6 +185,14 @@ export async function fetchIssue(
               user { name }
               body
               createdAt
+            }
+          }
+          attachments(first: 50) {
+            nodes {
+              title
+              subtitle
+              url
+              sourceType
             }
           }
         }
@@ -206,6 +222,7 @@ export async function fetchIssue(
       body: c.body,
       createdAt: c.createdAt,
     })),
+    attachments: node.attachments.nodes,
   };
 }
 

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync, statSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { Hono } from 'hono';
 import path from 'path';
@@ -52,6 +52,56 @@ function saveTask(configDir: string, task: CustomTask): void {
   writeFileSync(path.join(dir, 'task.json'), JSON.stringify(task, null, 2));
 }
 
+interface TaskAttachment {
+  filename: string;
+  mimeType: string;
+  size: number;
+  localPath: string;
+  createdAt: string;
+}
+
+function getAttachmentsDir(configDir: string, taskId: string): string {
+  return path.join(getTasksDir(configDir), taskId, 'attachments');
+}
+
+const MIME_TYPES: Record<string, string> = {
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
+  '.webp': 'image/webp', '.svg': 'image/svg+xml', '.bmp': 'image/bmp', '.ico': 'image/x-icon',
+  '.pdf': 'application/pdf', '.json': 'application/json', '.xml': 'application/xml',
+  '.zip': 'application/zip', '.gz': 'application/gzip', '.tar': 'application/x-tar',
+  '.txt': 'text/plain', '.md': 'text/markdown', '.csv': 'text/csv', '.html': 'text/html',
+  '.css': 'text/css', '.js': 'text/javascript', '.ts': 'text/typescript',
+  '.mp4': 'video/mp4', '.webm': 'video/webm', '.mp3': 'audio/mpeg', '.wav': 'audio/wav',
+  '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+};
+
+function mimeFromFilename(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  return MIME_TYPES[ext] || 'application/octet-stream';
+}
+
+function listAttachments(configDir: string, taskId: string): TaskAttachment[] {
+  const dir = getAttachmentsDir(configDir, taskId);
+  if (!existsSync(dir)) return [];
+
+  const attachments: TaskAttachment[] = [];
+  for (const entry of readdirSync(dir)) {
+    if (entry.startsWith('.')) continue;
+    const filePath = path.join(dir, entry);
+    const stat = statSync(filePath);
+    if (!stat.isFile()) continue;
+    attachments.push({
+      filename: entry,
+      mimeType: mimeFromFilename(entry),
+      size: stat.size,
+      localPath: filePath,
+      createdAt: stat.birthtime.toISOString(),
+    });
+  }
+  return attachments;
+}
+
 function loadAllTasks(configDir: string): CustomTask[] {
   const dir = getTasksDir(configDir);
   if (!existsSync(dir)) return [];
@@ -74,17 +124,19 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
     const tasks = loadAllTasks(configDir);
     const enriched = tasks.map((task) => {
       const notes = notesManager.loadNotes('local', task.id);
-      return { ...task, linkedWorktreeId: notes.linkedWorktreeId };
+      const attachments = listAttachments(configDir, task.id);
+      return { ...task, linkedWorktreeId: notes.linkedWorktreeId, attachmentCount: attachments.length };
     });
     return c.json({ tasks: enriched });
   });
 
-  // Get single task — enrich with linkedWorktreeId from notes
+  // Get single task — enrich with linkedWorktreeId from notes + attachments
   app.get('/api/tasks/:id', (c) => {
     const task = loadTask(configDir, c.req.param('id'));
     if (!task) return c.json({ error: 'Task not found' }, 404);
     const notes = notesManager.loadNotes('local', task.id);
-    return c.json({ task: { ...task, linkedWorktreeId: notes.linkedWorktreeId } });
+    const attachments = listAttachments(configDir, task.id);
+    return c.json({ task: { ...task, linkedWorktreeId: notes.linkedWorktreeId, attachments } });
   });
 
   // Create task
@@ -119,6 +171,7 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
       linkedWorktreeId: null,
       personal: null,
       aiContext: null,
+      todos: [],
     });
     return c.json({ success: true, task: { ...task, linkedWorktreeId: null } });
   });
@@ -180,6 +233,9 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
     const notes = notesManager.loadNotes('local', task.id);
     const aiContext = notes.aiContext?.content ?? null;
 
+    // Get attachments for TASK.md
+    const attachments = listAttachments(configDir, task.id);
+
     // Set pending context so TASK.md gets written after worktree creation
     manager.setPendingWorktreeContext(task.identifier, {
       data: {
@@ -190,6 +246,9 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
         description: task.description,
         status: task.status,
         url: '',
+        attachments: attachments.length > 0
+          ? attachments.map((a) => ({ filename: a.filename, localPath: a.localPath, mimeType: a.mimeType }))
+          : undefined,
       },
       aiContext,
     });
@@ -213,5 +272,77 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
         error: err instanceof Error ? err.message : 'Failed to create worktree',
       });
     }
+  });
+
+  // Upload attachment to a task
+  app.post('/api/tasks/:id/attachments', async (c) => {
+    const task = loadTask(configDir, c.req.param('id'));
+    if (!task) return c.json({ success: false, error: 'Task not found' }, 404);
+
+    const body = await c.req.parseBody();
+    const file = body['file'];
+    if (!file || !(file instanceof File)) {
+      return c.json({ success: false, error: 'No file uploaded' }, 400);
+    }
+
+    const dir = getAttachmentsDir(configDir, task.id);
+    mkdirSync(dir, { recursive: true });
+
+    // Deduplicate filename
+    let filename = file.name;
+    if (existsSync(path.join(dir, filename))) {
+      const ext = path.extname(filename);
+      const base = path.basename(filename, ext);
+      let counter = 1;
+      while (existsSync(path.join(dir, `${base}_${counter}${ext}`))) counter++;
+      filename = `${base}_${counter}${ext}`;
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    writeFileSync(path.join(dir, filename), buffer);
+
+    return c.json({
+      success: true,
+      attachment: {
+        filename,
+        mimeType: mimeFromFilename(filename),
+        size: buffer.length,
+        localPath: path.join(dir, filename),
+      },
+    });
+  });
+
+  // Serve attachment file
+  app.get('/api/tasks/:id/attachments/:filename', (c) => {
+    const id = c.req.param('id');
+    const filename = c.req.param('filename');
+    const filePath = path.join(getAttachmentsDir(configDir, id), filename);
+
+    if (!existsSync(filePath)) {
+      return c.json({ error: 'Attachment not found' }, 404);
+    }
+
+    const mimeType = mimeFromFilename(filename);
+    const data = readFileSync(filePath);
+    return new Response(data, {
+      headers: {
+        'Content-Type': mimeType,
+        'Cache-Control': 'private, max-age=3600',
+      },
+    });
+  });
+
+  // Delete attachment
+  app.delete('/api/tasks/:id/attachments/:filename', (c) => {
+    const id = c.req.param('id');
+    const filename = c.req.param('filename');
+    const filePath = path.join(getAttachmentsDir(configDir, id), filename);
+
+    if (!existsSync(filePath)) {
+      return c.json({ success: false, error: 'Attachment not found' }, 404);
+    }
+
+    rmSync(filePath);
+    return c.json({ success: true });
   });
 }

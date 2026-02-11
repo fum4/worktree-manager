@@ -127,6 +127,14 @@ export function useApi() {
       createWorktreeFromCustomTask: (id: string, branch?: string) =>
         api.createWorktreeFromCustomTask(id, branch, serverUrl),
 
+      // Custom task attachments
+      uploadTaskAttachment: (taskId: string, file: File) =>
+        api.uploadTaskAttachment(taskId, file, serverUrl),
+      deleteTaskAttachment: (taskId: string, filename: string) =>
+        api.deleteTaskAttachment(taskId, filename, serverUrl),
+      getTaskAttachmentUrl: (taskId: string, filename: string) =>
+        api.getTaskAttachmentUrl(taskId, filename, serverUrl),
+
       // Branch name rule
       fetchBranchNameRule: (source?: string) =>
         api.fetchBranchNameRule(source, serverUrl),
@@ -143,6 +151,15 @@ export function useApi() {
 
       updateNotes: (source: string, id: string, section: 'personal' | 'aiContext', content: string) =>
         api.updateNotes(source, id, section, content, serverUrl),
+
+      addTodo: (source: string, id: string, text: string) =>
+        api.addTodo(source, id, text, serverUrl),
+
+      updateTodo: (source: string, id: string, todoId: string, updates: { text?: string; checked?: boolean }) =>
+        api.updateTodo(source, id, todoId, updates, serverUrl),
+
+      deleteTodo: (source: string, id: string, todoId: string) =>
+        api.deleteTodo(source, id, todoId, serverUrl),
 
       // MCP Server Manager
       fetchMcpServers: (query?: string) =>
