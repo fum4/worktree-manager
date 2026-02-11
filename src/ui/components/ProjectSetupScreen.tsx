@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Bot, Check, ChevronDown, GitBranch, GitCommit, Link, ListTodo, Loader2, Plug, Settings, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Bot, Check, ChevronDown, Download, GitBranch, GitCommit, Link, ListTodo, Loader2, LogIn, Plug, Settings, Sparkles } from 'lucide-react';
 
 import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
 import { useApi } from '../hooks/useApi';
 import type { DetectedConfig } from '../hooks/api';
+import { fetchGitHubStatus } from '../hooks/api';
+import { useServerUrlOptional } from '../contexts/ServerContext';
+import type { GitHubStatus } from '../types';
 import { button, input, surface, text } from '../theme';
 import { AGENT_CONFIGS, type AgentId, type McpScope } from '../agent-configs';
 
@@ -29,10 +32,74 @@ export function ProjectSetupScreen({
   onNavigateToAgents,
 }: ProjectSetupScreenProps) {
   const api = useApi();
+  const serverUrl = useServerUrlOptional();
   const [mode, setMode] = useState<SetupMode>('choice');
   const [rememberChoice, setRememberChoice] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // GitHub status for commit-prompt step
+  const [ghStatus, setGhStatus] = useState<GitHubStatus | null>(null);
+  const [ghLoading, setGhLoading] = useState(false);
+  const [ghWaitingForAuth, setGhWaitingForAuth] = useState(false);
+  const ghPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fetch GitHub status when entering commit-prompt
+  useEffect(() => {
+    if (mode !== 'commit-prompt') return;
+    fetchGitHubStatus(serverUrl).then(setGhStatus);
+  }, [mode, serverUrl]);
+
+  // Poll for auth completion
+  useEffect(() => {
+    if (!ghWaitingForAuth) {
+      if (ghPollRef.current) clearInterval(ghPollRef.current);
+      return;
+    }
+    ghPollRef.current = setInterval(async () => {
+      const data = await fetchGitHubStatus(serverUrl);
+      if (data?.authenticated && data.username) {
+        setGhWaitingForAuth(false);
+        setGhStatus(data);
+      }
+    }, 2000);
+    return () => {
+      if (ghPollRef.current) clearInterval(ghPollRef.current);
+    };
+  }, [ghWaitingForAuth, serverUrl]);
+
+  const handleInstallGh = useCallback(async () => {
+    setGhLoading(true);
+    setError(null);
+    const result = await api.installGitHubCli();
+    setGhLoading(false);
+    if (result.success) {
+      if (result.code) {
+        try { await navigator.clipboard.writeText(result.code); } catch { /* ignore */ }
+        setError(`Code ${result.code} copied to clipboard! Paste it in your browser to authenticate.`);
+        setGhWaitingForAuth(true);
+      }
+      // Refresh status
+      const data = await fetchGitHubStatus(serverUrl);
+      setGhStatus(data);
+    } else {
+      setError(result.error ?? 'Failed to install gh CLI');
+    }
+  }, [api, serverUrl]);
+
+  const handleLoginGh = useCallback(async () => {
+    setGhLoading(true);
+    setError(null);
+    const result = await api.loginGitHub();
+    setGhLoading(false);
+    if (result.success && result.code) {
+      try { await navigator.clipboard.writeText(result.code); } catch { /* ignore */ }
+      setError(`Code ${result.code} copied to clipboard! Paste it in your browser to authenticate.`);
+      setGhWaitingForAuth(true);
+    } else if (!result.success) {
+      setError(result.error ?? 'Failed to authenticate');
+    }
+  }, [api]);
 
   // Form values for manual setup
   const [detectedConfig, setDetectedConfig] = useState<DetectedConfig | null>(null);
@@ -378,6 +445,10 @@ export function ProjectSetupScreen({
   }
 
   if (mode === 'commit-prompt') {
+    const needsGhInstall = ghStatus && !ghStatus.installed;
+    const needsGhAuth = ghStatus && ghStatus.installed && !ghStatus.authenticated;
+    const ghReady = ghStatus?.installed && ghStatus?.authenticated;
+
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-md">
@@ -395,48 +466,124 @@ export function ProjectSetupScreen({
             </p>
           </div>
 
-          <div className={`${surface.panel} rounded-xl border border-white/[0.08] p-4 mb-4 text-left`}>
-            <div className="flex items-center gap-2 mb-3">
-              <GitCommit className="w-4 h-4 text-[#2dd4bf]" />
-              <span className={`text-xs font-medium ${text.primary}`}>Files to commit:</span>
+          {/* GitHub CLI not installed */}
+          {needsGhInstall && !ghWaitingForAuth && (
+            <div className={`${surface.panel} rounded-xl border border-white/[0.08] p-5 mb-6 text-left`}>
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-orange-400/10">
+                  <Download className="w-5 h-5 text-orange-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className={`text-sm font-medium ${text.primary} mb-1`}>GitHub CLI required</h3>
+                  <p className={`text-xs ${text.muted} leading-relaxed`}>
+                    The GitHub CLI is needed to commit and push your configuration.
+                    It will be installed via Homebrew.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleInstallGh}
+                disabled={ghLoading}
+                className={`w-full mt-4 px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
+              >
+                {ghLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" />Installing...</>
+                ) : (
+                  <><Download className="w-4 h-4" />Install & Connect</>
+                )}
+              </button>
             </div>
-            <div className={`text-xs ${text.muted} font-mono space-y-1`}>
-              <div>{CONFIG_DIR_NAME}/config.json</div>
-              <div>{CONFIG_DIR_NAME}/.gitignore</div>
-            </div>
-          </div>
+          )}
 
-          <div className="mb-6 text-left">
-            <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
-              Commit message
-            </label>
-            <input
-              type="text"
-              value={commitMessage}
-              onChange={(e) => setCommitMessage(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && commitMessage.trim()) handleCommitConfig(); }}
-              className={`w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`}
-            />
-          </div>
+          {/* GitHub CLI installed but not authenticated */}
+          {needsGhAuth && !ghWaitingForAuth && (
+            <div className={`${surface.panel} rounded-xl border border-white/[0.08] p-5 mb-6 text-left`}>
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-orange-400/10">
+                  <LogIn className="w-5 h-5 text-orange-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className={`text-sm font-medium ${text.primary} mb-1`}>GitHub authentication needed</h3>
+                  <p className={`text-xs ${text.muted} leading-relaxed`}>
+                    Authenticate with GitHub to enable commits, pushes, and pull requests.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleLoginGh}
+                disabled={ghLoading}
+                className={`w-full mt-4 px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
+              >
+                {ghLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" />Authenticating...</>
+                ) : (
+                  <><LogIn className="w-4 h-4" />Authenticate</>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Waiting for auth callback */}
+          {ghWaitingForAuth && (
+            <div className={`${surface.panel} rounded-xl border border-white/[0.08] p-5 mb-6`}>
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-[#2dd4bf]" />
+                <span className={`text-xs ${text.secondary}`}>Waiting for authentication...</span>
+              </div>
+              {error && (
+                <p className="mt-2 text-xs text-[#2dd4bf]">{error}</p>
+              )}
+            </div>
+          )}
+
+          {/* Ready to commit */}
+          {ghReady && !ghWaitingForAuth && (
+            <>
+              <div className={`${surface.panel} rounded-xl border border-white/[0.08] p-4 mb-4 text-left`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <GitCommit className="w-4 h-4 text-[#2dd4bf]" />
+                  <span className={`text-xs font-medium ${text.primary}`}>Files to commit:</span>
+                </div>
+                <div className={`text-xs ${text.muted} font-mono space-y-1`}>
+                  <div>{CONFIG_DIR_NAME}/config.json</div>
+                  <div>{CONFIG_DIR_NAME}/.gitignore</div>
+                </div>
+              </div>
+
+              <div className="mb-6 text-left">
+                <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
+                  Commit message
+                </label>
+                <input
+                  type="text"
+                  value={commitMessage}
+                  onChange={(e) => setCommitMessage(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && commitMessage.trim()) handleCommitConfig(); }}
+                  className={`w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Error (non-auth) */}
+          {error && !ghWaitingForAuth && (
+            <p className={`mb-4 text-xs ${text.error}`}>{error}</p>
+          )}
 
           <div className="space-y-3">
-            <button
-              onClick={handleCommitConfig}
-              disabled={isLoading || !commitMessage.trim()}
-              className={`w-full px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Pushing...
-                </>
-              ) : (
-                <>
-                  <GitCommit className="w-4 h-4" />
-                  Commit & Push
-                </>
-              )}
-            </button>
+            {ghReady && !ghWaitingForAuth && (
+              <button
+                onClick={handleCommitConfig}
+                disabled={isLoading || !commitMessage.trim()}
+                className={`w-full px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
+              >
+                {isLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" />Pushing...</>
+                ) : (
+                  <><GitCommit className="w-4 h-4" />Commit & Push</>
+                )}
+              </button>
+            )}
             <button
               onClick={handleSkipCommit}
               disabled={isLoading}
@@ -445,10 +592,6 @@ export function ProjectSetupScreen({
               Skip for now
             </button>
           </div>
-
-          {error && (
-            <p className={`mt-4 text-xs ${text.error}`}>{error}</p>
-          )}
         </div>
       </div>
     );
