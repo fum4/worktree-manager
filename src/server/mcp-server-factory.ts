@@ -2,19 +2,27 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { actions, MCP_INSTRUCTIONS } from '../actions';
-import type { ActionContext } from '../actions';
+import type { ActionContext, ActionParam } from '../actions';
 import { APP_NAME } from '../constants';
 
-function buildJsonSchema(params: Record<string, { type: string; description: string; required?: boolean }>) {
-  const properties: Record<string, { type: string; description: string }> = {};
-  const required: string[] = [];
-
-  for (const [key, param] of Object.entries(params)) {
-    properties[key] = { type: param.type, description: param.description };
-    if (param.required) required.push(key);
+function toZodType(param: ActionParam) {
+  let schema: z.ZodTypeAny;
+  switch (param.type) {
+    case 'number': schema = z.number(); break;
+    case 'boolean': schema = z.boolean(); break;
+    default: schema = z.string(); break;
   }
+  schema = schema.describe(param.description);
+  if (!param.required) schema = schema.optional();
+  return schema;
+}
 
-  return { properties, required };
+function buildZodShape(params: Record<string, ActionParam>): Record<string, z.ZodTypeAny> {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  for (const [key, param] of Object.entries(params)) {
+    shape[key] = toZodType(param);
+  }
+  return shape;
 }
 
 export function createMcpServer(ctx: ActionContext): McpServer {
@@ -24,12 +32,12 @@ export function createMcpServer(ctx: ActionContext): McpServer {
   );
 
   for (const action of actions) {
-    const schema = buildJsonSchema(action.params);
+    const zodShape = buildZodShape(action.params);
 
     server.tool(
       action.name,
       action.description,
-      schema.properties,
+      zodShape,
       async (params) => {
         try {
           const result = await action.handler(ctx, params as Record<string, unknown>);

@@ -2,7 +2,7 @@ import { createAdaptorServer } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { createNodeWebSocket } from '@hono/node-ws';
 import { execFileSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, symlinkSync, unlinkSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import net from 'net';
 import os from 'os';
 import { Hono } from 'hono';
@@ -167,28 +167,29 @@ function ensureCliInPath() {
     // Not in PATH — set it up
   }
 
-  const cliPath = path.join(currentDir, isDev ? '../cli/index.ts' : 'cli/index.js');
-  const resolvedCliPath = path.resolve(cliPath);
-  if (!existsSync(resolvedCliPath)) {
-    log.warn(`CLI entry not found at ${resolvedCliPath}, skipping PATH setup`);
+  // Always point to the built CLI (works regardless of dev/prod mode)
+  const builtCliPath = path.resolve(projectRoot, 'dist', 'cli', 'index.js');
+  if (!existsSync(builtCliPath)) {
+    log.warn(`Built CLI not found at ${builtCliPath}, run 'pnpm build' first`);
     return;
   }
 
   const binDir = path.join(os.homedir(), '.local', 'bin');
-  const symlinkPath = path.join(binDir, APP_NAME);
+  const wrapperPath = path.join(binDir, APP_NAME);
 
   try {
     if (!existsSync(binDir)) {
       mkdirSync(binDir, { recursive: true });
     }
 
-    // Remove stale symlink if it exists
-    if (existsSync(symlinkPath)) {
-      unlinkSync(symlinkPath);
+    // Remove stale file if it exists
+    if (existsSync(wrapperPath)) {
+      unlinkSync(wrapperPath);
     }
 
-    symlinkSync(resolvedCliPath, symlinkPath);
-    log.success(`Linked ${APP_NAME} CLI → ${symlinkPath}`);
+    // Write a shell wrapper that calls node with the built CLI
+    writeFileSync(wrapperPath, `#!/bin/sh\nexec node "${builtCliPath}" "$@"\n`, { mode: 0o755 });
+    log.success(`Installed ${APP_NAME} CLI → ${wrapperPath}`);
 
     // Check if ~/.local/bin is actually in PATH
     const pathDirs = (process.env.PATH ?? '').split(':');
@@ -196,7 +197,7 @@ function ensureCliInPath() {
       log.warn(`${binDir} is not in your PATH. Add it to your shell profile: export PATH="$HOME/.local/bin:$PATH"`);
     }
   } catch (err) {
-    log.warn(`Could not link ${APP_NAME} CLI: ${err instanceof Error ? err.message : err}`);
+    log.warn(`Could not install ${APP_NAME} CLI: ${err instanceof Error ? err.message : err}`);
   }
 }
 

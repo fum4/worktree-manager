@@ -104,8 +104,37 @@ function openProjectInElectron(projectDir: string): void {
   }
 }
 
+function printHelp() {
+  log.plain(`${APP_NAME} — git worktree manager with automatic port offsetting
+
+Usage: ${APP_NAME} [command] [options]
+
+Commands:
+  (default)     Start the server and open the UI
+  init          Interactive setup wizard to create .wok3/config.json
+  connect       Connect to an existing ${APP_NAME} server
+  mcp           Start as an MCP server (for AI coding agents)
+  task <ID>     Create a worktree from an issue ID (e.g., PROJ-123)
+
+Options:
+  --no-open     Start the server without opening the UI
+  --auto-init   Auto-initialize config if none found
+  --help, -h    Show this help message
+  --version, -v Show version`);
+}
+
 async function main() {
   const subcommand = process.argv[2];
+
+  if (subcommand === '--help' || subcommand === '-h') {
+    printHelp();
+    return;
+  }
+
+  if (subcommand === '--version' || subcommand === '-v') {
+    log.plain('0.1.0');
+    return;
+  }
 
   if (subcommand === 'init') {
     const { runInit } = await import('./init');
