@@ -106,6 +106,27 @@ export function registerNotesRoutes(app: Hono, manager: WorktreeManager, notesMa
     }
   });
 
+  // Update git policy for an issue
+  app.patch('/api/notes/:source/:id/git-policy', async (c) => {
+    const source = c.req.param('source') as IssueSource;
+    const id = c.req.param('id');
+
+    if (!['jira', 'linear', 'local'].includes(source)) {
+      return c.json({ error: 'Invalid source' }, 400);
+    }
+
+    const body = await c.req.json<{ agentCommits?: string; agentPushes?: string; agentPRs?: string }>();
+    const validValues = ['inherit', 'allow', 'deny'];
+    for (const key of ['agentCommits', 'agentPushes', 'agentPRs'] as const) {
+      if (body[key] && !validValues.includes(body[key]!)) {
+        return c.json({ error: `Invalid ${key} value` }, 400);
+      }
+    }
+
+    const notes = notesManager.updateGitPolicy(source, id, body as Parameters<typeof notesManager.updateGitPolicy>[2]);
+    return c.json(notes);
+  });
+
   // Delete a todo
   app.delete('/api/notes/:source/:id/todos/:todoId', async (c) => {
     const source = c.req.param('source') as IssueSource;

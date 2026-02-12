@@ -63,6 +63,10 @@ interface AgentsSidebarProps {
   onScanImport: () => void;
   pluginActing?: boolean;
   onPluginActingChange?: (acting: boolean) => void;
+  allowAgentCommits?: boolean;
+  allowAgentPushes?: boolean;
+  allowAgentPRs?: boolean;
+  onTogglePolicy: (key: 'allowAgentCommits' | 'allowAgentPushes' | 'allowAgentPRs') => void;
 }
 
 export function AgentsSidebar({
@@ -83,6 +87,10 @@ export function AgentsSidebar({
   onScanImport,
   pluginActing,
   onPluginActingChange,
+  allowAgentCommits,
+  allowAgentPushes,
+  allowAgentPRs,
+  onTogglePolicy,
 }: AgentsSidebarProps) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -587,8 +595,8 @@ export function AgentsSidebar({
       </div>
     </div>
 
-    {/* Settings bar */}
-    <div className={`flex-shrink-0 border-t ${border.subtle} px-2 py-1.5`}>
+    {/* Settings bar with Git Policy */}
+    <div className={`flex-shrink-0 border-t ${border.subtle} px-2 py-2 flex items-center justify-between`}>
       <div className="relative" ref={configRef}>
         <button
           type="button"
@@ -597,7 +605,7 @@ export function AgentsSidebar({
             configOpen ? `${text.secondary} bg-white/[0.06]` : `${text.dimmed} hover:${text.secondary} hover:bg-white/[0.06]`
           }`}
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-[18px] h-[18px]" />
         </button>
 
         {configOpen && (
@@ -606,6 +614,28 @@ export function AgentsSidebar({
             <SettingsToggle label="Show project" checked={showProject} onToggle={() => setShowProject(!showProject)} />
           </div>
         )}
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        {(['allowAgentCommits', 'allowAgentPushes', 'allowAgentPRs'] as const).map((key) => {
+          const label = key === 'allowAgentCommits' ? 'Commits' : key === 'allowAgentPushes' ? 'Pushes' : 'PRs';
+          const enabled = key === 'allowAgentCommits' ? allowAgentCommits : key === 'allowAgentPushes' ? allowAgentPushes : allowAgentPRs;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onTogglePolicy(key)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors duration-150 ${
+                enabled
+                  ? 'bg-teal-500/[0.15] text-teal-300'
+                  : `bg-white/[0.06] ${text.dimmed} hover:${text.muted}`
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${enabled ? 'bg-teal-400' : 'bg-white/20'}`} />
+              {label}
+            </button>
+          );
+        })}
       </div>
     </div>
 

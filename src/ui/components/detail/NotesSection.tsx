@@ -6,6 +6,7 @@ import { notes as notesTheme, text } from '../../theme';
 import { MarkdownContent } from '../MarkdownContent';
 import { Tooltip } from '../Tooltip';
 import { TodoList } from './TodoList';
+import type { GitPolicyOverride } from '../../hooks/api';
 
 interface NotesSectionProps {
   source: 'jira' | 'linear' | 'local';
@@ -26,8 +27,8 @@ function getPersistedLayout(): Layout {
 }
 
 export function NotesSection({ source, issueId }: NotesSectionProps) {
-  const { notes, updateSection, addTodo, toggleTodo, deleteTodo, updateTodoText } = useNotes(source, issueId);
-  const [activeTab, setActiveTab] = useState<Tab>('personal');
+  const { notes, updateSection, addTodo, toggleTodo, deleteTodo, updateTodoText, updateGitPolicy } = useNotes(source, issueId);
+  const [activeTab, setActiveTab] = useState<Tab>('aiContext');
   const [layout, setLayout] = useState<Layout>(getPersistedLayout);
 
   const toggleLayout = () => {
@@ -40,6 +41,8 @@ export function NotesSection({ source, issueId }: NotesSectionProps) {
   const aiContent = notes?.aiContext?.content ?? '';
   const todos = notes?.todos ?? [];
 
+  const gitPolicy = notes?.gitPolicy;
+
   return (
     <section>
       {/* Header row: label + tabs + layout toggle */}
@@ -50,21 +53,21 @@ export function NotesSection({ source, issueId }: NotesSectionProps) {
           <div className="flex gap-0.5 bg-white/[0.04] rounded-lg p-0.5">
             <button
               type="button"
+              onClick={() => setActiveTab('aiContext')}
+              className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
+                activeTab === 'aiContext' ? `${notesTheme.tabActive} ${notesTheme.aiIcon}` : notesTheme.tabInactive
+              }`}
+            >
+              Agents
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('personal')}
               className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
                 activeTab === 'personal' ? notesTheme.tabActive : notesTheme.tabInactive
               }`}
             >
               Personal
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('aiContext')}
-              className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                activeTab === 'aiContext' ? `${notesTheme.tabActive} ${notesTheme.aiIcon}` : notesTheme.tabInactive
-              }`}
-            >
-              AI Context
             </button>
           </div>
         )}
@@ -82,7 +85,21 @@ export function NotesSection({ source, issueId }: NotesSectionProps) {
 
       {/* Content */}
       {layout === 'tabs' ? (
-        activeTab === 'personal' ? (
+        activeTab === 'aiContext' ? (
+          <AiContextCard
+            source={source}
+            issueId={issueId}
+            aiContent={aiContent}
+            todos={todos}
+            updateSection={updateSection}
+            addTodo={addTodo}
+            toggleTodo={toggleTodo}
+            deleteTodo={deleteTodo}
+            updateTodoText={updateTodoText}
+            gitPolicy={gitPolicy}
+            updateGitPolicy={updateGitPolicy}
+          />
+        ) : (
           <NotePane
             key={`${source}-${issueId}-personal`}
             content={personalContent}
@@ -98,21 +115,26 @@ export function NotesSection({ source, issueId }: NotesSectionProps) {
             accentBg={notesTheme.personalAccent}
             accentBorder={notesTheme.personalBorder}
           />
-        ) : (
-          <AiContextCard
-            source={source}
-            issueId={issueId}
-            aiContent={aiContent}
-            todos={todos}
-            updateSection={updateSection}
-            addTodo={addTodo}
-            toggleTodo={toggleTodo}
-            deleteTodo={deleteTodo}
-            updateTodoText={updateTodoText}
-          />
         )
       ) : (
         <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col">
+            <span className={`text-[10px] font-medium ${text.dimmed} block mb-1.5`}>Agents</span>
+            <AiContextCard
+              source={source}
+              issueId={issueId}
+              aiContent={aiContent}
+              todos={todos}
+              updateSection={updateSection}
+              addTodo={addTodo}
+              toggleTodo={toggleTodo}
+              deleteTodo={deleteTodo}
+              updateTodoText={updateTodoText}
+              gitPolicy={gitPolicy}
+              updateGitPolicy={updateGitPolicy}
+              stretch
+            />
+          </div>
           <div className="flex flex-col">
             <span className={`text-[10px] font-medium ${text.dimmed} block mb-1.5`}>Personal</span>
             <NotePane
@@ -132,21 +154,6 @@ export function NotesSection({ source, issueId }: NotesSectionProps) {
               stretch
             />
           </div>
-          <div className="flex flex-col">
-            <span className={`text-[10px] font-medium ${text.dimmed} block mb-1.5`}>AI Context</span>
-            <AiContextCard
-              source={source}
-              issueId={issueId}
-              aiContent={aiContent}
-              todos={todos}
-              updateSection={updateSection}
-              addTodo={addTodo}
-              toggleTodo={toggleTodo}
-              deleteTodo={deleteTodo}
-              updateTodoText={updateTodoText}
-              stretch
-            />
-          </div>
         </div>
       )}
     </section>
@@ -154,6 +161,12 @@ export function NotesSection({ source, issueId }: NotesSectionProps) {
 }
 
 // ─── AI Context card (todos + directions in one container) ──────
+
+const POLICY_OPTIONS: { value: GitPolicyOverride; label: string }[] = [
+  { value: 'inherit', label: 'Inherit' },
+  { value: 'allow', label: 'Allow' },
+  { value: 'deny', label: 'Deny' },
+];
 
 function AiContextCard({
   source,
@@ -165,6 +178,8 @@ function AiContextCard({
   toggleTodo,
   deleteTodo,
   updateTodoText,
+  gitPolicy,
+  updateGitPolicy,
   stretch,
 }: {
   source: string;
@@ -176,8 +191,16 @@ function AiContextCard({
   toggleTodo: (todoId: string) => void;
   deleteTodo: (todoId: string) => void;
   updateTodoText: (todoId: string, text: string) => void;
+  gitPolicy?: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride; agentPRs?: GitPolicyOverride };
+  updateGitPolicy: (policy: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride; agentPRs?: GitPolicyOverride }) => void;
   stretch?: boolean;
 }) {
+  const operations = [
+    { key: 'agentCommits' as const, label: 'Commits' },
+    { key: 'agentPushes' as const, label: 'Pushes' },
+    { key: 'agentPRs' as const, label: 'PRs' },
+  ];
+
   return (
     <div className={`rounded-lg ${notesTheme.aiAccent} border ${notesTheme.aiBorder} overflow-hidden ${stretch ? 'flex-1' : ''}`}>
       {/* Directions */}
@@ -199,6 +222,42 @@ function AiContextCard({
           onDelete={deleteTodo}
           onUpdate={updateTodoText}
         />
+      </div>
+
+      {/* Git Policy */}
+      <div className="mx-4 border-t border-white/[0.04]" />
+      <div className="px-4 py-3">
+        <span className={`text-[10px] font-medium ${text.dimmed} block mb-2`}>Git Policy</span>
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          {operations.map((op) => {
+            const value: GitPolicyOverride = gitPolicy?.[op.key] ?? 'inherit';
+            return (
+              <div key={op.key} className="flex items-center gap-1.5">
+                <span className={`text-[10px] ${text.muted} w-12`}>{op.label}</span>
+                <div className="flex gap-0.5 bg-white/[0.04] rounded-md p-0.5">
+                  {POLICY_OPTIONS.map((opt) => {
+                    let selectedStyle = 'text-[#4b5563] hover:text-[#6b7280]';
+                    if (value === opt.value) {
+                      if (opt.value === 'allow') selectedStyle = 'bg-teal-500/[0.15] text-teal-300';
+                      else if (opt.value === 'deny') selectedStyle = 'bg-red-500/[0.15] text-red-300';
+                      else selectedStyle = 'bg-white/[0.10] text-[#e0e2e5]';
+                    }
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => updateGitPolicy({ [op.key]: opt.value })}
+                        className={`px-1.5 py-0.5 text-[9px] font-medium rounded transition-colors ${selectedStyle}`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

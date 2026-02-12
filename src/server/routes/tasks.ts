@@ -227,7 +227,7 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
 
     // Use custom branch or generated name from rule
     const branchName = body.branch
-      || await generateBranchName(configDir, { id: task.identifier, name: task.title, type: 'local' });
+      || await generateBranchName(configDir, { issueId: task.identifier, name: task.title, type: 'local' });
 
     // Load AI context notes
     const notes = notesManager.loadNotes('local', task.id);

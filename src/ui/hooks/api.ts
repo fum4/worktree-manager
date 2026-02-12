@@ -893,6 +893,74 @@ export async function fetchBranchRuleStatus(
   }
 }
 
+// -- Commit Message Rule API --
+
+export async function fetchCommitMessageRule(
+  source?: string,
+  serverUrl: string | null = null,
+): Promise<{ content: string; hasOverride?: boolean }> {
+  try {
+    const params = source ? `?source=${encodeURIComponent(source)}` : '';
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/commit-message-rule${params}`);
+    return await res.json();
+  } catch {
+    return { content: '' };
+  }
+}
+
+export async function saveCommitMessageRule(
+  content: string | null,
+  source?: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/commit-message-rule`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, source: source || undefined }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to save commit message rule',
+    };
+  }
+}
+
+export async function fetchCommitRuleStatus(
+  serverUrl: string | null = null,
+): Promise<{ overrides: { jira: boolean; linear: boolean; local: boolean } }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/commit-message-rule/status`);
+    return await res.json();
+  } catch {
+    return { overrides: { jira: false, linear: false, local: false } };
+  }
+}
+
+// -- Git Policy API --
+
+export type GitPolicyOverride = 'inherit' | 'allow' | 'deny';
+
+export async function updateGitPolicy(
+  source: string,
+  id: string,
+  policy: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride; agentPRs?: GitPolicyOverride },
+  serverUrl: string | null = null,
+): Promise<IssueNotes> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/git-policy`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(policy),
+    });
+    return await res.json();
+  } catch {
+    return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
+  }
+}
+
 // -- Custom Tasks API --
 
 export async function fetchCustomTasks(
@@ -1057,6 +1125,11 @@ export interface IssueNotes {
   personal: { content: string; updatedAt: string } | null;
   aiContext: { content: string; updatedAt: string } | null;
   todos: TodoItem[];
+  gitPolicy?: {
+    agentCommits?: GitPolicyOverride;
+    agentPushes?: GitPolicyOverride;
+    agentPRs?: GitPolicyOverride;
+  };
 }
 
 export async function fetchNotes(

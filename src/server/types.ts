@@ -24,6 +24,12 @@ export interface WorktreeConfig {
   autoInstall?: boolean;
   /** Prefix for local issue identifiers (default: "LOCAL") */
   localIssuePrefix?: string;
+  /** Whether MCP agents are allowed to commit (default: false) */
+  allowAgentCommits?: boolean;
+  /** Whether MCP agents are allowed to push (default: false) */
+  allowAgentPushes?: boolean;
+  /** Whether MCP agents are allowed to create PRs (default: false) */
+  allowAgentPRs?: boolean;
 }
 
 export interface WorktreeInfo {

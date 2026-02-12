@@ -433,7 +433,7 @@ export function IssueList({
       </div>
 
       {/* Config bar */}
-      <div className={`flex-shrink-0 border-t ${border.subtle} px-2 py-1.5`}>
+      <div className={`flex-shrink-0 border-t ${border.subtle} px-2 py-2`}>
         <div className="relative" ref={configRef}>
           <button
             type="button"
@@ -442,7 +442,7 @@ export function IssueList({
               configOpen ? `${text.secondary} bg-white/[0.06]` : `${text.dimmed} hover:${text.secondary} hover:bg-white/[0.06]`
             }`}
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-[18px] h-[18px]" />
           </button>
 
           {configOpen && (

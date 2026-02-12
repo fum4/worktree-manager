@@ -6,6 +6,8 @@ import { CONFIG_DIR_NAME } from '../constants';
 
 export type IssueSource = 'jira' | 'linear' | 'local';
 
+export type GitPolicyOverride = 'inherit' | 'allow' | 'deny';
+
 export interface TodoItem {
   id: string;
   text: string;
@@ -18,6 +20,11 @@ export interface IssueNotes {
   personal: { content: string; updatedAt: string } | null;
   aiContext: { content: string; updatedAt: string } | null;
   todos: TodoItem[];
+  gitPolicy?: {
+    agentCommits?: GitPolicyOverride;
+    agentPushes?: GitPolicyOverride;
+    agentPRs?: GitPolicyOverride;
+  };
 }
 
 const EMPTY_NOTES: IssueNotes = {
@@ -97,6 +104,13 @@ export class NotesManager {
   deleteTodo(source: IssueSource, id: string, todoId: string): IssueNotes {
     const notes = this.loadNotes(source, id);
     notes.todos = notes.todos.filter((t) => t.id !== todoId);
+    this.saveNotes(source, id, notes);
+    return notes;
+  }
+
+  updateGitPolicy(source: IssueSource, id: string, policy: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride }): IssueNotes {
+    const notes = this.loadNotes(source, id);
+    notes.gitPolicy = { ...notes.gitPolicy, ...policy };
     this.saveNotes(source, id, notes);
     return notes;
   }

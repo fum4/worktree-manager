@@ -6,6 +6,7 @@ import type { Hono } from 'hono';
 import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
 import { detectConfig } from '../../shared/detect-config';
 import { type BranchSource, hasCustomBranchNameRule, readBranchNameRuleContent, wrapWithExportDefault } from '../branch-name';
+import { type CommitMessageSource, hasCustomCommitMessageRule, readCommitMessageRuleContent, wrapWithExportDefault as wrapCommitExportDefault } from '../commit-message';
 import type { WorktreeManager } from '../manager';
 
 export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
@@ -354,6 +355,51 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
         jira: hasCustomBranchNameRule(configDir, 'jira'),
         linear: hasCustomBranchNameRule(configDir, 'linear'),
         local: hasCustomBranchNameRule(configDir, 'local'),
+      },
+    });
+  });
+
+  // Get commit message rule content — optional ?source=jira|linear|local
+  app.get('/api/config/commit-message-rule', (c) => {
+    const source = c.req.query('source') as CommitMessageSource | undefined;
+    const content = readCommitMessageRuleContent(manager.getConfigDir(), source);
+    const hasOverride = source ? hasCustomCommitMessageRule(manager.getConfigDir(), source) : undefined;
+    return c.json({ content, ...(hasOverride !== undefined && { hasOverride }) });
+  });
+
+  // Save or delete commit message rule — body: { content, source? }
+  app.put('/api/config/commit-message-rule', async (c) => {
+    try {
+      const body = await c.req.json<{ content?: string | null; source?: CommitMessageSource }>();
+      const filename = body.source ? `commit-message.${body.source}.mjs` : 'commit-message.mjs';
+      const scriptsDir = path.join(manager.getConfigDir(), CONFIG_DIR_NAME, 'scripts');
+      const rulePath = path.join(scriptsDir, filename);
+
+      if (!body.content?.trim()) {
+        if (existsSync(rulePath)) unlinkSync(rulePath);
+        return c.json({ success: true });
+      }
+
+      if (!existsSync(scriptsDir)) mkdirSync(scriptsDir, { recursive: true });
+
+      writeFileSync(rulePath, wrapCommitExportDefault(body.content));
+      return c.json({ success: true });
+    } catch (error) {
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to save commit message rule',
+      }, 500);
+    }
+  });
+
+  // Get which per-integration commit message overrides exist
+  app.get('/api/config/commit-message-rule/status', (c) => {
+    const configDir = manager.getConfigDir();
+    return c.json({
+      overrides: {
+        jira: hasCustomCommitMessageRule(configDir, 'jira'),
+        linear: hasCustomCommitMessageRule(configDir, 'linear'),
+        local: hasCustomCommitMessageRule(configDir, 'local'),
       },
     });
   });

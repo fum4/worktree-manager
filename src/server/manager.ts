@@ -1075,6 +1075,7 @@ export class WorktreeManager {
       const allowedKeys = [
         'startCommand', 'installCommand', 'baseBranch',
         'projectDir', 'autoInstall', 'localIssuePrefix',
+        'allowAgentCommits', 'allowAgentPushes', 'allowAgentPRs',
       ] as const;
 
       for (const key of allowedKeys) {
@@ -1358,7 +1359,7 @@ export class WorktreeManager {
 
     // Create worktree using custom branch or generated name from rule
     const worktreeBranch = branch?.trim()
-      || await generateBranchName(this.configDir, { id: resolvedKey, name: taskData.summary, type: 'jira' });
+      || await generateBranchName(this.configDir, { issueId: resolvedKey, name: taskData.summary, type: 'jira' });
     const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedKey });
 
     if (!result.success) {
@@ -1492,7 +1493,7 @@ export class WorktreeManager {
 
     // Create worktree using custom branch or generated name from rule
     const worktreeBranch = branch?.trim()
-      || await generateBranchName(this.configDir, { id: resolvedId, name: issueDetail.title, type: 'linear' });
+      || await generateBranchName(this.configDir, { issueId: resolvedId, name: issueDetail.title, type: 'linear' });
     const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedId });
 
     if (!result.success) {

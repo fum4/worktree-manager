@@ -138,10 +138,17 @@ function FileIcon({ mimeType }: { mimeType: string }) {
 
 export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, onViewWorktree, refreshIntervalMinutes, onSetupNeeded }: JiraDetailPanelProps) {
   const api = useApi();
+  const serverUrl = useServerUrlOptional();
   const { issue, isLoading, isFetching, error, refetch, dataUpdatedAt } = useJiraIssueDetail(issueKey, refreshIntervalMinutes);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [existingWorktree, setExistingWorktree] = useState<{ id: string; branch: string } | null>(null);
+  const [contentPreview, setContentPreview] = useState<{ src: string; filename: string; type: 'image' | 'pdf' } | null>(null);
+
+  const handleImageClick = (src: string, alt: string) => {
+    const isPdf = src.includes('application%2Fpdf') || alt.toLowerCase().endsWith('.pdf');
+    setContentPreview({ src, filename: alt, type: isPdf ? 'pdf' : 'image' });
+  };
 
   const handleCreate = async () => {
     setIsCreating(true);
@@ -297,7 +304,7 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
           <section>
             <SectionLabel>Description</SectionLabel>
             <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-4 py-3">
-              <MarkdownContent content={issue.description} />
+              <MarkdownContent content={issue.description} baseUrl={serverUrl ?? undefined} onImageClick={handleImageClick} />
             </div>
           </section>
         )}
@@ -322,7 +329,7 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                     <span className={`text-[11px] font-medium ${text.primary}`}>{comment.author}</span>
                     <span className={`text-[10px] ${text.dimmed}`}>{formatDate(comment.created)}</span>
                   </div>
-                  <MarkdownContent content={comment.body} />
+                  <MarkdownContent content={comment.body} baseUrl={serverUrl ?? undefined} onImageClick={handleImageClick} />
                 </div>
               ))}
             </div>
@@ -349,6 +356,10 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
           }}
           onCancel={() => setExistingWorktree(null)}
         />
+      )}
+
+      {contentPreview && (
+        <ImageModal src={contentPreview.src} filename={contentPreview.filename} type={contentPreview.type} onClose={() => setContentPreview(null)} />
       )}
     </div>
   );

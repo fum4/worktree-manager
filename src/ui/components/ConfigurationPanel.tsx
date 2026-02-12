@@ -169,6 +169,20 @@ export function ConfigurationPanel({
   const [branchRuleLoading, setBranchRuleLoading] = useState(true);
   const loadedTabs = useRef(new Set<string>());
 
+  // Commit message rule state — per-tab (mirrors branch naming)
+  type CommitTab = 'default' | 'jira' | 'linear' | 'local';
+  const COMMIT_TABS: { key: CommitTab; label: string; dotColor: string }[] = [
+    { key: 'default', label: 'Default', dotColor: '' },
+    { key: 'jira', label: 'Jira', dotColor: 'bg-blue-400' },
+    { key: 'linear', label: 'Linear', dotColor: 'bg-[#5E6AD2]' },
+    { key: 'local', label: 'Local', dotColor: 'bg-amber-400' },
+  ];
+  const [commitTab, setCommitTab] = useState<CommitTab>('default');
+  const [commitRules, setCommitRules] = useState<Record<string, { content: string; original: string }>>({});
+  const [commitOverrides, setCommitOverrides] = useState<{ jira: boolean; linear: boolean; local: boolean }>({ jira: false, linear: false, local: false });
+  const [commitRuleLoading, setCommitRuleLoading] = useState(true);
+  const commitLoadedTabs = useRef(new Set<string>());
+
   const [showBanner, setShowBanner] = useState(() => {
     return localStorage.getItem(SETTINGS_BANNER_DISMISSED_KEY) !== 'true';
   });
@@ -248,6 +262,45 @@ export function ConfigurationPanel({
   useEffect(() => {
     loadBranchTab(branchTab);
   }, [branchTab, loadBranchTab]);
+
+  // Auto-save commit message rules (debounced)
+  const commitSaveTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const saveCommitRule = useCallback((tabKey: string, content: string) => {
+    clearTimeout(commitSaveTimer.current);
+    commitSaveTimer.current = setTimeout(async () => {
+      const source = tabKey === 'default' ? undefined : tabKey;
+      await api.saveCommitMessageRule(content.trim() || null, source);
+      const status = await api.fetchCommitRuleStatus();
+      setCommitOverrides(status.overrides);
+    }, 800);
+  }, [api]);
+
+  const loadCommitTab = useCallback(async (tabKey: CommitTab) => {
+    if (commitLoadedTabs.current.has(tabKey)) return;
+    commitLoadedTabs.current.add(tabKey);
+    const source = tabKey === 'default' ? undefined : tabKey;
+    const data = await api.fetchCommitMessageRule(source);
+    const content = data.content ?? '';
+    setCommitRules((prev) => ({ ...prev, [tabKey]: { content, original: content } }));
+  }, [api]);
+
+  // Load default commit tab + override status on mount
+  useEffect(() => {
+    setCommitRuleLoading(true);
+    Promise.all([
+      loadCommitTab('default'),
+      api.fetchCommitRuleStatus(),
+    ]).then(([, status]) => {
+      setCommitOverrides(status.overrides);
+      setCommitRuleLoading(false);
+    });
+  }, []);
+
+  // Lazy-load commit tab content when switching
+  useEffect(() => {
+    loadCommitTab(commitTab);
+  }, [commitTab, loadCommitTab]);
 
   if (!form) {
     return (
@@ -380,10 +433,12 @@ export function ConfigurationPanel({
           </div>
         </div>
 
-        {/* Branch Naming Card */}
+        {/* Branches Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-xs font-semibold ${text.primary}`}>Branch Naming</h3>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>Branches</h3>
+
+          <div className="flex items-center justify-between mb-3">
+            <h4 className={`text-[11px] font-medium ${text.secondary}`}>Branch naming</h4>
             <div className="flex gap-1">
               {BRANCH_TABS.map((t) => {
                 const isActive = branchTab === t.key;
@@ -414,7 +469,7 @@ export function ConfigurationPanel({
             <div className="flex flex-col gap-3">
               <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
                 {branchTab === 'default'
-                  ? <>JavaScript function that generates branch names from issue details. Receives <code className="text-[10px] bg-white/[0.06] px-1 py-0.5 rounded">{'{ id, name, type }'}</code> and should return a branch name string.</>
+                  ? <>JavaScript function that generates branch names from issue details.<br />Receives <code className="text-[10px] bg-white/[0.06] px-1 py-0.5 rounded">{'{ issueId, name, type }'}</code> and should return a branch name string.</>
                   : <>Override for <span className="font-medium capitalize">{branchTab}</span> issues. Leave empty to use the default rule.</>
                 }
               </p>
@@ -492,6 +547,157 @@ export function ConfigurationPanel({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Commits Card */}
+        <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-5`}>Commits</h3>
+
+          <div className="mb-5">
+            <h4 className={`text-[11px] font-medium ${text.secondary} mb-1`}>Agent git policy</h4>
+            <p className={`text-[11px] ${text.dimmed} leading-relaxed mb-3`}>
+              Allow or deny agents from performing git actions on worktrees.
+            </p>
+            <div className="flex items-center gap-1.5">
+              {(['allowAgentCommits', 'allowAgentPushes', 'allowAgentPRs'] as const).map((key) => {
+                const label = key === 'allowAgentCommits' ? 'Commits' : key === 'allowAgentPushes' ? 'Pushes' : 'PRs';
+                const enabled = config?.[key] ?? false;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={async () => {
+                      await api.saveConfig({ [key]: !enabled });
+                      onSaved();
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors duration-150 ${
+                      enabled
+                        ? 'bg-teal-500/[0.15] text-teal-300'
+                        : `bg-white/[0.06] ${text.dimmed} hover:${text.muted}`
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${enabled ? 'bg-teal-400' : 'bg-white/20'}`} />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="border-t border-white/[0.06] mt-1 mb-4" />
+
+          <div className="flex items-center justify-between mb-3">
+            <h4 className={`text-[11px] font-medium ${text.secondary}`}>Commit message</h4>
+            <div className="flex gap-1">
+              {COMMIT_TABS.map((t) => {
+                const isActive = commitTab === t.key;
+                const hasOverride = t.key !== 'default' && commitOverrides[t.key as keyof typeof commitOverrides];
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setCommitTab(t.key)}
+                    className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors duration-150 flex items-center gap-1.5 ${
+                      isActive ? tab.active : tab.inactive
+                    }`}
+                  >
+                    {t.label}
+                    {hasOverride && (
+                      <span className={`w-1.5 h-1.5 rounded-full ${t.dotColor}`} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {commitRuleLoading ? (
+            <div className={`flex items-center gap-2 ${text.muted} text-xs`}>
+              <Spinner size="sm" />
+              Loading...
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
+                {commitTab === 'default'
+                  ? <>JavaScript function that formats commit messages from issue details.<br />Receives <code className="text-[10px] bg-white/[0.06] px-1 py-0.5 rounded">{'{ issueId, message, source }'}</code> and should return a formatted commit message.</>
+                  : <>Override for <span className="font-medium capitalize">{commitTab}</span> issues. Leave empty to use the default rule.</>
+                }
+              </p>
+              {((commitTab === 'jira' && !jiraConfigured) || (commitTab === 'linear' && !linearConfigured)) && (
+                <div className="flex items-center justify-between px-3 py-2 rounded-md bg-amber-500/[0.08] border border-amber-500/20">
+                  <span className={`text-[11px] text-amber-400/90`}>
+                    {commitTab === 'jira' ? 'Jira' : 'Linear'} is not connected.
+                  </span>
+                  <button
+                    onClick={onNavigateToIntegrations}
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-md text-amber-400 bg-amber-500/[0.12] hover:bg-amber-500/[0.20] transition-colors duration-150 shrink-0"
+                  >
+                    Setup {commitTab === 'jira' ? 'Jira' : 'Linear'}
+                  </button>
+                </div>
+              )}
+              <div className="relative rounded-md border border-white/[0.06]">
+                {commitRules[commitTab] && commitRules[commitTab].content !== commitRules[commitTab].original && (
+                  <Tooltip text="Reset to saved">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const original = commitRules[commitTab].original;
+                        setCommitRules((prev) => ({
+                          ...prev,
+                          [commitTab]: { ...prev[commitTab], content: original },
+                        }));
+                        saveCommitRule(commitTab, original);
+                      }}
+                      className={`absolute top-1.5 right-1.5 z-10 p-1 rounded ${text.dimmed} hover:${text.muted} hover:bg-white/[0.06] transition-colors`}
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </button>
+                  </Tooltip>
+                )}
+                <Editor
+                  height="160px"
+                  defaultLanguage="javascript"
+                  value={commitRules[commitTab]?.content ?? ''}
+                  onChange={(value) => {
+                    const content = value ?? '';
+                    setCommitRules((prev) => ({
+                      ...prev,
+                      [commitTab]: { ...prev[commitTab], content },
+                    }));
+                    saveCommitRule(commitTab, content);
+                  }}
+                  theme="vs-dark"
+                  options={{
+                    fixedOverflowWidgets: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 12,
+                    lineNumbers: 'off',
+                    glyphMargin: false,
+                    folding: false,
+                    lineDecorationsWidth: 8,
+                    lineNumbersMinChars: 0,
+                    padding: { top: 8, bottom: 8 },
+                    overviewRulerLanes: 0,
+                    hideCursorInOverviewRuler: true,
+                    overviewRulerBorder: false,
+                    scrollbar: { vertical: 'hidden', horizontal: 'auto' },
+                    renderLineHighlight: 'none',
+                    tabSize: 2,
+                  }}
+                />
+                {commitTab !== 'default' && !commitRules[commitTab]?.content && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className={`text-[11px] ${text.dimmed}`}>
+                      Using default rule. Edit to override for {commitTab} issues.
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Connection status */}

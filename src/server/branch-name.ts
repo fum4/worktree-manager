@@ -10,21 +10,21 @@ const BRANCH_NAME_FILE = 'branch-name.mjs';
 const EXPORT_DEFAULT_PREFIX = 'export default ';
 
 // The default rule shown in the editor and used when no custom file exists
-export const DEFAULT_BRANCH_RULE = `({ id, name }) => {
+export const DEFAULT_BRANCH_RULE = `({ issueId, name }) => {
   const slug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_|_$/g, '');
 
-  return \`\${id}/\${slug}\`;
+  return \`\${issueId}/\${slug}\`;
 }`;
 
-function defaultBranchNameFn({ id, name }: { id: string; name: string }): string {
+function defaultBranchNameFn({ issueId, name }: { issueId: string; name: string }): string {
   const slug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_') // replace non-alphanumeric chars with underscores
     .replace(/^_|_$/g, '');       // trim leading/trailing underscores
-  return `${id}/${slug}`;
+  return `${issueId}/${slug}`;
 }
 
 function getBranchNameRulePath(configDir: string, source?: BranchSource): string {
@@ -35,7 +35,7 @@ function getBranchNameRulePath(configDir: string, source?: BranchSource): string
 async function loadCustomRule(
   configDir: string,
   source?: BranchSource,
-): Promise<((params: { id: string; name: string; type: string }) => string) | null> {
+): Promise<((params: { issueId: string; name: string; type: string }) => string) | null> {
   const rulePath = getBranchNameRulePath(configDir, source);
   if (!existsSync(rulePath)) return null;
 
@@ -55,7 +55,7 @@ const BRANCH_SOURCES: readonly string[] = ['jira', 'linear', 'local'];
 
 export async function generateBranchName(
   configDir: string,
-  params: { id: string; name: string; type: string },
+  params: { issueId: string; name: string; type: string },
 ): Promise<string> {
   // Determine source from params.type
   const source: BranchSource | undefined = BRANCH_SOURCES.includes(params.type)

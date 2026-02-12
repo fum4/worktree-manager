@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { fetchNotes, updateNotes, addTodo, updateTodo, deleteTodo } from './api';
-import type { IssueNotes } from './api';
+import { fetchNotes, updateNotes, addTodo, updateTodo, deleteTodo, updateGitPolicy } from './api';
+import type { GitPolicyOverride, IssueNotes } from './api';
 import { useServerUrlOptional } from '../contexts/ServerContext';
 
 export function useNotes(source: string, id: string | null) {
@@ -54,6 +54,13 @@ export function useNotes(source: string, id: string | null) {
     return result;
   };
 
+  const updateGitPolicyMutation = async (policy: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride; agentPRs?: GitPolicyOverride }) => {
+    if (!id) return;
+    const result = await updateGitPolicy(source, id, policy, serverUrl);
+    queryClient.setQueryData(queryKey, result);
+    return result;
+  };
+
   return {
     notes: data ?? null,
     isLoading,
@@ -63,6 +70,7 @@ export function useNotes(source: string, id: string | null) {
     toggleTodo,
     deleteTodo: deleteTodoItem,
     updateTodoText,
+    updateGitPolicy: updateGitPolicyMutation,
     refetch,
   };
 }

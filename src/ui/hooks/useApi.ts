@@ -145,6 +145,20 @@ export function useApi() {
       fetchBranchRuleStatus: () =>
         api.fetchBranchRuleStatus(serverUrl),
 
+      // Commit message rule
+      fetchCommitMessageRule: (source?: string) =>
+        api.fetchCommitMessageRule(source, serverUrl),
+
+      saveCommitMessageRule: (content: string | null, source?: string) =>
+        api.saveCommitMessageRule(content, source, serverUrl),
+
+      fetchCommitRuleStatus: () =>
+        api.fetchCommitRuleStatus(serverUrl),
+
+      // Git policy
+      updateGitPolicy: (source: string, id: string, policy: Parameters<typeof api.updateGitPolicy>[2]) =>
+        api.updateGitPolicy(source, id, policy, serverUrl),
+
       // Notes
       fetchNotes: (source: string, id: string) =>
         api.fetchNotes(source, id, serverUrl),

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
@@ -7,13 +8,76 @@ import { text } from '../theme';
 interface MarkdownContentProps {
   content: string;
   className?: string;
+  /** Base URL to prepend to relative image/link paths (e.g. serverUrl for proxied Jira images) */
+  baseUrl?: string;
+  /** Callback when an inline image is clicked (src, alt). If provided, opens preview instead of browser. */
+  onImageClick?: (src: string, alt: string) => void;
 }
 
 function preserveBlankLines(src: string): string {
   return src.replace(/\n{3,}/g, (m) => '\n\n' + '&nbsp;\n\n'.repeat(m.length - 2));
 }
 
-export function MarkdownContent({ content, className }: MarkdownContentProps) {
+function resolveUrl(src: string | undefined, baseUrl?: string): string {
+  if (!src) return '';
+  if (baseUrl && src.startsWith('/')) return `${baseUrl}${src}`;
+  return src;
+}
+
+function InlineImage({ src, alt, baseUrl, onImageClick }: { src?: string; alt?: string; baseUrl?: string; onImageClick?: (src: string, alt: string) => void }) {
+  const [failed, setFailed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const url = resolveUrl(src, baseUrl);
+  const label = alt || 'attachment';
+
+  if (failed || !url) {
+    return (
+      <span className={`inline-flex items-center gap-1 text-[11px] ${text.muted} bg-white/[0.04] px-2 py-0.5 rounded`}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+          <path fillRule="evenodd" d="M4 2a1.5 1.5 0 0 0-1.5 1.5v9A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5V6.621a1.5 1.5 0 0 0-.44-1.06L9.94 2.439A1.5 1.5 0 0 0 8.878 2H4Z" clipRule="evenodd" />
+        </svg>
+        {label}
+      </span>
+    );
+  }
+
+  const thumbnail = (
+    <span className="rounded overflow-hidden block relative">
+      {loading && (
+        <span className="absolute inset-0 flex items-center justify-center bg-white/[0.03]">
+          <svg className={`animate-spin w-3 h-3 ${text.dimmed}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        </span>
+      )}
+      <img
+        src={url}
+        alt={label}
+        className={`w-36 h-28 object-cover transition-transform hover:scale-105 ${loading ? 'opacity-0' : 'opacity-100'}`}
+        loading="lazy"
+        onLoad={() => setLoading(false)}
+        onError={() => { setLoading(false); setFailed(true); }}
+      />
+    </span>
+  );
+
+  return (
+    <span className="inline-block my-1">
+      {onImageClick ? (
+        <button type="button" onClick={() => onImageClick(url, label)} className="flex flex-col w-36">
+          {thumbnail}
+        </button>
+      ) : (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col w-36">
+          {thumbnail}
+        </a>
+      )}
+    </span>
+  );
+}
+
+export function MarkdownContent({ content, className, baseUrl, onImageClick }: MarkdownContentProps) {
   return (
     <div className={className}>
       <ReactMarkdown
@@ -117,9 +181,7 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
           em: ({ children }) => (
             <em className="italic">{children}</em>
           ),
-          img: ({ src, alt }) => (
-            <img src={src} alt={alt ?? ''} className="max-w-full rounded my-1" loading="lazy" />
-          ),
+          img: ({ src, alt }) => <InlineImage src={src} alt={alt ?? ''} baseUrl={baseUrl} onImageClick={onImageClick} />,
         }}
       >
         {preserveBlankLines(content)}

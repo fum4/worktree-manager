@@ -2,6 +2,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import path from 'path';
 
 import { APP_NAME, CONFIG_DIR_NAME } from './constants';
+import { formatCommitMessage } from './server/commit-message';
+import { resolveGitPolicy } from './server/git-policy';
 import type { WorktreeManager } from './server/manager';
 import type { NotesManager } from './server/notes-manager';
 import { generateTaskMd, writeTaskMd } from './server/task-context';
@@ -59,7 +61,13 @@ Todos are a checklist of sub-tasks defined by the user. They appear in TASK.md a
 1. Before starting work, read the todos to understand what needs to be done
 2. As you complete each item, call update_todo with action="toggle" to check it off
 3. The user sees checkbox state update in real-time in the UI
-4. You can also add new todos with action="add" if you discover additional sub-tasks`;
+4. You can also add new todos with action="add" if you discover additional sub-tasks
+
+## Git Policy
+The project owner can restrict agent git operations. Before calling commit, push, or create_pr:
+1. Call get_git_policy with the worktree ID to check if the operation is allowed
+2. If not allowed, inform the user and suggest they enable it in Settings or per-worktree
+3. When committing, the commit message may be automatically formatted by a project-configured rule`;
 
 function findWorktreeOrThrow(ctx: ActionContext, id: string) {
   const worktrees = ctx.manager.getWorktrees();
@@ -220,7 +228,7 @@ export const actions: Action[] = [
   // -- Git operations --
   {
     name: 'commit',
-    description: 'Stage all changes and commit in a worktree (requires GitHub integration)',
+    description: 'Stage all changes and commit in a worktree (requires GitHub integration). Subject to agent git policy — call get_git_policy first to check.',
     params: {
       id: { type: 'string', description: 'Worktree ID', required: true },
       message: { type: 'string', description: 'Commit message', required: true },
@@ -228,22 +236,43 @@ export const actions: Action[] = [
     handler: async (ctx, params) => {
       const id = params.id as string;
       const message = params.message as string;
+
+      const policy = resolveGitPolicy('commit', id, ctx.manager.getConfig(), ctx.notesManager);
+      if (!policy.allowed) {
+        return { success: false, error: policy.reason };
+      }
+
       const ghManager = ctx.manager.getGitHubManager();
       if (!ghManager?.isAvailable()) {
         return { success: false, error: 'GitHub integration not available' };
       }
+
+      const linkMap = ctx.notesManager.buildWorktreeLinkMap();
+      const linked = linkMap.get(id);
+      const formattedMessage = await formatCommitMessage(ctx.manager.getConfigDir(), {
+        message,
+        issueId: linked?.issueId ?? null,
+        source: linked?.source ?? null,
+      });
+
       const wt = findWorktreeOrThrow(ctx, id);
-      return ghManager.commitAll(wt.path, id, message);
+      return ghManager.commitAll(wt.path, id, formattedMessage);
     },
   },
   {
     name: 'push',
-    description: 'Push commits in a worktree to the remote (requires GitHub integration)',
+    description: 'Push commits in a worktree to the remote (requires GitHub integration). Subject to agent git policy — call get_git_policy first to check.',
     params: {
       id: { type: 'string', description: 'Worktree ID', required: true },
     },
     handler: async (ctx, params) => {
       const id = params.id as string;
+
+      const policy = resolveGitPolicy('push', id, ctx.manager.getConfig(), ctx.notesManager);
+      if (!policy.allowed) {
+        return { success: false, error: policy.reason };
+      }
+
       const ghManager = ctx.manager.getGitHubManager();
       if (!ghManager?.isAvailable()) {
         return { success: false, error: 'GitHub integration not available' };
@@ -254,7 +283,7 @@ export const actions: Action[] = [
   },
   {
     name: 'create_pr',
-    description: 'Create a GitHub pull request for a worktree branch (requires GitHub integration)',
+    description: 'Create a GitHub pull request for a worktree branch (requires GitHub integration). Subject to agent git policy (follows push policy) — call get_git_policy first to check.',
     params: {
       id: { type: 'string', description: 'Worktree ID', required: true },
       title: { type: 'string', description: 'PR title', required: true },
@@ -264,6 +293,12 @@ export const actions: Action[] = [
       const id = params.id as string;
       const title = params.title as string;
       const body = params.body as string | undefined;
+
+      const policy = resolveGitPolicy('create_pr', id, ctx.manager.getConfig(), ctx.notesManager);
+      if (!policy.allowed) {
+        return { success: false, error: policy.reason };
+      }
+
       const ghManager = ctx.manager.getGitHubManager();
       if (!ghManager?.isAvailable()) {
         return { success: false, error: 'GitHub integration not available' };
@@ -518,6 +553,24 @@ export const actions: Action[] = [
       // delete
       const notes = ctx.notesManager.deleteTodo(src, issueId, todoId);
       return { success: true, todos: notes.todos };
+    },
+  },
+
+  // -- Git policy --
+  {
+    name: 'get_git_policy',
+    description: 'Check whether agent git operations (commit, push, create_pr) are allowed for a worktree. Call this before attempting any git operation to avoid errors.',
+    params: {
+      id: { type: 'string', description: 'Worktree ID', required: true },
+    },
+    handler: async (ctx, params) => {
+      const id = params.id as string;
+      const config = ctx.manager.getConfig();
+      return {
+        commit: resolveGitPolicy('commit', id, config, ctx.notesManager),
+        push: resolveGitPolicy('push', id, config, ctx.notesManager),
+        createPr: resolveGitPolicy('create_pr', id, config, ctx.notesManager),
+      };
     },
   },
 ];

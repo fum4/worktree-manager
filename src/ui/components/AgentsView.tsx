@@ -4,6 +4,7 @@ import { Info, Radar, ScanSearch, X } from 'lucide-react';
 import { APP_NAME } from '../../constants';
 import { useServer } from '../contexts/ServerContext';
 import { useApi } from '../hooks/useApi';
+import { useConfig } from '../hooks/useConfig';
 import { useMcpServers, useMcpDeploymentStatus } from '../hooks/useMcpServers';
 import { useSkills, useSkillDeploymentStatus, useClaudePlugins } from '../hooks/useSkills';
 import { surface } from '../theme';
@@ -51,6 +52,13 @@ export function AgentsView() {
   const [showCreateSkillModal, setShowCreateSkillModal] = useState(false);
   const [showInstallPluginModal, setShowInstallPluginModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
+
+  const { config, refetch: refetchConfig } = useConfig();
+
+  const handleTogglePolicy = async (key: 'allowAgentCommits' | 'allowAgentPushes' | 'allowAgentPRs') => {
+    await api.saveConfig({ [key]: !config?.[key] });
+    refetchConfig();
+  };
 
   const { servers, isLoading: serversLoading, refetch: refetchServers } = useMcpServers(search || undefined);
   const { status: deploymentStatus, refetch: refetchDeployment } = useMcpDeploymentStatus();
@@ -195,6 +203,10 @@ export function AgentsView() {
           onScanImport={() => setShowScanModal(true)}
           pluginActing={pluginActing}
           onPluginActingChange={setPluginActing}
+          allowAgentCommits={config?.allowAgentCommits}
+          allowAgentPushes={config?.allowAgentPushes}
+          allowAgentPRs={config?.allowAgentPRs}
+          onTogglePolicy={handleTogglePolicy}
         />
       </aside>
 
@@ -238,7 +250,7 @@ export function AgentsView() {
           <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-purple-400/20 bg-purple-400/[0.04]">
             <Info className="w-4 h-4 text-purple-400 flex-shrink-0" />
             <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
-              Manage all your agent tooling in one place. Import your MCP servers and skills, then enable or disable them globally or per project.
+              Manage all your agent tooling in one place. Import your MCP servers, skills and Claude plugins, then enable or disable them globally or per project.
             </p>
             <button
               type="button"
