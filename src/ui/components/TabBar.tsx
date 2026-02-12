@@ -113,7 +113,7 @@ function Tab({ project, isActive, onSelect, onClose }: TabProps) {
         transition-colors duration-150
         ${isActive
           ? `${surface.panelSelected} text-[#6b7280]`
-          : 'text-[#6b7280] hover:bg-white/[0.04] hover:text-[#9ca3af]'
+          : `text-[#6b7280] hover:bg-white/[0.04] ${hasError ? '' : 'hover:text-[#9ca3af]'}`
         }
         ${hasError ? 'text-red-400' : ''}
       `}
@@ -140,7 +140,7 @@ function Tab({ project, isActive, onSelect, onClose }: TabProps) {
         className={`
           flex items-center justify-center w-4 h-4 rounded -mr-1
           opacity-0 group-hover:opacity-100
-          hover:bg-white/10 hover:text-[#e5e7eb] transition-all duration-150
+          hover:bg-white/10 ${hasError ? '' : 'hover:text-[#e5e7eb]'} transition-all duration-150
         `}
       >
         <X className="w-3 h-3" />

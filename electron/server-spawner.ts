@@ -1,6 +1,12 @@
 import { spawn, type ChildProcess } from 'child_process';
+import { appendFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+const debugLog = '/tmp/work3-debug.log';
+function debug(msg: string) {
+  appendFileSync(debugLog, `${new Date().toISOString()} ${msg}\n`);
+}
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,12 +22,18 @@ export function spawnServer(
   port: number,
 ): ChildProcess {
   // Path to the CLI entry point
-  const cliPath = isDev
-    ? path.join(projectRoot, 'dist', 'cli', 'index.js')
-    : path.join(projectRoot, 'dist', 'cli', 'index.js');
+  // In packaged app, files are in app.asar.unpacked since external node can't read asar
+  const cliPath = path.join(projectRoot, 'dist', 'cli', 'index.js')
+    .replace('app.asar', 'app.asar.unpacked');
 
   // --no-open: don't open browser/electron
   const args = ['--no-open'];
+
+  debug(`--- spawn ---`);
+  debug(`cliPath: ${cliPath}`);
+  debug(`projectDir: ${projectDir}`);
+  debug(`port: ${port}`);
+  debug(`PATH: ${process.env.PATH}`);
 
   const child = spawn('node', [cliPath, ...args], {
     cwd: projectDir,
@@ -34,13 +46,17 @@ export function spawnServer(
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
+  child.on('error', (err) => {
+    debug(`spawn error: ${err.message}`);
+  });
+
   // Log server output for debugging
   child.stdout?.on('data', (data: Buffer) => {
-    console.log(`[server:${port}] ${data.toString().trim()}`);
+    debug(`[stdout] ${data.toString().trim()}`);
   });
 
   child.stderr?.on('data', (data: Buffer) => {
-    console.error(`[server:${port}] ${data.toString().trim()}`);
+    debug(`[stderr] ${data.toString().trim()}`);
   });
 
   return child;

@@ -26,6 +26,9 @@ dmg:
       type: link
       path: /Applications
 asar: true
+asarUnpack:
+  - dist/*.js
+  - dist/cli/**
 extraResources:
   - from: dist/runtime
     to: runtime
