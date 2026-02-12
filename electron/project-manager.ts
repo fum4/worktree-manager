@@ -311,12 +311,11 @@ export class ProjectManager {
     const state = this.loadState();
     if (!state || state.openProjects.length === 0) return;
 
-    for (const { projectDir } of state.openProjects) {
-      // Only restore if directory still exists
-      if (existsSync(projectDir)) {
-        await this.openProject(projectDir);
-      }
-    }
+    await Promise.all(
+      state.openProjects
+        .filter(({ projectDir }) => existsSync(projectDir))
+        .map(({ projectDir }) => this.openProject(projectDir))
+    );
 
     // Restore active project
     if (state.lastActiveProjectDir) {

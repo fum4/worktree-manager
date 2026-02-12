@@ -15,6 +15,9 @@ import { preferencesManager, type AppPreferences, type SetupPreference } from '.
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
+// Set app name (shows in dock, menu bar, etc.)
+app.setName('work3');
+
 // Custom protocol for opening projects
 const PROTOCOL = 'work3';
 
@@ -45,6 +48,7 @@ function createMainWindow(): BrowserWindow {
     y: savedBounds?.y,
     minWidth: 800,
     minHeight: 700,
+    backgroundColor: '#0a0c10',
     title: 'work3',
     titleBarStyle: 'hiddenInset' as const,
     trafficLightPosition: { x: 12, y: 12 },
@@ -313,8 +317,9 @@ if (!gotLock) {
   });
 }
 
-app.whenReady().then(async () => {
+app.whenReady().then(() => {
   setupIpcHandlers();
+  createMainWindow();
   createTray();
 
   // Check if launched with a protocol URL
@@ -325,32 +330,16 @@ app.whenReady().then(async () => {
     handleProtocolUrl(protocolArg);
   }
 
-  // Check for --port flag (legacy CLI compatibility)
-  const portIdx = process.argv.indexOf('--port');
-  if (portIdx !== -1 && process.argv[portIdx + 1]) {
-    // Legacy mode not supported in new architecture - just show window
-    createMainWindow();
-  }
-
-  // Check for --project flag (new CLI mode)
+  // Open project from --project flag (fire-and-forget, onChange listener updates UI)
   const projectIdx = process.argv.indexOf('--project');
   if (projectIdx !== -1 && process.argv[projectIdx + 1]) {
-    const projectDir = process.argv[projectIdx + 1];
-    createMainWindow();
-    const result = await projectManager.openProject(projectDir);
-    if (result.success) {
-      notifyProjectsChanged();
-    }
+    projectManager.openProject(process.argv[projectIdx + 1]);
   }
 
-  // If nothing opened, try to restore previous state
+  // Restore previous state in the background (onChange listener updates UI)
   if (projectManager.getProjects().length === 0) {
-    await projectManager.restoreProjects();
-    notifyProjectsChanged();
+    projectManager.restoreProjects();
   }
-
-  // Always show the main window
-  createMainWindow();
 
   app.on('activate', () => {
     if (mainWindow) {

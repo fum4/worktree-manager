@@ -81,7 +81,7 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
 
         {/* Status dot / Actions — fixed-height wrapper prevents reflow on hover */}
         <div className="flex-shrink-0 relative" style={{ width: 52, height: 16 }}>
-          {acting || disabled ? (
+          {acting ? (
             <div className="absolute inset-0 mr-[5px] flex items-center justify-end">
               <Spinner size="xs" className={acting === 'remove' ? 'text-red-400' : text.muted} />
             </div>
@@ -93,15 +93,15 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
               <div className="absolute inset-0 hidden group-hover:flex items-center justify-end gap-2.5 mr-[4px]">
                 <span
                   role="button"
-                  onClick={handleRemove}
-                  className="p-0.5 rounded text-white/30 hover:text-red-400 hover:bg-red-400/15 transition-colors cursor-pointer"
+                  onClick={disabled ? undefined : handleRemove}
+                  className={`p-0.5 rounded transition-colors ${disabled ? 'text-white/15 cursor-default' : 'text-white/30 hover:text-red-400 hover:bg-red-400/15 cursor-pointer'}`}
                 >
                   <Trash2 className="w-3 h-3" />
                 </span>
                 <span
                   role="button"
-                  onClick={handleToggle}
-                  className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
+                  onClick={disabled ? undefined : handleToggle}
+                  className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 block ${disabled ? 'cursor-default opacity-50' : 'cursor-pointer'} ${
                     plugin.enabled
                       ? plugin.error ? 'bg-red-400/35' : plugin.warning ? 'bg-yellow-400/35' : 'bg-teal-400/35'
                       : 'bg-white/[0.08]'

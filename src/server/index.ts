@@ -209,7 +209,6 @@ export async function startWorktreeServer(
   const exitOnClose = options?.exitOnClose ?? true;
   const requestedPort = options?.port ?? DEFAULT_PORT;
   const manager = new WorktreeManager(config, configFilePath ?? null);
-  await manager.initGitHub();
   ensureCliInPath();
   const { app, injectWebSocket, terminalManager } =
     createWorktreeServer(manager);
@@ -225,6 +224,9 @@ export async function startWorktreeServer(
   server.listen(actualPort, () => {
     log.success(`Server running at http://localhost:${actualPort}`);
   });
+
+  // Initialize GitHub in the background (not blocking server startup)
+  manager.initGitHub().catch(() => {});
 
   // Write server.json for agent discovery
   const configDir = manager.getConfigDir();

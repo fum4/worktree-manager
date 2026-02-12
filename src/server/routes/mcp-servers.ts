@@ -136,7 +136,10 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
 
     const status: Record<string, Record<string, { global?: boolean; project?: boolean; globalPath?: string; projectPath?: string }>> = {};
 
-    for (const serverId of Object.keys(registry.servers)) {
+    const serverIds = new Set(Object.keys(registry.servers));
+    serverIds.add('work3'); // built-in server
+
+    for (const serverId of serverIds) {
       status[serverId] = {};
 
       for (const [agentId, spec] of Object.entries(AGENT_SPECS)) {

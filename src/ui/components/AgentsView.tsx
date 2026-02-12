@@ -200,7 +200,6 @@ export function AgentsView() {
           onAddServer={() => setShowCreateServerModal(true)}
           onAddSkill={() => setShowCreateSkillModal(true)}
           onAddPlugin={() => setShowInstallPluginModal(true)}
-          onScanImport={() => setShowScanModal(true)}
           pluginActing={pluginActing}
           onPluginActingChange={setPluginActing}
           allowAgentCommits={config?.allowAgentCommits}

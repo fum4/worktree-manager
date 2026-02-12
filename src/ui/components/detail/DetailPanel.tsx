@@ -2,9 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import type { WorktreeInfo } from '../../types';
 import { useApi } from '../../hooks/useApi';
-import { border, detailTab, errorBanner, status, text } from '../../theme';
+import { action, border, detailTab, errorBanner, input, text } from '../../theme';
 import { ConfirmDialog } from '../ConfirmDialog';
-import { ActionToolbar } from './ActionToolbar';
 import { DetailHeader } from './DetailHeader';
 import { GitActionInputs } from './GitActionInputs';
 import { LogsViewer } from './LogsViewer';
@@ -161,43 +160,14 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
         worktree={worktree}
         isRunning={isRunning}
         isCreating={isCreating}
+        isLoading={isLoading}
         onRename={handleRename}
+        onStart={handleStart}
+        onStop={handleStop}
+        onRemove={handleRemove}
         onSelectJiraIssue={onSelectJiraIssue}
         onSelectLinearIssue={onSelectLinearIssue}
         onSelectLocalIssue={onSelectLocalIssue}
-      />
-
-      {!isCreating && (
-        <div className={`flex-shrink-0 px-5 py-2.5 border-b ${border.section}`}>
-          <ActionToolbar
-            worktree={worktree}
-            isRunning={isRunning}
-            isLoading={isLoading}
-            isGitLoading={isGitLoading}
-            showCommitInput={showCommitInput}
-            showCreatePrInput={showCreatePrInput}
-            onStart={handleStart}
-            onStop={handleStop}
-            onRemove={handleRemove}
-            onToggleCommit={() => { setShowCommitInput((v) => !v); setShowCreatePrInput(false); }}
-            onPush={handlePush}
-            onTogglePr={() => { setShowCreatePrInput((v) => !v); setShowCommitInput(false); }}
-          />
-        </div>
-      )}
-
-      <GitActionInputs
-        showCommitInput={showCommitInput}
-        showCreatePrInput={showCreatePrInput}
-        commitMessage={commitMessage}
-        prTitle={prTitle}
-        isGitLoading={isGitLoading}
-        onCommitMessageChange={setCommitMessage}
-        onPrTitleChange={setPrTitle}
-        onCommit={handleCommit}
-        onCreatePr={handleCreatePr}
-        onHideCommit={() => setShowCommitInput(false)}
-        onHidePr={() => setShowCreatePrInput(false)}
       />
 
       {error && (
@@ -216,32 +186,126 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
       )}
 
       {!isCreating && (
-        <div className={`flex-shrink-0 flex gap-1 px-4 py-2 border-b ${border.section}`}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('logs')}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors duration-150 ${
-              activeTab === 'logs' ? detailTab.active : detailTab.inactive
-            }`}
-          >
-            Logs
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('terminal');
-              if (!openTerminals.has(worktree.id)) {
-                setOpenTerminals(prev => new Set(prev).add(worktree.id));
-              }
-            }}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors duration-150 ${
-              activeTab === 'terminal' ? detailTab.active : detailTab.inactive
-            }`}
-          >
-            Terminal
-          </button>
+        <div className={`flex-shrink-0 h-11 flex items-center justify-between px-4 border-b ${border.section}`}>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('logs')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors duration-150 ${
+                activeTab === 'logs' ? detailTab.active : detailTab.inactive
+              }`}
+            >
+              Logs
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('terminal');
+                if (!openTerminals.has(worktree.id)) {
+                  setOpenTerminals(prev => new Set(prev).add(worktree.id));
+                }
+              }}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors duration-150 ${
+                activeTab === 'terminal' ? detailTab.active : detailTab.inactive
+              }`}
+            >
+              Terminal
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end ml-3">
+            {showCommitInput ? (
+              <>
+                <input
+                  type="text"
+                  value={commitMessage}
+                  onChange={(e) => setCommitMessage(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCommit(); if (e.key === 'Escape') setShowCommitInput(false); }}
+                  placeholder="Commit message..."
+                  className={`w-72 h-7 px-2.5 bg-white/[0.04] border border-white/[0.08] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCommitInput(false)}
+                  className={`h-7 px-2 text-[11px] font-medium ${action.cancel.text} ${action.cancel.textHover} rounded-md transition-colors duration-150 flex-shrink-0`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCommit}
+                  disabled={isGitLoading || !commitMessage.trim()}
+                  className={`h-7 px-2.5 text-[11px] font-medium ${action.commit.textActive} ${action.commit.bgSubmit} ${action.commit.bgSubmitHover} rounded-md disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] flex-shrink-0`}
+                >
+                  Commit
+                </button>
+              </>
+            ) : (
+              <>
+                {worktree.hasUncommitted && (
+                  <button
+                    type="button"
+                    onClick={() => { setShowCommitInput(true); setShowCreatePrInput(false); }}
+                    disabled={isGitLoading}
+                    className={`h-7 px-2.5 text-[11px] font-medium ${action.commit.text} ${action.commit.hover} rounded-md disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] inline-flex items-center gap-1.5`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25h5a.75.75 0 0 0 0-1.5h-5A2.75 2.75 0 0 0 2 5.75v8.5A2.75 2.75 0 0 0 4.75 17h8.5A2.75 2.75 0 0 0 16 14.25v-5a.75.75 0 0 0-1.5 0v5c0 .69-.56 1.25-1.25 1.25h-8.5c-.69 0-1.25-.56-1.25-1.25v-8.5Z" />
+                    </svg>
+                    Commit
+                  </button>
+                )}
+                {worktree.hasUnpushed && (
+                  <button
+                    type="button"
+                    onClick={handlePush}
+                    disabled={isGitLoading}
+                    className={`h-7 px-2.5 text-[11px] font-medium ${action.push.text} ${action.push.hover} rounded-md disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] inline-flex items-center gap-1.5`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path fillRule="evenodd" d="M10 17a.75.75 0 0 1-.75-.75V5.612L5.29 9.77a.75.75 0 0 1-1.08-1.04l5.25-5.5a.75.75 0 0 1 1.08 0l5.25 5.5a.75.75 0 1 1-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0 1 10 17Z" clipRule="evenodd" />
+                    </svg>
+                    Push{worktree.commitsAhead ? ` (${worktree.commitsAhead})` : ''}
+                  </button>
+                )}
+                {!worktree.githubPrUrl && !worktree.hasUnpushed && worktree.commitsAheadOfBase !== 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setShowCreatePrInput((v) => !v); setShowCommitInput(false); }}
+                    disabled={isGitLoading}
+                    className={`h-7 px-2.5 text-[11px] font-medium rounded-md transition-colors duration-150 active:scale-[0.98] inline-flex items-center gap-1.5 ${
+                      showCreatePrInput
+                        ? `${action.pr.textActive} ${action.pr.bgActive}`
+                        : `${action.pr.text} ${action.pr.hover}`
+                    } disabled:opacity-50`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                      <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
+                    </svg>
+                    PR
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
+
+      <GitActionInputs
+        showCommitInput={false}
+        showCreatePrInput={showCreatePrInput}
+        commitMessage={commitMessage}
+        prTitle={prTitle}
+        isGitLoading={isGitLoading}
+        onCommitMessageChange={setCommitMessage}
+        onPrTitleChange={setPrTitle}
+        onCommit={handleCommit}
+        onCreatePr={handleCreatePr}
+        onHideCommit={() => setShowCommitInput(false)}
+        onHidePr={() => setShowCreatePrInput(false)}
+      />
 
       <LogsViewer
         worktree={worktree}

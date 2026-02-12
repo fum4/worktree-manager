@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { WorktreeInfo } from '../../types';
-import { badge, border, status, surface, text } from '../../theme';
+import { action, badge, border, status, surface, text } from '../../theme';
 import { Tooltip } from '../Tooltip';
 
 interface DetailHeaderProps {
   worktree: WorktreeInfo;
   isRunning: boolean;
   isCreating: boolean;
+  isLoading: boolean;
   onRename: (changes: { name?: string; branch?: string }) => Promise<boolean>;
+  onStart: () => void;
+  onStop: () => void;
+  onRemove: () => void;
   onSelectJiraIssue?: (key: string) => void;
   onSelectLinearIssue?: (identifier: string) => void;
   onSelectLocalIssue?: (identifier: string) => void;
@@ -85,7 +89,11 @@ export function DetailHeader({
   worktree,
   isRunning,
   isCreating,
+  isLoading,
   onRename,
+  onStart,
+  onStop,
+  onRemove,
   onSelectJiraIssue,
   onSelectLinearIssue,
   onSelectLocalIssue,
@@ -111,21 +119,56 @@ export function DetailHeader({
             onSave={(v) => onRename({ branch: v })}
           />
         </div>
-        <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {isCreating && (
             <span className={`px-2 py-0.5 text-[11px] font-medium ${status.creating.badge} rounded-full`}>
               Creating
             </span>
           )}
-          {isRunning && (
-            <span className={`px-2 py-0.5 text-[11px] font-medium ${status.running.badge} rounded-full`}>
-              Running
-            </span>
-          )}
-          {!isRunning && !isCreating && (
-            <span className={`px-2 py-0.5 text-[11px] font-medium ${status.stopped.badge} rounded-full`}>
-              Stopped
-            </span>
+          {!isCreating && (
+            <>
+              {isRunning ? (
+                <button
+                  type="button"
+                  onClick={onStop}
+                  disabled={isLoading}
+                  className={`h-7 px-2.5 text-[11px] font-medium ${action.stop.text} ${action.stop.hover} rounded-md disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] inline-flex items-center gap-1.5`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                    <path fillRule="evenodd" d="M2 10a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm5-2.25A.75.75 0 0 1 7.75 7h4.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75v-4.5Z" clipRule="evenodd" />
+                  </svg>
+                  Stop
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onStart}
+                  disabled={isLoading}
+                  className={`h-7 px-2.5 text-[11px] font-medium ${action.start.text} ${action.start.hover} rounded-md disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] inline-flex items-center gap-1.5`}
+                >
+                  {isLoading ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 animate-spin">
+                      <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H4.598a.75.75 0 0 0-.75.75v3.634a.75.75 0 0 0 1.5 0v-2.033l.312.311a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.06-7.19a.75.75 0 0 0-1.5 0v2.033l-.312-.312a7 7 0 0 0-11.712 3.138.75.75 0 0 0 1.449.39 5.5 5.5 0 0 1 9.201-2.466l.312.312H11.58a.75.75 0 1 0 0 1.5h3.634a.75.75 0 0 0 .75-.75V4.234Z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.841Z" />
+                    </svg>
+                  )}
+                  Run
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onRemove}
+                disabled={isLoading}
+                className={`h-7 w-7 inline-flex items-center justify-center text-[11px] font-medium ${action.delete.text} ${action.delete.hover} rounded-md disabled:opacity-50 transition-colors duration-150`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.519.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </>
           )}
           {worktree.ports.length > 0 && (
             <span className={`text-[11px] font-mono ${text.muted}`}>
