@@ -1,7 +1,5 @@
 node_modules/
 dist/
 release/
-.worktrees/
-.wok3/credentials.json
-.wok3/mcp-env.json
-.wok3/tasks/
+.work3/*
+!.work3/config.json

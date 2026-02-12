@@ -1,9 +1,9 @@
 {
-  "name": "wok3",
+  "name": "work3",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "wok3": "./dist/cli/index.js"
+    "work3": "./dist/cli/index.js"
   },
   "main": "dist/electron/main.js",
   "scripts": {

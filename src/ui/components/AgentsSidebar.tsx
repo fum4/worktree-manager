@@ -12,12 +12,12 @@ import { SkillItem } from './SkillItem';
 import { PluginItem } from './PluginItem';
 import { Spinner } from './Spinner';
 
-export const WOK3_SERVER: McpServerSummary = {
-  id: 'wok3',
-  name: 'wok3',
+export const WORK3_SERVER: McpServerSummary = {
+  id: 'work3',
+  name: 'work3',
   description: 'Worktree management, issue tracking, and more',
   tags: ['built-in'],
-  command: 'wok3',
+  command: 'work3',
   args: ['mcp'],
   env: {},
   source: 'built-in',
@@ -95,16 +95,16 @@ export function AgentsSidebar({
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const [mcpCollapsed, setMcpCollapsed] = useState(() => localStorage.getItem('wok3:agentsMcpCollapsed') === '1');
-  const [skillsCollapsed, setSkillsCollapsed] = useState(() => localStorage.getItem('wok3:agentsSkillsCollapsed') === '1');
-  const [pluginsCollapsed, setPluginsCollapsed] = useState(() => localStorage.getItem('wok3:agentsPluginsCollapsed') === '1');
+  const [mcpCollapsed, setMcpCollapsed] = useState(() => localStorage.getItem('work3:agentsMcpCollapsed') === '1');
+  const [skillsCollapsed, setSkillsCollapsed] = useState(() => localStorage.getItem('work3:agentsSkillsCollapsed') === '1');
+  const [pluginsCollapsed, setPluginsCollapsed] = useState(() => localStorage.getItem('work3:agentsPluginsCollapsed') === '1');
 
   const [showGlobal, setShowGlobal] = useState(() => {
-    const saved = localStorage.getItem('wok3:agentsShowGlobal');
+    const saved = localStorage.getItem('work3:agentsShowGlobal');
     return saved !== null ? saved === '1' : true;
   });
   const [showProject, setShowProject] = useState(() => {
-    const saved = localStorage.getItem('wok3:agentsShowProject');
+    const saved = localStorage.getItem('work3:agentsShowProject');
     return saved !== null ? saved === '1' : true;
   });
   const [configOpen, setConfigOpen] = useState(false);
@@ -114,26 +114,26 @@ export function AgentsSidebar({
   const [deployDialog, setDeployDialog] = useState<{ type: 'mcp' | 'skill'; id: string; name: string } | null>(null);
 
   const [hiddenMarketplaces, setHiddenMarketplaces] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('wok3:hiddenMarketplaces');
+    const saved = localStorage.getItem('work3:hiddenMarketplaces');
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('wok3:agentsMcpCollapsed', mcpCollapsed ? '1' : '0');
+    localStorage.setItem('work3:agentsMcpCollapsed', mcpCollapsed ? '1' : '0');
   }, [mcpCollapsed]);
   useEffect(() => {
-    localStorage.setItem('wok3:agentsSkillsCollapsed', skillsCollapsed ? '1' : '0');
+    localStorage.setItem('work3:agentsSkillsCollapsed', skillsCollapsed ? '1' : '0');
   }, [skillsCollapsed]);
   useEffect(() => {
-    localStorage.setItem('wok3:agentsPluginsCollapsed', pluginsCollapsed ? '1' : '0');
+    localStorage.setItem('work3:agentsPluginsCollapsed', pluginsCollapsed ? '1' : '0');
   }, [pluginsCollapsed]);
   useEffect(() => {
-    localStorage.setItem('wok3:agentsShowGlobal', showGlobal ? '1' : '0');
+    localStorage.setItem('work3:agentsShowGlobal', showGlobal ? '1' : '0');
   }, [showGlobal]);
   useEffect(() => {
-    localStorage.setItem('wok3:agentsShowProject', showProject ? '1' : '0');
+    localStorage.setItem('work3:agentsShowProject', showProject ? '1' : '0');
   }, [showProject]);
   useEffect(() => {
     if (!configOpen) return;
@@ -146,7 +146,7 @@ export function AgentsSidebar({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [configOpen]);
   useEffect(() => {
-    localStorage.setItem('wok3:hiddenMarketplaces', JSON.stringify([...hiddenMarketplaces]));
+    localStorage.setItem('work3:hiddenMarketplaces', JSON.stringify([...hiddenMarketplaces]));
   }, [hiddenMarketplaces]);
   useEffect(() => {
     if (!filterOpen) return;
@@ -159,9 +159,9 @@ export function AgentsSidebar({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [filterOpen]);
 
-  // Filter servers (exclude wok3 duplicates — handled as built-in item)
+  // Filter servers (exclude work3 duplicates — handled as built-in item)
   const filteredServers = servers.filter((s) =>
-    s.id !== WOK3_SERVER.id && !(s.name === 'wok3' && s.command === 'wok3'),
+    s.id !== WORK3_SERVER.id && !(s.name === 'work3' && s.command === 'work3'),
   );
 
   const filteredSkills = search
@@ -179,12 +179,12 @@ export function AgentsSidebar({
       )
     : plugins;
 
-  const wok3Seen = typeof localStorage !== 'undefined' && localStorage.getItem('wok3:mcpWok3Seen') === '1';
-  const isWok3New = !wok3Seen;
+  const work3Seen = typeof localStorage !== 'undefined' && localStorage.getItem('work3:mcpWork3Seen') === '1';
+  const isWork3New = !work3Seen;
 
-  const handleSelectWok3 = () => {
-    if (isWok3New) localStorage.setItem('wok3:mcpWok3Seen', '1');
-    onSelect({ type: 'mcp-server', id: WOK3_SERVER.id });
+  const handleSelectWork3 = () => {
+    if (isWork3New) localStorage.setItem('work3:mcpWork3Seen', '1');
+    onSelect({ type: 'mcp-server', id: WORK3_SERVER.id });
   };
 
   // Filter helpers
@@ -280,12 +280,12 @@ export function AgentsSidebar({
           <div className="space-y-px">
             {serversLoading ? (
               <>
-                <Wok3Item
-                  isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER.id}
-                  onSelect={handleSelectWok3}
-                  isNew={isWok3New}
-                  isActive={Object.values(deploymentStatus[WOK3_SERVER.id] ?? {}).some((v) => v.global || v.project)}
-                  onDeploy={() => setDeployDialog({ type: 'mcp', id: WOK3_SERVER.id, name: 'wok3' })}
+                <Work3Item
+                  isSelected={selection?.type === 'mcp-server' && selection.id === WORK3_SERVER.id}
+                  onSelect={handleSelectWork3}
+                  isNew={isWork3New}
+                  isActive={Object.values(deploymentStatus[WORK3_SERVER.id] ?? {}).some((v) => v.global || v.project)}
+                  onDeploy={() => setDeployDialog({ type: 'mcp', id: WORK3_SERVER.id, name: 'work3' })}
                 />
                 <div className="flex items-center justify-center gap-2 py-4">
                   <Spinner size="sm" className={text.muted} />
@@ -294,24 +294,24 @@ export function AgentsSidebar({
               </>
             ) : (
               (() => {
-                const wok3Status = deploymentStatus[WOK3_SERVER.id] ?? {};
-                const wok3Active = Object.values(wok3Status).some((v) => v.global || v.project);
+                const work3Status = deploymentStatus[WORK3_SERVER.id] ?? {};
+                const work3Active = Object.values(work3Status).some((v) => v.global || v.project);
 
-                type SortEntry = { type: 'server'; server: McpServerSummary } | { type: 'wok3' };
+                type SortEntry = { type: 'server'; server: McpServerSummary } | { type: 'work3' };
                 const entries: SortEntry[] = [
-                  ...(isServerVisible(WOK3_SERVER.id) ? [{ type: 'wok3' as const }] : []),
+                  ...(isServerVisible(WORK3_SERVER.id) ? [{ type: 'work3' as const }] : []),
                   ...filteredServers
                     .filter((s) => isServerVisible(s.id))
                     .map((s) => ({ type: 'server' as const, server: s })),
                 ];
 
                 const isActive = (e: SortEntry) => {
-                  if (e.type === 'wok3') return wok3Active;
+                  if (e.type === 'work3') return work3Active;
                   const st = deploymentStatus[e.server.id] ?? {};
                   return Object.values(st).some((v) => v.global || v.project);
                 };
                 const getName = (e: SortEntry) =>
-                  e.type === 'wok3' ? 'wok3' : e.server.name;
+                  e.type === 'work3' ? 'work3' : e.server.name;
 
                 entries.sort((a, b) => {
                   const aAct = isActive(a);
@@ -321,15 +321,15 @@ export function AgentsSidebar({
                 });
 
                 return entries.map((entry) => {
-                  if (entry.type === 'wok3') {
+                  if (entry.type === 'work3') {
                     return (
-                      <Wok3Item
-                        key={WOK3_SERVER.id}
-                        isSelected={selection?.type === 'mcp-server' && selection.id === WOK3_SERVER.id}
-                        onSelect={handleSelectWok3}
-                        isNew={isWok3New}
-                        isActive={wok3Active}
-                        onDeploy={() => setDeployDialog({ type: 'mcp', id: WOK3_SERVER.id, name: 'wok3' })}
+                      <Work3Item
+                        key={WORK3_SERVER.id}
+                        isSelected={selection?.type === 'mcp-server' && selection.id === WORK3_SERVER.id}
+                        onSelect={handleSelectWork3}
+                        isNew={isWork3New}
+                        isActive={work3Active}
+                        onDeploy={() => setDeployDialog({ type: 'mcp', id: WORK3_SERVER.id, name: 'work3' })}
                       />
                     );
                   }
@@ -732,9 +732,9 @@ function SettingsToggle({ label, checked, onToggle }: { label: string; checked: 
   );
 }
 
-// ─── Wok3 built-in item ─────────────────────────────────────────
+// ─── Work3 built-in item ─────────────────────────────────────────
 
-function Wok3Item({ isSelected, onSelect, isNew, isActive, onDeploy }: {
+function Work3Item({ isSelected, onSelect, isNew, isActive, onDeploy }: {
   isSelected: boolean;
   onSelect: () => void;
   isNew: boolean;
@@ -761,7 +761,7 @@ function Wok3Item({ isSelected, onSelect, isNew, isActive, onDeploy }: {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={`text-xs font-medium truncate ${isSelected ? text.primary : text.secondary}`}>
-              wok3
+              work3
             </span>
             {isNew && (
               <span className="relative flex-shrink-0">

@@ -159,7 +159,7 @@ export function TerminalView({ worktreeId, visible }: TerminalViewProps) {
       <div
         ref={containerRef}
         className="flex-1 min-h-0"
-        style={{ padding: '4px 0 0 4px' }}
+        style={{ padding: '4px 16px 0 16px' }}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 # Port Mapping
 
-wok3 solves port conflicts when running multiple git worktrees concurrently. Each worktree gets an integer **offset** that shifts all known ports so instances don't collide.
+work3 solves port conflicts when running multiple git worktrees concurrently. Each worktree gets an integer **offset** that shifts all known ports so instances don't collide.
 
 ## Overview
 
@@ -16,7 +16,7 @@ If your app listens on ports 3000 and 4000:
 
 ### 1. Port Discovery
 
-During `wok3 init`, `PortManager.discoverPorts()` runs your `startCommand` in the main project directory, waits 15 seconds for processes to stabilize, then uses `lsof -iTCP -sTCP:LISTEN` to find all listening TCP ports in the process tree. Discovered ports are saved to `.wok3/config.json` under `ports.discovered`.
+During `work3 init`, `PortManager.discoverPorts()` runs your `startCommand` in the main project directory, waits 15 seconds for processes to stabilize, then uses `lsof -iTCP -sTCP:LISTEN` to find all listening TCP ports in the process tree. Discovered ports are saved to `.work3/config.json` under `ports.discovered`.
 
 ### 2. Offset Allocation
 

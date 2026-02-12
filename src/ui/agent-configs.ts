@@ -16,20 +16,20 @@ export interface AgentConfig {
 
 const MCP_JSON_SNIPPET = `{
   "mcpServers": {
-    "wok3": {
-      "command": "wok3",
+    "work3": {
+      "command": "work3",
       "args": ["mcp"]
     }
   }
 }`;
 
-const MCP_TOML_SNIPPET = `[mcp_servers.wok3]\ncommand = "wok3"\nargs = ["mcp"]`;
+const MCP_TOML_SNIPPET = `[mcp_servers.work3]\ncommand = "work3"\nargs = ["mcp"]`;
 
 const MCP_VSCODE_SNIPPET = `{
   "mcp": {
     "servers": {
-      "wok3": {
-        "command": "wok3",
+      "work3": {
+        "command": "work3",
         "args": ["mcp"]
       }
     }

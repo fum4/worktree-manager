@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-wok3 is a CLI tool + web UI (with optional Electron app) for managing multiple git worktrees with automatic port offsetting and Jira/GitHub integrations. It solves port conflicts when running multiple dev server instances concurrently by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime via `--require`.
+work3 is a CLI tool + web UI (with optional Electron app) for managing multiple git worktrees with automatic port offsetting and Jira/GitHub integrations. It solves port conflicts when running multiple dev server instances concurrently by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime via `--require`.
 
 ## Build & Dev Commands
 
@@ -37,11 +37,11 @@ There is no test runner configured.
 
 ## CLI Subcommands
 
-- `wok3` — Start the server and open UI (Electron app if available, otherwise browser)
-- `wok3 init` — Interactive setup wizard to create `.wok3/config.json`
-- `wok3 connect` — Connect to an existing wok3 server
-- `wok3 mcp` — Start as an MCP server (for Claude Code integration)
-- `wok3 task <TASK_ID>` — Create worktree from a Jira issue ID
+- `work3` — Start the server and open UI (Electron app if available, otherwise browser)
+- `work3 init` — Interactive setup wizard to create `.work3/config.json`
+- `work3 connect` — Connect to an existing work3 server
+- `work3 mcp` — Start as an MCP server (for Claude Code integration)
+- `work3 task <TASK_ID>` — Create worktree from a Jira issue ID
 
 ## Architecture
 
@@ -51,7 +51,7 @@ There is no test runner configured.
 
 **Backend:**
 - **`src/cli/index.ts`** — CLI entry point. Routes subcommands, starts server, opens UI in Electron or browser.
-- **`src/cli/config.ts`** — Loads `.wok3/config.json` (walks up directory tree to find it).
+- **`src/cli/config.ts`** — Loads `.work3/config.json` (walks up directory tree to find it).
 - **`src/cli/init.ts`** — Interactive setup wizard.
 - **`src/server/index.ts`** — Hono HTTP server with REST API + WebSocket support for terminals. Routes organized in `src/server/routes/`.
 - **`src/server/manager.ts`** — `WorktreeManager` class. Orchestrates git worktree operations, spawns/kills dev processes, captures logs, emits SSE events.
@@ -72,7 +72,7 @@ There is no test runner configured.
   - `CreateForm.tsx` — Create worktree form with Branch/Issues tabs
   - `WorktreeList.tsx`, `WorktreeItem.tsx` — Worktree sidebar list
   - `IssueList.tsx`, `JiraIssueItem.tsx` — Jira issues sidebar list
-  - `ConfigurationPanel.tsx` — Edit `.wok3/config.json` settings
+  - `ConfigurationPanel.tsx` — Edit `.work3/config.json` settings
   - `IntegrationsPanel.tsx` — Configure Jira/GitHub integrations
   - `MarkdownContent.tsx` — Renders Markdown with dark theme styling (used for Jira descriptions/comments)
 - **`src/ui/components/detail/`** — Right panel components:
@@ -104,4 +104,4 @@ There is no test runner configured.
 
 ### Configuration
 
-`.wok3/config.json` at project root defines: `projectDir`, `startCommand`, `installCommand`, `baseBranch`, `serverPort`, discovered `ports` with `offsetStep`, `envMapping`, and integration settings. Worktrees are always stored in `.wok3/worktrees`.
+`.work3/config.json` at project root defines: `projectDir`, `startCommand`, `installCommand`, `baseBranch`, `serverPort`, discovered `ports` with `offsetStep`, `envMapping`, and integration settings. Worktrees are always stored in `.work3/worktrees`.

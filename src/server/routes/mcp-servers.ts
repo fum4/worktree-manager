@@ -41,7 +41,7 @@ interface McpServerRegistry {
 // ─── Registry storage ───────────────────────────────────────────
 
 function getRegistryPath(): string {
-  return path.join(os.homedir(), '.wok3', 'mcp-servers.json');
+  return path.join(os.homedir(), '.work3', 'mcp-servers.json');
 }
 
 function loadRegistry(): McpServerRegistry {

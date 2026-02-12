@@ -18,7 +18,7 @@ import { McpServerScanModal } from './McpServerScanModal';
 import { SkillCreateModal } from './SkillCreateModal';
 import { PluginInstallModal } from './PluginInstallModal';
 import { ResizableHandle } from './ResizableHandle';
-import { WOK3_SERVER } from './AgentsSidebar';
+import { WORK3_SERVER } from './AgentsSidebar';
 import { text } from '../theme';
 
 const BANNER_DISMISSED_KEY = `${APP_NAME}:agentsBannerDismissed`;
@@ -35,7 +35,7 @@ export function AgentsView() {
   const [selection, setSelectionState] = useState<AgentSelection>(() => {
     if (serverUrl) {
       try {
-        const saved = localStorage.getItem(`wok3:agentSel:${serverUrl}`);
+        const saved = localStorage.getItem(`work3:agentSel:${serverUrl}`);
         if (saved) return JSON.parse(saved);
       } catch { /* ignore */ }
     }
@@ -45,7 +45,7 @@ export function AgentsView() {
   const setSelection = (sel: AgentSelection) => {
     setSelectionState(sel);
     if (serverUrl) {
-      localStorage.setItem(`wok3:agentSel:${serverUrl}`, JSON.stringify(sel));
+      localStorage.setItem(`work3:agentSel:${serverUrl}`, JSON.stringify(sel));
     }
   };
   const [showCreateServerModal, setShowCreateServerModal] = useState(false);
@@ -85,14 +85,14 @@ export function AgentsView() {
     localStorage.setItem(STORAGE_KEY, String(sidebarWidth));
   };
 
-  // Auto-select wok3 built-in if nothing selected
+  // Auto-select work3 built-in if nothing selected
   useEffect(() => {
     if (!selection) {
-      setSelection({ type: 'mcp-server', id: WOK3_SERVER.id });
-    } else if (selection.type === 'mcp-server' && selection.id !== WOK3_SERVER.id) {
+      setSelection({ type: 'mcp-server', id: WORK3_SERVER.id });
+    } else if (selection.type === 'mcp-server' && selection.id !== WORK3_SERVER.id) {
       // Check if selected server still exists
       if (!serversLoading && servers.length > 0 && !servers.find((s) => s.id === selection.id)) {
-        setSelection({ type: 'mcp-server', id: WOK3_SERVER.id });
+        setSelection({ type: 'mcp-server', id: WORK3_SERVER.id });
       }
     }
   }, [servers, serversLoading, selection]);
@@ -155,7 +155,7 @@ export function AgentsView() {
     discoveryRan.current = true;
     const options = { mode: 'device' as const };
     Promise.all([api.scanMcpServers(options), api.scanSkills(options)]).then(([mcpRes, skillRes]) => {
-      const mcpCount = (mcpRes.discovered ?? []).filter((r) => !r.alreadyInRegistry && r.key !== 'wok3').length;
+      const mcpCount = (mcpRes.discovered ?? []).filter((r) => !r.alreadyInRegistry && r.key !== 'work3').length;
       const skillCount = (skillRes.discovered ?? []).filter((r) => !r.alreadyInRegistry).length;
       if (mcpCount > 0 || skillCount > 0) {
         setDiscoveryCounts({ servers: mcpCount, skills: skillCount });
@@ -269,7 +269,7 @@ export function AgentsView() {
             </button>
           </div>
         )}
-        {selection?.type === 'mcp-server' && selection.id !== WOK3_SERVER.id ? (
+        {selection?.type === 'mcp-server' && selection.id !== WORK3_SERVER.id ? (
           <McpServerDetailPanel
             serverId={selection.id}
             onDeleted={() => {
@@ -278,10 +278,10 @@ export function AgentsView() {
               refetchDeployment();
             }}
           />
-        ) : selection?.type === 'mcp-server' && selection.id === WOK3_SERVER.id ? (
+        ) : selection?.type === 'mcp-server' && selection.id === WORK3_SERVER.id ? (
           <McpServerDetailPanel
-            serverId={WOK3_SERVER.id}
-            builtInServer={WOK3_SERVER}
+            serverId={WORK3_SERVER.id}
+            builtInServer={WORK3_SERVER}
             onDeleted={() => setSelection(null)}
           />
         ) : selection?.type === 'skill' ? (

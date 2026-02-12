@@ -14,7 +14,7 @@ import {
   removeServerFromConfig,
 } from '../lib/tool-configs';
 
-const WOK3_MCP_ENTRY = { command: 'wok3', args: ['mcp'] };
+const WORK3_MCP_ENTRY = { command: 'work3', args: ['mcp'] };
 
 export function registerMcpRoutes(app: Hono, manager: WorktreeManager) {
   app.get('/api/mcp/status', (c) => {
@@ -25,11 +25,11 @@ export function registerMcpRoutes(app: Hono, manager: WorktreeManager) {
       const entry: { global?: boolean; project?: boolean } = {};
       if (spec.global) {
         const filePath = resolveConfigPath(spec.global.configPath, projectDir);
-        entry.global = isServerConfigured(filePath, spec.global, 'wok3');
+        entry.global = isServerConfigured(filePath, spec.global, 'work3');
       }
       if (spec.project) {
         const filePath = resolveConfigPath(spec.project.configPath, projectDir);
-        entry.project = isServerConfigured(filePath, spec.project, 'wok3');
+        entry.project = isServerConfigured(filePath, spec.project, 'work3');
       }
       statuses[id] = entry;
     }
@@ -53,7 +53,7 @@ export function registerMcpRoutes(app: Hono, manager: WorktreeManager) {
 
       const projectDir = manager.getConfigDir();
       const filePath = resolveConfigPath(spec.configPath, projectDir);
-      const result = writeServerToConfig(filePath, spec, 'wok3', WOK3_MCP_ENTRY);
+      const result = writeServerToConfig(filePath, spec, 'work3', WORK3_MCP_ENTRY);
 
       if (result.success) {
         deployAgentInstructions(agent, projectDir, scope);
@@ -85,7 +85,7 @@ export function registerMcpRoutes(app: Hono, manager: WorktreeManager) {
 
       const projectDir = manager.getConfigDir();
       const filePath = resolveConfigPath(spec.configPath, projectDir);
-      const result = removeServerFromConfig(filePath, spec, 'wok3');
+      const result = removeServerFromConfig(filePath, spec, 'work3');
 
       if (result.success) {
         removeAgentInstructions(agent, projectDir, scope);

@@ -27,8 +27,8 @@ export function spawnServer(
     cwd: projectDir,
     env: {
       ...process.env,
-      WOK3_PORT: String(port),
-      WOK3_NO_OPEN: '1',
+      WORK3_PORT: String(port),
+      WORK3_NO_OPEN: '1',
     },
     detached: false,
     stdio: ['ignore', 'pipe', 'pipe'],

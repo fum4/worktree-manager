@@ -1,6 +1,6 @@
-# wok3
+# work3
 
-A dev tool that manages multiple git worktrees and automatically resolves port conflicts between them. When you run a dev command that binds multiple ports (Express, Vite HMR, etc.), running a second copy causes port conflicts. wok3 solves that by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` to transparently offset all known ports per worktree instance.
+A dev tool that manages multiple git worktrees and automatically resolves port conflicts between them. When you run a dev command that binds multiple ports (Express, Vite HMR, etc.), running a second copy causes port conflicts. work3 solves that by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` to transparently offset all known ports per worktree instance.
 
 ## Quick Start
 
@@ -10,8 +10,8 @@ npm link
 
 # In your project
 cd /path/to/your/project
-wok3 init    # interactive setup
-wok3         # start the manager UI
+work3 init    # interactive setup
+work3         # start the manager UI
 ```
 
 Then in the UI:
@@ -30,16 +30,16 @@ Inter-app communication also works — if `web-server` connects to `api-server` 
 
 ## Architecture
 
-wok3 has four layers: a **CLI** that loads config, a **Hono HTTP server** with REST API + SSE, a **React UI** served as a static SPA, and a **runtime hook** injected into worktree processes.
+work3 has four layers: a **CLI** that loads config, a **Hono HTTP server** with REST API + SSE, a **React UI** served as a static SPA, and a **runtime hook** injected into worktree processes.
 
 ### System Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     wok3 Server (:3100)                         │
+│                     work3 Server (:3100)                         │
 │                                                                 │
 │  CLI (cli.ts)                                                   │
-│   └─ loads .wok3/config.json, starts Hono server                │
+│   └─ loads .work3/config.json, starts Hono server                │
 │                                                                 │
 │  Hono API (server/index.ts)                                     │
 │   ├─ REST endpoints (CRUD worktrees, start/stop, discover)      │
@@ -96,10 +96,10 @@ Since `NODE_OPTIONS` propagates to all child Node.js processes, the hook is auto
 
 ### Env Mapping
 
-Some frameworks read port values from `.env` files and use them in ways the hook can't intercept (e.g., HMR WebSocket URLs baked into client bundles). wok3 handles this with **env mapping**:
+Some frameworks read port values from `.env` files and use them in ways the hook can't intercept (e.g., HMR WebSocket URLs baked into client bundles). work3 handles this with **env mapping**:
 
 1. `detectEnvMapping()` recursively scans all `.env*` files for values containing known ports
-2. It saves templates like `PORT=${3000}` to `.wok3/config.json` under `envMapping`
+2. It saves templates like `PORT=${3000}` to `.work3/config.json` under `envMapping`
 3. At start time, `getEnvForOffset()` resolves templates with the offset (e.g., `PORT=3001`) and injects them as process environment variables
 4. Process env takes priority over `.env` in most frameworks (dotenv, Vite, Next.js)
 
@@ -124,9 +124,9 @@ Some frameworks read port values from `.env` files and use them in ways the hook
 | Child processes spawned by Node.js | |
 | ESM projects (`"type": "module"`) | |
 
-## Config (`.wok3/config.json`)
+## Config (`.work3/config.json`)
 
-Generate one with `wok3 init`, or create manually:
+Generate one with `work3 init`, or create manually:
 
 ```json
 {
@@ -144,7 +144,7 @@ Generate one with `wok3 init`, or create manually:
 }
 ```
 
-Worktrees are always stored in `.wok3/worktrees`.
+Worktrees are always stored in `.work3/worktrees`.
 
 | Field | Description |
 |-------|-------------|
@@ -178,7 +178,7 @@ Worktrees are always stored in `.wok3/worktrees`.
 
 ```
 ├── src/
-│   ├── cli.ts                    # CLI entry point, loads .wok3/config.json
+│   ├── cli.ts                    # CLI entry point, loads .work3/config.json
 │   ├── index.ts                  # Package exports
 │   ├── server/
 │   │   ├── types.ts              # All TypeScript interfaces

@@ -16,7 +16,7 @@ interface NotesSectionProps {
 type Tab = 'personal' | 'aiContext';
 type Layout = 'tabs' | 'side-by-side';
 
-const LAYOUT_KEY = 'wok3:notes-layout';
+const LAYOUT_KEY = 'work3:notes-layout';
 
 function getPersistedLayout(): Layout {
   try {

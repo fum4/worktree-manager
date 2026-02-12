@@ -63,10 +63,10 @@ export function createMcpServer(ctx: ActionContext): McpServer {
         role: 'user' as const,
         content: {
           type: 'text' as const,
-          text: `Use the wok3 MCP server tools to create a worktree for issue "${issueId}". Follow this workflow:
-1. Determine the issue type and call the appropriate wok3 tool: create_from_jira or create_from_linear
+          text: `Use the work3 MCP server tools to create a worktree for issue "${issueId}". Follow this workflow:
+1. Determine the issue type and call the appropriate work3 tool: create_from_jira or create_from_linear
 2. The response will include full task context and the worktree path
-3. Poll the wok3 list_worktrees tool until the worktree status is 'stopped' (creation complete)
+3. Poll the work3 list_worktrees tool until the worktree status is 'stopped' (creation complete)
 4. Navigate to the worktree directory
 5. Read TASK.md for full context
 6. Start implementing the task`,

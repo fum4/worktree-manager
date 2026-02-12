@@ -21,7 +21,7 @@ function findElectron(): { type: 'app'; appPath: string } | { type: 'dev'; elect
   // 1. Check for installed .app bundle
   try {
     const result = execFileSync('mdfind', [
-      'kMDItemCFBundleIdentifier == "com.wok3.app"',
+      'kMDItemCFBundleIdentifier == "com.work3.app"',
     ], { encoding: 'utf-8', timeout: 3000 });
     const appPath = result.trim().split('\n')[0];
     if (appPath && existsSync(appPath)) {
@@ -29,7 +29,7 @@ function findElectron(): { type: 'app'; appPath: string } | { type: 'dev'; elect
     }
   } catch { /* ignore */ }
 
-  // 2. Check for electron binary in the wok3 project's node_modules
+  // 2. Check for electron binary in the work3 project's node_modules
   //    (dev mode — cliDir is dist/cli or src/cli)
   const projectRoot = path.resolve(cliDir, '..', '..');
   const electronBin = path.join(projectRoot, 'node_modules', '.bin', 'electron');
@@ -46,7 +46,7 @@ function openUI(port: number): void {
 
   if (electron?.type === 'app') {
     log.info('Opening in app...');
-    execFile('open', [`wok3://open?port=${port}`], (err) => {
+    execFile('open', [`work3://open?port=${port}`], (err) => {
       if (err) {
         log.info('Falling back to browser...');
         openBrowser(`http://localhost:${port}`);
@@ -90,7 +90,7 @@ function isElectronRunning(): boolean {
 
 function openProjectInElectron(projectDir: string): void {
   const encodedDir = encodeURIComponent(projectDir);
-  const url = `wok3://open-project?dir=${encodedDir}`;
+  const url = `work3://open-project?dir=${encodedDir}`;
 
   if (process.platform === 'darwin') {
     execFile('open', [url], (err) => {
@@ -111,7 +111,7 @@ Usage: ${APP_NAME} [command] [options]
 
 Commands:
   (default)     Start the server and open the UI
-  init          Interactive setup wizard to create .wok3/config.json
+  init          Interactive setup wizard to create .work3/config.json
   add [name]    Set up an integration (github, linear, jira)
   mcp           Start as an MCP server (for AI coding agents)
   task <ID>     Create a worktree from an issue ID (e.g., PROJ-123)
@@ -170,14 +170,14 @@ async function main() {
     return;
   }
 
-  const noOpen = process.argv.includes('--no-open') || process.env.WOK3_NO_OPEN === '1';
-  const autoInit = process.argv.includes('--auto-init') || process.env.WOK3_AUTO_INIT === '1';
+  const noOpen = process.argv.includes('--no-open') || process.env.WORK3_NO_OPEN === '1';
+  const autoInit = process.argv.includes('--auto-init') || process.env.WORK3_AUTO_INIT === '1';
   const projectDir = process.cwd();
 
-  // Determine port: WOK3_PORT env override → global preferences → default
+  // Determine port: WORK3_PORT env override → global preferences → default
   const globalPrefs = loadGlobalPreferences();
-  const basePort = process.env.WOK3_PORT
-    ? parseInt(process.env.WOK3_PORT, 10)
+  const basePort = process.env.WORK3_PORT
+    ? parseInt(process.env.WORK3_PORT, 10)
     : globalPrefs.basePort;
 
   log.info('Starting...');

@@ -16,7 +16,7 @@ export interface GlobalPreferences {
   } | null;
 }
 
-const STATE_DIR = path.join(os.homedir(), '.wok3');
+const STATE_DIR = path.join(os.homedir(), '.work3');
 const PREFERENCES_FILE = path.join(STATE_DIR, 'app-preferences.json');
 
 const DEFAULT_PREFERENCES: GlobalPreferences = {

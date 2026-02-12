@@ -26,7 +26,7 @@ interface AppState {
   lastActiveProjectDir: string | null;
 }
 
-const STATE_DIR = path.join(os.homedir(), '.wok3');
+const STATE_DIR = path.join(os.homedir(), '.work3');
 const STATE_FILE = path.join(STATE_DIR, 'app-state.json');
 const LOCK_FILE = path.join(STATE_DIR, 'electron.lock');
 

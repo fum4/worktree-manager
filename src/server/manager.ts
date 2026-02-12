@@ -491,14 +491,14 @@ export class WorktreeManager {
     }
 
     const worktreeId =
-      request.name ||
+      request.name?.trim() ||
       id ||
       branch
         .replace(/^(feature|fix|chore)\//, '')
-        .replace(/[^a-zA-Z0-9-]/g, '-');
+        .replace(/[^a-zA-Z0-9- ]/g, '-');
 
-    if (!/^[a-zA-Z0-9-]+$/.test(worktreeId)) {
-      return { success: false, error: 'Invalid worktree ID' };
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9 -]*$/.test(worktreeId)) {
+      return { success: false, error: 'Worktree name must start with a letter or number and contain only letters, numbers, spaces, and hyphens' };
     }
 
     const worktreesPath = this.getWorktreesAbsolutePath();
@@ -744,8 +744,8 @@ export class WorktreeManager {
 
       // Rename directory (worktree name)
       if (request.name && request.name !== currentId) {
-        if (!/^[a-zA-Z0-9-]+$/.test(request.name)) {
-          return { success: false, error: 'Invalid worktree name' };
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9 -]*$/.test(request.name.trim())) {
+          return { success: false, error: 'Worktree name must start with a letter or number and contain only letters, numbers, spaces, and hyphens' };
         }
 
         const newPath = path.join(worktreesPath, request.name);
@@ -808,8 +808,8 @@ export class WorktreeManager {
   async removeWorktree(
     id: string,
   ): Promise<{ success: boolean; error?: string }> {
-    if (!/^[a-zA-Z0-9-]+$/.test(id)) {
-      return { success: false, error: 'Invalid worktree ID' };
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9 -]*$/.test(id)) {
+      return { success: false, error: 'Worktree name must start with a letter or number and contain only letters, numbers, spaces, and hyphens' };
     }
 
     await this.stopWorktree(id);

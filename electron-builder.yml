@@ -1,5 +1,5 @@
-appId: com.wok3.app
-productName: wok3
+appId: com.work3.app
+productName: work3
 directories:
   output: release
 files:

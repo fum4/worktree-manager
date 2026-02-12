@@ -195,7 +195,7 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
             Welcome to <span className="text-accent">{APP_NAME}</span>
           </h1>
           <p className="text-[13px] text-[#6b7280] max-w-sm mx-auto leading-relaxed">
-            Your brand new workspace manager
+            Your brand new workflow manager
           </p>
         </div>
 

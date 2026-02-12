@@ -16,7 +16,7 @@ import { preferencesManager, type AppPreferences, type SetupPreference } from '.
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 // Custom protocol for opening projects
-const PROTOCOL = 'wok3';
+const PROTOCOL = 'work3';
 
 
 // Single main window and project manager
@@ -45,7 +45,7 @@ function createMainWindow(): BrowserWindow {
     y: savedBounds?.y,
     minWidth: 800,
     minHeight: 700,
-    title: 'wok3',
+    title: 'work3',
     titleBarStyle: 'hiddenInset' as const,
     trafficLightPosition: { x: 12, y: 12 },
     webPreferences: {
@@ -228,7 +228,7 @@ function createTray() {
   icon.setTemplateImage(true);
 
   tray = new Tray(icon);
-  tray.setToolTip('wok3 - Worktree Manager');
+  tray.setToolTip('work3 - Worktree Manager');
 
   tray.on('click', () => {
     if (mainWindow) {
@@ -279,7 +279,7 @@ function handleProtocolUrl(url: string) {
   }
 }
 
-// Register as handler for wok3:// protocol
+// Register as handler for work3:// protocol
 if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
     path.resolve(process.argv[1]),

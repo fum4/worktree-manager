@@ -11,7 +11,7 @@ import type { WorktreeManager } from '../manager';
 
 export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
   app.get('/api/config', (c) => {
-    // Check if config file still exists (user may have deleted .wok3 folder)
+    // Check if config file still exists (user may have deleted .work3 folder)
     const configPath = path.join(manager.getConfigDir(), CONFIG_DIR_NAME, 'config.json');
     if (!existsSync(configPath)) {
       return c.json({ config: null, projectName: null });
@@ -72,7 +72,7 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
     });
   });
 
-  // Check if .wok3 config files need to be committed/pushed
+  // Check if .work3 config files need to be committed/pushed
   app.get('/api/config/setup-status', (c) => {
     const projectDir = manager.getConfigDir();
     const configPath = path.join(projectDir, CONFIG_DIR_NAME, 'config.json');
@@ -131,14 +131,14 @@ export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
       const needsPush = unpushedResult !== '';
       return c.json({
         needsPush,
-        files: needsPush ? ['.wok3/config.json', '.wok3/.gitignore'] : [],
+        files: needsPush ? ['.work3/config.json', '.work3/.gitignore'] : [],
       });
     } catch {
       return c.json({ needsPush: false, files: [] });
     }
   });
 
-  // Commit and push the .wok3 config files
+  // Commit and push the .work3 config files
   app.post('/api/config/commit-setup', async (c) => {
     const projectDir = manager.getConfigDir();
     const configPath = path.join(projectDir, CONFIG_DIR_NAME, 'config.json');

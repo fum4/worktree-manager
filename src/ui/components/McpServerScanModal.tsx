@@ -8,8 +8,8 @@ import { Modal } from './Modal';
 import { input, text } from '../theme';
 import { Spinner } from './Spinner';
 
-const isWok3Server = (r: McpScanResult) =>
-  r.key === 'wok3' || (r.command === 'npx' && r.args.includes('wok3'));
+const isWork3Server = (r: McpScanResult) =>
+  r.key === 'work3' || (r.command === 'npx' && r.args.includes('work3'));
 
 type ScanMode = 'project' | 'folder' | 'device';
 type ResultTab = 'servers' | 'skills' | 'plugins';
@@ -65,8 +65,8 @@ export function McpServerScanModal({ onImported, onClose, plugins = [] }: McpSer
       return;
     }
 
-    // Filter: hide wok3 and already-imported items
-    const newMcps = (mcpRes.discovered ?? []).filter((r) => !isWok3Server(r) && !r.alreadyInRegistry);
+    // Filter: hide work3 and already-imported items
+    const newMcps = (mcpRes.discovered ?? []).filter((r) => !isWork3Server(r) && !r.alreadyInRegistry);
     const newSkills = (skillRes.discovered ?? []).filter((r) => !r.alreadyInRegistry);
 
     setMcpResults(newMcps);

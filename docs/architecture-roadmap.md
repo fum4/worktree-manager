@@ -2,30 +2,30 @@
 
 ## Server as Hub
 
-The wok3 server is the central hub. All clients (UI, CLI subcommands, MCP agents, Electron app) connect to it via HTTP/WebSocket. The server owns the single `WorktreeManager` instance and all state.
+The work3 server is the central hub. All clients (UI, CLI subcommands, MCP agents, Electron app) connect to it via HTTP/WebSocket. The server owns the single `WorktreeManager` instance and all state.
 
 ### Current State
 
-- `wok3` starts the Hono HTTP server, serves the React UI, and exposes REST + SSE + WebSocket APIs
-- `wok3 mcp` starts a **separate** stdio process with its own `WorktreeManager` (no shared state)
-- `server.json` is written to `.wok3/` on startup with the server URL and PID
+- `work3` starts the Hono HTTP server, serves the React UI, and exposes REST + SSE + WebSocket APIs
+- `work3 mcp` starts a **separate** stdio process with its own `WorktreeManager` (no shared state)
+- `server.json` is written to `.work3/` on startup with the server URL and PID
 
 ### Target State
 
 - `/mcp` endpoint on the HTTP server provides MCP via Streamable HTTP transport (done)
-- MCP setup writes `{ "url": "http://localhost:PORT/mcp" }` instead of `{ "command": "wok3", "args": ["mcp"] }` (done)
+- MCP setup writes `{ "url": "http://localhost:PORT/mcp" }` instead of `{ "command": "work3", "args": ["mcp"] }` (done)
 - All MCP clients share state with the UI (same `WorktreeManager`)
-- `wok3 mcp` (stdio) remains as a fallback for environments that don't support HTTP transport
+- `work3 mcp` (stdio) remains as a fallback for environments that don't support HTTP transport
 
 ## Both Entry Points
 
 ### CLI-first (current)
 
 ```
-npm install -g wok3   # or brew install wok3
+npm install -g work3   # or brew install work3
 cd my-project
-wok3 init             # creates .wok3/config.json
-wok3                  # starts server + opens browser
+work3 init             # creates .work3/config.json
+work3                  # starts server + opens browser
 ```
 
 ### App-first (future)
@@ -33,7 +33,7 @@ wok3                  # starts server + opens browser
 ```
 # User downloads Electron app (or installs via brew cask)
 # App opens, user picks a project directory
-# App calls wok3 init internally, starts embedded server
+# App calls work3 init internally, starts embedded server
 # App installs CLI to PATH for terminal usage
 ```
 
@@ -43,18 +43,18 @@ Both entry points converge on the same server. The Electron app embeds the serve
 
 Future CLI subcommands should be thin clients that talk to the running server:
 
-- `wok3 list` — `GET /api/worktrees` and print table
-- `wok3 task PROJ-123` — `POST /api/worktrees/from-jira` and print result
-- `wok3 connect jira` — `POST /api/integrations/jira/...` (or open browser for OAuth)
-- `wok3 status` — `GET /api/integrations/verify` and print connection status
+- `work3 list` — `GET /api/worktrees` and print table
+- `work3 task PROJ-123` — `POST /api/worktrees/from-jira` and print result
+- `work3 connect jira` — `POST /api/integrations/jira/...` (or open browser for OAuth)
+- `work3 status` — `GET /api/integrations/verify` and print connection status
 
 If the server isn't running, the CLI should either:
 1. Auto-start it in the background (write PID to `server.json`)
-2. Error with a helpful message ("run `wok3` first")
+2. Error with a helpful message ("run `work3` first")
 
 ## `server.json` as Discovery
 
-All clients find the server via `.wok3/server.json`:
+All clients find the server via `.work3/server.json`:
 
 ```json
 {
@@ -73,7 +73,7 @@ All clients find the server via `.wok3/server.json`:
 ```
                     +-------------------+
                     |  npm install -g   |
-                    |  wok3             |
+                    |  work3             |
                     +---------+---------+
                               |
                     +---------v---------+
@@ -84,7 +84,7 @@ All clients find the server via `.wok3/server.json`:
               +---------------+---------------+
               |                               |
     +---------v---------+           +---------v---------+
-    |  wok3 init        |           |  wok3             |
+    |  work3 init        |           |  work3             |
     |  (setup project)  |           |  (start server)   |
     +-------------------+           +---------+---------+
                                               |
@@ -97,6 +97,6 @@ All clients find the server via `.wok3/server.json`:
                           |                   |                   |
                 +---------v------+  +---------v------+  +---------v------+
                 |  Browser UI    |  |  MCP clients   |  |  CLI commands  |
-                |  (React SPA)   |  |  (Claude, etc) |  |  (wok3 list)   |
+                |  (React SPA)   |  |  (Claude, etc) |  |  (work3 list)   |
                 +----------------+  +----------------+  +----------------+
 ```

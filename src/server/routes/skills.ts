@@ -89,7 +89,7 @@ function buildSkillMd(frontmatter: SkillFrontmatter, body: string): string {
 // ─── Registry ───────────────────────────────────────────────────
 
 function getRegistryDir(): string {
-  return path.join(os.homedir(), '.wok3', 'skills');
+  return path.join(os.homedir(), '.work3', 'skills');
 }
 
 interface SkillInfo {
@@ -184,7 +184,7 @@ function removeDeploy(deployDir: string, skillName: string): { success: boolean;
     } else if (stat.isDirectory()) {
       rmSync(linkPath, { recursive: true });
     } else {
-      return { success: false, error: 'Target is not a skill deployment managed by wok3' };
+      return { success: false, error: 'Target is not a skill deployment managed by work3' };
     }
     return { success: true };
   } catch (e: unknown) {
@@ -241,7 +241,7 @@ function scanForSkills(roots: string[], maxDepth: number, knownSkills: Set<strin
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
         if (!entry.isDirectory()) continue;
         const name = entry.name;
-        if (name === 'node_modules' || name === '.git' || name === 'dist' || name === 'build' || name === '.wok3') continue;
+        if (name === 'node_modules' || name === '.git' || name === 'dist' || name === 'build' || name === '.work3') continue;
 
         const fullPath = path.join(dir, name);
 

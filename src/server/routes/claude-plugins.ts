@@ -244,7 +244,7 @@ async function checkPluginHealth(installPath: string, pluginId: string): Promise
         const res = await fetch(cfg.url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jsonrpc: '2.0', method: 'initialize', id: 1, params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'wok3', version: '1.0.0' } } }),
+          body: JSON.stringify({ jsonrpc: '2.0', method: 'initialize', id: 1, params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'work3', version: '1.0.0' } } }),
           signal: controller.signal,
         });
         clearTimeout(timeout);

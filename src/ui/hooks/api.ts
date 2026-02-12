@@ -731,7 +731,7 @@ export async function verifyIntegrations(serverUrl: string | null = null): Promi
   }
 }
 
-// Check if wok3 config files need to be pushed
+// Check if work3 config files need to be pushed
 export async function fetchSetupStatus(
   serverUrl: string | null = null,
 ): Promise<{ needsPush: boolean; files: string[] }> {
@@ -743,7 +743,7 @@ export async function fetchSetupStatus(
   }
 }
 
-// Commit wok3 config files
+// Commit work3 config files
 export async function commitSetup(
   message: string,
   serverUrl: string | null = null,

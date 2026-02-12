@@ -156,7 +156,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
 }
 
 /**
- * Ensure the wok3 CLI is available in PATH.
+ * Ensure the work3 CLI is available in PATH.
  * If not found, creates a symlink in ~/.local/bin/ pointing to the CLI entry point.
  */
 function ensureCliInPath() {

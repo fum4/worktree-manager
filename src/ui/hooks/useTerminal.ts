@@ -37,6 +37,7 @@ export function useTerminal({
   const wsRef = useRef<WebSocket | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const lastSizeRef = useRef<{ cols: number; rows: number } | null>(null);
+  const connectGenRef = useRef(0);
   const onDataRef = useRef(onData);
   const onExitRef = useRef(onExit);
   const getSizeRef = useRef(getSize);
@@ -46,6 +47,8 @@ export function useTerminal({
   getSizeRef.current = getSize;
 
   const disconnect = useCallback(() => {
+    // Invalidate any in-flight connect() that hasn't resolved yet
+    connectGenRef.current++;
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -67,9 +70,20 @@ export function useTerminal({
     disconnect();
     setError(null);
 
+    const gen = connectGenRef.current;
+
     const size = getSizeRef.current?.();
     lastSizeRef.current = size ?? null;
     const result = await createTerminalSession(worktreeId, size?.cols, size?.rows, serverUrl);
+
+    // Another connect() or disconnect() was called while we were awaiting — abandon
+    if (gen !== connectGenRef.current) {
+      if (result.success && result.sessionId) {
+        destroyTerminalSession(result.sessionId, serverUrl);
+      }
+      return;
+    }
+
     if (!result.success || !result.sessionId) {
       setError(result.error || 'Failed to create terminal session');
       return;

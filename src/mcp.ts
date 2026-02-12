@@ -11,7 +11,7 @@ import { NotesManager } from './server/notes-manager';
 import type { WorktreeConfig } from './server/types';
 
 /**
- * Read server.json to find a running wok3 server.
+ * Read server.json to find a running work3 server.
  * Returns the server URL if found and the process is alive, null otherwise.
  */
 function findRunningServer(configDir: string): string | null {
@@ -43,19 +43,19 @@ async function startProxyMode(serverUrl: string) {
   // Relay: Claude Code (stdio) → HTTP server
   stdioTransport.onmessage = (message) => {
     httpTransport.send(message).catch((err) => {
-      process.stderr.write(`wok3 mcp proxy send error: ${err}\n`);
+      process.stderr.write(`work3 mcp proxy send error: ${err}\n`);
     });
   };
 
   // Relay: HTTP server → Claude Code (stdio)
   httpTransport.onmessage = (message) => {
     stdioTransport.send(message).catch((err) => {
-      process.stderr.write(`wok3 mcp proxy reply error: ${err}\n`);
+      process.stderr.write(`work3 mcp proxy reply error: ${err}\n`);
     });
   };
 
   httpTransport.onerror = (err) => {
-    process.stderr.write(`wok3 mcp proxy HTTP error: ${err.message}\n`);
+    process.stderr.write(`work3 mcp proxy HTTP error: ${err.message}\n`);
   };
 
   stdioTransport.onclose = async () => {
@@ -110,10 +110,10 @@ export async function startMcpServer(config: WorktreeConfig, configFilePath: str
   const serverUrl = findRunningServer(configDir);
 
   if (serverUrl) {
-    process.stderr.write(`wok3 mcp: connecting to running server at ${serverUrl}\n`);
+    process.stderr.write(`work3 mcp: connecting to running server at ${serverUrl}\n`);
     await startProxyMode(serverUrl);
   } else {
-    process.stderr.write('wok3 mcp: no running server found, starting standalone\n');
+    process.stderr.write('work3 mcp: no running server found, starting standalone\n');
     await startStandaloneMode(config, configFilePath);
   }
 }

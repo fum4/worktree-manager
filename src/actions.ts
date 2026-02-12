@@ -30,8 +30,8 @@ export interface ActionContext {
 export const MCP_INSTRUCTIONS = `${APP_NAME} manages git worktrees with automatic port offsetting.
 
 IMPORTANT: When a user mentions an issue key, ticket number, or says "work on <something>",
-you should immediately use the appropriate wok3 MCP tool to create a worktree.
-Do NOT read .wok3/ files or make HTTP requests to the wok3 server. All communication goes through these MCP tools.
+you should immediately use the appropriate work3 MCP tool to create a worktree.
+Do NOT read .work3/ files or make HTTP requests to the work3 server. All communication goes through these MCP tools.
 
 ## Quick Start
 - Issue key like "PROJ-123" or number like "456" → call create_from_jira with issueKey param
@@ -54,7 +54,7 @@ Do NOT read .wok3/ files or make HTTP requests to the wok3 server. All communica
 
 ## Issue Data
 - get_jira_issue and get_linear_issue check locally cached data first. They only fetch from the remote API if no local data is found.
-- Prefer these tools over reading .wok3/ files directly.
+- Prefer these tools over reading .work3/ files directly.
 
 ## Todo Workflow
 Todos are a checklist of sub-tasks defined by the user. They appear in TASK.md and in get_task_context output.

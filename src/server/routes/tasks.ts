@@ -20,7 +20,7 @@ interface CustomTask {
 }
 
 function getTasksDir(configDir: string): string {
-  return path.join(configDir, '.wok3', 'issues', 'local');
+  return path.join(configDir, '.work3', 'issues', 'local');
 }
 
 function ensureTasksDir(configDir: string): string {
