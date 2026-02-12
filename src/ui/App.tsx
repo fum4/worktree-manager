@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { Info, Plus, Search, X } from 'lucide-react';
+import { GitBranch, Plus, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { APP_NAME } from '../constants';
@@ -705,8 +705,8 @@ export default function App() {
                 className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}
               >
                 {!wsBannerDismissed && (
-                  <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-teal-400/20 bg-teal-400/[0.04]">
-                    <Info className="w-4 h-4 text-teal-400 flex-shrink-0" />
+                  <div className="flex-shrink-0 h-14 flex items-center gap-3 px-4 border-b border-teal-400/20 bg-teal-400/[0.04]">
+                    <GitBranch className="w-4 h-4 text-teal-400 flex-shrink-0" />
                     <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
                       Your local development workspace. Create worktrees from branches, issue trackers, or local tasks. Connect integrations to pull issues directly into your workflow.
                     </p>

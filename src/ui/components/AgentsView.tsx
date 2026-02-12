@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Info, Radar, ScanSearch, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Bot, Download, Radar, RefreshCw, X } from 'lucide-react';
 
 import { APP_NAME } from '../../constants';
 import { useServer } from '../contexts/ServerContext';
@@ -23,6 +23,7 @@ import { text } from '../theme';
 
 const BANNER_DISMISSED_KEY = `${APP_NAME}:agentsBannerDismissed`;
 const DISCOVERY_DISMISSED_KEY = `${APP_NAME}:agentsDiscoveryDismissed`;
+const DISCOVERY_COUNTS_KEY = `${APP_NAME}:agentsDiscoveryCounts`;
 
 const STORAGE_KEY = `${APP_NAME}:agentsSidebarWidth`;
 const DEFAULT_WIDTH = 300;
@@ -126,42 +127,59 @@ export function AgentsView() {
     refetchDeployment();
     refetchSkills();
     refetchSkillDeployment();
+    dismissDiscovery();
   };
 
   const hasItems = servers.length > 0 || skills.length > 0;
 
-  const [bannerDismissed, setBannerDismissed] = useState(
+  const [infoBannerDismissed, setInfoBannerDismissed] = useState(
     () => localStorage.getItem(BANNER_DISMISSED_KEY) === '1',
   );
-  const dismissBanner = () => {
-    setBannerDismissed(true);
+  const dismissInfoBanner = () => {
+    setInfoBannerDismissed(true);
     localStorage.setItem(BANNER_DISMISSED_KEY, '1');
   };
 
-  // Auto-detect: background device scan when registries are empty
+  // Discovery banner: always scan on mount, re-scan on revisit
   const api = useApi();
   const [discoveryDismissed, setDiscoveryDismissed] = useState(
     () => localStorage.getItem(DISCOVERY_DISMISSED_KEY) === '1',
   );
-  const [discoveryCounts, setDiscoveryCounts] = useState<{ servers: number; skills: number } | null>(null);
-  const discoveryRan = useRef(false);
+  const [discoveryCounts, setDiscoveryCountsRaw] = useState<{ servers: number; skills: number } | null>(() => {
+    try {
+      const saved = localStorage.getItem(DISCOVERY_COUNTS_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  const setDiscoveryCounts = (counts: { servers: number; skills: number } | null) => {
+    setDiscoveryCountsRaw(counts);
+    if (counts) {
+      localStorage.setItem(DISCOVERY_COUNTS_KEY, JSON.stringify(counts));
+    } else {
+      localStorage.removeItem(DISCOVERY_COUNTS_KEY);
+    }
+  };
+  const [discoveryScanning, setDiscoveryScanning] = useState(false);
 
-  useEffect(() => {
-    if (discoveryRan.current || discoveryDismissed) return;
-    if (serversLoading || skillsLoading) return;
-    // Only auto-scan when registries are empty
-    if (servers.length > 0 || skills.length > 0) return;
-
-    discoveryRan.current = true;
+  const runDiscoveryScan = useCallback(() => {
+    setDiscoveryScanning(true);
     const options = { mode: 'device' as const };
-    Promise.all([api.scanMcpServers(options), api.scanSkills(options)]).then(([mcpRes, skillRes]) => {
-      const mcpCount = (mcpRes.discovered ?? []).filter((r) => !r.alreadyInRegistry && r.key !== 'work3').length;
-      const skillCount = (skillRes.discovered ?? []).filter((r) => !r.alreadyInRegistry).length;
-      if (mcpCount > 0 || skillCount > 0) {
+    Promise.all([api.scanMcpServers(options), api.scanSkills(options)])
+      .then(([mcpRes, skillRes]) => {
+        const mcpCount = (mcpRes.discovered ?? []).filter((r) => !r.alreadyInRegistry && r.key !== 'work3').length;
+        const skillCount = (skillRes.discovered ?? []).filter((r) => !r.alreadyInRegistry).length;
         setDiscoveryCounts({ servers: mcpCount, skills: skillCount });
-      }
-    });
-  }, [serversLoading, skillsLoading, servers.length, skills.length, discoveryDismissed]);
+      })
+      .finally(() => setDiscoveryScanning(false));
+  }, [api]);
+
+  // Run scan on every mount (re-scans on revisit since component remounts)
+  const scanInitiated = useRef(false);
+  useEffect(() => {
+    if (scanInitiated.current || discoveryDismissed) return;
+    scanInitiated.current = true;
+    runDiscoveryScan();
+  }, [discoveryDismissed, runDiscoveryScan]);
 
   const dismissDiscovery = () => {
     setDiscoveryCounts(null);
@@ -219,55 +237,66 @@ export function AgentsView() {
 
       {/* Right panel */}
       <main className={`flex-1 min-w-0 flex flex-col ${surface.panel} rounded-xl overflow-hidden`}>
-        {discoveryCounts && (
-          <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-teal-400/20 bg-teal-400/[0.04]">
-            <Radar className="w-4 h-4 text-teal-400 flex-shrink-0" />
+        {!discoveryDismissed ? (
+          <div className="flex-shrink-0 h-14 flex items-center gap-3 px-4 border-b border-purple-400/20 bg-purple-400/[0.04]">
+            <Radar className="w-4 h-4 text-purple-400 flex-shrink-0" />
             <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
-              Found{discoveryCounts.servers > 0 ? ` ${discoveryCounts.servers} MCP server${discoveryCounts.servers !== 1 ? 's' : ''}` : ''}
-              {discoveryCounts.servers > 0 && discoveryCounts.skills > 0 ? ' and' : ''}
-              {discoveryCounts.skills > 0 ? ` ${discoveryCounts.skills} skill${discoveryCounts.skills !== 1 ? 's' : ''}` : ''}
-              {' '}on this device.
+              {discoveryScanning && !discoveryCounts
+                ? 'Scanning for MCP servers and skills on this device...'
+                : discoveryCounts && (discoveryCounts.servers > 0 || discoveryCounts.skills > 0)
+                  ? <>
+                      Found{discoveryCounts.servers > 0 ? ` ${discoveryCounts.servers} MCP server${discoveryCounts.servers !== 1 ? 's' : ''}` : ''}
+                      {discoveryCounts.servers > 0 && discoveryCounts.skills > 0 ? ' and' : ''}
+                      {discoveryCounts.skills > 0 ? ` ${discoveryCounts.skills} skill${discoveryCounts.skills !== 1 ? 's' : ''}` : ''}
+                      {' '}on this device.
+                    </>
+                  : 'No new MCP servers or skills found on this device.'
+              }
             </p>
-            <button
-              type="button"
-              onClick={() => { setShowScanModal(true); dismissDiscovery(); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-teal-300 bg-teal-400/10 hover:bg-teal-400/20 border border-teal-400/20 rounded-lg transition-colors flex-shrink-0"
-            >
-              <ScanSearch className="w-3.5 h-3.5" />
-              Import
-            </button>
+            {discoveryCounts !== null && (discoveryCounts.servers > 0 || discoveryCounts.skills > 0) && (
+              <>
+                <button
+                  type="button"
+                  onClick={runDiscoveryScan}
+                  disabled={discoveryScanning}
+                  className={`text-[11px] font-medium transition-colors flex-shrink-0 flex items-center gap-1 ${discoveryScanning ? 'text-purple-300/30 cursor-not-allowed' : 'text-purple-300/60 hover:text-purple-300'}`}
+                >
+                  <RefreshCw className={`w-3 h-3 ${discoveryScanning ? 'animate-spin' : ''}`} />
+                  Scan again
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowScanModal(true); dismissDiscovery(); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 ml-2 text-[11px] font-medium text-purple-300 bg-purple-400/10 hover:bg-purple-400/20 border border-purple-400/20 rounded-lg transition-colors flex-shrink-0"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Import
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={dismissDiscovery}
-              className="p-1 rounded-md hover:bg-teal-400/10 text-teal-400/40 hover:text-teal-400/70 transition-colors flex-shrink-0"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-        {!bannerDismissed && !discoveryCounts && (
-          <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-purple-400/20 bg-purple-400/[0.04]">
-            <Info className="w-4 h-4 text-purple-400 flex-shrink-0" />
-            <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
-              Manage all your agent tooling in one place. Import your MCP servers, skills and Claude plugins, then enable or disable them globally or per project.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowScanModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-purple-300 bg-purple-400/10 hover:bg-purple-400/20 border border-purple-400/20 rounded-lg transition-colors flex-shrink-0"
-            >
-              <ScanSearch className="w-3.5 h-3.5" />
-              Scan &amp; Import
-            </button>
-            <button
-              type="button"
-              onClick={dismissBanner}
               className="p-1 rounded-md hover:bg-purple-400/10 text-purple-400/40 hover:text-purple-400/70 transition-colors flex-shrink-0"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
-        )}
+        ) : !infoBannerDismissed ? (
+          <div className="flex-shrink-0 h-14 flex items-center gap-3 px-4 border-b border-purple-400/20 bg-purple-400/[0.04]">
+            <Bot className="w-4 h-4 text-purple-400 flex-shrink-0" />
+            <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
+              Manage all your agent tooling in one place. Import your MCP servers, skills and Claude plugins, then enable or disable them globally or per project.
+            </p>
+            <button
+              type="button"
+              onClick={dismissInfoBanner}
+              className="p-1 rounded-md hover:bg-purple-400/10 text-purple-400/40 hover:text-purple-400/70 transition-colors flex-shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : null}
         {selection?.type === 'mcp-server' && selection.id !== WORK3_SERVER.id ? (
           <McpServerDetailPanel
             serverId={selection.id}
