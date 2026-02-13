@@ -300,11 +300,15 @@ export function AgentsSidebar({
           >
             <ChevronIcon collapsed={mcpCollapsed} />
             <span className={`text-[11px] font-medium ${text.secondary}`}>MCP Servers</span>
-            {!serversLoading && (
-              <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
-                {filteredServers.length + 1}
-              </span>
-            )}
+            <span className="inline-flex items-center h-[18px]">
+              {serversLoading ? (
+                <Spinner size="xs" className={`${text.muted} ml-0.5`} />
+              ) : (
+                <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+                  {filteredServers.length + 1}
+                </span>
+              )}
+            </span>
           </button>
           <button
             type="button"
@@ -318,19 +322,13 @@ export function AgentsSidebar({
         {!mcpCollapsed && (
           <div className="space-y-px">
             {serversLoading ? (
-              <>
-                <Work3Item
-                  isSelected={selection?.type === 'mcp-server' && selection.id === WORK3_SERVER.id}
-                  onSelect={handleSelectWork3}
-                  isNew={isWork3New}
-                  isActive={Object.values(deploymentStatus[WORK3_SERVER.id] ?? {}).some((v) => v.global || v.project)}
-                  onDeploy={() => setDeployDialog({ type: 'mcp', id: WORK3_SERVER.id, name: 'work3' })}
-                />
-                <div className="flex items-center justify-center gap-2 py-4">
-                  <Spinner size="sm" className={text.muted} />
-                  <span className={`text-xs ${text.muted}`}>Loading servers...</span>
-                </div>
-              </>
+              <Work3Item
+                isSelected={selection?.type === 'mcp-server' && selection.id === WORK3_SERVER.id}
+                onSelect={handleSelectWork3}
+                isNew={isWork3New}
+                isActive={Object.values(deploymentStatus[WORK3_SERVER.id] ?? {}).some((v) => v.global || v.project)}
+                onDeploy={() => setDeployDialog({ type: 'mcp', id: WORK3_SERVER.id, name: 'work3' })}
+              />
             ) : (
               (() => {
                 const work3Status = deploymentStatus[WORK3_SERVER.id] ?? {};
@@ -423,11 +421,15 @@ export function AgentsSidebar({
           >
             <ChevronIcon collapsed={skillsCollapsed} />
             <span className={`text-[11px] font-medium ${text.secondary}`}>Skills</span>
-            {!skillsLoading && (
-              <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
-                {filteredSkills.filter((s) => isSkillVisible(s.name)).length}
-              </span>
-            )}
+            <span className="inline-flex items-center h-[18px]">
+              {skillsLoading ? (
+                <Spinner size="xs" className={`${text.muted} ml-0.5`} />
+              ) : (
+                <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+                  {filteredSkills.filter((s) => isSkillVisible(s.name)).length}
+                </span>
+              )}
+            </span>
           </button>
           <button
             type="button"
@@ -440,12 +442,7 @@ export function AgentsSidebar({
 
         {!skillsCollapsed && (
           <div className="space-y-px">
-            {skillsLoading ? (
-              <div className="flex items-center justify-center gap-2 py-4">
-                <Spinner size="sm" className={text.muted} />
-                <span className={`text-xs ${text.muted}`}>Loading skills...</span>
-              </div>
-            ) : (
+            {skillsLoading ? null : (
               <>
                 {[...filteredSkills]
                   .filter((s) => isSkillVisible(s.name))
@@ -510,7 +507,7 @@ export function AgentsSidebar({
             <span className={`text-[11px] font-medium ${text.secondary}`}>Plugins</span>
             <span className="inline-flex items-center h-[18px]">
               {pluginsLoading ? (
-                <Spinner size="xs" className={`${text.muted} ml-1.5`} />
+                <Spinner size="xs" className={`${text.muted} ml-0.5`} />
               ) : (
                 <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
                   {sortedPlugins.length}

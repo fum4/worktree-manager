@@ -118,6 +118,7 @@ export interface HookStep {
   enabled?: boolean;
   trigger?: HookTrigger;
   condition?: string;
+  conditionTitle?: string;
 }
 
 export interface HookSkillRef {
@@ -125,6 +126,7 @@ export interface HookSkillRef {
   enabled: boolean;
   trigger?: HookTrigger;
   condition?: string;
+  conditionTitle?: string;
 }
 
 export interface HooksConfig {

@@ -4,6 +4,7 @@ import path from 'path';
 import type { Hono } from 'hono';
 
 import type { WorktreeManager } from '../manager';
+import type { NotesManager } from '../notes-manager';
 import type { HooksManager } from '../verification-manager';
 
 // Minimal SKILL.md frontmatter parser (just name + description)
@@ -27,10 +28,19 @@ export function registerHooksRoutes(
   app: Hono,
   _manager: WorktreeManager,
   hooksManager: HooksManager,
+  notesManager: NotesManager,
 ) {
   // Get hooks config
   app.get('/api/hooks/config', (c) => {
     return c.json(hooksManager.getConfig());
+  });
+
+  // Get effective hooks config for a worktree (with issue overrides applied)
+  app.get('/api/worktrees/:id/hooks/effective-config', (c) => {
+    const worktreeId = c.req.param('id');
+    const config = hooksManager.getConfig();
+    const effectiveSkills = hooksManager.getEffectiveSkills(worktreeId, notesManager);
+    return c.json({ ...config, skills: effectiveSkills });
   });
 
   // Save full config
@@ -91,11 +101,11 @@ export function registerHooksRoutes(
   // Import a skill into a hook
   app.post('/api/hooks/skills/import', async (c) => {
     try {
-      const { skillName, trigger, condition } = await c.req.json();
+      const { skillName, trigger, condition, conditionTitle } = await c.req.json();
       if (!skillName) {
         return c.json({ success: false, error: 'skillName is required' }, 400);
       }
-      const config = hooksManager.importSkill(skillName, trigger, condition);
+      const config = hooksManager.importSkill(skillName, trigger, condition, conditionTitle);
       return c.json({ success: true, config });
     } catch (error) {
       return c.json(

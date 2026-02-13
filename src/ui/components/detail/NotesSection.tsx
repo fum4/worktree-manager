@@ -244,9 +244,10 @@ function HooksPane({
               ))}
 
               {groupSkills.map((skill) => {
-                const value: HookSkillOverride = hookSkills?.[skill.skillName] ?? 'inherit';
+                const overrideKey = `${trigger}:${skill.skillName}`;
+                const value: HookSkillOverride = hookSkills?.[overrideKey] ?? 'inherit';
                 return (
-                  <div key={skill.skillName}>
+                  <div key={overrideKey}>
                     <div className="flex items-center gap-5">
                       <span className={`text-[10px] ${text.muted} w-28 truncate`}>
                         {skill.skillName.replace(/^verify-/, '')}
@@ -263,7 +264,7 @@ function HooksPane({
                             <button
                               key={opt.value}
                               type="button"
-                              onClick={() => updateHookSkills({ [skill.skillName]: opt.value })}
+                              onClick={() => updateHookSkills({ [overrideKey]: opt.value })}
                               className={`px-1.5 py-0.5 text-[9px] font-medium rounded transition-colors ${selectedStyle}`}
                             >
                               {opt.label}

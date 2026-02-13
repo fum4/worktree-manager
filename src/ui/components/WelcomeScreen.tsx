@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { GitBranch, Layers, Zap, Link2, Activity, FolderOpen, ChevronRight } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { GitBranch, Layers, ListTodo, Bot, Rocket } from 'lucide-react';
 
 import { APP_NAME } from '../../constants';
 
@@ -120,25 +120,41 @@ function FeatureCard({
   icon: Icon,
   title,
   description,
+  color,
   delay
 }: {
   icon: typeof GitBranch;
   title: string;
   description: string;
+  color: string;
   delay: number;
 }) {
+  const [hovered, setHovered] = useState(false);
+
   return (
     <div
-      className="group relative p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-accent/30 hover:bg-white/[0.04] transition-all duration-300 animate-fade-slide-up"
-      style={{ animationDelay: `${delay}ms` }}
+      className="relative p-4 rounded-xl bg-white/[0.02] border transition-all duration-300 animate-fade-slide-up"
+      style={{
+        animationDelay: `${delay}ms`,
+        borderColor: hovered ? `color-mix(in srgb, ${color} 35%, transparent)` : 'rgba(255,255,255,0.06)',
+        backgroundColor: hovered ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 p-2 rounded-lg bg-accent/10 text-accent group-hover:bg-accent/20 transition-colors duration-300">
+        <div
+          className="flex-shrink-0 p-2 rounded-lg transition-colors duration-300"
+          style={{
+            backgroundColor: `color-mix(in srgb, ${color} ${hovered ? 18 : 12}%, transparent)`,
+            color,
+          }}
+        >
           <Icon className="w-4 h-4" />
         </div>
         <div className="min-w-0">
           <h3 className="text-[13px] font-medium text-[#f0f2f5] mb-1">{title}</h3>
-          <p className="text-[11px] text-[#6b7280] leading-relaxed">{description}</p>
+          <p className="text-[11px] text-[#6b7280] leading-relaxed whitespace-pre-line">{description}</p>
         </div>
       </div>
     </div>
@@ -147,34 +163,37 @@ function FeatureCard({
 
 export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
   const [isHovering, setIsHovering] = useState(false);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const skipTransition = useRef(false);
 
   const features = [
     {
-      icon: Layers,
-      title: 'Multiple Worktrees',
-      description: 'Manage parallel development branches without constant stashing or switching',
-    },
-    {
-      icon: Zap,
-      title: 'Auto Port Offsetting',
-      description: 'Run multiple dev servers simultaneously with automatic port conflict resolution',
-    },
-    {
-      icon: Link2,
-      title: 'Jira Integration',
-      description: 'Create worktrees directly from Jira issues with full metadata sync',
-    },
-    {
       icon: GitBranch,
-      title: 'GitHub Integration',
-      description: 'Commit, push, and create pull requests without leaving the app',
+      title: 'Worktrees',
+      description: 'Manage multiple worktrees side by side with automatic port isolation',
+      color: '#2dd4bf', // teal-400
     },
     {
-      icon: Activity,
-      title: 'Real-time Monitoring',
-      description: 'Live status updates, logs, and process management for all worktrees',
+      icon: ListTodo,
+      title: 'Tasks',
+      description: 'Track work from Jira, Linear, or local tasks and link them directly to worktrees',
+      color: '#fbbf24', // amber-400
+    },
+    {
+      icon: Bot,
+      title: 'Agent Management',
+      description: 'Connect any AI agent to collaborate on worktrees and issues.\nManage all agent tooling — skills, plugins, hooks, and rules — in one place',
+      color: '#a78bfa', // purple-400
     },
   ];
+
+  const handleLaunch = useCallback(() => {
+    if (isLaunching) return;
+    setIsLaunching(true);
+    setTimeout(() => {
+      onImportProject();
+    }, 600);
+  }, [isLaunching, onImportProject]);
 
   return (
     <div className="flex-1 flex items-center justify-center bg-surface-page relative overflow-hidden">
@@ -189,7 +208,7 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
         {/* Logo & Title */}
         <div className="text-center mb-10 animate-fade-slide-up">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 mb-6 shadow-[0_0_40px_rgba(45,212,191,0.15)]">
-            <GitBranch className="w-8 h-8 text-accent" strokeWidth={1.5} />
+            <Layers className="w-8 h-8 text-accent" strokeWidth={1.5} />
           </div>
           <h1 className="text-2xl font-semibold text-[#f0f2f5] tracking-tight mb-2">
             Welcome to <span className="text-accent">{APP_NAME}</span>
@@ -207,6 +226,7 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
               icon={feature.icon}
               title={feature.title}
               description={feature.description}
+              color={feature.color}
               delay={100 + i * 80}
             />
           ))}
@@ -218,8 +238,22 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
           style={{ animationDelay: '600ms' }}
         >
           <button
-            onClick={onImportProject}
-            onMouseEnter={() => setIsHovering(true)}
+            onClick={handleLaunch}
+            onMouseEnter={() => {
+              if (isLaunching) {
+                // Snap to bottom-left instantly (no transition), then animate in
+                setIsLaunching(false);
+                skipTransition.current = true;
+                requestAnimationFrame(() => {
+                  requestAnimationFrame(() => {
+                    skipTransition.current = false;
+                    setIsHovering(true);
+                  });
+                });
+              } else {
+                setIsHovering(true);
+              }
+            }}
             onMouseLeave={() => setIsHovering(false)}
             className="group relative w-full py-4 px-6 rounded-xl bg-accent/15 hover:bg-accent/25 border border-accent/30 hover:border-accent/50 transition-all duration-300 overflow-hidden"
           >
@@ -228,15 +262,27 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
               className={`absolute inset-0 bg-gradient-to-r from-transparent via-accent/10 to-transparent transition-transform duration-700 ${isHovering ? 'translate-x-full' : '-translate-x-full'}`}
             />
 
-            <div className="relative flex items-center justify-center gap-3">
-              <FolderOpen className="w-5 h-5 text-accent" />
-              <span className="text-sm font-medium text-accent">Import Project</span>
-              <ChevronRight className="w-4 h-4 text-accent/70 group-hover:translate-x-1 transition-transform duration-200" />
+            <div className="relative flex items-center justify-center">
+              <span className="relative text-sm font-medium text-accent">
+                Ready to launch
+                <Rocket
+                  className="absolute -right-8 top-0 w-4 h-4 text-accent/70 transition-all duration-300"
+                  style={{
+                    transform: isLaunching
+                      ? 'translate(16px, -16px)'
+                      : isHovering
+                        ? 'translate(-3px, 3px)'
+                        : 'translate(-16px, 16px)',
+                    opacity: isLaunching || !isHovering ? 0 : 1,
+                    transitionDuration: skipTransition.current ? '0ms' : isLaunching ? '400ms' : '300ms',
+                  }}
+                />
+              </span>
             </div>
           </button>
 
           <p className="text-center text-[11px] text-[#4b5563] mt-4">
-            Select a git repository to start managing worktrees
+            Import a project to get started
           </p>
         </div>
 
@@ -326,6 +372,7 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
           opacity: 0;
           animation: fade-in 0.6s ease-out forwards;
         }
+
       `}</style>
     </div>
   );

@@ -106,7 +106,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerTaskRoutes(app, manager, notesManager);
   registerNotesRoutes(app, manager, notesManager, hooksManager);
   registerTerminalRoutes(app, manager, terminalManager, upgradeWebSocket);
-  registerHooksRoutes(app, manager, hooksManager);
+  registerHooksRoutes(app, manager, hooksManager, notesManager);
   registerMcpTransportRoute(app, { manager, notesManager, hooksManager });
 
   // Background verification of all integration connections

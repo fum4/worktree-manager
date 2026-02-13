@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FileText, Paperclip, X } from 'lucide-react';
+import { ListTodo, Paperclip, X } from 'lucide-react';
 
 import { customTask, getLabelColor, text } from '../theme';
 import { Modal } from './Modal';
@@ -7,11 +7,12 @@ import { Modal } from './Modal';
 interface CreateCustomTaskModalProps {
   onCreated: (taskId?: string) => void;
   onClose: () => void;
-  onCreate: (data: { title: string; description?: string; priority?: string; labels?: string[] }) => Promise<{ success: boolean; task?: { id: string }; error?: string }>;
+  onCreate: (data: { title: string; description?: string; priority?: string; labels?: string[]; linkedWorktreeId?: string }) => Promise<{ success: boolean; task?: { id: string }; error?: string }>;
   onUploadAttachment?: (taskId: string, file: File) => Promise<unknown>;
+  linkedWorktreeId?: string;
 }
 
-export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAttachment }: CreateCustomTaskModalProps) {
+export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAttachment, linkedWorktreeId }: CreateCustomTaskModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium');
@@ -34,6 +35,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
       description: description.trim() || undefined,
       priority,
       labels: labels.length > 0 ? labels : undefined,
+      linkedWorktreeId,
     });
 
     setIsCreating(false);
@@ -69,7 +71,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
   return (
     <Modal
       title="Create Task"
-      icon={<FileText className="w-4 h-4 text-amber-400" />}
+      icon={<ListTodo className="w-4 h-4 text-amber-400" />}
       onClose={onClose}
       onSubmit={handleSubmit}
       width="lg"

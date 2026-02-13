@@ -1,4 +1,4 @@
-import { CircleCheck, FishingHook, Hand, ListChecks, MessageSquareText, Plus, Sparkles, Terminal, X } from 'lucide-react';
+import { CircleCheck, FishingHook, Hand, ListChecks, MessageSquareText, Pencil, Plus, Sparkles, Terminal, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { HookSkillRef, HookStep, HookTrigger } from '../hooks/api';
@@ -49,9 +49,9 @@ export function HooksPanel() {
     setAddingStep(null);
   };
 
-  const addCustomStep = (name: string, command: string, condition: string) => {
+  const addCustomStep = (name: string, command: string, condition: string, conditionTitle?: string) => {
     const id = `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const step: HookStep = { id, name, command, enabled: true, trigger: 'custom', condition };
+    const step: HookStep = { id, name, command, enabled: true, trigger: 'custom', condition, conditionTitle };
     saveConfig({ ...config, steps: [...config.steps, step] });
   };
 
@@ -95,20 +95,20 @@ export function HooksPanel() {
     setShowImportPicker(null);
   };
 
-  const handleImportCustomSkill = async (skillName: string, condition: string) => {
-    await api.importHookSkill(skillName, 'custom', condition);
+  const handleImportCustomSkill = async (skillName: string, condition: string, conditionTitle?: string) => {
+    await api.importHookSkill(skillName, 'custom', condition, conditionTitle);
     refetch();
   };
 
-  const updateCustomGroupCondition = (oldCondition: string, newCondition: string) => {
+  const updateCustomGroup = (oldCondition: string, newCondition: string, newTitle?: string) => {
     const updatedSteps = config.steps.map((s) =>
       s.trigger === 'custom' && (s.condition ?? '') === oldCondition
-        ? { ...s, condition: newCondition }
+        ? { ...s, condition: newCondition, conditionTitle: newTitle || undefined }
         : s,
     );
     const updatedSkills = config.skills.map((s) =>
       s.trigger === 'custom' && (s.condition ?? '') === oldCondition
-        ? { ...s, condition: newCondition }
+        ? { ...s, condition: newCondition, conditionTitle: newTitle || undefined }
         : s,
     );
     saveConfig({ ...config, steps: updatedSteps, skills: updatedSkills });
@@ -127,7 +127,6 @@ export function HooksPanel() {
   const hasPreItems = preSteps.length > 0 || preSkills.length > 0;
   const hasPostItems = postSteps.length > 0 || postSkills.length > 0;
   const hasOnDemandItems = onDemandSteps.length > 0 || onDemandSkills.length > 0;
-  const hasCustomItems = customSteps.length > 0 || customSkills.length > 0;
 
   return (
     <div className="max-w-2xl mx-auto p-6 flex flex-col gap-12">
@@ -136,8 +135,7 @@ export function HooksPanel() {
         <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border ${infoBanner.border} ${infoBanner.bg}`}>
           <FishingHook className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
           <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
-            Hooks are automated checks and skills that validate your work.
-            Add shell commands or import agent skills to build your verification pipeline.
+          Hooks are automated checks and skills that validate your work, running at predefined points in your workflow to ensure quality, consistency, and compliance throughout each stage of the process.
           </p>
           <button
             type="button"
@@ -215,7 +213,7 @@ export function HooksPanel() {
         onImportSkill={handleImportCustomSkill}
         onToggleSkill={(name, enabled) => handleToggleSkill(name, enabled, 'custom')}
         onRemoveSkill={(name) => handleRemoveSkill(name, 'custom')}
-        onUpdateGroupCondition={updateCustomGroupCondition}
+        onUpdateGroup={updateCustomGroup}
       />
 
       {/* On-Demand section */}
@@ -624,6 +622,7 @@ function SkillCard({
 
 function CustomHookGroupCard({
   condition,
+  conditionTitle,
   steps,
   skills,
   onUpdateStep,
@@ -633,6 +632,7 @@ function CustomHookGroupCard({
   onEditGroup,
 }: {
   condition: string;
+  conditionTitle?: string;
   steps: HookStep[];
   skills: HookSkillRef[];
   onUpdateStep: (stepId: string, updates: Partial<Pick<HookStep, 'enabled'>>) => void;
@@ -648,7 +648,10 @@ function CustomHookGroupCard({
         onClick={onEditGroup}
         className="w-full text-left px-4 py-2.5 bg-violet-400/[0.04] border-b border-white/[0.04] hover:bg-violet-400/[0.08] transition-colors"
       >
-        <p className="text-[10px] text-violet-400/80 italic leading-relaxed">{condition || 'No condition set'}</p>
+        {conditionTitle && (
+          <p className="text-[11px] font-medium text-violet-300 leading-relaxed">{conditionTitle}</p>
+        )}
+        <p className={`text-[10px] text-violet-400/80 italic leading-relaxed ${conditionTitle ? 'mt-0.5' : ''}`}>{condition || 'No condition set'}</p>
       </button>
       <div>
         {/* Step rows */}
@@ -717,20 +720,20 @@ function CustomHookEditor({
   onAddCommand,
   onImportSkill,
   onRemoveStep,
-  onRemoveSkill,
   onConditionChange,
   onClose,
   initialCondition,
+  initialTitle,
   existingSteps,
   existingSkills,
 }: {
-  onAddCommand: (name: string, command: string, condition: string) => void;
-  onImportSkill: (skillName: string, condition: string) => void;
+  onAddCommand: (name: string, command: string, condition: string, conditionTitle?: string) => void;
+  onImportSkill: (skillName: string, condition: string, conditionTitle?: string) => void;
   onRemoveStep: (stepId: string) => void;
-  onRemoveSkill: (skillName: string) => void;
-  onConditionChange?: (oldCondition: string, newCondition: string) => void;
+  onConditionChange?: (oldCondition: string, newCondition: string, newTitle?: string) => void;
   onClose: () => void;
   initialCondition?: string;
+  initialTitle?: string;
   existingSteps?: HookStep[];
   existingSkills?: HookSkillRef[];
 }) {
@@ -738,6 +741,7 @@ function CustomHookEditor({
   const [available, setAvailable] = useState<Array<{ name: string; displayName: string; description: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [title, setTitle] = useState(initialTitle ?? '');
   const [condition, setCondition] = useState(initialCondition ?? '');
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [pendingCmds, setPendingCmds] = useState<Array<{ name: string; command: string }>>([]);
@@ -746,6 +750,7 @@ function CustomHookEditor({
 
   const isEditMode = initialCondition !== undefined;
   const conditionChanged = isEditMode && condition.trim() !== (initialCondition ?? '').trim();
+  const titleChanged = isEditMode && title.trim() !== (initialTitle ?? '').trim();
   const existingSkillNames = new Set(existingSkills?.map((s) => s.skillName) ?? []);
   const newSkillCount = [...selectedSkills].filter((n) => !existingSkillNames.has(n)).length;
 
@@ -783,22 +788,23 @@ function CustomHookEditor({
   const handleSubmit = () => {
     const cond = condition.trim();
     if (!cond) return;
+    const t = title.trim() || undefined;
     for (const cmd of pendingCmds) {
-      onAddCommand(cmd.name, cmd.command, cond);
+      onAddCommand(cmd.name, cmd.command, cond, t);
     }
     for (const name of selectedSkills) {
       if (!existingSkillNames.has(name)) {
-        onImportSkill(name, cond);
+        onImportSkill(name, cond, t);
       }
     }
-    if (conditionChanged && onConditionChange) {
-      onConditionChange(initialCondition!, cond);
+    if ((conditionChanged || titleChanged) && onConditionChange) {
+      onConditionChange(initialCondition!, cond, t);
     }
     onClose();
   };
 
   const totalNew = pendingCmds.length + newSkillCount;
-  const showSubmit = isEditMode ? (totalNew > 0 || conditionChanged) : (!!condition.trim() && totalNew > 0);
+  const showSubmit = isEditMode ? (totalNew > 0 || conditionChanged || titleChanged) : (!!condition.trim() && totalNew > 0);
   const submitLabel = totalNew > 0
     ? `Add ${totalNew} item${totalNew > 1 ? 's' : ''}`
     : 'Update condition';
@@ -817,11 +823,23 @@ function CustomHookEditor({
   return (
     <div className={`rounded-xl border border-white/[0.06] ${settings.card} p-4`}>
       <div className="flex items-center justify-between mb-3">
-        <span className={`text-xs font-medium ${text.primary}`}>{isEditMode ? 'Edit custom hook' : 'Add hook'}</span>
+        <span className={`text-xs font-medium ${text.primary} flex items-center gap-1.5`}>
+          {isEditMode && <Pencil className="w-3 h-3" />}
+          {isEditMode ? 'Edit hook' : 'Add hook'}
+        </span>
         <button onClick={onClose} className={`p-1 ${text.dimmed} hover:text-white`}>
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
+
+      {/* Title */}
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Title (e.g. &quot;Database checks&quot;)"
+        className={`w-full px-3 py-2 mb-2 rounded-lg text-xs bg-white/[0.04] border border-white/[0.06] text-white placeholder-[#4b5563] focus:outline-none focus:border-white/[0.15]`}
+        autoFocus
+      />
 
       {/* Condition */}
       <textarea
@@ -830,7 +848,6 @@ function CustomHookEditor({
         placeholder="When should agents run this? (e.g. &quot;When changes touch database models or migrations&quot;)"
         rows={2}
         className={`w-full px-3 py-2 mb-3 rounded-lg text-xs bg-white/[0.04] border border-white/[0.06] text-white placeholder-[#4b5563] focus:outline-none focus:border-white/[0.15] resize-none`}
-        autoFocus
       />
 
       {/* Commands section */}
@@ -954,30 +971,34 @@ function CustomHooksSection({
   onImportSkill,
   onToggleSkill,
   onRemoveSkill,
-  onUpdateGroupCondition,
+  onUpdateGroup,
 }: {
   steps: HookStep[];
   skills: HookSkillRef[];
-  onAddStep: (name: string, command: string, condition: string) => void;
+  onAddStep: (name: string, command: string, condition: string, conditionTitle?: string) => void;
   onUpdateStep: (stepId: string, updates: Partial<Pick<HookStep, 'name' | 'command' | 'enabled' | 'condition'>>) => void;
   onRemoveStep: (stepId: string) => void;
-  onImportSkill: (skillName: string, condition: string) => void;
+  onImportSkill: (skillName: string, condition: string, conditionTitle?: string) => void;
   onToggleSkill: (skillName: string, enabled: boolean) => void;
   onRemoveSkill: (skillName: string) => void;
-  onUpdateGroupCondition: (oldCondition: string, newCondition: string) => void;
+  onUpdateGroup: (oldCondition: string, newCondition: string, newTitle?: string) => void;
 }) {
   const [editingCondition, setEditingCondition] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
 
   // Group all items by condition
-  const groups: Record<string, { steps: HookStep[]; skills: HookSkillRef[] }> = {};
+  const groups: Record<string, { steps: HookStep[]; skills: HookSkillRef[]; title?: string }> = {};
   for (const step of steps) {
     const key = step.condition ?? '';
-    (groups[key] ??= { steps: [], skills: [] }).steps.push(step);
+    const g = (groups[key] ??= { steps: [], skills: [] });
+    g.steps.push(step);
+    if (step.conditionTitle) g.title = step.conditionTitle;
   }
   for (const skill of skills) {
     const key = skill.condition ?? '';
-    (groups[key] ??= { steps: [], skills: [] }).skills.push(skill);
+    const g = (groups[key] ??= { steps: [], skills: [] });
+    g.skills.push(skill);
+    if (skill.conditionTitle) g.title = skill.conditionTitle;
   }
 
   const hasItems = steps.length > 0 || skills.length > 0;
@@ -1008,19 +1029,20 @@ function CustomHooksSection({
             <CustomHookEditor
               key={`edit-${condition}`}
               initialCondition={condition}
+              initialTitle={groups[condition]?.title}
               existingSteps={groups[condition]?.steps}
               existingSkills={groups[condition]?.skills}
               onAddCommand={onAddStep}
               onImportSkill={onImportSkill}
               onRemoveStep={onRemoveStep}
-              onRemoveSkill={onRemoveSkill}
-              onConditionChange={onUpdateGroupCondition}
+              onConditionChange={onUpdateGroup}
               onClose={closeEditor}
             />
           ) : groups[condition] ? (
             <CustomHookGroupCard
               key={condition}
               condition={condition}
+              conditionTitle={groups[condition].title}
               steps={groups[condition].steps}
               skills={groups[condition].skills}
               onUpdateStep={onUpdateStep}
@@ -1038,20 +1060,21 @@ function CustomHooksSection({
             onAddCommand={onAddStep}
             onImportSkill={onImportSkill}
             onRemoveStep={onRemoveStep}
-            onRemoveSkill={onRemoveSkill}
             onClose={closeEditor}
           />
         )}
 
         {/* Add hook button */}
         {!isEditing && (
-          <button
-            onClick={openEditor}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium ${text.muted} hover:text-[#9ca3af] border border-dashed border-white/[0.08] hover:border-white/[0.15] rounded-lg transition-colors`}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Add hook
-          </button>
+          <div className="flex flex-col gap-2 pt-1">
+            <button
+              onClick={openEditor}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium ${text.muted} hover:text-[#9ca3af] border border-dashed border-white/[0.08] hover:border-white/[0.15] rounded-lg transition-colors`}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add hook
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -1136,7 +1159,10 @@ function ImportSkillPicker({
   return (
     <div className={`rounded-xl border border-white/[0.06] ${settings.card} p-4`}>
       <div className="flex items-center justify-between mb-3">
-        <span className={`text-xs font-medium ${text.primary}`}>{isEditMode ? 'Edit custom hook' : 'Add skill'}</span>
+        <span className={`text-xs font-medium ${text.primary} flex items-center gap-1.5`}>
+          {isEditMode && <Pencil className="w-3 h-3" />}
+          {isEditMode ? 'Edit hook' : 'Add skill'}
+        </span>
         <button onClick={onClose} className={`p-1 ${text.dimmed} hover:text-white`}>
           <X className="w-3.5 h-3.5" />
         </button>

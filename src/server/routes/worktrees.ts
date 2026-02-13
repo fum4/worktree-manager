@@ -104,4 +104,46 @@ export function registerWorktreeRoutes(
       );
     }
   });
+
+  // Link an existing worktree to an existing issue
+  app.patch('/api/worktrees/:id/link', async (c) => {
+    const id = c.req.param('id');
+    try {
+      const { source, issueId } = await c.req.json<{ source: 'jira' | 'linear' | 'local'; issueId: string }>();
+      if (!source || !issueId) {
+        return c.json({ success: false, error: 'source and issueId are required' }, 400);
+      }
+      if (!['jira', 'linear', 'local'].includes(source)) {
+        return c.json({ success: false, error: 'source must be jira, linear, or local' }, 400);
+      }
+      const notesManager = manager.getNotesManager();
+      notesManager.setLinkedWorktreeId(source, issueId, id);
+      return c.json({ success: true });
+    } catch (error) {
+      return c.json(
+        { success: false, error: error instanceof Error ? error.message : 'Failed to link worktree' },
+        400,
+      );
+    }
+  });
+
+  // Unlink a worktree from its linked issue
+  app.delete('/api/worktrees/:id/link', async (c) => {
+    const id = c.req.param('id');
+    try {
+      const notesManager = manager.getNotesManager();
+      const linkMap = notesManager.buildWorktreeLinkMap();
+      const linked = linkMap.get(id);
+      if (!linked) {
+        return c.json({ success: false, error: 'Worktree is not linked to any issue' }, 400);
+      }
+      notesManager.setLinkedWorktreeId(linked.source, linked.issueId, null);
+      return c.json({ success: true });
+    } catch (error) {
+      return c.json(
+        { success: false, error: error instanceof Error ? error.message : 'Failed to unlink worktree' },
+        400,
+      );
+    }
+  });
 }

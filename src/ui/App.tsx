@@ -7,6 +7,7 @@ import { AppSettingsModal } from './components/AppSettingsModal';
 import { ConfigurationPanel } from './components/ConfigurationPanel';
 import { CreateCustomTaskModal } from './components/CreateCustomTaskModal';
 import { CreateForm } from './components/CreateForm';
+import { LinkIssueModal } from './components/LinkIssueModal';
 import { CreateWorktreeModal } from './components/CreateWorktreeModal';
 import { CustomTaskDetailPanel } from './components/detail/CustomTaskDetailPanel';
 import { DetailPanel } from './components/detail/DetailPanel';
@@ -220,6 +221,8 @@ export default function App() {
   const [worktreeFilter, setWorktreeFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalMode, setCreateModalMode] = useState<'branch' | 'jira' | 'linear' | 'custom'>('branch');
+  const [createTaskForWorktreeId, setCreateTaskForWorktreeId] = useState<string | null>(null);
+  const [linkIssueForWorktreeId, setLinkIssueForWorktreeId] = useState<string | null>(null);
 
   // Sidebar width state with persistence
   const DEFAULT_SIDEBAR_WIDTH = 300;
@@ -435,11 +438,11 @@ export default function App() {
   // Show welcome screen when no config (web mode) or no projects (Electron mode)
   if (showWelcomeScreen) {
     return (
-      <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
-        <div className="flex-1 flex items-center justify-center">
-          <WelcomeScreen onImportProject={handleImportProject} />
+      <div className={`h-screen relative ${surface.page} ${text.body}`}>
+        <WelcomeScreen onImportProject={handleImportProject} />
+        <div className="absolute bottom-0 left-0 right-0">
+          <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
         </div>
-        <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
       </div>
     );
   }
@@ -805,12 +808,19 @@ export default function App() {
                     onUpdate={refetch}
                     onDeleted={handleDeleted}
                     onNavigateToIntegrations={() => setActiveView('integrations')}
+                    onNavigateToHooks={() => setActiveView('hooks')}
                     onSelectJiraIssue={(key) => { setActiveCreateTab('issues'); setSelection({ type: 'issue', key }); }}
                     onSelectLinearIssue={(identifier) => { setActiveCreateTab('issues'); setSelection({ type: 'linear-issue', identifier }); }}
                     onSelectLocalIssue={(identifier) => {
                       const task = customTasks.find((t) => t.identifier === identifier);
                       if (task) { setActiveCreateTab('issues'); setSelection({ type: 'custom-task', id: task.id }); }
                     }}
+                    onCreateTask={(worktreeId) => {
+                      setCreateTaskForWorktreeId(worktreeId);
+                      setCreateModalMode('custom');
+                      setShowCreateModal(true);
+                    }}
+                    onLinkIssue={(worktreeId) => setLinkIssueForWorktreeId(worktreeId)}
                   />
                 )}
               </main>
@@ -887,12 +897,31 @@ export default function App() {
         <CreateCustomTaskModal
           onCreate={(data) => api.createCustomTask(data)}
           onUploadAttachment={(taskId, file) => api.uploadTaskAttachment(taskId, file)}
+          linkedWorktreeId={createTaskForWorktreeId ?? undefined}
           onCreated={(taskId) => {
             refetchCustomTasks();
+            refetch();
             setActiveCreateTab('issues');
             if (taskId) setSelection({ type: 'custom-task', id: taskId });
           }}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => { setShowCreateModal(false); setCreateTaskForWorktreeId(null); }}
+        />
+      )}
+
+      {/* Link issue modal */}
+      {linkIssueForWorktreeId && (
+        <LinkIssueModal
+          jiraConfigured={jiraStatus?.configured ?? false}
+          linearConfigured={linearStatus?.configured ?? false}
+          onLink={async (source, issueId) => {
+            const result = await api.linkWorktree(linkIssueForWorktreeId, source, issueId);
+            if (result.success) {
+              refetch();
+              refetchCustomTasks();
+            }
+            return result;
+          }}
+          onClose={() => setLinkIssueForWorktreeId(null)}
         />
       )}
 

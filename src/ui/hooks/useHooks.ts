@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useServerUrlOptional } from '../contexts/ServerContext';
 import {
   fetchHooksConfig as apiFetchConfig,
+  fetchEffectiveHooksConfig as apiFetchEffectiveConfig,
   fetchHookSkillResults as apiFetchSkillResults,
   saveHooksConfig as apiSaveConfig,
   type SkillHookResult,
@@ -45,6 +46,30 @@ export function useHooksConfig() {
   }, [serverUrl]);
 
   return { config, isLoading, refetch: fetchConfig, saveConfig };
+}
+
+export function useEffectiveHooksConfig(worktreeId: string | null) {
+  const serverUrl = useServerUrlOptional();
+  const [config, setConfig] = useState<HooksConfig | null>(null);
+
+  const fetchConfig = useCallback(async () => {
+    if (serverUrl === null || !worktreeId) {
+      setConfig(null);
+      return;
+    }
+    try {
+      const data = await apiFetchEffectiveConfig(worktreeId, serverUrl);
+      setConfig(data);
+    } catch {
+      // Ignore
+    }
+  }, [serverUrl, worktreeId]);
+
+  useEffect(() => {
+    fetchConfig();
+  }, [fetchConfig]);
+
+  return { config, refetch: fetchConfig };
 }
 
 export function useHookSkillResults(worktreeId: string | null) {

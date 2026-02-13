@@ -51,6 +51,27 @@ export async function recoverWorktree(
   }
 }
 
+export async function linkWorktree(
+  id: string,
+  source: 'jira' | 'linear' | 'local',
+  issueId: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/link`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source, issueId }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to link worktree',
+    };
+  }
+}
+
 export async function renameWorktree(
   id: string,
   request: { name?: string; branch?: string },
@@ -1012,7 +1033,7 @@ export async function fetchCustomTaskDetail(
 }
 
 export async function createCustomTask(
-  data: { title: string; description?: string; priority?: string; labels?: string[] },
+  data: { title: string; description?: string; priority?: string; labels?: string[]; linkedWorktreeId?: string },
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; task?: CustomTaskDetail; error?: string }> {
   try {
@@ -1866,6 +1887,7 @@ export interface HookStep {
   enabled?: boolean;
   trigger?: HookTrigger;
   condition?: string;
+  conditionTitle?: string;
 }
 
 export interface HookSkillRef {
@@ -1873,6 +1895,7 @@ export interface HookSkillRef {
   enabled: boolean;
   trigger?: HookTrigger;
   condition?: string;
+  conditionTitle?: string;
 }
 
 export interface HooksConfig {
@@ -1913,6 +1936,20 @@ export async function fetchHooksConfig(
 ): Promise<HooksConfig> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/config`);
+    const data = await res.json();
+    data.skills ??= [];
+    return data;
+  } catch {
+    return { steps: [], skills: [] };
+  }
+}
+
+export async function fetchEffectiveHooksConfig(
+  worktreeId: string,
+  serverUrl: string | null = null,
+): Promise<HooksConfig> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/effective-config`);
     const data = await res.json();
     data.skills ??= [];
     return data;
@@ -2055,12 +2092,13 @@ export async function importHookSkill(
   serverUrl: string | null = null,
   trigger?: HookTrigger,
   condition?: string,
+  conditionTitle?: string,
 ): Promise<{ success: boolean; config?: HooksConfig; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/skills/import`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ skillName, trigger, condition }),
+      body: JSON.stringify({ skillName, trigger, condition, conditionTitle }),
     });
     return await res.json();
   } catch (err) {

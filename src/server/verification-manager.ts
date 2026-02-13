@@ -78,7 +78,7 @@ export class HooksManager {
 
   // ─── Skill management ───────────────────────────────────────
 
-  importSkill(skillName: string, trigger?: string, condition?: string): HooksConfig {
+  importSkill(skillName: string, trigger?: string, condition?: string, conditionTitle?: string): HooksConfig {
     const config = this.getConfig();
     const effectiveTrigger = trigger ?? 'post-implementation';
     // Allow same skill in different triggers
@@ -88,6 +88,7 @@ export class HooksManager {
     const entry: HookSkillRef = { skillName, enabled: true };
     if (trigger) entry.trigger = trigger as HookSkillRef['trigger'];
     if (condition) entry.condition = condition;
+    if (conditionTitle) entry.conditionTitle = conditionTitle;
     config.skills.push(entry);
     return this.saveConfig(config);
   }
@@ -134,7 +135,8 @@ export class HooksManager {
       : {};
 
     return config.skills.map((skill) => {
-      const override = overrides[skill.skillName];
+      const trigger = skill.trigger ?? 'post-implementation';
+      const override = overrides[`${trigger}:${skill.skillName}`];
       if (override === 'enable') return { ...skill, enabled: true };
       if (override === 'disable') return { ...skill, enabled: false };
       return skill; // 'inherit' or not set

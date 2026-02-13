@@ -1,3 +1,4 @@
+import { Link, ListTodo } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { WorktreeInfo } from '../../types';
@@ -8,7 +9,7 @@ import { DetailHeader } from './DetailHeader';
 import { GitActionInputs } from './GitActionInputs';
 import { LogsViewer } from './LogsViewer';
 import { TerminalView } from './TerminalView';
-import { HooksTab } from './VerifyTab';
+import { HooksTab } from './HooksTab';
 
 // Persists across unmount/remount (view switches)
 const tabCache: Record<string, 'logs' | 'terminal' | 'hooks'> = {};
@@ -18,12 +19,15 @@ interface DetailPanelProps {
   onUpdate: () => void;
   onDeleted: () => void;
   onNavigateToIntegrations?: () => void;
+  onNavigateToHooks?: () => void;
   onSelectJiraIssue?: (key: string) => void;
   onSelectLinearIssue?: (identifier: string) => void;
   onSelectLocalIssue?: (identifier: string) => void;
+  onCreateTask?: (worktreeId: string) => void;
+  onLinkIssue?: (worktreeId: string) => void;
 }
 
-export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegrations, onSelectJiraIssue, onSelectLinearIssue, onSelectLocalIssue }: DetailPanelProps) {
+export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegrations, onNavigateToHooks, onSelectJiraIssue, onSelectLinearIssue, onSelectLocalIssue, onCreateTask, onLinkIssue }: DetailPanelProps) {
   const api = useApi();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -301,6 +305,30 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
                     PR
                   </button>
                 )}
+                {!worktree.jiraUrl && !worktree.linearUrl && !worktree.localIssueId && (
+                  <>
+                    {onCreateTask && (
+                      <button
+                        type="button"
+                        onClick={() => onCreateTask(worktree.id)}
+                        className={`h-7 px-2.5 text-[11px] font-medium ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] rounded-md transition-colors duration-150 active:scale-[0.98] inline-flex items-center gap-1.5`}
+                      >
+                        <ListTodo className="w-3.5 h-3.5" />
+                        Create Task
+                      </button>
+                    )}
+                    {onLinkIssue && (
+                      <button
+                        type="button"
+                        onClick={() => onLinkIssue(worktree.id)}
+                        className={`h-7 px-2.5 text-[11px] font-medium ${text.muted} hover:${text.secondary} hover:bg-white/[0.06] rounded-md transition-colors duration-150 active:scale-[0.98] inline-flex items-center gap-1.5`}
+                      >
+                        <Link className="w-3.5 h-3.5" />
+                        Link Issue
+                      </button>
+                    )}
+                  </>
+                )}
               </>
             )}
           </div>
@@ -337,6 +365,20 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
       <HooksTab
         worktreeId={worktree.id}
         visible={activeTab === 'hooks' && !isCreating}
+        hasLinkedIssue={!!(worktree.jiraUrl || worktree.linearUrl || worktree.localIssueId)}
+        onNavigateToIssue={() => {
+          if (worktree.localIssueId && onSelectLocalIssue) {
+            onSelectLocalIssue(worktree.localIssueId);
+          } else if (worktree.jiraUrl && onSelectJiraIssue) {
+            const jiraKey = worktree.jiraUrl.match(/\/browse\/([A-Z]+-\d+)/)?.[1];
+            if (jiraKey) onSelectJiraIssue(jiraKey);
+          } else if (worktree.linearUrl && onSelectLinearIssue) {
+            const linearId = worktree.linearUrl.match(/\/issue\/([A-Z]+-\d+)/)?.[1];
+            if (linearId) onSelectLinearIssue(linearId);
+          }
+        }}
+        onCreateTask={onCreateTask ? () => onCreateTask(worktree.id) : undefined}
+        onNavigateToHooks={onNavigateToHooks}
       />
 
       {showRemoveModal && (

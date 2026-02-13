@@ -18,7 +18,7 @@ export function NavBar({
   onChangeView: (view: View) => void;
 }) {
   return (
-    <div className={`flex-shrink-0 flex gap-1 px-4 py-1.5 ${nav.bg}`}>
+    <div className="flex-shrink-0 flex gap-1 px-4 py-1.5 bg-[#0c0e12]/60 backdrop-blur-md">
       {tabs.map((t) => (
         <button
           key={t.id}

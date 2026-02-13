@@ -146,6 +146,7 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
       description?: string;
       priority?: string;
       labels?: string[];
+      linkedWorktreeId?: string;
     }>();
 
     if (!body.title?.trim()) {
@@ -165,15 +166,18 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
       updatedAt: now,
     };
 
+    const linkedWorktreeId = body.linkedWorktreeId ?? null;
+
     saveTask(configDir, task);
-    // Create empty notes.json alongside
+    // Create notes.json alongside (optionally linking to a worktree)
     notesManager.saveNotes('local', task.id, {
-      linkedWorktreeId: null,
+      linkedWorktreeId,
       personal: null,
       aiContext: null,
       todos: [],
     });
-    return c.json({ success: true, task: { ...task, linkedWorktreeId: null } });
+
+    return c.json({ success: true, task: { ...task, linkedWorktreeId } });
   });
 
   // Update task

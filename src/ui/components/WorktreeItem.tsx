@@ -1,4 +1,4 @@
-import { FileText, Ticket } from 'lucide-react';
+import { ListTodo, Ticket } from 'lucide-react';
 
 import type { WorktreeInfo } from '../types';
 import { border, status, surface, text } from '../theme';
@@ -89,7 +89,7 @@ export function WorktreeItem({ worktree, isSelected, onSelect, hasLocalIssue, on
               className="cursor-pointer p-1 -m-1 rounded text-amber-400 hover:bg-amber-400/10 transition-colors duration-150"
               onClick={(e) => { e.stopPropagation(); onSelectLocalIssue?.(worktree.localIssueId!); }}
             >
-              <FileText className="w-3.5 h-3.5" />
+              <ListTodo className="w-3.5 h-3.5" />
             </span>
           </Tooltip>
         )}

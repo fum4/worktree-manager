@@ -16,6 +16,9 @@ export function useApi() {
       recoverWorktree: (id: string, action: 'reuse' | 'recreate', branch?: string) =>
         api.recoverWorktree(id, action, branch, serverUrl),
 
+      linkWorktree: (id: string, source: 'jira' | 'linear' | 'local', issueId: string) =>
+        api.linkWorktree(id, source, issueId, serverUrl),
+
       renameWorktree: (id: string, request: { name?: string; branch?: string }) =>
         api.renameWorktree(id, request, serverUrl),
 
@@ -57,6 +60,9 @@ export function useApi() {
 
       fetchJiraIssues: (query?: string) =>
         api.fetchJiraIssues(query, serverUrl),
+
+      fetchLinearIssues: (query?: string) =>
+        api.fetchLinearIssues(query, serverUrl),
 
       fetchJiraIssueDetail: (key: string) =>
         api.fetchJiraIssueDetail(key, serverUrl),
@@ -316,8 +322,8 @@ export function useApi() {
         api.deleteAgentRule(fileId, serverUrl),
 
       // Hook Skills
-      importHookSkill: (skillName: string, trigger?: api.HookTrigger, condition?: string) =>
-        api.importHookSkill(skillName, serverUrl, trigger, condition),
+      importHookSkill: (skillName: string, trigger?: api.HookTrigger, condition?: string, conditionTitle?: string) =>
+        api.importHookSkill(skillName, serverUrl, trigger, condition, conditionTitle),
 
       removeHookSkill: (skillName: string, trigger?: api.HookTrigger) =>
         api.removeHookSkill(skillName, serverUrl, trigger),

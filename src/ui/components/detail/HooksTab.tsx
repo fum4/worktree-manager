@@ -1,10 +1,10 @@
-import { CheckCircle, ChevronDown, Circle, CircleCheck, FishingHook, Hand, ListChecks, Loader2, Play, XCircle } from 'lucide-react';
+import { Ban, CheckCircle, ChevronDown, CircleCheck, FishingHook, Hand, ListChecks, Loader2, MessageSquareText, Play, Sparkles, Terminal, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import type { HookStep, SkillHookResult, StepResult } from '../../hooks/api';
+import type { HookSkillRef, HookStep, SkillHookResult, StepResult } from '../../hooks/api';
 import { useApi } from '../../hooks/useApi';
-import { useHooksConfig, useHookSkillResults } from '../../hooks/useHooks';
-import { button, settings, text, hooks as hooksTheme } from '../../theme';
+import { useEffectiveHooksConfig, useHookSkillResults } from '../../hooks/useHooks';
+import { button, settings, text } from '../../theme';
 
 function statusIcon(status: StepResult['status']) {
   switch (status) {
@@ -15,23 +15,23 @@ function statusIcon(status: StepResult['status']) {
   }
 }
 
-function statusBadge(status: StepResult['status']) {
-  switch (status) {
-    case 'passed': return hooksTheme.passed;
-    case 'failed': return hooksTheme.failed;
-    case 'running': return hooksTheme.running;
-    case 'pending': return hooksTheme.pending;
-  }
-}
-
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-export function HooksTab({ worktreeId, visible }: { worktreeId: string; visible: boolean }) {
+interface HooksTabProps {
+  worktreeId: string;
+  visible: boolean;
+  hasLinkedIssue?: boolean;
+  onNavigateToIssue?: () => void;
+  onCreateTask?: () => void;
+  onNavigateToHooks?: () => void;
+}
+
+export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssue, onCreateTask, onNavigateToHooks }: HooksTabProps) {
   const api = useApi();
-  const { config } = useHooksConfig();
+  const { config, refetch: refetchConfig } = useEffectiveHooksConfig(visible ? worktreeId : null);
   const { results: skillResults, refetch: refetchSkillResults } = useHookSkillResults(visible ? worktreeId : null);
   const [stepResults, setStepResults] = useState<Record<string, StepResult>>({});
   const [runningSteps, setRunningSteps] = useState<Set<string>>(new Set());
@@ -54,9 +54,10 @@ export function HooksTab({ worktreeId, visible }: { worktreeId: string; visible:
   useEffect(() => {
     if (visible) {
       fetchStatus();
+      refetchConfig();
       refetchSkillResults();
     }
-  }, [visible, fetchStatus, refetchSkillResults]);
+  }, [visible, fetchStatus, refetchConfig, refetchSkillResults]);
 
   const handleRunAll = async () => {
     if (!config) return;
@@ -94,20 +95,38 @@ export function HooksTab({ worktreeId, visible }: { worktreeId: string; visible:
 
   if (!visible) return null;
 
-  // Split steps by trigger
-  const preSteps = (config?.steps ?? []).filter((s) => s.enabled !== false && s.trigger === 'pre-implementation');
-  const postSteps = (config?.steps ?? []).filter((s) => s.enabled !== false && (s.trigger === 'post-implementation' || !s.trigger));
-  const onDemandSteps = (config?.steps ?? []).filter((s) => s.enabled !== false && s.trigger === 'on-demand');
-  const preSkills = (config?.skills ?? []).filter((s) => s.enabled && s.trigger === 'pre-implementation');
-  const postSkills = (config?.skills ?? []).filter((s) => s.enabled && (s.trigger === 'post-implementation' || !s.trigger));
-  const onDemandSkills = (config?.skills ?? []).filter((s) => s.enabled && s.trigger === 'on-demand');
+  // Split steps by trigger (include disabled items)
+  const preSteps = (config?.steps ?? []).filter((s) => s.trigger === 'pre-implementation');
+  const postSteps = (config?.steps ?? []).filter((s) => s.trigger === 'post-implementation' || !s.trigger);
+  const customSteps = (config?.steps ?? []).filter((s) => s.trigger === 'custom');
+  const onDemandSteps = (config?.steps ?? []).filter((s) => s.trigger === 'on-demand');
+  const preSkills = (config?.skills ?? []).filter((s) => s.trigger === 'pre-implementation');
+  const postSkills = (config?.skills ?? []).filter((s) => s.trigger === 'post-implementation' || !s.trigger);
+  const customSkills = (config?.skills ?? []).filter((s) => s.trigger === 'custom');
+  const onDemandSkills = (config?.skills ?? []).filter((s) => s.trigger === 'on-demand');
 
   const hasPre = preSteps.length > 0 || preSkills.length > 0;
   const hasPost = postSteps.length > 0 || postSkills.length > 0;
+  const hasCustom = customSteps.length > 0 || customSkills.length > 0;
   const hasOnDemand = onDemandSteps.length > 0 || onDemandSkills.length > 0;
 
+  // Group custom items by condition
+  const customGroups: Record<string, { steps: HookStep[]; skills: HookSkillRef[]; title?: string }> = {};
+  for (const step of customSteps) {
+    const key = step.condition ?? '';
+    const g = (customGroups[key] ??= { steps: [], skills: [] });
+    g.steps.push(step);
+    if (step.conditionTitle) g.title = step.conditionTitle;
+  }
+  for (const skill of customSkills) {
+    const key = skill.condition ?? '';
+    const g = (customGroups[key] ??= { steps: [], skills: [] });
+    g.skills.push(skill);
+    if (skill.conditionTitle) g.title = skill.conditionTitle;
+  }
+
   // Nothing configured at all
-  if (!hasPre && !hasPost && !hasOnDemand) {
+  if (!hasPre && !hasPost && !hasCustom && !hasOnDemand) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8">
         <FishingHook className="w-8 h-8 text-emerald-400/30" />
@@ -127,11 +146,12 @@ export function HooksTab({ worktreeId, visible }: { worktreeId: string; visible:
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 overflow-y-auto pb-4">
       {/* On-Demand section */}
       {hasOnDemand && (
         <>
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2 px-4 py-2 mt-6">
             <Hand className="w-4 h-4 text-amber-400" />
             <span className={`text-xs font-medium ${text.primary}`}>On-Demand</span>
             <span className={`text-[10px] ${text.muted}`}>
@@ -166,7 +186,7 @@ export function HooksTab({ worktreeId, visible }: { worktreeId: string; visible:
       {/* Pre-Implementation */}
       {hasPre && (
         <>
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+          <div className="flex items-center justify-between px-4 py-2 mt-6">
             <div className="flex items-center gap-2">
               <ListChecks className="w-4 h-4 text-sky-400" />
               <span className={`text-xs font-medium ${text.primary}`}>Pre-Implementation</span>
@@ -202,7 +222,7 @@ export function HooksTab({ worktreeId, visible }: { worktreeId: string; visible:
       {/* Post-Implementation */}
       {hasPost && (
         <>
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+          <div className="flex items-center justify-between px-4 py-2 mt-6">
             <div className="flex items-center gap-2">
               <CircleCheck className="w-4 h-4 text-emerald-400" />
               <span className={`text-xs font-medium ${text.primary}`}>Post-Implementation</span>
@@ -248,6 +268,114 @@ export function HooksTab({ worktreeId, visible }: { worktreeId: string; visible:
           )}
         </>
       )}
+
+      {/* Custom — grouped by condition */}
+      {hasCustom && (
+        <>
+          <div className="flex items-center gap-2 px-4 py-2 mt-6">
+            <MessageSquareText className="w-4 h-4 text-violet-400" />
+            <span className={`text-xs font-medium ${text.primary}`}>Custom</span>
+            <span className={`text-[10px] ${text.muted}`}>
+              {customSteps.length + customSkills.length} item{(customSteps.length + customSkills.length) !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          <div className="px-4 py-2 space-y-3">
+            {Object.entries(customGroups).map(([condition, group]) => (
+              <div key={condition} className="rounded-lg border border-violet-400/[0.08] bg-violet-400/[0.02] overflow-hidden pb-1.5">
+                {/* Group header */}
+                <div className="px-3 py-2">
+                  {group.title && (
+                    <p className="text-[11px] font-medium text-violet-300">{group.title}</p>
+                  )}
+                  <p className={`text-[10px] text-violet-400/60 italic ${group.title ? 'mt-0.5' : ''}`}>
+                    {condition || 'No condition set'}
+                  </p>
+                </div>
+
+                {group.steps.length > 0 && (
+                  <StepList
+                    steps={group.steps}
+                    stepResults={stepResults}
+                    runningSteps={runningSteps}
+                    runningAll={false}
+                    expandedStep={expandedStep}
+                    setExpandedStep={setExpandedStep}
+                    onRunSingle={handleRunSingle}
+                    nested
+                  />
+                )}
+
+                {group.skills.length > 0 && (
+                  <SkillList
+                    skills={group.skills}
+                    skillResultMap={skillResultMap}
+                    expandedSkill={expandedSkill}
+                    setExpandedSkill={setExpandedSkill}
+                    nested
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      </div>
+      {/* Configure hooks footer */}
+      <div className="flex-shrink-0 px-4 py-3 border-t border-white/[0.06]">
+        <div className="flex items-center justify-center gap-1 text-[11px] flex-wrap">
+          {hasLinkedIssue && onNavigateToIssue ? (
+            <>
+              <button
+                type="button"
+                onClick={onNavigateToIssue}
+                className={`font-medium ${text.muted} hover:text-white transition-colors inline-flex items-center gap-1`}
+              >
+                Configure hooks for this worktree
+              </button>
+              {onNavigateToHooks && (
+                <>
+                  <span className={text.dimmed}>or</span>
+                  <button
+                    type="button"
+                    onClick={onNavigateToHooks}
+                    className={`font-medium ${text.muted} hover:text-white transition-colors inline-flex items-center gap-1`}
+                  >
+                    configure globally
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <span className={text.dimmed}>
+                {onCreateTask && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onCreateTask}
+                      className={`font-medium ${text.muted} hover:text-white transition-colors`}
+                    >
+                      Create a task
+                    </button>
+                    {' to configure hooks, or '}
+                  </>
+                )}
+              </span>
+              {onNavigateToHooks && (
+                <button
+                  type="button"
+                  onClick={onNavigateToHooks}
+                  className={`font-medium ${text.muted} hover:text-white transition-colors inline-flex items-center gap-1`}
+                >
+                  configure globally
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -261,6 +389,7 @@ function StepList({
   setExpandedStep,
   onRunSingle,
   isOnDemand,
+  nested,
 }: {
   steps: HookStep[];
   stepResults: Record<string, StepResult>;
@@ -270,62 +399,58 @@ function StepList({
   setExpandedStep: (id: string | null) => void;
   onRunSingle: (stepId: string) => void;
   isOnDemand?: boolean;
+  nested?: boolean;
 }) {
   return (
-    <div className="px-4 py-2 space-y-1.5">
+    <div className={`${nested ? 'px-2' : 'px-4'} py-[2.5px] space-y-[5px]`}>
       {steps.map((step) => {
+        const disabled = step.enabled === false;
         const result = stepResults[step.id];
         const isRunning = runningSteps.has(step.id);
         const isExpanded = expandedStep === step.id;
 
         return (
-          <div key={step.id} className={`rounded-lg border border-white/[0.04] ${settings.card} overflow-hidden`}>
+          <div key={step.id} className={`rounded-lg border ${result || disabled ? `border-white/[0.04] ${settings.card}` : 'border-dashed border-white/[0.06]'} overflow-hidden ${disabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center gap-2.5 px-3 py-2">
-              {isRunning ? (
-                <Loader2 className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
-              ) : result ? (
-                statusIcon(result.status)
-              ) : (
-                <Circle className="w-3.5 h-3.5 text-white/[0.12]" fill="currentColor" />
-              )}
+              {/* Type icon */}
+              <Terminal className={`w-3.5 h-3.5 flex-shrink-0 ${disabled ? text.dimmed : text.muted}`} />
 
               <button
                 className="flex-1 flex items-center text-left min-w-0"
-                onClick={() => result?.output && setExpandedStep(isExpanded ? null : step.id)}
+                onClick={() => !disabled && result?.output && setExpandedStep(isExpanded ? null : step.id)}
               >
-                <span className={`text-[11px] font-medium ${text.secondary}`}>{step.name}</span>
+                <span className={`text-[11px] font-medium ${disabled ? text.dimmed : text.secondary}`}>{step.name}</span>
                 <span className={`text-[10px] ${text.dimmed} ml-2 font-mono`}>{step.command}</span>
               </button>
 
-              {result?.durationMs != null && (
+              {!disabled && result?.durationMs != null && (
                 <span className={`text-[9px] ${text.dimmed} flex-shrink-0`}>
                   {formatDuration(result.durationMs)}
                 </span>
               )}
 
-              {result && !isRunning && (
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${statusBadge(result.status)}`}>
-                  {result.status}
-                </span>
-              )}
-
-              {result?.output && (
+              {!disabled && result?.output && (
                 <button onClick={() => setExpandedStep(isExpanded ? null : step.id)}>
                   <ChevronDown className={`w-3 h-3 ${text.dimmed} transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
               )}
 
-              {!runningAll && (
+              {/* Status icon (right side, before run button) */}
+              {disabled ? (
+                <Ban className="w-3.5 h-3.5 text-white/[0.2] flex-shrink-0" />
+              ) : isRunning ? (
+                <Loader2 className="w-3.5 h-3.5 text-yellow-400 animate-spin flex-shrink-0" />
+              ) : result ? (
+                statusIcon(result.status)
+              ) : null}
+
+              {!disabled && !runningAll && (
                 <button
                   onClick={() => onRunSingle(step.id)}
                   disabled={isRunning}
-                  className={`p-1 rounded ${isOnDemand ? 'text-emerald-400 hover:text-emerald-300' : `${text.dimmed} hover:text-emerald-400`} transition-colors disabled:opacity-50 flex-shrink-0`}
+                  className={`p-1 rounded ${isOnDemand ? 'text-emerald-400 hover:text-emerald-300' : `${text.dimmed} hover:text-white`} transition-colors disabled:opacity-50 flex-shrink-0`}
                 >
-                  {isRunning ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Play className="w-3 h-3" />
-                  )}
+                  <Play className="w-3 h-3" />
                 </button>
               )}
             </div>
@@ -349,56 +474,54 @@ function SkillList({
   skillResultMap,
   expandedSkill,
   setExpandedSkill,
+  nested,
 }: {
   skills: Array<{ skillName: string; enabled: boolean }>;
   skillResultMap: Map<string, SkillHookResult>;
   expandedSkill: string | null;
   setExpandedSkill: (name: string | null) => void;
+  nested?: boolean;
 }) {
   return (
-    <div className="px-4 py-2 space-y-1.5">
+    <div className={`${nested ? 'px-2' : 'px-4'} py-[2.5px] space-y-[5px]`}>
       {skills.map((skill) => {
+        const disabled = !skill.enabled;
         const result = skillResultMap.get(skill.skillName);
         const isExpanded = expandedSkill === skill.skillName;
 
         return (
-          <div key={skill.skillName} className={`rounded-lg border border-white/[0.04] ${settings.card} overflow-hidden`}>
+          <div key={skill.skillName} className={`rounded-lg border ${result || disabled ? `border-white/[0.04] ${settings.card}` : 'border-dashed border-white/[0.06]'} overflow-hidden ${disabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center gap-2.5 px-3 py-2">
-              {/* Status */}
-              {result ? (
-                result.success ? (
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <XCircle className="w-3.5 h-3.5 text-red-400" />
-                )
-              ) : (
-                <Circle className="w-3.5 h-3.5 text-white/[0.12]" fill="currentColor" />
-              )}
+              {/* Type icon */}
+              <Sparkles className={`w-3.5 h-3.5 flex-shrink-0 ${disabled ? text.dimmed : 'text-pink-400/70'}`} />
 
-              {/* Info */}
               <button
                 className="flex-1 flex items-center text-left min-w-0"
-                onClick={() => result && setExpandedSkill(isExpanded ? null : skill.skillName)}
+                onClick={() => !disabled && result && setExpandedSkill(isExpanded ? null : skill.skillName)}
               >
-                <span className={`text-[11px] font-medium ${text.secondary}`}>{skill.skillName}</span>
-                {result && (
+                <span className={`text-[11px] font-medium ${disabled ? text.dimmed : text.secondary}`}>{skill.skillName}</span>
+                {!disabled && result && (
                   <span className={`text-[10px] ${text.muted} ml-2`}>{result.summary}</span>
                 )}
               </button>
 
-              {/* Status badge */}
-              {result && (
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${result.success ? hooksTheme.passed : hooksTheme.failed}`}>
-                  {result.success ? 'passed' : 'failed'}
-                </span>
-              )}
-
               {/* Expand toggle */}
-              {result?.content && (
+              {!disabled && result?.content && (
                 <button onClick={() => setExpandedSkill(isExpanded ? null : skill.skillName)}>
                   <ChevronDown className={`w-3 h-3 ${text.dimmed} transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
               )}
+
+              {/* Status icon (right side) */}
+              {disabled ? (
+                <Ban className="w-3.5 h-3.5 text-white/[0.2] flex-shrink-0" />
+              ) : result ? (
+                result.success ? (
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                ) : (
+                  <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+                )
+              ) : null}
             </div>
 
             {/* Expanded content */}
