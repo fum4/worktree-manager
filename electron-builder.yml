@@ -4,9 +4,12 @@ directories:
   output: release
 files:
   - dist/**/*
+  - assets/icon.png
   - node_modules/**/*
   - package.json
+icon: assets/icon.icns
 mac:
+  icon: assets/icon.icns
   category: public.app-category.developer-tools
   target:
     - target: dmg

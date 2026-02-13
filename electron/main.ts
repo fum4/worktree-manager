@@ -52,6 +52,7 @@ function createMainWindow(): BrowserWindow {
     title: 'work3',
     titleBarStyle: 'hiddenInset' as const,
     trafficLightPosition: { x: 12, y: 12 },
+    icon: path.join(currentDir, '..', 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(currentDir, 'preload.cjs'),
       nodeIntegration: false,

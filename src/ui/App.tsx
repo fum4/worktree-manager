@@ -438,7 +438,7 @@ export default function App() {
   // Show welcome screen when no config (web mode) or no projects (Electron mode)
   if (showWelcomeScreen) {
     return (
-      <div className={`h-screen relative ${surface.page} ${text.body}`}>
+      <div className={`h-screen relative flex flex-col ${surface.page} ${text.body}`}>
         <WelcomeScreen onImportProject={handleImportProject} />
         <div className="absolute bottom-0 left-0 right-0">
           <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
