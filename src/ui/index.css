@@ -49,6 +49,30 @@ input[type="checkbox"]:checked::after {
 input[type="checkbox"].accent-teal-400 { --checkbox-accent: #0f766e; }
 input[type="checkbox"].accent-red-400 { --checkbox-accent: #7f1d1d; }
 
+/* Sweeping border animation for running hooks */
+@keyframes border-sweep {
+  0%   { stroke-dashoffset: 0; }
+  15%  { stroke-dashoffset: -28; }
+  30%  { stroke-dashoffset: -35; }
+  50%  { stroke-dashoffset: -55; }
+  65%  { stroke-dashoffset: -72; }
+  80%  { stroke-dashoffset: -78; }
+  100% { stroke-dashoffset: -100; }
+}
+@keyframes border-sweep-fade {
+  0%   { opacity: 0.4; }
+  15%  { opacity: 0.5; }
+  22%  { opacity: 1; }
+  30%  { opacity: 1; }
+  38%  { opacity: 0.4; }
+  50%  { opacity: 0.4; }
+  65%  { opacity: 0.5; }
+  72%  { opacity: 1; }
+  80%  { opacity: 1; }
+  88%  { opacity: 0.4; }
+  100% { opacity: 0.4; }
+}
+
 /* Hide scrollbars globally */
 * { scrollbar-width: none; }
 *::-webkit-scrollbar { display: none; }

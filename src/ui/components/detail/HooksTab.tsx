@@ -15,6 +15,49 @@ function statusIcon(status: StepResult['status']) {
   }
 }
 
+function SweepingBorder() {
+  const rectStyle: React.CSSProperties = {
+    x: 0.5, y: 0.5,
+    width: 'calc(100% - 1px)',
+    height: 'calc(100% - 1px)',
+    animation: 'border-sweep 2s linear infinite',
+  };
+  return (
+    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ animation: 'border-sweep-fade 2s linear infinite' }}>
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.01)" strokeWidth="2" strokeDasharray="45 55" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.02)" strokeWidth="2" strokeDasharray="43 57" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.03)" strokeWidth="2" strokeDasharray="42 58" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.04)" strokeWidth="2" strokeDasharray="40 60" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.05)" strokeWidth="2" strokeDasharray="38 62" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.06)" strokeWidth="2" strokeDasharray="37 63" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.07)" strokeWidth="2" strokeDasharray="35 65" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.08)" strokeWidth="2" strokeDasharray="33 67" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.09)" strokeWidth="2" strokeDasharray="32 68" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.10)" strokeWidth="2" strokeDasharray="30 70" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.11)" strokeWidth="1.5" strokeDasharray="28 72" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.12)" strokeWidth="1.5" strokeDasharray="27 73" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.13)" strokeWidth="1.5" strokeDasharray="25 75" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.14)" strokeWidth="1.5" strokeDasharray="23 77" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.15)" strokeWidth="1.5" strokeDasharray="22 78" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.16)" strokeWidth="1.5" strokeDasharray="20 80" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.17)" strokeWidth="1.5" strokeDasharray="18 82" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.18)" strokeWidth="1.5" strokeDasharray="17 83" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.19)" strokeWidth="1.5" strokeDasharray="15 85" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.20)" strokeWidth="1.5" strokeDasharray="13 87" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.21)" strokeWidth="1" strokeDasharray="12 88" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.22)" strokeWidth="1" strokeDasharray="10 90" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.23)" strokeWidth="1" strokeDasharray="9 91" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.24)" strokeWidth="1" strokeDasharray="8 92" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.25)" strokeWidth="1" strokeDasharray="7 93" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.26)" strokeWidth="1" strokeDasharray="6 94" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.27)" strokeWidth="1" strokeDasharray="5 95" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.28)" strokeWidth="1" strokeDasharray="4 96" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.29)" strokeWidth="1" strokeDasharray="3 97" strokeLinecap="round" style={rectStyle} />
+      <rect rx="7.5" pathLength="100" fill="none" stroke="rgba(45,212,191,0.30)" strokeWidth="1" strokeDasharray="2 98" strokeLinecap="round" style={rectStyle} />
+    </svg>
+  );
+}
+
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
@@ -151,9 +194,9 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
       {/* On-Demand section */}
       {hasOnDemand && (
         <>
-          <div className="flex items-center gap-2 px-4 py-2 mt-6">
+          <div className="flex items-center gap-2 px-4 pt-2 pb-3 mt-8">
             <Hand className="w-4 h-4 text-amber-400" />
-            <span className={`text-xs font-medium ${text.primary}`}>On-Demand</span>
+            <span className={`text-xs ${text.primary}`}>On-Demand</span>
             <span className={`text-[10px] ${text.muted}`}>
               {onDemandSteps.length + onDemandSkills.length} item{(onDemandSteps.length + onDemandSkills.length) !== 1 ? 's' : ''}
             </span>
@@ -168,7 +211,6 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
               expandedStep={expandedStep}
               setExpandedStep={setExpandedStep}
               onRunSingle={handleRunSingle}
-              isOnDemand
             />
           )}
 
@@ -186,10 +228,10 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
       {/* Pre-Implementation */}
       {hasPre && (
         <>
-          <div className="flex items-center justify-between px-4 py-2 mt-6">
+          <div className="flex items-center justify-between px-4 pt-2 pb-3 mt-8">
             <div className="flex items-center gap-2">
               <ListChecks className="w-4 h-4 text-sky-400" />
-              <span className={`text-xs font-medium ${text.primary}`}>Pre-Implementation</span>
+              <span className={`text-xs ${text.primary}`}>Pre-Implementation</span>
               <span className={`text-[10px] ${text.muted}`}>
                 {preSteps.length + preSkills.length} item{(preSteps.length + preSkills.length) !== 1 ? 's' : ''}
               </span>
@@ -222,10 +264,10 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
       {/* Post-Implementation */}
       {hasPost && (
         <>
-          <div className="flex items-center justify-between px-4 py-2 mt-6">
+          <div className="flex items-center justify-between px-4 pt-2 pb-3 mt-8">
             <div className="flex items-center gap-2">
               <CircleCheck className="w-4 h-4 text-emerald-400" />
-              <span className={`text-xs font-medium ${text.primary}`}>Post-Implementation</span>
+              <span className={`text-xs ${text.primary}`}>Post-Implementation</span>
               <span className={`text-[10px] ${text.muted}`}>
                 {postSteps.length + postSkills.length} item{(postSteps.length + postSkills.length) !== 1 ? 's' : ''}
               </span>
@@ -272,52 +314,48 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
       {/* Custom — grouped by condition */}
       {hasCustom && (
         <>
-          <div className="flex items-center gap-2 px-4 py-2 mt-6">
+          <div className="flex items-center gap-2 px-4 pt-2 pb-3 mt-8">
             <MessageSquareText className="w-4 h-4 text-violet-400" />
-            <span className={`text-xs font-medium ${text.primary}`}>Custom</span>
+            <span className={`text-xs ${text.primary}`}>Custom</span>
             <span className={`text-[10px] ${text.muted}`}>
               {customSteps.length + customSkills.length} item{(customSteps.length + customSkills.length) !== 1 ? 's' : ''}
             </span>
           </div>
 
-          <div className="px-4 py-2 space-y-3">
-            {Object.entries(customGroups).map(([condition, group]) => (
-              <div key={condition} className="rounded-lg border border-violet-400/[0.08] bg-violet-400/[0.02] overflow-hidden pb-1.5">
-                {/* Group header */}
-                <div className="px-3 py-2">
-                  {group.title && (
-                    <p className="text-[11px] font-medium text-violet-300">{group.title}</p>
-                  )}
-                  <p className={`text-[10px] text-violet-400/60 italic ${group.title ? 'mt-0.5' : ''}`}>
-                    {condition || 'No condition set'}
-                  </p>
-                </div>
-
-                {group.steps.length > 0 && (
-                  <StepList
-                    steps={group.steps}
-                    stepResults={stepResults}
-                    runningSteps={runningSteps}
-                    runningAll={false}
-                    expandedStep={expandedStep}
-                    setExpandedStep={setExpandedStep}
-                    onRunSingle={handleRunSingle}
-                    nested
-                  />
+          {Object.entries(customGroups).map(([condition, group]) => (
+            <div key={condition} className="mb-3">
+              {/* Group header */}
+              <div className="px-4 pt-2 pb-3">
+                {group.title && (
+                  <p className="text-[11px] font-medium text-violet-300">{group.title}</p>
                 )}
-
-                {group.skills.length > 0 && (
-                  <SkillList
-                    skills={group.skills}
-                    skillResultMap={skillResultMap}
-                    expandedSkill={expandedSkill}
-                    setExpandedSkill={setExpandedSkill}
-                    nested
-                  />
-                )}
+                <p className={`text-[10px] text-violet-400/60 italic ${group.title ? 'mt-0.5' : ''}`}>
+                  {condition || 'No condition set'}
+                </p>
               </div>
-            ))}
-          </div>
+
+              {group.steps.length > 0 && (
+                <StepList
+                  steps={group.steps}
+                  stepResults={stepResults}
+                  runningSteps={runningSteps}
+                  runningAll={false}
+                  expandedStep={expandedStep}
+                  setExpandedStep={setExpandedStep}
+                  onRunSingle={handleRunSingle}
+                />
+              )}
+
+              {group.skills.length > 0 && (
+                <SkillList
+                  skills={group.skills}
+                  skillResultMap={skillResultMap}
+                  expandedSkill={expandedSkill}
+                  setExpandedSkill={setExpandedSkill}
+                />
+              )}
+            </div>
+          ))}
         </>
       )}
 
@@ -388,7 +426,6 @@ function StepList({
   expandedStep,
   setExpandedStep,
   onRunSingle,
-  isOnDemand,
   nested,
 }: {
   steps: HookStep[];
@@ -398,7 +435,6 @@ function StepList({
   expandedStep: string | null;
   setExpandedStep: (id: string | null) => void;
   onRunSingle: (stepId: string) => void;
-  isOnDemand?: boolean;
   nested?: boolean;
 }) {
   return (
@@ -410,7 +446,8 @@ function StepList({
         const isExpanded = expandedStep === step.id;
 
         return (
-          <div key={step.id} className={`rounded-lg border ${result || disabled ? `border-white/[0.04] ${settings.card}` : 'border-dashed border-white/[0.06]'} overflow-hidden ${disabled ? 'opacity-50' : ''}`}>
+          <div key={step.id} className={`relative rounded-lg border ${!result && !isRunning && !disabled ? 'border-dashed border-white/[0.08]' : 'border-white/[0.04]'} ${result || disabled ? settings.card : ''} overflow-visible ${disabled ? 'opacity-50' : ''}`}>
+            {isRunning && <SweepingBorder />}
             <div className="flex items-center gap-2.5 px-3 py-2">
               {/* Type icon */}
               <Terminal className={`w-3.5 h-3.5 flex-shrink-0 ${disabled ? text.dimmed : text.muted}`} />
@@ -448,7 +485,7 @@ function StepList({
                 <button
                   onClick={() => onRunSingle(step.id)}
                   disabled={isRunning}
-                  className={`p-1 rounded ${isOnDemand ? 'text-emerald-400 hover:text-emerald-300' : `${text.dimmed} hover:text-white`} transition-colors disabled:opacity-50 flex-shrink-0`}
+                  className="p-1 rounded text-teal-400 hover:text-teal-300 transition-colors disabled:opacity-50 flex-shrink-0"
                 >
                   <Play className="w-3 h-3" />
                 </button>
@@ -490,7 +527,7 @@ function SkillList({
         const isExpanded = expandedSkill === skill.skillName;
 
         return (
-          <div key={skill.skillName} className={`rounded-lg border ${result || disabled ? `border-white/[0.04] ${settings.card}` : 'border-dashed border-white/[0.06]'} overflow-hidden ${disabled ? 'opacity-50' : ''}`}>
+          <div key={skill.skillName} className={`relative rounded-lg border ${!result && !disabled ? 'border-dashed border-white/[0.08]' : 'border-white/[0.04]'} ${result || disabled ? settings.card : ''} overflow-visible ${disabled ? 'opacity-50' : ''}`}>
             <div className="flex items-center gap-2.5 px-3 py-2">
               {/* Type icon */}
               <Sparkles className={`w-3.5 h-3.5 flex-shrink-0 ${disabled ? text.dimmed : 'text-pink-400/70'}`} />
