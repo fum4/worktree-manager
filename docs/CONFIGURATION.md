@@ -8,7 +8,7 @@ work3 uses several configuration files at both the project level (`.work3/` dire
 
 - [Project Configuration (`.work3/config.json`)](#project-configuration-work3configjson)
 - [Integrations (`.work3/integrations.json`)](#integrations-work3integrationsjson)
-- [Verification Pipeline (`.work3/verification.json`)](#verification-pipeline-work3verificationjson)
+- [Hooks (`.work3/.work3/hooks.json`)](#hooks-work3work3hooksjson)
 - [Branch Naming Rules (`.work3/scripts/branch-name.mjs`)](#branch-naming-rules)
 - [Commit Message Rules (`.work3/scripts/commit-message.mjs`)](#commit-message-rules)
 - [Server Discovery (`.work3/server.json`)](#server-discovery-work3serverjson)
@@ -320,122 +320,19 @@ Both Jira and Linear share the same data lifecycle structure:
 
 ---
 
-## Verification Pipeline (`.work3/verification.json`)
+## Hooks (`.work3/.work3/hooks.json`)
 
-Configures the verification pipeline that validates agent changes before merging. This file is managed through the UI's Verification panel or the MCP API.
+Configures automated checks (command steps) and agent skills organized by trigger type. Managed through the UI's Hooks panel or the MCP API.
 
-### Structure
+For full documentation of the hooks system including trigger types, item types, configuration schema, execution details, and API endpoints, see [Hooks](HOOKS.md).
 
-```json
-{
-  "enabled": true,
-  "steps": {
-    "changesSummary": { "enabled": true },
-    "pipelineChecks": {
-      "enabled": true,
-      "config": {
-        "commands": ["pnpm check-types", "pnpm check-lint"],
-        "continueOnFailure": false
-      }
-    },
-    "codeReview": {
-      "enabled": true,
-      "config": {
-        "focus": ["security", "performance"],
-        "guidelines": "Follow project coding standards"
-      }
-    },
-    "manualTestInstructions": { "enabled": false },
-    "testWriting": {
-      "enabled": false,
-      "config": {
-        "types": ["unit", "integration"],
-        "framework": "vitest"
-      }
-    },
-    "agentTesting": {
-      "enabled": false,
-      "config": {
-        "browser": { "baseUrl": "http://localhost:3000" },
-        "api": { "baseUrl": "http://localhost:3001" }
-      }
-    },
-    "requestMocking": {
-      "enabled": false,
-      "config": {
-        "services": [
-          { "name": "api", "baseUrl": "http://localhost:3001" }
-        ]
-      }
-    }
-  }
-}
-```
+### Run Results
 
-### Top-Level Fields
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | `boolean` | `false` | Master switch for the entire verification pipeline |
-| `steps` | `object` | `{}` | Per-step configuration |
-
-### Verification Steps
-
-Steps run in a fixed order. Each step has an `enabled` boolean and an optional `config` object.
-
-| Step Name | Type | Description |
-|-----------|------|-------------|
-| `changesSummary` | agent-driven | Generates a summary of what changed in the worktree |
-| `pipelineChecks` | command | Runs shell commands (lint, typecheck, build, tests) |
-| `codeReview` | agent-driven | AI-powered code review for bugs, security, and quality |
-| `manualTestInstructions` | agent-driven | Generates step-by-step manual testing instructions |
-| `testWriting` | agent-driven | Writes automated tests for the changes |
-| `agentTesting` | infrastructure | Automated browser/API testing (requires Playwright) |
-| `requestMocking` | infrastructure | HTTP request mocking (requires MSW) |
-
-#### `pipelineChecks` Config
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `commands` | `string[]` | `[]` | Shell commands to run in the worktree directory |
-| `continueOnFailure` | `boolean` | `false` | Whether to continue running remaining commands and pipeline steps after a failure |
-
-#### `codeReview` Config
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `focus` | `string[]` | `undefined` | Areas to focus the review on (e.g., `"security"`, `"performance"`) |
-| `guidelines` | `string` | `undefined` | Custom review guidelines |
-
-#### `testWriting` Config
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `types` | `string[]` | `undefined` | Test types to generate: `"unit"`, `"integration"`, `"e2e"` |
-| `framework` | `string` | `undefined` | Test framework to use (e.g., `"vitest"`, `"jest"`) |
-
-#### `agentTesting` Config
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `browser.baseUrl` | `string` | `undefined` | Base URL for browser testing |
-| `api.baseUrl` | `string` | `undefined` | Base URL for API testing |
-
-#### `requestMocking` Config
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `services` | `array` | `undefined` | List of services to mock |
-| `services[].name` | `string` | | Service identifier |
-| `services[].baseUrl` | `string` | | Service base URL |
-
-### Pipeline Run Results
-
-Pipeline results are stored per-worktree at:
+Hook run results are stored per-worktree at:
 
 ```
-.work3/worktrees/<worktreeId>/verification/latest-run.json
-.work3/worktrees/<worktreeId>/verification/artifacts/<stepName>.md
+.work3/.work3/worktrees/<worktreeId>/hooks/latest-run.json
+.work3/.work3/worktrees/<worktreeId>/hooks/skill-results.json
 ```
 
 ---
@@ -747,15 +644,12 @@ Git worktrees are stored under `.work3/worktrees/<worktreeId>/`. Each subdirecto
 
 The `TASK.md` file is automatically added to the worktree's git exclude file (`.git/worktrees/<name>/info/exclude`) so it does not appear as an untracked file.
 
-### Per-Worktree Verification Data
+### Per-Worktree Hooks Data
 
 ```
-.work3/worktrees/<worktreeId>/verification/
-  latest-run.json     # Most recent pipeline run results
-  artifacts/          # Step output artifacts
-    changesSummary.md
-    codeReview.md
-    ...
+.work3/.work3/worktrees/<worktreeId>/hooks/
+  latest-run.json       # Most recent command step run results
+  skill-results.json    # Agent-reported skill results
 ```
 
 ---
@@ -775,7 +669,7 @@ Created automatically during `work3 init`. Uses a whitelist approach: everything
 
 This means:
 - **Committed**: `config.json`, `.gitignore`
-- **Not committed**: `integrations.json`, `server.json`, `verification.json`, `mcp-env.json`, `worktrees/`, `issues/`, `scripts/`
+- **Not committed**: `integrations.json`, `server.json`, `hooks.json`, `mcp-env.json`, `worktrees/`, `issues/`, `scripts/`
 
 If you want to share branch naming or commit message rules with your team, add the scripts directory to the whitelist:
 

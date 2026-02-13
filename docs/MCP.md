@@ -4,7 +4,7 @@
 
 [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open standard for connecting AI agents to external tools and data sources. It defines a JSON-RPC-based protocol that allows agents (like Claude Code, Cursor, or any MCP-compatible client) to discover and invoke tools exposed by a server.
 
-work3 exposes its entire worktree management surface as MCP tools. This means an AI agent can create worktrees from Jira or Linear issues, start and stop dev servers, commit and push code, manage todo checklists, and run verification pipelines -- all through structured tool calls rather than brittle shell commands or file system access.
+work3 exposes its entire worktree management surface as MCP tools. This means an AI agent can create worktrees from Jira or Linear issues, start and stop dev servers, commit and push code, manage todo checklists, and run hooks -- all through structured tool calls rather than brittle shell commands or file system access.
 
 ## Two Modes
 
@@ -24,7 +24,7 @@ This mode ensures that the MCP tools share the same state as the web UI -- workt
 
 ### Standalone Mode
 
-If no running server is found, the CLI starts an **in-process** MCP server with its own `WorktreeManager`, `NotesManager`, and `VerificationManager`. It communicates directly over stdio without any HTTP intermediary.
+If no running server is found, the CLI starts an **in-process** MCP server with its own `WorktreeManager`, `NotesManager`, and `HooksManager`. It communicates directly over stdio without any HTTP intermediary.
 
 This mode is useful when you want MCP tools without running the full web UI -- for example, in a CI environment or a headless agent session.
 

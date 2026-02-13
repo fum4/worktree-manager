@@ -130,7 +130,12 @@ The Hooks view (top navigation) is the configuration interface. Users can:
 3. Edit command step names, commands, and conditions.
 4. Remove items.
 
-The worktree detail panel's **Verify** tab triggers on-demand hook runs for a specific worktree.
+The worktree detail panel's **Hooks** tab triggers hook runs for a specific worktree. Each hook item shows its state visually:
+
+- **Not yet run** -- dashed border, no background.
+- **Running** -- solid border with an animated sweeping teal border (SVG-based gradient comet effect with variable speed and synchronized opacity fading).
+- **Completed** -- solid border with card background, showing pass/fail status icon.
+- **Disabled** -- solid border with card background, reduced opacity.
 
 ### From MCP Tools
 

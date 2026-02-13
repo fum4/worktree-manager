@@ -89,7 +89,7 @@ worktree-manager/
 │   │   ├── port-manager.ts   -- Port discovery (lsof), offset allocation
 │   │   ├── terminal-manager.ts -- PTY sessions for WebSocket terminals
 │   │   ├── notes-manager.ts  -- Worktree notes persistence
-│   │   ├── verification-manager.ts -- Verification checks management
+│   │   ├── verification-manager.ts -- HooksManager: hooks config, command execution, skill results
 │   │   ├── mcp-server-factory.ts -- MCP server creation
 │   │   ├── branch-name.ts    -- Branch name generation rules
 │   │   ├── commit-message.ts -- Commit message formatting
@@ -111,7 +111,7 @@ worktree-manager/
 │   │       ├── mcp-transport.ts -- MCP Streamable HTTP transport
 │   │       ├── skills.ts     -- Skills management
 │   │       ├── claude-plugins.ts -- Claude plugin endpoints
-│   │       └── verification.ts -- Verification endpoints
+│   │       └── verification.ts -- Hooks endpoints (config, steps, skills, runs)
 │   ├── ui/                   -- React frontend (SPA)
 │   │   ├── App.tsx           -- Main app with view routing
 │   │   ├── theme.ts          -- Centralized color tokens and Tailwind classes
@@ -148,7 +148,7 @@ worktree-manager/
 │   │       ├── useLinearIssues.ts, useLinearIssueDetail.ts
 │   │       ├── useCustomTasks.ts, useCustomTaskDetail.ts
 │   │       ├── useMcpServers.ts, useSkills.ts, useNotes.ts
-│   │       └── useVerification.ts
+│   │       └── useHooks.ts     -- Hooks config and skill results
 │   ├── integrations/         -- External service integrations
 │   │   ├── github/           -- GitHub via `gh` CLI
 │   │   │   ├── index.ts, gh-client.ts, github-manager.ts, types.ts
@@ -276,7 +276,7 @@ import { registerMyFeatureRoutes } from './routes/my-feature';
 registerMyFeatureRoutes(app, manager);
 ```
 
-Some routes receive additional managers (e.g., `terminalManager`, `notesManager`, `verificationManager`) depending on their needs.
+Some routes receive additional managers (e.g., `terminalManager`, `notesManager`, `hooksManager`) depending on their needs.
 
 ### API Layer (Frontend)
 

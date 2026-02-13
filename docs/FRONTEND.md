@@ -101,7 +101,7 @@ The app uses a dark theme with a neutral slate background family and teal as the
 | `header` | Header bar specific styles |
 | `nav` | Navigation bar active/inactive styles |
 | `settings` | Configuration panel label/description/card styles |
-| `detailTab` | Detail panel tab (Logs/Terminal/Verify) active/inactive styles |
+| `detailTab` | Detail panel tab (Logs/Terminal/Hooks) active/inactive styles |
 | `errorBanner` | Error banner backgrounds and borders |
 | `infoBanner` | Informational banner (teal accent) styles |
 | `customTask` | Custom task accent, badge, button, status, priority, and label colors |
@@ -221,11 +221,11 @@ All detail panels live in `src/ui/components/detail/`.
 The worktree detail view. Contains:
 
 - **DetailHeader** -- worktree name (editable inline), branch name, status badge, start/stop/delete action buttons, linked issue badges.
-- **Tab bar** -- Logs | Terminal | Verify tabs. Tab state is tracked per worktree so switching between worktrees preserves each one's active tab.
+- **Tab bar** -- Logs | Terminal | Hooks tabs. Tab state is tracked per worktree so switching between worktrees preserves each one's active tab.
 - **Git action toolbar** -- contextual buttons for Commit (when uncommitted changes exist), Push (when unpushed commits exist), and PR (when pushed but no PR exists). Each expands an inline input form.
 - **LogsViewer** -- streaming process output for running worktrees.
 - **TerminalView** -- interactive xterm.js terminal. Terminal sessions are lazily created (only when the Terminal tab is first opened) and kept alive when switching tabs.
-- **VerifyTab** -- runs and displays verification pipeline results.
+- **HooksTab** -- runs and displays hook results with visual state indicators (dashed borders for unrun hooks, animated sweeping teal border during execution, solid borders with card background for completed/disabled hooks).
 
 ### JiraDetailPanel (`JiraDetailPanel.tsx`)
 
@@ -251,7 +251,7 @@ Detail view for local custom tasks. Supports inline editing of title, descriptio
 |---|---|
 | `LogsViewer.tsx` | ANSI-aware streaming log output with auto-scroll |
 | `TerminalView.tsx` | xterm.js terminal with WebSocket connection |
-| `VerifyTab.tsx` | Verification pipeline runner and step result display |
+| `HooksTab.tsx` | Hooks runner with animated running state and step/skill result display |
 | `GitActionInputs.tsx` | Inline commit message and PR title input forms |
 | `ActionToolbar.tsx` | Git action buttons (commit, push, PR) |
 | `DetailHeader.tsx` | Worktree name/branch display with inline edit and action buttons |
@@ -332,7 +332,7 @@ export async function startWorktree(
 
 When `serverUrl` is `null` (web mode), requests use relative URLs. When provided (Electron mode), requests use the full URL (e.g., `http://localhost:6970/api/worktrees`).
 
-The file contains functions for every API endpoint: worktree CRUD, git operations (commit, push, PR), Jira/Linear/GitHub integration management, terminal sessions, MCP server management, skills, plugins, notes, todos, verification, and configuration.
+The file contains functions for every API endpoint: worktree CRUD, git operations (commit, push, PR), Jira/Linear/GitHub integration management, terminal sessions, MCP server management, skills, plugins, notes, todos, hooks, and configuration.
 
 ### `useApi.ts` -- Bound hook
 
@@ -431,6 +431,7 @@ The app uses Framer Motion for transitions:
 - **View switching** -- `AnimatePresence` with `mode="wait"` for sidebar tab transitions (worktree list / issue list slide in from opposite directions).
 - **Header fade-in** -- the header fades in on initial render.
 - **Background blobs** -- the configuration, integrations, and hooks views have animated gradient blobs drifting in the background via CSS keyframe animations.
+- **Sweeping border** -- running hook items display a teal gradient "comet" that sweeps around the card border. Built with 30 overlapping SVG `<rect>` layers using the `pathLength="100"` trick for size-independent dash animations. The `border-sweep` keyframe uses variable speed (fast then slow) and a synchronized `border-sweep-fade` keyframe dims opacity during fast movement. Both keyframes are defined in `src/ui/index.css`.
 
 ---
 
@@ -491,7 +492,7 @@ The app uses Framer Motion for transitions:
 
 | File | Description |
 |---|---|
-| `DetailPanel.tsx` | Worktree detail (logs, terminal, verify, git actions) |
+| `DetailPanel.tsx` | Worktree detail (logs, terminal, hooks, git actions) |
 | `DetailHeader.tsx` | Worktree header with inline rename and action buttons |
 | `JiraDetailPanel.tsx` | Jira issue detail view |
 | `LinearDetailPanel.tsx` | Linear issue detail view |
@@ -502,7 +503,7 @@ The app uses Framer Motion for transitions:
 | `PluginDetailPanel.tsx` | Claude plugin detail |
 | `LogsViewer.tsx` | Streaming ANSI log output |
 | `TerminalView.tsx` | xterm.js interactive terminal |
-| `VerifyTab.tsx` | Verification pipeline runner |
+| `HooksTab.tsx` | Hooks runner with animated border effects |
 | `GitActionInputs.tsx` | Inline commit/PR input forms |
 | `ActionToolbar.tsx` | Git action buttons |
 | `NotesSection.tsx` | PersonalNotesSection + AgentSection (tabbed: Context, Todos, Git Policy, Hooks) |
