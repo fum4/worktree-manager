@@ -124,17 +124,12 @@ export function ProjectSetupScreen({
   const [agentsApplying, setAgentsApplying] = useState(false);
   const [agentsError, setAgentsError] = useState<string | null>(null);
 
-  const hasAgentChanges = useMemo(() => {
-    for (const agent of AGENT_CONFIGS) {
+  const hasAnyAgentSelected = useMemo(() => {
+    return AGENT_CONFIGS.some((agent) => {
       const desired = agentDesired[agent.id];
-      const current = agentStatuses[agent.id];
-      if (!desired) continue;
-      for (const scope of ['global', 'project'] as McpScope[]) {
-        if (desired[scope] !== (current?.[scope] === true)) return true;
-      }
-    }
-    return false;
-  }, [agentDesired, agentStatuses]);
+      return desired?.global || desired?.project;
+    });
+  }, [agentDesired]);
 
   // Load detected config on mount
   useEffect(() => {
@@ -416,7 +411,7 @@ export function ProjectSetupScreen({
           <div className="space-y-3">
             <button
               onClick={handleAgentsSetup}
-              disabled={agentsApplying || !hasAgentChanges}
+              disabled={agentsApplying || !hasAnyAgentSelected}
               className={`w-full px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
             >
               {agentsApplying ? (

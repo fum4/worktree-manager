@@ -469,7 +469,7 @@ export function AgentsSidebar({
             <span className={`text-[11px] font-medium ${text.secondary}`}>Plugins</span>
             <span className="inline-flex items-center h-[18px]">
               {pluginsLoading ? (
-                pluginsCollapsed && <Spinner size="xs" className={`${text.muted} ml-1.5`} />
+                <Spinner size="xs" className={`${text.muted} ml-1.5`} />
               ) : (
                 <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
                   {sortedPlugins.length}
@@ -517,12 +517,7 @@ export function AgentsSidebar({
 
         {!pluginsCollapsed && (
           <div className="space-y-px">
-            {pluginsLoading ? (
-              <div className="flex items-center justify-center gap-2 py-4">
-                <Spinner size="sm" className={text.muted} />
-                <span className={`text-xs ${text.muted}`}>Loading plugins...</span>
-              </div>
-            ) : sortedPlugins.length === 0 ? (
+            {pluginsLoading ? null : sortedPlugins.length === 0 ? (
               <div className="flex flex-col items-center gap-1.5 py-4">
                 <p className={`text-xs ${text.dimmed}`}>No plugins yet</p>
               </div>

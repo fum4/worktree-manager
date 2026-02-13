@@ -34,8 +34,11 @@ import { registerMcpTransportRoute } from './routes/mcp-transport';
 import { registerNotesRoutes } from './routes/notes';
 import { registerTaskRoutes } from './routes/tasks';
 import { registerTerminalRoutes } from './routes/terminal';
+import { registerHooksRoutes } from './routes/verification';
 import { NotesManager } from './notes-manager';
 import { TerminalManager } from './terminal-manager';
+import { HooksManager } from './verification-manager';
+import { ensurePredefinedHookSkills, getPredefinedSkillNames } from './verification-skills';
 import type { WorktreeConfig } from './types';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -75,6 +78,12 @@ export function createWorktreeServer(manager: WorktreeManager) {
   const app = new Hono();
   const terminalManager = new TerminalManager();
   const notesManager = new NotesManager(manager.getConfigDir());
+  const hooksManager = new HooksManager(manager);
+
+  // Auto-create predefined hook skills in ~/.work3/skills/ and import into config
+  ensurePredefinedHookSkills();
+  hooksManager.ensureSkillsImported(getPredefinedSkillNames());
+
   const { upgradeWebSocket, injectWebSocket } = createNodeWebSocket({ app });
 
   app.use('*', cors());
@@ -95,9 +104,10 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerSkillRoutes(app, manager);
   registerClaudePluginRoutes(app, manager);
   registerTaskRoutes(app, manager, notesManager);
-  registerNotesRoutes(app, manager, notesManager);
+  registerNotesRoutes(app, manager, notesManager, hooksManager);
   registerTerminalRoutes(app, manager, terminalManager, upgradeWebSocket);
-  registerMcpTransportRoute(app, { manager, notesManager });
+  registerHooksRoutes(app, manager, hooksManager);
+  registerMcpTransportRoute(app, { manager, notesManager, hooksManager });
 
   // Background verification of all integration connections
   app.get('/api/integrations/verify', async (c) => {

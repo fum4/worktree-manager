@@ -8,6 +8,10 @@ import { DetailHeader } from './DetailHeader';
 import { GitActionInputs } from './GitActionInputs';
 import { LogsViewer } from './LogsViewer';
 import { TerminalView } from './TerminalView';
+import { HooksTab } from './VerifyTab';
+
+// Persists across unmount/remount (view switches)
+const tabCache: Record<string, 'logs' | 'terminal' | 'hooks'> = {};
 
 interface DetailPanelProps {
   worktree: WorktreeInfo | null;
@@ -29,13 +33,14 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
   const [prTitle, setPrTitle] = useState('');
   const [isGitLoading, setIsGitLoading] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
-  const [tabPerWorktree, setTabPerWorktree] = useState<Record<string, 'logs' | 'terminal'>>({});
+  const [tabPerWorktree, setTabPerWorktree] = useState<Record<string, 'logs' | 'terminal' | 'hooks'>>(() => ({ ...tabCache }));
   const [openTerminals, setOpenTerminals] = useState<Set<string>>(new Set());
 
   const activeTab = worktree ? (tabPerWorktree[worktree.id] ?? 'logs') : 'logs';
 
-  const setActiveTab = useCallback((tab: 'logs' | 'terminal') => {
+  const setActiveTab = useCallback((tab: 'logs' | 'terminal' | 'hooks') => {
     if (!worktree) return;
+    tabCache[worktree.id] = tab;
     setTabPerWorktree(prev => ({ ...prev, [worktree.id]: tab }));
   }, [worktree]);
 
@@ -211,6 +216,15 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
             >
               Terminal
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('hooks')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors duration-150 ${
+                activeTab === 'hooks' ? detailTab.active : detailTab.inactive
+              }`}
+            >
+              Hooks
+            </button>
           </div>
 
           <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end ml-3">
@@ -320,6 +334,10 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
           visible={wtId === worktree.id && activeTab === 'terminal' && !isCreating}
         />
       ))}
+      <HooksTab
+        worktreeId={worktree.id}
+        visible={activeTab === 'hooks' && !isCreating}
+      />
 
       {showRemoveModal && (
         <ConfirmDialog

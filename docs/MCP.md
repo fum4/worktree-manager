@@ -1,0 +1,209 @@
+# MCP Integration
+
+## What is MCP?
+
+[Model Context Protocol](https://modelcontextprotocol.io/) (MCP) is an open standard for connecting AI agents to external tools and data sources. It defines a JSON-RPC-based protocol that allows agents (like Claude Code, Cursor, or any MCP-compatible client) to discover and invoke tools exposed by a server.
+
+work3 exposes its entire worktree management surface as MCP tools. This means an AI agent can create worktrees from Jira or Linear issues, start and stop dev servers, commit and push code, manage todo checklists, and run verification pipelines -- all through structured tool calls rather than brittle shell commands or file system access.
+
+## Two Modes
+
+When you run `work3 mcp`, the CLI decides how to operate based on whether a work3 HTTP server is already running.
+
+### Proxy Mode (stdio-to-HTTP relay)
+
+If a running server is detected (via `.work3/server.json`), the CLI acts as a **proxy**. It does not create its own `WorktreeManager`. Instead:
+
+1. It opens a `StdioServerTransport` to communicate with the agent over stdin/stdout (JSON-RPC).
+2. It opens a `StreamableHTTPClientTransport` pointed at the running server's `/mcp` endpoint.
+3. Every message from the agent is relayed to the HTTP server, and every response is relayed back.
+
+This mode ensures that the MCP tools share the same state as the web UI -- worktree status, logs, port allocations, and SSE events are all consistent.
+
+**How detection works:** The CLI reads `.work3/server.json` (which contains `url` and `pid`), verifies the process is still alive with `process.kill(pid, 0)`, and uses the URL if the process responds. If the file is missing, unreadable, or the process is dead, it falls back to standalone mode.
+
+### Standalone Mode
+
+If no running server is found, the CLI starts an **in-process** MCP server with its own `WorktreeManager`, `NotesManager`, and `VerificationManager`. It communicates directly over stdio without any HTTP intermediary.
+
+This mode is useful when you want MCP tools without running the full web UI -- for example, in a CI environment or a headless agent session.
+
+**Trade-off:** Standalone mode cannot share state with the web UI. If you start the UI later, it will have its own separate manager instance.
+
+## HTTP Transport
+
+For MCP clients that support HTTP-based transport directly (without stdio), work3 exposes a streamable HTTP endpoint:
+
+- **Endpoint:** `POST /mcp` (also handles `GET /mcp` and `DELETE /mcp` per the MCP streamable HTTP spec)
+- **Transport:** `WebStandardStreamableHTTPServerTransport` from the MCP SDK
+- **Session management:** Stateless (no session tracking). work3 is a single-user local dev tool, so session multiplexing is unnecessary.
+- **Response format:** JSON responses enabled (`enableJsonResponse: true`)
+
+This endpoint is registered automatically when the work3 HTTP server starts. Proxy mode uses this endpoint internally.
+
+## Complete Tool Reference
+
+All tools are defined in `src/actions.ts` and registered on the MCP server via `src/server/mcp-server-factory.ts`. Every tool returns JSON content.
+
+### Issue Browsing
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_jira_issues` | List your assigned Jira issues (unresolved). Optionally search by text. | `query` (string, optional) -- text search to filter issues |
+| `get_jira_issue` | Get full details of a Jira issue including description and comments. Checks locally cached data first, only fetches from Jira API if not found locally. | `issueKey` (string, **required**) -- e.g. `PROJ-123` or just `123` if default project is configured |
+| `list_linear_issues` | List your assigned Linear issues (open/in progress). Optionally search by text. | `query` (string, optional) -- text search to filter issues |
+| `get_linear_issue` | Get full details of a Linear issue including description. Checks locally cached data first, only fetches from Linear API if not found locally. | `identifier` (string, **required**) -- e.g. `ENG-123` or just `123` if default team is configured |
+
+### Worktree Management
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `list_worktrees` | List all worktrees with their status, branch, ports, and git/PR info. | *(none)* |
+| `create_worktree` | Create a new git worktree from a branch name. Use `create_from_jira` or `create_from_linear` instead when the user provides an issue key. | `branch` (string, **required**) -- git branch name; `name` (string, optional) -- directory name |
+| `create_from_jira` | Create a worktree from a Jira issue key. Fetches the issue, saves task data locally, creates worktree with issue key as branch name. | `issueKey` (string, **required**) -- e.g. `PROJ-123` or `123` |
+| `create_from_linear` | Create a worktree from a Linear issue identifier. Fetches the issue, saves task data locally, creates worktree with identifier as branch name. | `identifier` (string, **required**) -- e.g. `ENG-123` or `123` |
+| `start_worktree` | Start the dev server in a worktree (allocates port offset, spawns process). | `id` (string, **required**) -- worktree ID |
+| `stop_worktree` | Stop the running dev server in a worktree. | `id` (string, **required**) -- worktree ID |
+| `remove_worktree` | Remove a worktree (stops it first if running, then deletes directory and git worktree reference). | `id` (string, **required**) -- worktree ID |
+| `get_logs` | Get recent output logs from a running worktree (up to 100 lines). | `id` (string, **required**) -- worktree ID |
+
+### Git Operations
+
+All git operations are subject to the agent git policy. Call `get_git_policy` first to check whether an operation is allowed.
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `commit` | Stage all changes and commit in a worktree. Requires GitHub integration. Commit message may be auto-formatted by project-configured rules. | `id` (string, **required**) -- worktree ID; `message` (string, **required**) -- commit message |
+| `push` | Push commits in a worktree to the remote. Requires GitHub integration. | `id` (string, **required**) -- worktree ID |
+| `create_pr` | Create a GitHub pull request for a worktree branch. Requires GitHub integration. Follows push policy. | `id` (string, **required**) -- worktree ID; `title` (string, **required**) -- PR title; `body` (string, optional) -- PR description |
+| `get_git_policy` | Check whether agent git operations (commit, push, create_pr) are allowed for a worktree. | `id` (string, **required**) -- worktree ID |
+
+### Task Context & Notes
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_task_context` | Get full task context for a worktree: issue details, description, comments, AI context directions, todo checklist, and worktree path. Also regenerates `TASK.md`. | `worktreeId` (string, **required**) |
+| `read_issue_notes` | Read AI context notes for a worktree or issue. Returns directions and todo checklist. | `worktreeId` (string, optional); `source` (string, optional) -- `"jira"`, `"linear"`, or `"local"`; `issueId` (string, optional). Provide either `worktreeId` or both `source` and `issueId`. |
+| `update_todo` | Add, toggle, or delete a todo checklist item on an issue. The user monitors progress through these checkboxes in real-time. | `source` (string, **required**) -- `"jira"`, `"linear"`, or `"local"`; `issueId` (string, **required**); `action` (string, **required**) -- `"add"`, `"toggle"`, or `"delete"`; `todoId` (string, optional) -- required for toggle/delete; `text` (string, optional) -- required for add |
+
+### Configuration
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_config` | Get the current work3 configuration and project name. | *(none)* |
+
+### Verification Pipeline
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_verification_config` | Get the verification pipeline configuration, including which steps are enabled and their settings. | *(none)* |
+| `run_verification` | Run the verification pipeline for a worktree. Command steps return results inline; agent-driven steps return instructions for the agent to complete. | `worktreeId` (string, **required**); `steps` (string, optional) -- comma-separated step names, e.g. `"pipelineChecks,codeReview"`. Omit to run all enabled steps. |
+| `report_verification_result` | Report the result of an agent-driven verification step. Call after completing a step that returned type `"agent-task"`. | `worktreeId` (string, **required**); `stepName` (string, **required**) -- e.g. `"changesSummary"`, `"codeReview"`; `success` (boolean, **required**); `result` (string, **required**) -- markdown content with step result |
+| `get_verification_status` | Get the current/last verification run status for a worktree, including step results. | `worktreeId` (string, **required**) |
+| `get_verification_nudges` | Get context-aware recommendations for verification pipeline setup. Returns suggestions like enabling steps, installing plugins, or configuring commands. | *(none)* |
+| `install_verification_plugin` | Install a verification plugin (e.g. Playwright for browser testing, MSW for request mocking). | `pluginName` (string, **required**) -- `"playwright"` or `"msw"` |
+
+## MCP Prompt: `work-on-task`
+
+In addition to tools, the MCP server registers a **prompt** called `work-on-task`. Agents that support MCP prompts can invoke it with an `issueId` parameter. It returns a structured message that guides the agent through the full workflow:
+
+1. Determine the issue type and call the appropriate creation tool (`create_from_jira` or `create_from_linear`)
+2. Poll `list_worktrees` until the worktree status is `stopped` (creation complete)
+3. Navigate to the worktree directory
+4. Read `TASK.md` for full context
+5. Start implementing the task
+
+## MCP Instructions
+
+The MCP server sends an instructions prompt to connected agents. This prompt teaches agents the "work-on-task" workflow and how to use the tools correctly. Here is the full text:
+
+```
+work3 manages git worktrees with automatic port offsetting.
+
+IMPORTANT: When a user mentions an issue key, ticket number, or says "work on <something>",
+you should immediately use the appropriate work3 MCP tool to create a worktree.
+Do NOT read .work3/ files or make HTTP requests to the work3 server. All communication goes through these MCP tools.
+
+## Quick Start
+- Issue key like "PROJ-123" or number like "456" -> call create_from_jira with issueKey param
+- Linear identifier like "ENG-42" or "NOM-10" -> call create_from_linear with identifier param
+- Branch name -> call create_worktree directly with branch param
+- "show my issues" -> call list_jira_issues or list_linear_issues
+
+## After Creating a Worktree
+1. Poll list_worktrees until status is 'stopped' (creation done)
+2. Navigate to the worktree path returned in the response
+3. Read TASK.md for full context (includes issue details, AI directions, and a todo checklist)
+4. Work through the todo items in order -- toggle each one as you complete it using update_todo
+5. Follow any directions in the AI Context section
+
+## While Working in a Worktree
+- get_task_context -- refresh full task details, AI context, and todo checklist
+- update_todo -- IMPORTANT: mark todo items as done (toggle) as you complete them. The user tracks your progress through these checkboxes in real-time.
+- start_worktree -- launch the dev server
+- commit, push, create_pr -- git operations
+
+## Issue Data
+- get_jira_issue and get_linear_issue check locally cached data first. They only fetch from the remote API if no local data is found.
+- Prefer these tools over reading .work3/ files directly.
+
+## Todo Workflow
+Todos are a checklist of sub-tasks defined by the user. They appear in TASK.md and in get_task_context output.
+1. Before starting work, read the todos to understand what needs to be done
+2. As you complete each item, call update_todo with action="toggle" to check it off
+3. The user sees checkbox state update in real-time in the UI
+4. You can also add new todos with action="add" if you discover additional sub-tasks
+
+## Git Policy
+The project owner can restrict agent git operations. Before calling commit, push, or create_pr:
+1. Call get_git_policy with the worktree ID to check if the operation is allowed
+2. If not allowed, inform the user and suggest they enable it in Settings or per-worktree
+3. When committing, the commit message may be automatically formatted by a project-configured rule
+
+## Verification Pipeline
+After completing work in a worktree, run verification to validate changes:
+1. Call get_verification_config to see what steps are enabled
+2. Call run_verification with the worktree ID to start the pipeline
+3. For command steps (e.g. lint, typecheck): results are returned inline
+4. For agent-driven steps (e.g. code review, test writing): you'll get instructions and context -- complete the task, then call report_verification_result
+5. Call get_verification_status to check progress
+```
+
+## Setup
+
+### As a Claude Code MCP Server
+
+Add to your `.mcp.json` (project-level) or `~/.claude/claude_desktop_config.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "work3": {
+      "command": "work3",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+When configured this way, `work3 mcp` runs as a stdio-based MCP server. It will automatically detect whether a work3 HTTP server is running and choose proxy or standalone mode accordingly.
+
+### As HTTP Transport
+
+For MCP clients that support direct HTTP connections (no stdio wrapper needed):
+
+```json
+{
+  "mcpServers": {
+    "work3": {
+      "url": "http://localhost:6969/mcp"
+    }
+  }
+}
+```
+
+Replace `6969` with your configured `serverPort` if different. This requires the work3 HTTP server to be running (`work3` or `work3 connect`).
+
+### Verifying the Connection
+
+Once configured, the agent should have access to all work3 tools. You can verify by asking the agent to call `list_worktrees` or `get_config`. If the connection is working, it will return your project configuration and any existing worktrees.

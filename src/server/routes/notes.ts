@@ -5,8 +5,9 @@ import { CONFIG_DIR_NAME } from '../../constants';
 import type { WorktreeManager } from '../manager';
 import type { IssueSource, NotesManager } from '../notes-manager';
 import { regenerateTaskMd } from '../task-context';
+import type { HooksManager } from '../verification-manager';
 
-export function registerNotesRoutes(app: Hono, manager: WorktreeManager, notesManager: NotesManager) {
+export function registerNotesRoutes(app: Hono, manager: WorktreeManager, notesManager: NotesManager, hooksManager?: HooksManager) {
   const configDir = manager.getConfigDir();
   const worktreesPath = path.join(configDir, CONFIG_DIR_NAME, 'worktrees');
 
@@ -124,6 +125,42 @@ export function registerNotesRoutes(app: Hono, manager: WorktreeManager, notesMa
     }
 
     const notes = notesManager.updateGitPolicy(source, id, body as Parameters<typeof notesManager.updateGitPolicy>[2]);
+    return c.json(notes);
+  });
+
+  // Update hook skill overrides for an issue
+  app.patch('/api/notes/:source/:id/hook-skills', async (c) => {
+    const source = c.req.param('source') as IssueSource;
+    const id = c.req.param('id');
+
+    if (!['jira', 'linear', 'local'].includes(source)) {
+      return c.json({ error: 'Invalid source' }, 400);
+    }
+
+    const body = await c.req.json<Record<string, string>>();
+    const validValues = ['inherit', 'enable', 'disable'];
+    for (const [key, value] of Object.entries(body)) {
+      if (!validValues.includes(value)) {
+        return c.json({ error: `Invalid value for ${key}: ${value}` }, 400);
+      }
+    }
+
+    const notes = notesManager.updateHookSkills(source, id, body as Record<string, 'inherit' | 'enable' | 'disable'>);
+
+    // Regenerate TASK.md in linked worktree when hook skills change
+    if (notes.linkedWorktreeId && hooksManager) {
+      try {
+        const config = hooksManager.getConfig();
+        const effectiveSkills = hooksManager.getEffectiveSkills(notes.linkedWorktreeId, notesManager);
+        regenerateTaskMd(source, id, notes.linkedWorktreeId, notesManager, configDir, worktreesPath, {
+          checks: config.steps,
+          skills: effectiveSkills,
+        });
+      } catch {
+        // Non-critical
+      }
+    }
+
     return c.json(notes);
   });
 

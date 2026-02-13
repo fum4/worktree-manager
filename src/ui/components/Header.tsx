@@ -4,6 +4,7 @@ import { badge, nav, text } from '../theme';
 const tabs: { id: View; label: string }[] = [
   { id: 'workspace', label: 'Workspace' },
   { id: 'agents', label: 'Agents' },
+  { id: 'hooks', label: 'Hooks' },
   { id: 'integrations', label: 'Integrations' },
   { id: 'configuration', label: 'Settings' },
 ];

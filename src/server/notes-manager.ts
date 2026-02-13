@@ -15,6 +15,8 @@ export interface TodoItem {
   createdAt: string;
 }
 
+export type HookSkillOverride = 'inherit' | 'enable' | 'disable';
+
 export interface IssueNotes {
   linkedWorktreeId: string | null;
   personal: { content: string; updatedAt: string } | null;
@@ -25,6 +27,7 @@ export interface IssueNotes {
     agentPushes?: GitPolicyOverride;
     agentPRs?: GitPolicyOverride;
   };
+  hookSkills?: Record<string, HookSkillOverride>;
 }
 
 const EMPTY_NOTES: IssueNotes = {
@@ -111,6 +114,13 @@ export class NotesManager {
   updateGitPolicy(source: IssueSource, id: string, policy: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride }): IssueNotes {
     const notes = this.loadNotes(source, id);
     notes.gitPolicy = { ...notes.gitPolicy, ...policy };
+    this.saveNotes(source, id, notes);
+    return notes;
+  }
+
+  updateHookSkills(source: IssueSource, id: string, overrides: Record<string, HookSkillOverride>): IssueNotes {
+    const notes = this.loadNotes(source, id);
+    notes.hookSkills = { ...notes.hookSkills, ...overrides };
     this.saveNotes(source, id, notes);
     return notes;
   }

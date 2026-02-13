@@ -33,19 +33,17 @@ export function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate }: TodoLis
 
   return (
     <div>
-      <AnimatePresence initial={false}>
-        {todos.map((todo) => (
-          <TodoRow key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} />
-        ))}
+      {todos.map((todo) => (
+        <TodoRow key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} />
+      ))}
 
-        {drafts.map((draftId) => (
-          <NewTodoRow
-            key={`draft-${draftId}`}
-            onCommit={(value) => commitDraft(draftId, value)}
-            onCancel={() => cancelDraft(draftId)}
-          />
-        ))}
-      </AnimatePresence>
+      {drafts.map((draftId) => (
+        <NewTodoRow
+          key={`draft-${draftId}`}
+          onCommit={(value) => commitDraft(draftId, value)}
+          onCancel={() => cancelDraft(draftId)}
+        />
+      ))}
 
       {/* Add button — always visible */}
       <button
@@ -112,14 +110,7 @@ function NewTodoRow({
   };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
-      transition={{ duration: 0.15 }}
-      className="flex items-start gap-2.5 py-1.5 px-1 -mx-1 rounded-md"
-    >
+    <div className="flex items-start gap-2.5 py-1.5 px-1 -mx-1 rounded-md">
       {/* Unchecked checkbox (static) */}
       <div className={`flex-shrink-0 w-4 h-4 mt-[1px] rounded-full border ${notesTheme.todoCheckbox}`} />
 
@@ -141,7 +132,7 @@ function NewTodoRow({
         placeholder="What needs to be done?"
         className={`flex-1 bg-transparent text-xs leading-relaxed ${text.primary} outline-none placeholder-[#3b4049]`}
       />
-    </motion.div>
+    </div>
   );
 }
 
@@ -175,11 +166,8 @@ function TodoRow({
   };
 
   return (
-    <motion.div
-      layout
-      exit={{ opacity: 0, transition: { duration: 0.1 } }}
-      className="flex items-start gap-2.5 py-1.5 px-1 -mx-1 rounded-md group hover:bg-white/[0.02] transition-colors"
-    >
+    <div className="flex items-start gap-2.5 py-1.5 px-1 -mx-1 rounded-md group hover:bg-white/[0.02] transition-colors">
+
       {/* Circular checkbox */}
       <button
         type="button"
@@ -239,6 +227,6 @@ function TodoRow({
       >
         <X className="w-3 h-3" />
       </button>
-    </motion.div>
+    </div>
   );
 }

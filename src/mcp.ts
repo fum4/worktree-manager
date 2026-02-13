@@ -8,6 +8,7 @@ import { CONFIG_DIR_NAME } from './constants';
 import { WorktreeManager } from './server/manager';
 import { createMcpServer } from './server/mcp-server-factory';
 import { NotesManager } from './server/notes-manager';
+import { HooksManager } from './server/verification-manager';
 import type { WorktreeConfig } from './server/types';
 
 /**
@@ -89,7 +90,8 @@ async function startStandaloneMode(config: WorktreeConfig, configFilePath: strin
   await manager.initGitHub();
 
   const notesManager = new NotesManager(manager.getConfigDir());
-  const ctx: ActionContext = { manager, notesManager };
+  const hooksManager = new HooksManager(manager);
+  const ctx: ActionContext = { manager, notesManager, hooksManager };
   const server = createMcpServer(ctx);
 
   const transport = new StdioServerTransport();

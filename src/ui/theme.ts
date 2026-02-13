@@ -387,6 +387,21 @@ export const notes = {
   todoCheckIcon:   'text-teal-400',
 } as const;
 
+// ─── Hooks ──────────────────────────────────────────────────────
+export const hooks = {
+  accent:          'text-emerald-400',
+  accentMuted:     'text-emerald-500',
+  accentBg:        'bg-emerald-400/10',
+  accentBorder:    'border-emerald-400/30',
+  badge:           'text-emerald-400 bg-emerald-900/30',
+  button:          'bg-emerald-400/15 text-emerald-400 hover:bg-emerald-400/25 font-medium',
+  passed:          'text-emerald-400 bg-emerald-900/30',
+  failed:          'text-red-400 bg-red-900/30',
+  pending:         'text-[#6b7280] bg-white/[0.06]',
+  running:         'text-yellow-400 bg-yellow-900/30',
+  skipped:         'text-[#4b5563] bg-white/[0.03]',
+} as const;
+
 // ─── Detail panel tabs (Logs / Terminal) ────────────────────────
 export const detailTab = {
   active:          'text-white bg-white/[0.08]',

@@ -961,6 +961,26 @@ export async function updateGitPolicy(
   }
 }
 
+// -- Hook Skill Overrides API --
+
+export async function updateHookSkills(
+  source: string,
+  id: string,
+  overrides: Record<string, HookSkillOverride>,
+  serverUrl: string | null = null,
+): Promise<IssueNotes> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/hook-skills`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(overrides),
+    });
+    return await res.json();
+  } catch {
+    return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
+  }
+}
+
 // -- Custom Tasks API --
 
 export async function fetchCustomTasks(
@@ -1120,6 +1140,8 @@ export interface TodoItem {
   createdAt: string;
 }
 
+export type HookSkillOverride = 'inherit' | 'enable' | 'disable';
+
 export interface IssueNotes {
   linkedWorktreeId: string | null;
   personal: { content: string; updatedAt: string } | null;
@@ -1130,6 +1152,7 @@ export interface IssueNotes {
     agentPushes?: GitPolicyOverride;
     agentPRs?: GitPolicyOverride;
   };
+  hookSkills?: Record<string, HookSkillOverride>;
 }
 
 export async function fetchNotes(
@@ -1829,5 +1852,244 @@ export async function scanSkills(
       discovered: [],
       error: err instanceof Error ? err.message : 'Failed to scan skills',
     };
+  }
+}
+
+// -- Hooks API --
+
+export type HookTrigger = 'pre-implementation' | 'post-implementation' | 'on-demand' | 'custom';
+
+export interface HookStep {
+  id: string;
+  name: string;
+  command: string;
+  enabled?: boolean;
+  trigger?: HookTrigger;
+  condition?: string;
+}
+
+export interface HookSkillRef {
+  skillName: string;
+  enabled: boolean;
+  trigger?: HookTrigger;
+  condition?: string;
+}
+
+export interface HooksConfig {
+  steps: HookStep[];
+  skills: HookSkillRef[];
+}
+
+export interface SkillHookResult {
+  skillName: string;
+  success: boolean;
+  summary: string;
+  content?: string;
+  reportedAt: string;
+}
+
+export interface StepResult {
+  stepId: string;
+  stepName: string;
+  command: string;
+  status: 'pending' | 'running' | 'passed' | 'failed';
+  output?: string;
+  startedAt?: string;
+  completedAt?: string;
+  durationMs?: number;
+}
+
+export interface PipelineRun {
+  id: string;
+  worktreeId: string;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: string;
+  completedAt?: string;
+  steps: StepResult[];
+}
+
+export async function fetchHooksConfig(
+  serverUrl: string | null = null,
+): Promise<HooksConfig> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/config`);
+    const data = await res.json();
+    data.skills ??= [];
+    return data;
+  } catch {
+    return { steps: [], skills: [] };
+  }
+}
+
+export async function saveHooksConfig(
+  config: HooksConfig,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; config?: HooksConfig; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/config`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to save hooks config',
+    };
+  }
+}
+
+export async function runHooks(
+  worktreeId: string,
+  serverUrl: string | null = null,
+): Promise<PipelineRun> {
+  try {
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/run`,
+      { method: 'POST' },
+    );
+    return await res.json();
+  } catch {
+    return {
+      id: '',
+      worktreeId,
+      status: 'failed',
+      startedAt: new Date().toISOString(),
+      steps: [],
+    };
+  }
+}
+
+export async function runHookStep(
+  worktreeId: string,
+  stepId: string,
+  serverUrl: string | null = null,
+): Promise<StepResult> {
+  try {
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/run/${encodeURIComponent(stepId)}`,
+      { method: 'POST' },
+    );
+    return await res.json();
+  } catch {
+    return {
+      stepId,
+      stepName: 'Unknown',
+      command: '',
+      status: 'failed',
+      output: 'Request failed',
+    };
+  }
+}
+
+export async function fetchHooksStatus(
+  worktreeId: string,
+  serverUrl: string | null = null,
+): Promise<{ status: PipelineRun | null }> {
+  try {
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/status`,
+    );
+    return await res.json();
+  } catch {
+    return { status: null };
+  }
+}
+
+// -- Hook Skills API --
+
+export async function importHookSkill(
+  skillName: string,
+  serverUrl: string | null = null,
+  trigger?: HookTrigger,
+  condition?: string,
+): Promise<{ success: boolean; config?: HooksConfig; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/skills/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skillName, trigger, condition }),
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to import skill' };
+  }
+}
+
+export async function removeHookSkill(
+  skillName: string,
+  serverUrl: string | null = null,
+  trigger?: HookTrigger,
+): Promise<{ success: boolean; config?: HooksConfig; error?: string }> {
+  try {
+    const url = `${getBaseUrl(serverUrl)}/api/hooks/skills/${encodeURIComponent(skillName)}${trigger ? `?trigger=${encodeURIComponent(trigger)}` : ''}`;
+    const res = await fetch(url, { method: 'DELETE' });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to remove skill' };
+  }
+}
+
+export async function toggleHookSkill(
+  skillName: string,
+  enabled: boolean,
+  serverUrl: string | null = null,
+  trigger?: HookTrigger,
+): Promise<{ success: boolean; config?: HooksConfig; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/skills/${encodeURIComponent(skillName)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled, trigger }),
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to toggle skill' };
+  }
+}
+
+export async function fetchAvailableHookSkills(
+  serverUrl: string | null = null,
+): Promise<{ available: Array<{ name: string; displayName: string; description: string }> }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/skills/available`);
+    return await res.json();
+  } catch {
+    return { available: [] };
+  }
+}
+
+export async function reportHookSkillResult(
+  worktreeId: string,
+  data: { skillName: string; success: boolean; summary: string; content?: string },
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/report`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      },
+    );
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to report result' };
+  }
+}
+
+export async function fetchHookSkillResults(
+  worktreeId: string,
+  serverUrl: string | null = null,
+): Promise<{ results: SkillHookResult[] }> {
+  try {
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/skill-results`,
+    );
+    return await res.json();
+  } catch {
+    return { results: [] };
   }
 }

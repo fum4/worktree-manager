@@ -107,6 +107,59 @@ export interface WorktreeListResponse {
   worktrees: WorktreeInfo[];
 }
 
+// ─── Hooks Pipeline ─────────────────────────────────────────────
+
+export type HookTrigger = 'pre-implementation' | 'post-implementation' | 'on-demand' | 'custom';
+
+export interface HookStep {
+  id: string;
+  name: string;
+  command: string;
+  enabled?: boolean;
+  trigger?: HookTrigger;
+  condition?: string;
+}
+
+export interface HookSkillRef {
+  skillName: string;
+  enabled: boolean;
+  trigger?: HookTrigger;
+  condition?: string;
+}
+
+export interface HooksConfig {
+  steps: HookStep[];
+  skills: HookSkillRef[];
+}
+
+export interface SkillHookResult {
+  skillName: string;
+  success: boolean;
+  summary: string;
+  content?: string;
+  reportedAt: string;
+}
+
+export interface StepResult {
+  stepId: string;
+  stepName: string;
+  command: string;
+  status: 'pending' | 'running' | 'passed' | 'failed';
+  output?: string;
+  startedAt?: string;
+  completedAt?: string;
+  durationMs?: number;
+}
+
+export interface PipelineRun {
+  id: string;
+  worktreeId: string;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: string;
+  completedAt?: string;
+  steps: StepResult[];
+}
+
 export interface RunningProcess {
   pid: number;
   ports: number[];

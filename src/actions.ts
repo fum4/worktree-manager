@@ -8,6 +8,7 @@ import type { WorktreeManager } from './server/manager';
 import type { NotesManager } from './server/notes-manager';
 import { generateTaskMd, writeTaskMd } from './server/task-context';
 import type { TaskContextData } from './server/task-context';
+import type { HooksManager } from './server/verification-manager';
 
 export interface ActionParam {
   type: 'string' | 'number' | 'boolean';
@@ -25,6 +26,7 @@ export interface Action {
 export interface ActionContext {
   manager: WorktreeManager;
   notesManager: NotesManager;
+  hooksManager?: HooksManager;
 }
 
 export const MCP_INSTRUCTIONS = `${APP_NAME} manages git worktrees with automatic port offsetting.
@@ -67,7 +69,15 @@ Todos are a checklist of sub-tasks defined by the user. They appear in TASK.md a
 The project owner can restrict agent git operations. Before calling commit, push, or create_pr:
 1. Call get_git_policy with the worktree ID to check if the operation is allowed
 2. If not allowed, inform the user and suggest they enable it in Settings or per-worktree
-3. When committing, the commit message may be automatically formatted by a project-configured rule`;
+3. When committing, the commit message may be automatically formatted by a project-configured rule
+
+## Hooks (Post-Implementation)
+After completing work in a worktree, run hooks to validate changes:
+1. Call get_hooks_config to see what pipeline checks and hook skills are configured
+2. Call run_hooks with the worktree ID — all pipeline check steps run in parallel and results are returned inline
+3. For each enabled hook skill, invoke the corresponding slash command (e.g. /verify-code-review)
+4. After running a hook skill, call report_hook_result with the worktree ID, skill name, success status, and results
+5. TASK.md includes a "Hooks" section listing all enabled checks and skills — follow those instructions`;
 
 function findWorktreeOrThrow(ctx: ActionContext, id: string) {
   const worktrees = ctx.manager.getWorktrees();
@@ -492,7 +502,14 @@ export const actions: Action[] = [
 
       if (worktreePath && existsSync(worktreePath)) {
         try {
-          const content = generateTaskMd(taskData, aiContext, notes.todos);
+          // Load hooks data for TASK.md
+          let hooksInfo = null;
+          if (ctx.hooksManager) {
+            const hConfig = ctx.hooksManager.getConfig();
+            const effectiveSkills = ctx.hooksManager.getEffectiveSkills(worktreeId, ctx.notesManager);
+            hooksInfo = { checks: hConfig.steps, skills: effectiveSkills };
+          }
+          const content = generateTaskMd(taskData, aiContext, notes.todos, hooksInfo);
           writeTaskMd(worktreePath, content);
         } catch { /* non-critical */ }
       }
@@ -571,6 +588,70 @@ export const actions: Action[] = [
         push: resolveGitPolicy('push', id, config, ctx.notesManager),
         createPr: resolveGitPolicy('create_pr', id, config, ctx.notesManager),
       };
+    },
+  },
+
+  // -- Hooks (Post-Implementation) --
+  {
+    name: 'get_hooks_config',
+    description: 'Get the hooks configuration — pipeline check steps (shell commands) and hook skills (agent-driven analysis). Both are used to validate work in worktrees after implementation.',
+    params: {},
+    handler: async (ctx) => {
+      if (!ctx.hooksManager) return { error: 'Hooks manager not available' };
+      return ctx.hooksManager.getConfig();
+    },
+  },
+  {
+    name: 'run_hooks',
+    description: 'Run all hook pipeline steps for a worktree in parallel. Each step is a shell command (e.g. lint, typecheck, build). Returns results inline.',
+    params: {
+      worktreeId: { type: 'string', description: 'Worktree ID to run hooks on', required: true },
+    },
+    handler: async (ctx, params) => {
+      if (!ctx.hooksManager) return { error: 'Hooks manager not available' };
+      const worktreeId = params.worktreeId as string;
+      return ctx.hooksManager.runAll(worktreeId);
+    },
+  },
+  {
+    name: 'get_hooks_status',
+    description: 'Get the last hooks run status for a worktree, including per-step results.',
+    params: {
+      worktreeId: { type: 'string', description: 'Worktree ID', required: true },
+    },
+    handler: async (ctx, params) => {
+      if (!ctx.hooksManager) return { error: 'Hooks manager not available' };
+      const worktreeId = params.worktreeId as string;
+      return ctx.hooksManager.getStatus(worktreeId) ?? { status: null };
+    },
+  },
+  {
+    name: 'report_hook_result',
+    description: 'Report the result of a hook skill after running it. Call this after invoking a hook skill (e.g. /verify-code-review) to save the result.',
+    params: {
+      worktreeId: { type: 'string', description: 'Worktree ID', required: true },
+      skillName: { type: 'string', description: 'Name of the hook skill (e.g. verify-code-review)', required: true },
+      success: { type: 'boolean', description: 'Whether the hook passed', required: true },
+      summary: { type: 'string', description: 'Short one-line summary of the result', required: true },
+      content: { type: 'string', description: 'Full markdown content with detailed results (optional)' },
+    },
+    handler: async (ctx, params) => {
+      if (!ctx.hooksManager) return { error: 'Hooks manager not available' };
+      const worktreeId = params.worktreeId as string;
+      const skillName = params.skillName as string;
+      const success = params.success as boolean;
+      const summary = params.summary as string;
+      const content = params.content as string | undefined;
+
+      ctx.hooksManager.reportSkillResult(worktreeId, {
+        skillName,
+        success,
+        summary,
+        content,
+        reportedAt: new Date().toISOString(),
+      });
+
+      return { success: true };
     },
   },
 ];

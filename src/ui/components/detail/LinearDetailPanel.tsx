@@ -6,7 +6,7 @@ import { badge, border, button, linearPriority, linearStateType, text } from '..
 import { Tooltip } from '../Tooltip';
 import { TruncatedTooltip } from '../TruncatedTooltip';
 import { MarkdownContent } from '../MarkdownContent';
-import { NotesSection } from './NotesSection';
+import { PersonalNotesSection, AgentSection } from './NotesSection';
 import { Spinner } from '../Spinner';
 import { WorktreeExistsModal } from '../WorktreeExistsModal';
 
@@ -255,7 +255,8 @@ export function LinearDetailPanel({ identifier, linkedWorktreeId, onCreateWorktr
           </section>
         )}
 
-        <NotesSection source="linear" issueId={issue.identifier} />
+        <PersonalNotesSection source="linear" issueId={issue.identifier} />
+        <AgentSection source="linear" issueId={issue.identifier} />
 
         {/* Footer */}
         <div className={`text-[10px] ${text.dimmed} flex flex-wrap gap-4 pt-2`}>

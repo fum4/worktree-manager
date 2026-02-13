@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { fetchNotes, updateNotes, addTodo, updateTodo, deleteTodo, updateGitPolicy } from './api';
-import type { GitPolicyOverride, IssueNotes } from './api';
+import { fetchNotes, updateNotes, addTodo, updateTodo, deleteTodo, updateGitPolicy, updateHookSkills } from './api';
+import type { GitPolicyOverride, IssueNotes, HookSkillOverride } from './api';
 import { useServerUrlOptional } from '../contexts/ServerContext';
 
 export function useNotes(source: string, id: string | null) {
@@ -61,6 +61,13 @@ export function useNotes(source: string, id: string | null) {
     return result;
   };
 
+  const updateHookSkillsMutation = async (overrides: Record<string, HookSkillOverride>) => {
+    if (!id) return;
+    const result = await updateHookSkills(source, id, overrides, serverUrl);
+    queryClient.setQueryData(queryKey, result);
+    return result;
+  };
+
   return {
     notes: data ?? null,
     isLoading,
@@ -71,6 +78,7 @@ export function useNotes(source: string, id: string | null) {
     deleteTodo: deleteTodoItem,
     updateTodoText,
     updateGitPolicy: updateGitPolicyMutation,
+    updateHookSkills: updateHookSkillsMutation,
     refetch,
   };
 }

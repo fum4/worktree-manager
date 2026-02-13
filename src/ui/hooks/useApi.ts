@@ -159,6 +159,10 @@ export function useApi() {
       updateGitPolicy: (source: string, id: string, policy: Parameters<typeof api.updateGitPolicy>[2]) =>
         api.updateGitPolicy(source, id, policy, serverUrl),
 
+      // Hook skill overrides
+      updateHookSkills: (source: string, id: string, overrides: Record<string, api.HookSkillOverride>) =>
+        api.updateHookSkills(source, id, overrides, serverUrl),
+
       // Notes
       fetchNotes: (source: string, id: string) =>
         api.fetchNotes(source, id, serverUrl),
@@ -284,6 +288,41 @@ export function useApi() {
 
       scanSkills: (options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string }) =>
         api.scanSkills(options, serverUrl),
+
+      // Hooks
+      fetchHooksConfig: () =>
+        api.fetchHooksConfig(serverUrl),
+
+      saveHooksConfig: (config: api.HooksConfig) =>
+        api.saveHooksConfig(config, serverUrl),
+
+      runHooks: (worktreeId: string) =>
+        api.runHooks(worktreeId, serverUrl),
+
+      runHookStep: (worktreeId: string, stepId: string) =>
+        api.runHookStep(worktreeId, stepId, serverUrl),
+
+      fetchHooksStatus: (worktreeId: string) =>
+        api.fetchHooksStatus(worktreeId, serverUrl),
+
+      // Hook Skills
+      importHookSkill: (skillName: string, trigger?: api.HookTrigger, condition?: string) =>
+        api.importHookSkill(skillName, serverUrl, trigger, condition),
+
+      removeHookSkill: (skillName: string, trigger?: api.HookTrigger) =>
+        api.removeHookSkill(skillName, serverUrl, trigger),
+
+      toggleHookSkill: (skillName: string, enabled: boolean, trigger?: api.HookTrigger) =>
+        api.toggleHookSkill(skillName, enabled, serverUrl, trigger),
+
+      fetchAvailableHookSkills: () =>
+        api.fetchAvailableHookSkills(serverUrl),
+
+      reportHookSkillResult: (worktreeId: string, data: Parameters<typeof api.reportHookSkillResult>[1]) =>
+        api.reportHookSkillResult(worktreeId, data, serverUrl),
+
+      fetchHookSkillResults: (worktreeId: string) =>
+        api.fetchHookSkillResults(worktreeId, serverUrl),
     }),
     [serverUrl],
   );

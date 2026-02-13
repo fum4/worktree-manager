@@ -1,213 +1,99 @@
 # work3
 
-A dev tool that manages multiple git worktrees and automatically resolves port conflicts between them. When you run a dev command that binds multiple ports (Express, Vite HMR, etc.), running a second copy causes port conflicts. work3 solves that by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` to transparently offset all known ports per worktree instance.
+A CLI tool and web UI for managing multiple git worktrees with automatic port offsetting, issue tracker integration, and AI agent support. It solves the fundamental problem of running multiple dev server instances concurrently — when your app binds ports 3000 and 3001, a second copy can't start without conflicts. work3 transparently offsets all known ports per worktree by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime.
+
+Beyond port management, work3 provides a full development workflow: create worktrees from Jira or Linear issues, track progress with todos, run verification pipelines, and integrate with AI coding agents via MCP (Model Context Protocol).
 
 ## Quick Start
 
 ```bash
-# Install globally
-npm link
-
-# In your project
+# In your project directory
 cd /path/to/your/project
-work3 init    # interactive setup
-work3         # start the manager UI
+work3 init    # interactive setup — discovers ports, configures commands
+work3         # start the server and open the UI
 ```
 
-Then in the UI:
+In the UI:
 1. Click **Discover Ports** to auto-detect all ports your dev command binds
-2. Create worktrees from branches and start them — ports are offset automatically
+2. Create worktrees from branches or issue tracker tickets
+3. Start them — ports are offset automatically, no conflicts
 
-## How It Works
-
-```
-Main repo:    api:4000, web:4100  (no offset)
-Worktree 1:   api:4001, web:4101  (offset=1)
-Worktree 2:   api:4002, web:4102  (offset=2)
-```
-
-Inter-app communication also works — if `web-server` connects to `api-server` on port 4000, the hook redirects that connection to 4001 within worktree 1.
-
-## Architecture
-
-work3 has four layers: a **CLI** that loads config, a **Hono HTTP server** with REST API + SSE, a **React UI** served as a static SPA, and a **runtime hook** injected into worktree processes.
-
-### System Overview
+## How Port Offsetting Works
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     work3 Server (:3100)                         │
-│                                                                 │
-│  CLI (cli.ts)                                                   │
-│   └─ loads .work3/config.json, starts Hono server                │
-│                                                                 │
-│  Hono API (server/index.ts)                                     │
-│   ├─ REST endpoints (CRUD worktrees, start/stop, discover)      │
-│   ├─ SSE stream (/api/events) → pushes state to UI              │
-│   └─ serves static React UI from dist/ui/                       │
-│                                                                 │
-│  WorktreeManager (server/manager.ts)                            │
-│   ├─ git worktree add/remove                                    │
-│   ├─ async creation with progress (SSE status updates)          │
-│   ├─ spawn/kill dev processes                                   │
-│   ├─ capture logs (last 100 lines per worktree)                 │
-│   └─ copy .env* files recursively into new worktrees            │
-│                                                                 │
-│  PortManager (server/port-manager.ts)                           │
-│   ├─ discoverPorts() — runs dev cmd, monitors with lsof         │
-│   ├─ allocateOffset() — assigns 1, 2, 3... to worktrees        │
-│   ├─ getEnvForOffset() — builds NODE_OPTIONS + env vars         │
-│   └─ detectEnvMapping() — scans .env* files for port refs       │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-            spawn(startCommand, {
-              cwd: worktree/projectDir,
-              env: {
-                NODE_OPTIONS: "--require port-hook.cjs",
-                __WM_PORT_OFFSET__: "1",
-                __WM_KNOWN_PORTS__: "[3000,24678]",
-                PORT: "3001"           ← from envMapping
-              }
-            })
-                              │
-                              ▼
-                ┌───────────────────────┐
-                │  Worktree Process     │
-                │  port-hook.cjs active │
-                │                       │
-                │  listen(3000) → 3001  │
-                │  connect(3000)→ 3001  │
-                └───────────────────────┘
+Main repo:    api:3000, web:3001  (no offset)
+Worktree 1:   api:3010, web:3011  (offset 1 × step 10)
+Worktree 2:   api:3020, web:3021  (offset 2 × step 10)
 ```
 
-### The Port Hook (`src/runtime/port-hook.cjs`)
+A pure CommonJS hook (`port-hook.cjs`) is injected via `NODE_OPTIONS=--require` into all spawned processes. It intercepts `listen()` and `connect()` calls, offsetting known ports. Since `NODE_OPTIONS` propagates to child processes, the entire process tree (turborepo, yarn, tsx, vite, etc.) is covered.
 
-The core mechanism. A pure CommonJS file with zero dependencies, loaded via `NODE_OPTIONS="--require ..."`. It reads two env vars at startup:
+See [Port Mapping](docs/PORT-MAPPING.md) for the full technical details.
 
-- `__WM_PORT_OFFSET__` — numeric offset (e.g., `1`)
-- `__WM_KNOWN_PORTS__` — JSON array of ports to intercept (e.g., `[3000,24678]`)
+## Features
 
-It patches two Node.js primitives:
+### Worktree Management
+Create, start, stop, and remove git worktrees from the UI or CLI. Each worktree gets its own port offset, environment variables, and process lifecycle.
 
-1. **`net.Server.prototype.listen`** — if the port being bound is in the known set, adds the offset
-2. **`net.Socket.prototype.connect`** — if an outgoing connection targets a known port on localhost, redirects to the offset port. Handles three calling conventions: `connect(port, host)`, `connect({port, host})`, and `connect([{port, host}, cb])` (Node.js HTTP agent internal form)
+### Issue Tracker Integration
+Connect to **Jira** (OAuth or API token), **Linear** (API key), or create **local issues**. Create worktrees directly from tickets — work3 fetches issue details, generates a TASK.md with context, and sets up the branch.
 
-Since `NODE_OPTIONS` propagates to all child Node.js processes, the hook is automatically active in the entire process tree (turborepo, yarn, tsx, vite, etc.).
+See [Integrations](docs/INTEGRATIONS.md) for setup details.
 
-### Env Mapping
+### AI Agent Support (MCP)
+work3 exposes 20+ tools via MCP (Model Context Protocol) that any AI coding agent can use — browse issues, create worktrees, manage todos, commit/push/PR, run verification. Agents get a structured workflow: pick an issue, create a worktree, read TASK.md, work through todos, verify, and ship.
 
-Some frameworks read port values from `.env` files and use them in ways the hook can't intercept (e.g., HMR WebSocket URLs baked into client bundles). work3 handles this with **env mapping**:
+See [MCP](docs/MCP.md) for the tool reference and [Agents](docs/AGENTS.md) for the agent tooling system.
 
-1. `detectEnvMapping()` recursively scans all `.env*` files for values containing known ports
-2. It saves templates like `PORT=${3000}` to `.work3/config.json` under `envMapping`
-3. At start time, `getEnvForOffset()` resolves templates with the offset (e.g., `PORT=3001`) and injects them as process environment variables
-4. Process env takes priority over `.env` in most frameworks (dotenv, Vite, Next.js)
+### Verification Pipeline
+Configurable pre-merge validation with command steps (lint, typecheck, build) and agent-driven steps (code review, test writing). Run from the UI or via MCP tools.
 
-### Worktree Creation Flow
+See [Verification](docs/VERIFICATION.md) for configuration and usage.
 
-1. User submits branch name via UI → POST `/api/worktrees`
-2. Server validates, creates a placeholder entry with `status: 'creating'`, returns immediately
-3. Async background work begins, pushing SSE updates at each step:
-   - **Fetching branch...** → `git fetch origin <branch>`
-   - **Creating worktree...** → `git worktree add` (with fallback cascade)
-   - **Installing dependencies...** → runs configured `installCommand`
-4. `.env*` files are recursively copied from the main project into the worktree (gitignored files aren't included by `git worktree add`)
-5. Placeholder is removed; the worktree appears as `stopped` from the filesystem scan
+### Electron Desktop App
+Optional native app with multi-project tab support, `work3://` deep linking, and window state persistence.
 
-### What it catches vs. doesn't
+See [Electron](docs/ELECTRON.md) for details.
 
-| Works | Doesn't work |
-|-------|-------------|
-| Express, Hono, Fastify, Koa (any `server.listen()`) | Non-Node processes (Python, Go, Ruby) |
-| Vite, Webpack dev server, Next.js | Docker port mappings |
-| `http.request()`, `fetch()` (undici), WebSockets | |
-| Child processes spawned by Node.js | |
-| ESM projects (`"type": "module"`) | |
+## CLI Commands
 
-## Config (`.work3/config.json`)
+| Command | Description |
+|---------|-------------|
+| `work3` | Start the server and open the UI |
+| `work3 init` | Interactive setup wizard |
+| `work3 add [name]` | Set up an integration (github, linear, jira) |
+| `work3 mcp` | Start as an MCP server for AI agents |
+| `work3 task <ID>` | Create a worktree from an issue ID |
+| `work3 connect` | Connect to an existing work3 server |
 
-Generate one with `work3 init`, or create manually:
+See [CLI Reference](docs/CLI.md) for full details.
 
-```json
-{
-  "startCommand": "yarn dev",
-  "installCommand": "yarn install",
-  "baseBranch": "origin/develop",
-  "serverPort": 3100,
-  "ports": {
-    "discovered": [3000, 24678],
-    "offsetStep": 1
-  },
-  "envMapping": {
-    "PORT": "${3000}"
-  }
-}
-```
+## Configuration
 
-Worktrees are always stored in `.work3/worktrees`.
+work3 stores its configuration in `.work3/config.json` at the project root. Key settings include start/install commands, discovered ports, offset step, environment variable mappings, and integration credentials.
 
-| Field | Description |
-|-------|-------------|
-| `projectDir` | Subdirectory to `cd` into before running `startCommand` (relative to worktree root). Omit or `"."` for repo root |
-| `startCommand` | The dev command to run in each worktree |
-| `installCommand` | Command to install dependencies in new worktrees |
-| `baseBranch` | Git ref to branch worktrees from. Auto-detected by `init` |
-| `serverPort` | Port for the manager UI itself |
-| `ports.discovered` | All ports the dev command binds (auto-detected or manual). Set to `[]` to use the UI discovery button |
-| `ports.offsetStep` | How much to increment per instance (default: 1) |
-| `envMapping` | Templates for env vars containing ports. `${3000}` gets replaced with `3000 + offset` at runtime |
+See [Configuration](docs/CONFIGURATION.md) for the complete reference.
 
-## API Endpoints
+## Documentation
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/worktrees` | List all worktrees |
-| POST | `/api/worktrees` | Create worktree `{branch, name?}` |
-| PATCH | `/api/worktrees/:id` | Rename worktree `{name?, branch?}` |
-| POST | `/api/worktrees/:id/start` | Start a worktree's dev server |
-| POST | `/api/worktrees/:id/stop` | Stop a worktree's dev server |
-| DELETE | `/api/worktrees/:id` | Remove worktree (stops first) |
-| GET | `/api/worktrees/:id/logs` | Get process output (last 100 lines) |
-| GET | `/api/config` | Get current config + project name |
-| GET | `/api/ports` | Get discovered ports + offset step |
-| POST | `/api/discover` | Run port discovery |
-| POST | `/api/detect-env` | Scan .env files for port references |
-| GET | `/api/events` | SSE stream — real-time worktree state updates |
-
-## Repo Structure
-
-```
-├── src/
-│   ├── cli.ts                    # CLI entry point, loads .work3/config.json
-│   ├── index.ts                  # Package exports
-│   ├── server/
-│   │   ├── types.ts              # All TypeScript interfaces
-│   │   ├── manager.ts            # WorktreeManager — git ops, process spawn, .env copy
-│   │   ├── port-manager.ts       # PortManager — discovery, offsets, env mapping
-│   │   └── index.ts              # Hono server, API routes, SSE events
-│   ├── runtime/
-│   │   └── port-hook.cjs         # The net.Server/net.Socket monkey-patch (CJS, no deps)
-│   └── ui/
-│       ├── App.tsx               # React root
-│       ├── main.tsx              # DOM mount
-│       ├── index.html            # HTML shell
-│       ├── hooks/
-│       │   └── useWorktrees.ts   # SSE hook + all API client functions
-│       └── components/
-│           ├── Header.tsx        # Project name, connection status, port discovery
-│           ├── CreateForm.tsx    # Branch name input + create button
-│           ├── ConfirmModal.tsx  # Reusable confirmation dialog
-│           ├── WorktreeList.tsx  # List container
-│           └── WorktreeItem.tsx  # Worktree card (creating/deleting/running/stopped states)
-├── test-project/                 # Minimal 2-server app for testing
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── tailwind.config.js
-└── postcss.config.js
-```
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/ARCHITECTURE.md) | System layers, components, data flow, build system |
+| [CLI Reference](docs/CLI.md) | All CLI commands and options |
+| [Configuration](docs/CONFIGURATION.md) | Config files, settings, and data storage |
+| [API Reference](docs/API.md) | REST API endpoints |
+| [MCP Tools](docs/MCP.md) | Model Context Protocol integration and tool reference |
+| [Agents](docs/AGENTS.md) | Agent tooling system, skills, plugins, git policy |
+| [Integrations](docs/INTEGRATIONS.md) | Jira, Linear, and GitHub setup |
+| [Port Mapping](docs/PORT-MAPPING.md) | Port discovery, offset algorithm, runtime hook |
+| [Verification](docs/VERIFICATION.md) | Pre-merge validation pipeline |
+| [Electron](docs/ELECTRON.md) | Desktop app, deep linking, multi-project |
+| [Frontend](docs/FRONTEND.md) | React UI architecture, theme, components |
+| [Development](docs/DEVELOPMENT.md) | Developer guide, build commands, conventions |
 
 ## Platform Constraints
 
 - **Unix/macOS only** — depends on `lsof` for port discovery and process group signals
 - **Node.js processes only** — the `--require` hook doesn't work with non-Node runtimes
+- **GitHub integration** requires `gh` CLI installed and authenticated
+- **Jira integration** requires OAuth setup via the Integrations panel

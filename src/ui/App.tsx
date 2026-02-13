@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { GitBranch, Plus, Search, X } from 'lucide-react';
+import { AlertTriangle, GitBranch, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { APP_NAME } from '../constants';
@@ -18,6 +18,7 @@ import { IntegrationsPanel } from './components/IntegrationsPanel';
 import { IssueList } from './components/IssueList';
 import { AgentsView } from './components/AgentsView';
 import { ProjectSetupScreen } from './components/ProjectSetupScreen';
+import { HooksPanel } from './components/VerificationPanel';
 import { ResizableHandle } from './components/ResizableHandle';
 import { SetupCommitModal } from './components/SetupCommitModal';
 import type { View } from './components/NavBar';
@@ -31,7 +32,7 @@ import { useCustomTasks } from './hooks/useCustomTasks';
 import { useJiraIssues } from './hooks/useJiraIssues';
 import { useLinearIssues } from './hooks/useLinearIssues';
 import { useGitHubStatus, useJiraStatus, useLinearStatus, useWorktrees } from './hooks/useWorktrees';
-import { errorBanner, input, surface, text } from './theme';
+import { button, errorBanner, input, surface, text } from './theme';
 
 type Selection =
   | { type: 'worktree'; id: string }
@@ -42,7 +43,7 @@ type Selection =
 
 export default function App() {
   const api = useApi();
-  const { projects, activeProject, isElectron, selectFolder, openProject, serverUrl } = useServer();
+  const { projects, activeProject, isElectron, selectFolder, openProject, closeProject, serverUrl } = useServer();
   const { worktrees, isConnected, error, refetch } = useWorktrees();
   const { config, projectName, hasBranchNameRule, isLoading: configLoading, refetch: refetchConfig } = useConfig();
   const { jiraStatus, refetchJiraStatus } = useJiraStatus();
@@ -103,8 +104,11 @@ export default function App() {
     ? projects.length === 0
     : !configLoading && !config;
 
+  // Show error screen when active project failed to start
+  const showErrorState = isElectron && activeProject?.status === 'error';
+
   // Don't show main UI if we have projects but none running yet (still loading)
-  const showLoadingState = isElectron && projects.length > 0 && !serverUrl;
+  const showLoadingState = isElectron && projects.length > 0 && !serverUrl && !showErrorState;
 
   const handleSetupComplete = () => {
     // Clear stale workspace state from a previous config
@@ -139,7 +143,7 @@ export default function App() {
   const [activeView, setActiveViewState] = useState<View>(() => {
     if (serverUrl) {
       const saved = localStorage.getItem(`work3:view:${serverUrl}`);
-      if (saved === 'workspace' || saved === 'agents' || saved === 'configuration' || saved === 'integrations') {
+      if (saved === 'workspace' || saved === 'agents' || saved === 'hooks' || saved === 'configuration' || saved === 'integrations') {
         return saved;
       }
     }
@@ -157,7 +161,7 @@ export default function App() {
   useEffect(() => {
     if (!serverUrl) return;
     const saved = localStorage.getItem(`work3:view:${serverUrl}`);
-    if (saved === 'workspace' || saved === 'agents' || saved === 'configuration' || saved === 'integrations') {
+    if (saved === 'workspace' || saved === 'agents' || saved === 'hooks' || saved === 'configuration' || saved === 'integrations') {
       setActiveViewState(saved);
     } else {
       setActiveViewState('workspace');
@@ -457,6 +461,49 @@ export default function App() {
     );
   }
 
+  // Show error screen when project failed to start
+  if (showErrorState && activeProject) {
+    return (
+      <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-md px-6">
+            <div className={`w-14 h-14 rounded-2xl ${errorBanner.bg} flex items-center justify-center mx-auto mb-4`}>
+              <AlertTriangle className="w-7 h-7 text-red-400" />
+            </div>
+            <h2 className={`text-lg font-semibold ${text.primary} mb-2`}>
+              Failed to start {activeProject.name}
+            </h2>
+            {activeProject.error && (
+              <p className={`text-sm ${text.muted} mb-6`}>{activeProject.error}</p>
+            )}
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 ${button.primary}`}
+                onClick={async () => {
+                  const dir = activeProject.projectDir;
+                  await closeProject(activeProject.id);
+                  await openProject(dir);
+                }}
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Retry
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 rounded-lg text-sm ${button.secondary}`}
+                onClick={() => closeProject(activeProject.id)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+        <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
+      </div>
+    );
+  }
+
   // Show setup screen when config is missing (Electron only)
   if (needsSetup) {
     return (
@@ -494,8 +541,8 @@ export default function App() {
 
   return (
     <div className={`h-screen flex flex-col ${surface.page} ${text.body} relative overflow-hidden`}>
-      {/* Animated background blobs — settings/integrations only */}
-      {(activeView === 'configuration' || activeView === 'integrations') && (
+      {/* Animated background blobs — settings/integrations/hooks only */}
+      {(activeView === 'configuration' || activeView === 'integrations' || activeView === 'hooks') && (
         <div className="fixed inset-0 pointer-events-none z-0">
           <div className="absolute w-[1400px] h-[1000px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(45,212,191,0.045) 0%, transparent 55%)', top: '40%', left: '5%', animation: 'blob-drift-1 14s ease-in-out infinite' }} />
           <div className="absolute w-[800px] h-[700px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(139,92,246,0.045) 0%, transparent 55%)', top: '10%', left: '70%', animation: 'blob-drift-2 16s ease-in-out infinite' }} />
@@ -776,7 +823,7 @@ export default function App() {
       </div>
       )}
 
-      {(activeView === 'configuration' || activeView === 'integrations') && (
+      {(activeView === 'configuration' || activeView === 'integrations' || activeView === 'hooks') && (
       <div className={`flex-1 min-h-0 overflow-y-auto -mt-12 pt-12 ${tabBarOverlaps ? '-mb-12 pb-20' : 'pb-8'}`}>
           {activeView === 'configuration' && (
               <ConfigurationPanel
@@ -791,6 +838,10 @@ export default function App() {
 
           {activeView === 'integrations' && (
               <IntegrationsPanel onJiraStatusChange={refetchJiraStatus} onLinearStatusChange={refetchLinearStatus} />
+          )}
+
+          {activeView === 'hooks' && (
+              <HooksPanel />
           )}
       </div>
       )}

@@ -9,7 +9,7 @@ import { Tooltip } from '../Tooltip';
 import { TruncatedTooltip } from '../TruncatedTooltip';
 import { AttachmentImage } from '../AttachmentImage';
 import { MarkdownContent } from '../MarkdownContent';
-import { NotesSection } from './NotesSection';
+import { PersonalNotesSection, AgentSection } from './NotesSection';
 import { Spinner } from '../Spinner';
 import { WorktreeExistsModal } from '../WorktreeExistsModal';
 import { ImageModal } from '../ImageModal';
@@ -336,7 +336,8 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
           </section>
         )}
 
-        <NotesSection source="jira" issueId={issue.key} />
+        <PersonalNotesSection source="jira" issueId={issue.key} />
+        <AgentSection source="jira" issueId={issue.key} />
 
         {/* Footer */}
         <div className={`text-[10px] ${text.dimmed} flex flex-wrap gap-4 pt-2`}>

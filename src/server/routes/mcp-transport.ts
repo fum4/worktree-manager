@@ -3,15 +3,16 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 
 import type { WorktreeManager } from '../manager';
 import type { NotesManager } from '../notes-manager';
+import type { HooksManager } from '../verification-manager';
 import type { ActionContext } from '../../actions';
 import { createMcpServer } from '../mcp-server-factory';
 import { log } from '../../logger';
 
 export function registerMcpTransportRoute(
   app: Hono,
-  { manager, notesManager }: { manager: WorktreeManager; notesManager: NotesManager },
+  { manager, notesManager, hooksManager }: { manager: WorktreeManager; notesManager: NotesManager; hooksManager?: HooksManager },
 ) {
-  const ctx: ActionContext = { manager, notesManager };
+  const ctx: ActionContext = { manager, notesManager, hooksManager };
   const mcpServer = createMcpServer(ctx);
 
   // Stateless transport — single-user local dev tool, no session tracking needed

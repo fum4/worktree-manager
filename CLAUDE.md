@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-work3 is a CLI tool + web UI (with optional Electron app) for managing multiple git worktrees with automatic port offsetting and Jira/GitHub integrations. It solves port conflicts when running multiple dev server instances concurrently by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime via `--require`.
+work3 is a CLI tool + web UI (with optional Electron app) for managing multiple git worktrees with automatic port offsetting and Jira/Linear/GitHub integrations. It solves port conflicts when running multiple dev server instances concurrently by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime via `--require`.
 
 ## Build & Dev Commands
 
@@ -40,8 +40,9 @@ There is no test runner configured.
 - `work3` — Start the server and open UI (Electron app if available, otherwise browser)
 - `work3 init` — Interactive setup wizard to create `.work3/config.json`
 - `work3 connect` — Connect to an existing work3 server
-- `work3 mcp` — Start as an MCP server (for Claude Code integration)
-- `work3 task <TASK_ID>` — Create worktree from a Jira issue ID
+- `work3 mcp` — Start as an MCP server (for AI coding agents)
+- `work3 task <TASK_ID>` — Create worktree from an issue ID
+- `work3 add [name]` — Set up an integration (github, linear, jira)
 
 ## Architecture
 
@@ -57,35 +58,26 @@ There is no test runner configured.
 - **`src/server/manager.ts`** — `WorktreeManager` class. Orchestrates git worktree operations, spawns/kills dev processes, captures logs, emits SSE events.
 - **`src/server/port-manager.ts`** — `PortManager` class. Discovers ports via `lsof`, allocates/releases offsets, builds env vars for spawned processes.
 - **`src/server/terminal-manager.ts`** — `TerminalManager` class. Manages PTY sessions for interactive terminals via WebSockets.
+- **`src/server/notes-manager.ts`** — `NotesManager` class. Issue notes, AI context, and todo checklists.
+- **`src/server/verification-manager.ts`** — `VerificationManager` class. Pre-merge validation pipeline.
 - **`src/runtime/port-hook.cjs`** — The core innovation. Pure CJS with zero dependencies. Patches `net.Server.prototype.listen` and `net.Socket.prototype.connect` to offset known ports.
-- **`src/mcp.ts`** — MCP (Model Context Protocol) server for Claude Code integration.
+- **`src/mcp.ts`** — MCP (Model Context Protocol) server for AI coding agent integration.
+- **`src/actions.ts`** — All MCP tool definitions (20+ tools).
 
 **Integrations:**
 - **`src/integrations/jira/`** — Jira Cloud API integration: OAuth authentication, issue fetching, ADF-to-Markdown conversion.
-- **`src/integrations/github/`** — GitHub integration via `gh` CLI: PR creation, status checking.
+- **`src/integrations/linear/`** — Linear integration: API key auth, GraphQL queries, issue fetching.
+- **`src/integrations/github/`** — GitHub integration via `gh` CLI: PR creation, commit, push, status checking.
 
 **Frontend (React + Tailwind + React Query + Framer Motion):**
-- **`src/ui/App.tsx`** — Main app with three views: workspace, configuration, integrations.
+- **`src/ui/App.tsx`** — Main app with views: workspace, agents, verification, configuration, integrations.
 - **`src/ui/theme.ts`** — Centralized theme tokens. **All UI components must import from this file instead of hardcoding Tailwind color classes.**
-- **`src/ui/components/`** — UI components:
-  - `Header.tsx` — Top bar with project name, connection status, view navigation
-  - `CreateForm.tsx` — Create worktree form with Branch/Issues tabs
-  - `WorktreeList.tsx`, `WorktreeItem.tsx` — Worktree sidebar list
-  - `IssueList.tsx`, `JiraIssueItem.tsx` — Jira issues sidebar list
-  - `ConfigurationPanel.tsx` — Edit `.work3/config.json` settings
-  - `IntegrationsPanel.tsx` — Configure Jira/GitHub integrations
-  - `MarkdownContent.tsx` — Renders Markdown with dark theme styling (used for Jira descriptions/comments)
-- **`src/ui/components/detail/`** — Right panel components:
-  - `DetailPanel.tsx` — Worktree detail view with logs, terminal, git actions
-  - `JiraDetailPanel.tsx` — Jira issue detail view
-  - `LogsViewer.tsx`, `TerminalView.tsx` — Process output viewers
-  - `ActionToolbar.tsx`, `GitActionInputs.tsx` — Git operations (commit, push, PR)
-- **`src/ui/hooks/`** — React hooks:
-  - `useWorktrees.ts` — SSE connection for real-time worktree updates
-  - `useJiraIssues.ts`, `useJiraIssueDetail.ts` — Jira data fetching with React Query
-  - `useTerminal.ts` — WebSocket terminal connection
-  - `useConfig.ts` — Configuration fetching
-  - `api.ts` — API client functions
+- **`src/ui/components/`** — UI components (sidebar items, detail panels, modals, forms).
+- **`src/ui/components/detail/`** — Right panel components (worktree, Jira, Linear, local issue detail views).
+- **`src/ui/hooks/`** — React hooks (SSE, React Query, WebSocket, API client).
+
+**Electron:**
+- **`electron/main.ts`** — Electron main process with multi-project support, `work3://` protocol, window management.
 
 ### Data Flow
 
@@ -105,3 +97,30 @@ There is no test runner configured.
 ### Configuration
 
 `.work3/config.json` at project root defines: `projectDir`, `startCommand`, `installCommand`, `baseBranch`, `serverPort`, discovered `ports` with `offsetStep`, `envMapping`, and integration settings. Worktrees are always stored in `.work3/worktrees`.
+
+## Agent Tooling Principles
+
+All agent-facing features must be:
+1. **Agent-agnostic first** — exposed via MCP tools that any agent can use
+2. **Enhanced for Claude** — when Claude is detected, nudge toward useful plugins (superpowers, Playwright MCP)
+3. **Self-service** — plugins installed/configured through work3's UI and MCP tools, not manual setup
+4. **Discoverable** — agents can query what's available and get recommendations
+
+## Documentation
+
+Comprehensive documentation lives in `/docs/`. When making significant changes, update the relevant doc:
+
+| Document | When to Update |
+|----------|----------------|
+| [Architecture](docs/ARCHITECTURE.md) | System layers, components, or build system changes |
+| [CLI Reference](docs/CLI.md) | New CLI commands or options |
+| [Configuration](docs/CONFIGURATION.md) | New config fields or data storage changes |
+| [API Reference](docs/API.md) | New or modified REST endpoints |
+| [MCP Tools](docs/MCP.md) | New MCP tools or changes to actions.ts |
+| [Agents](docs/AGENTS.md) | Agent tooling, skills, plugins, or git policy changes |
+| [Integrations](docs/INTEGRATIONS.md) | Jira, Linear, or GitHub integration changes |
+| [Port Mapping](docs/PORT-MAPPING.md) | Port discovery, offset algorithm, or hook changes |
+| [Verification](docs/VERIFICATION.md) | Verification pipeline changes |
+| [Electron](docs/ELECTRON.md) | Electron app changes |
+| [Frontend](docs/FRONTEND.md) | UI architecture, new views, or theme changes |
+| [Development](docs/DEVELOPMENT.md) | Build system, dev workflow, or convention changes |

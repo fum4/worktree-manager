@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { useSkillDetail, useSkillDeploymentStatus } from '../../hooks/useSkills';
 import { useApi } from '../../hooks/useApi';
+import { useHooksConfig } from '../../hooks/useHooks';
 import { border, skill as skillTheme, text } from '../../theme';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { MarkdownContent } from '../MarkdownContent';
@@ -33,6 +34,9 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
   const agentDeployments = skillStatus.agents ?? {};
 
   const { skill, isLoading, error, refetch } = useSkillDetail(skillName);
+  const { config: hooksConfig, saveConfig: saveHooksConfig, refetch: refetchHooks } = useHooksConfig();
+
+  const hookSkillRef = hooksConfig?.skills?.find((s) => s.skillName === skillName) ?? null;
 
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -220,6 +224,63 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
               );
             })}
           </div>
+        </section>
+
+        {/* Hooks */}
+        <section>
+          <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>Hooks</h3>
+          <div className="flex items-center gap-1.5">
+            {([
+              { trigger: 'pre-implementation' as const, label: 'Pre-Implementation' },
+              { trigger: 'post-implementation' as const, label: 'Post-Implementation' },
+              { trigger: 'on-demand' as const, label: 'On-Demand' },
+            ]).map(({ trigger, label }) => {
+              const isActive = hookSkillRef?.enabled && (hookSkillRef.trigger ?? 'post-implementation') === trigger;
+              return (
+                <button
+                  key={trigger}
+                  type="button"
+                  onClick={async () => {
+                    if (!hooksConfig) return;
+                    if (isActive) {
+                      // Remove from hooks
+                      await api.removeHookSkill(skillName);
+                    } else if (hookSkillRef) {
+                      // Already in hooks but different trigger — update
+                      const newSkills = hooksConfig.skills.map((s) =>
+                        s.skillName === skillName ? { ...s, enabled: true, trigger } : s,
+                      );
+                      await saveHooksConfig({ ...hooksConfig, skills: newSkills });
+                    } else {
+                      // Not in hooks — import then set trigger
+                      await api.importHookSkill(skillName);
+                      const updated = await api.fetchHooksConfig();
+                      if (updated) {
+                        const newSkills = updated.skills.map((s) =>
+                          s.skillName === skillName ? { ...s, enabled: true, trigger } : s,
+                        );
+                        await saveHooksConfig({ ...updated, skills: newSkills });
+                      }
+                    }
+                    refetchHooks();
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors duration-150 ${
+                    isActive
+                      ? 'bg-teal-500/[0.15] text-teal-300'
+                      : `bg-white/[0.06] ${text.dimmed} hover:${text.muted}`
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-teal-400' : 'bg-white/20'}`} />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {hookSkillRef?.enabled && (hookSkillRef.trigger ?? 'post-implementation') !== 'on-demand' && !isDeployedAnywhere && (
+            <p className={`text-[10px] text-amber-400/80 mt-2`}>
+              This skill is an automated hook but isn't deployed to any agent. Deploy it above so agents can invoke it.
+            </p>
+          )}
         </section>
 
         {/* Configuration */}

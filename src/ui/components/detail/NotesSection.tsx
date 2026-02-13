@@ -1,166 +1,132 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Columns2, Copy, ListChecks, Rows2, Sparkles } from 'lucide-react';
+import { CircleCheck, Copy, Hand, ListChecks, MessageSquareText, Sparkles, Terminal } from 'lucide-react';
 
 import { useNotes } from '../../hooks/useNotes';
+import { useHooksConfig } from '../../hooks/useHooks';
 import { notes as notesTheme, text } from '../../theme';
 import { MarkdownContent } from '../MarkdownContent';
 import { Tooltip } from '../Tooltip';
 import { TodoList } from './TodoList';
-import type { GitPolicyOverride } from '../../hooks/api';
+import type { GitPolicyOverride, HookSkillOverride, HookTrigger } from '../../hooks/api';
 
-interface NotesSectionProps {
+interface SectionProps {
   source: 'jira' | 'linear' | 'local';
   issueId: string;
 }
 
-type Tab = 'personal' | 'aiContext';
-type Layout = 'tabs' | 'side-by-side';
+// ─── PersonalNotesSection ───────────────────────────────────────
 
-const LAYOUT_KEY = 'work3:notes-layout';
-
-function getPersistedLayout(): Layout {
-  try {
-    const v = localStorage.getItem(LAYOUT_KEY);
-    if (v === 'side-by-side') return 'side-by-side';
-  } catch { /* ignore */ }
-  return 'tabs';
-}
-
-export function NotesSection({ source, issueId }: NotesSectionProps) {
-  const { notes, updateSection, addTodo, toggleTodo, deleteTodo, updateTodoText, updateGitPolicy } = useNotes(source, issueId);
-  const [activeTab, setActiveTab] = useState<Tab>('aiContext');
-  const [layout, setLayout] = useState<Layout>(getPersistedLayout);
-
-  const toggleLayout = () => {
-    const next: Layout = layout === 'tabs' ? 'side-by-side' : 'tabs';
-    setLayout(next);
-    try { localStorage.setItem(LAYOUT_KEY, next); } catch { /* ignore */ }
-  };
-
+export function PersonalNotesSection({ source, issueId }: SectionProps) {
+  const { notes, updateSection, addTodo } = useNotes(source, issueId);
   const personalContent = notes?.personal?.content ?? '';
   const aiContent = notes?.aiContext?.content ?? '';
-  const todos = notes?.todos ?? [];
-
-  const gitPolicy = notes?.gitPolicy;
 
   return (
     <section>
-      {/* Header row: label + tabs + layout toggle */}
-      <div className="flex items-center gap-3 mb-3">
-        <h3 className={`text-[11px] font-medium ${text.muted}`}>Notes</h3>
+      <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>Notes</h3>
+      <NotePane
+        key={`${source}-${issueId}-personal`}
+        content={personalContent}
+        section="personal"
+        updateSection={updateSection}
+        onMoveToAiContext={(selectedText) => {
+          const appended = aiContent ? `${aiContent}\n\n${selectedText}` : selectedText;
+          updateSection('aiContext', appended);
+        }}
+        onAddTodo={addTodo}
+        placeholder="Personal notes about this issue..."
+        emptyText="Click to add personal notes..."
+        accentBg={notesTheme.personalAccent}
+        accentBorder={notesTheme.personalBorder}
+      />
+    </section>
+  );
+}
 
-        {layout === 'tabs' && (
-          <div className="flex gap-0.5 bg-white/[0.04] rounded-lg p-0.5">
+// ─── AgentSection ──────────────────────────────────────────────
+
+type AgentTab = 'context' | 'todos' | 'gitPolicy' | 'hooks';
+
+const AGENT_TABS: { key: AgentTab; label: string }[] = [
+  { key: 'context', label: 'Context' },
+  { key: 'todos', label: 'Todos' },
+  { key: 'gitPolicy', label: 'Git Policy' },
+  { key: 'hooks', label: 'Hooks' },
+];
+
+export function AgentSection({ source, issueId }: SectionProps) {
+  const { notes, updateSection, addTodo, toggleTodo, deleteTodo, updateTodoText, updateGitPolicy, updateHookSkills } = useNotes(source, issueId);
+  const { config: hooksConfig } = useHooksConfig();
+  const [activeTab, setActiveTab] = useState<AgentTab>('context');
+
+  const aiContent = notes?.aiContext?.content ?? '';
+  const todos = notes?.todos ?? [];
+  const gitPolicy = notes?.gitPolicy;
+  const hookSkills = notes?.hookSkills;
+
+  return (
+    <section>
+      <div className="flex items-center gap-3 mb-4">
+        <h3 className={`text-[11px] font-medium ${text.muted}`}>Agents</h3>
+        <div className="flex gap-0.5 bg-white/[0.04] rounded-lg p-0.5">
+          {AGENT_TABS.map((tab) => (
             <button
+              key={tab.key}
               type="button"
-              onClick={() => setActiveTab('aiContext')}
+              onClick={() => setActiveTab(tab.key)}
               className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                activeTab === 'aiContext' ? `${notesTheme.tabActive} ${notesTheme.aiIcon}` : notesTheme.tabInactive
+                activeTab === tab.key ? `${notesTheme.tabActive} ${notesTheme.aiIcon}` : notesTheme.tabInactive
               }`}
             >
-              Agents
+              {tab.label}
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('personal')}
-              className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                activeTab === 'personal' ? notesTheme.tabActive : notesTheme.tabInactive
-              }`}
-            >
-              Personal
-            </button>
-          </div>
-        )}
-
-        <Tooltip text={layout === 'tabs' ? 'Split side by side' : 'Show as tabs'} position="left">
-          <button
-            type="button"
-            onClick={toggleLayout}
-            className={`ml-auto p-1 rounded ${text.dimmed} hover:${text.muted} transition-colors`}
-          >
-            {layout === 'tabs' ? <Columns2 className="w-3.5 h-3.5" /> : <Rows2 className="w-3.5 h-3.5" />}
-          </button>
-        </Tooltip>
+          ))}
+        </div>
       </div>
 
-      {/* Content */}
-      {layout === 'tabs' ? (
-        activeTab === 'aiContext' ? (
-          <AiContextCard
-            source={source}
-            issueId={issueId}
-            aiContent={aiContent}
-            todos={todos}
+      {/* Context tab keeps the card — it's an editable markdown area */}
+      {activeTab === 'context' && (
+        <div className={`rounded-lg ${notesTheme.aiAccent} border ${notesTheme.aiBorder} overflow-hidden`}>
+          <DirectionsPane
+            key={`${source}-${issueId}-aiContext`}
+            content={aiContent}
             updateSection={updateSection}
-            addTodo={addTodo}
-            toggleTodo={toggleTodo}
-            deleteTodo={deleteTodo}
-            updateTodoText={updateTodoText}
-            gitPolicy={gitPolicy}
-            updateGitPolicy={updateGitPolicy}
           />
-        ) : (
-          <NotePane
-            key={`${source}-${issueId}-personal`}
-            content={personalContent}
-            section="personal"
-            updateSection={updateSection}
-            onMoveToAiContext={(selectedText) => {
-              const appended = aiContent ? `${aiContent}\n\n${selectedText}` : selectedText;
-              updateSection('aiContext', appended);
-            }}
-            onAddTodo={addTodo}
-            placeholder="Personal notes about this issue..."
-            emptyText="Click to add personal notes..."
-            accentBg={notesTheme.personalAccent}
-            accentBorder={notesTheme.personalBorder}
-          />
-        )
-      ) : (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col">
-            <span className={`text-[10px] font-medium ${text.dimmed} block mb-1.5`}>Agents</span>
-            <AiContextCard
-              source={source}
-              issueId={issueId}
-              aiContent={aiContent}
-              todos={todos}
-              updateSection={updateSection}
-              addTodo={addTodo}
-              toggleTodo={toggleTodo}
-              deleteTodo={deleteTodo}
-              updateTodoText={updateTodoText}
-              gitPolicy={gitPolicy}
-              updateGitPolicy={updateGitPolicy}
-              stretch
-            />
-          </div>
-          <div className="flex flex-col">
-            <span className={`text-[10px] font-medium ${text.dimmed} block mb-1.5`}>Personal</span>
-            <NotePane
-              key={`${source}-${issueId}-personal`}
-              content={personalContent}
-              section="personal"
-              updateSection={updateSection}
-              onMoveToAiContext={(selectedText) => {
-                const appended = aiContent ? `${aiContent}\n\n${selectedText}` : selectedText;
-                updateSection('aiContext', appended);
-              }}
-              onAddTodo={addTodo}
-              placeholder="Personal notes about this issue..."
-              emptyText="Click to add personal notes..."
-              accentBg={notesTheme.personalAccent}
-              accentBorder={notesTheme.personalBorder}
-              stretch
-            />
-          </div>
         </div>
+      )}
+
+      {/* Todos — open layout, no card */}
+      {activeTab === 'todos' && (
+        <TodoList
+          todos={todos}
+          onAdd={addTodo}
+          onToggle={toggleTodo}
+          onDelete={deleteTodo}
+          onUpdate={updateTodoText}
+        />
+      )}
+
+      {/* Git Policy — inline row of controls */}
+      {activeTab === 'gitPolicy' && (
+        <GitPolicyPane
+          gitPolicy={gitPolicy}
+          updateGitPolicy={updateGitPolicy}
+        />
+      )}
+
+      {/* Hooks — grouped list */}
+      {activeTab === 'hooks' && (
+        <HooksPane
+          hooksConfig={hooksConfig}
+          hookSkills={hookSkills}
+          updateHookSkills={updateHookSkills}
+        />
       )}
     </section>
   );
 }
 
-// ─── AI Context card (todos + directions in one container) ──────
+// ─── Git Policy pane ──────────────────────────────────────────
 
 const POLICY_OPTIONS: { value: GitPolicyOverride; label: string }[] = [
   { value: 'inherit', label: 'Inherit' },
@@ -168,32 +134,12 @@ const POLICY_OPTIONS: { value: GitPolicyOverride; label: string }[] = [
   { value: 'deny', label: 'Deny' },
 ];
 
-function AiContextCard({
-  source,
-  issueId,
-  aiContent,
-  todos,
-  updateSection,
-  addTodo,
-  toggleTodo,
-  deleteTodo,
-  updateTodoText,
+function GitPolicyPane({
   gitPolicy,
   updateGitPolicy,
-  stretch,
 }: {
-  source: string;
-  issueId: string;
-  aiContent: string;
-  todos: Array<{ id: string; text: string; checked: boolean; createdAt: string }>;
-  updateSection: (section: 'personal' | 'aiContext', content: string) => Promise<unknown>;
-  addTodo: (text: string) => void;
-  toggleTodo: (todoId: string) => void;
-  deleteTodo: (todoId: string) => void;
-  updateTodoText: (todoId: string, text: string) => void;
   gitPolicy?: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride; agentPRs?: GitPolicyOverride };
   updateGitPolicy: (policy: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride; agentPRs?: GitPolicyOverride }) => void;
-  stretch?: boolean;
 }) {
   const operations = [
     { key: 'agentCommits' as const, label: 'Commits' },
@@ -202,68 +148,145 @@ function AiContextCard({
   ];
 
   return (
-    <div className={`rounded-lg ${notesTheme.aiAccent} border ${notesTheme.aiBorder} overflow-hidden ${stretch ? 'flex-1' : ''}`}>
-      {/* Directions */}
-      <DirectionsPane
-        key={`${source}-${issueId}-aiContext`}
-        content={aiContent}
-        updateSection={updateSection}
-      />
-
-      {/* Divider */}
-      <div className="mx-4 border-t border-white/[0.04]" />
-
-      {/* Todos */}
-      <div className="px-4 pt-1 pb-3">
-        <TodoList
-          todos={todos}
-          onAdd={addTodo}
-          onToggle={toggleTodo}
-          onDelete={deleteTodo}
-          onUpdate={updateTodoText}
-        />
-      </div>
-
-      {/* Git Policy */}
-      <div className="mx-4 border-t border-white/[0.04]" />
-      <div className="px-4 py-3">
-        <span className={`text-[10px] font-medium ${text.dimmed} block mb-2`}>Git Policy</span>
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
-          {operations.map((op) => {
-            const value: GitPolicyOverride = gitPolicy?.[op.key] ?? 'inherit';
-            return (
-              <div key={op.key} className="flex items-center gap-1.5">
-                <span className={`text-[10px] ${text.muted} w-12`}>{op.label}</span>
-                <div className="flex gap-0.5 bg-white/[0.04] rounded-md p-0.5">
-                  {POLICY_OPTIONS.map((opt) => {
-                    let selectedStyle = 'text-[#4b5563] hover:text-[#6b7280]';
-                    if (value === opt.value) {
-                      if (opt.value === 'allow') selectedStyle = 'bg-teal-500/[0.15] text-teal-300';
-                      else if (opt.value === 'deny') selectedStyle = 'bg-red-500/[0.15] text-red-300';
-                      else selectedStyle = 'bg-white/[0.10] text-[#e0e2e5]';
-                    }
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => updateGitPolicy({ [op.key]: opt.value })}
-                        className={`px-1.5 py-0.5 text-[9px] font-medium rounded transition-colors ${selectedStyle}`}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+    <div className="space-y-2.5">
+      {operations.map((op) => {
+        const value: GitPolicyOverride = gitPolicy?.[op.key] ?? 'inherit';
+        return (
+          <div key={op.key} className="flex items-center gap-4">
+            <span className={`text-[11px] ${text.secondary} w-14`}>{op.label}</span>
+            <div className="flex gap-0.5 bg-white/[0.04] rounded-md p-0.5">
+              {POLICY_OPTIONS.map((opt) => {
+                let selectedStyle = 'text-[#4b5563] hover:text-[#6b7280]';
+                if (value === opt.value) {
+                  if (opt.value === 'allow') selectedStyle = 'bg-teal-500/[0.15] text-teal-300';
+                  else if (opt.value === 'deny') selectedStyle = 'bg-red-500/[0.15] text-red-300';
+                  else selectedStyle = 'bg-white/[0.10] text-[#e0e2e5]';
+                }
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => updateGitPolicy({ [op.key]: opt.value })}
+                    className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${selectedStyle}`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-// ─── Directions pane (inline in the AI Context card) ──────────────
+// ─── Hooks pane ───────────────────────────────────────────────
+
+const SKILL_OVERRIDE_OPTIONS: { value: HookSkillOverride; label: string }[] = [
+  { value: 'inherit', label: 'Inherit' },
+  { value: 'enable', label: 'Enable' },
+  { value: 'disable', label: 'Disable' },
+];
+
+const TRIGGER_GROUPS: { trigger: HookTrigger; label: string; description: string; Icon: typeof ListChecks; iconColor: string }[] = [
+  { trigger: 'pre-implementation', label: 'Pre-Implementation', description: 'Run before agents start', Icon: ListChecks, iconColor: 'text-sky-400' },
+  { trigger: 'post-implementation', label: 'Post-Implementation', description: 'Run after agents finish', Icon: CircleCheck, iconColor: 'text-emerald-400' },
+  { trigger: 'custom', label: 'Custom', description: 'Agent decides when to run', Icon: MessageSquareText, iconColor: 'text-violet-400' },
+  { trigger: 'on-demand', label: 'On-Demand', description: 'Manually triggered', Icon: Hand, iconColor: 'text-amber-400' },
+];
+
+function HooksPane({
+  hooksConfig,
+  hookSkills,
+  updateHookSkills,
+}: {
+  hooksConfig?: { steps: Array<{ id: string; name: string; command: string; enabled?: boolean; trigger?: HookTrigger; condition?: string }>; skills: Array<{ skillName: string; enabled: boolean; trigger?: HookTrigger; condition?: string }> } | null;
+  hookSkills?: Record<string, HookSkillOverride>;
+  updateHookSkills: (overrides: Record<string, HookSkillOverride>) => void;
+}) {
+  const steps = hooksConfig?.steps ?? [];
+  const skills = hooksConfig?.skills ?? [];
+
+  if (steps.length === 0 && skills.length === 0) {
+    return (
+      <p className={`text-xs ${text.dimmed} italic py-1`}>No hooks configured. Add hooks in the Agents view.</p>
+    );
+  }
+
+  return (
+    <div className="space-y-7">
+      {TRIGGER_GROUPS.map(({ trigger, label, description, Icon, iconColor }) => {
+        const groupSteps = steps.filter((s) => (s.trigger ?? 'post-implementation') === trigger);
+        const groupSkills = skills.filter((s) => (s.trigger ?? 'post-implementation') === trigger);
+        if (groupSteps.length === 0 && groupSkills.length === 0) return null;
+
+        return (
+          <div key={trigger}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
+              <span className={`text-[10px] font-medium ${text.secondary}`}>{label}</span>
+              <span className={`text-[9px] ${text.dimmed} ml-1`}>{description}</span>
+            </div>
+
+            <div className="space-y-1.5">
+              {groupSteps.map((step) => (
+                <div key={step.id}>
+                  <div className="flex items-center gap-2 py-1">
+                    <Terminal className={`w-3 h-3 ${text.dimmed} flex-shrink-0`} />
+                    <span className={`text-[10px] ${text.muted} flex-shrink-0`}>{step.name}</span>
+                    <code className={`text-[9px] ${text.dimmed} font-mono truncate`}>{step.command}</code>
+                  </div>
+                  {trigger === 'custom' && step.condition && (
+                    <p className={`text-[9px] text-violet-400/60 italic ml-5 mt-0.5 truncate`}>{step.condition}</p>
+                  )}
+                </div>
+              ))}
+
+              {groupSkills.map((skill) => {
+                const value: HookSkillOverride = hookSkills?.[skill.skillName] ?? 'inherit';
+                return (
+                  <div key={skill.skillName}>
+                    <div className="flex items-center gap-5">
+                      <span className={`text-[10px] ${text.muted} w-28 truncate`}>
+                        {skill.skillName.replace(/^verify-/, '')}
+                      </span>
+                      <div className="flex gap-0.5 bg-white/[0.04] rounded-md p-0.5">
+                        {SKILL_OVERRIDE_OPTIONS.map((opt) => {
+                          let selectedStyle = 'text-[#4b5563] hover:text-[#6b7280]';
+                          if (value === opt.value) {
+                            if (opt.value === 'enable') selectedStyle = 'bg-emerald-500/[0.15] text-emerald-300';
+                            else if (opt.value === 'disable') selectedStyle = 'bg-red-500/[0.15] text-red-300';
+                            else selectedStyle = 'bg-white/[0.10] text-[#e0e2e5]';
+                          }
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => updateHookSkills({ [skill.skillName]: opt.value })}
+                              className={`px-1.5 py-0.5 text-[9px] font-medium rounded transition-colors ${selectedStyle}`}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {trigger === 'custom' && skill.condition && (
+                      <p className={`text-[9px] text-violet-400/60 italic ml-0.5 mt-0.5 truncate`}>{skill.condition}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Directions pane (inline in the Agent section) ────────────
 
 function DirectionsPane({
   content,
@@ -304,7 +327,7 @@ function DirectionsPane({
     textareaRef.current = el;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = Math.max(el.scrollHeight, 56) + 'px';
+    el.style.height = Math.max(el.scrollHeight, 80) + 'px';
     el.focus();
   }, []);
 
@@ -325,14 +348,14 @@ function DirectionsPane({
             scheduleSave(e.target.value);
             if (textareaRef.current) {
               textareaRef.current.style.height = 'auto';
-              textareaRef.current.style.height = Math.max(textareaRef.current.scrollHeight, 56) + 'px';
+              textareaRef.current.style.height = Math.max(textareaRef.current.scrollHeight, 80) + 'px';
             }
           }}
           onBlur={finishEditing}
           onKeyDown={(e) => { if (e.key === 'Escape') finishEditing(); }}
           placeholder="Directions for AI agents..."
           className={`w-full bg-transparent text-xs ${text.primary} focus:outline-none resize-none placeholder-[#3b4049] leading-relaxed`}
-          style={{ minHeight: 56 }}
+          style={{ minHeight: 80 }}
         />
       </div>
     );
@@ -340,7 +363,7 @@ function DirectionsPane({
 
   return (
     <div
-      className="px-4 pb-3 pt-2 cursor-pointer hover:bg-white/[0.01] transition-colors"
+      className="px-4 pb-3 pt-2 cursor-pointer hover:bg-white/[0.01] transition-colors min-h-[80px]"
       onClick={startEdit}
     >
       {content ? (
@@ -413,18 +436,16 @@ function NotePane({
   emptyText,
   accentBg,
   accentBorder,
-  stretch,
 }: {
   content: string;
-  section: Tab;
-  updateSection: (section: Tab, content: string) => Promise<unknown>;
+  section: 'personal' | 'aiContext';
+  updateSection: (section: 'personal' | 'aiContext', content: string) => Promise<unknown>;
   onMoveToAiContext?: (selectedText: string) => void;
   onAddTodo?: (text: string) => void;
   placeholder: string;
   emptyText: string;
   accentBg: string;
   accentBorder: string;
-  stretch?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -465,7 +486,6 @@ function NotePane({
         return;
       }
 
-      // Only show menu if selection is inside this pane
       const anchorNode = sel.anchorNode;
       if (!anchorNode || !containerRef.current.contains(anchorNode)) {
         setSelectionMenu(null);
@@ -510,11 +530,9 @@ function NotePane({
     setEditing(true);
   };
 
-  const stretchClass = stretch ? 'flex-1 flex flex-col' : '';
-
   if (editing) {
     return (
-      <div ref={containerRef} className={stretchClass}>
+      <div ref={containerRef}>
         <textarea
           ref={autoResize}
           value={draft}
@@ -529,7 +547,7 @@ function NotePane({
           onBlur={finishEditing}
           onKeyDown={(e) => { if (e.key === 'Escape') finishEditing(); }}
           placeholder={placeholder}
-          className={`w-full px-4 py-3 ${accentBg} border ${accentBorder} rounded-lg text-xs ${text.primary} focus:outline-none resize-none placeholder-[#4b5563] ${stretch ? 'flex-1' : ''}`}
+          className={`w-full px-4 py-3 ${accentBg} border ${accentBorder} rounded-lg text-xs ${text.primary} focus:outline-none resize-none placeholder-[#4b5563]`}
           style={{ minHeight: 80 }}
         />
 
@@ -555,11 +573,10 @@ function NotePane({
   }
 
   return (
-    <div ref={containerRef} className={stretchClass}>
+    <div ref={containerRef}>
       <div
-        className={`rounded-lg ${accentBg} border ${accentBorder} px-4 py-3 cursor-pointer hover:border-white/[0.08] transition-colors min-h-[60px] ${stretch ? 'flex-1' : ''}`}
+        className={`rounded-lg ${accentBg} border ${accentBorder} px-4 py-3 cursor-pointer hover:border-white/[0.08] transition-colors min-h-[60px]`}
         onClick={() => {
-          // Don't enter edit mode if user is selecting text
           const sel = window.getSelection();
           if (sel && !sel.isCollapsed) return;
           startEdit();

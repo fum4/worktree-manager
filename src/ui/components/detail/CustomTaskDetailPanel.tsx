@@ -6,7 +6,7 @@ import { useCustomTaskDetail } from '../../hooks/useCustomTaskDetail';
 import { useApi } from '../../hooks/useApi';
 import { border, button, customTask, getLabelColor, text } from '../../theme';
 import { MarkdownContent } from '../MarkdownContent';
-import { NotesSection } from './NotesSection';
+import { PersonalNotesSection, AgentSection } from './NotesSection';
 import { Spinner } from '../Spinner';
 import { ImageModal } from '../ImageModal';
 import { TruncatedTooltip } from '../TruncatedTooltip';
@@ -498,7 +498,8 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
           )}
         </section>
 
-        <NotesSection source="local" issueId={taskId} />
+        <PersonalNotesSection source="local" issueId={taskId} />
+        <AgentSection source="local" issueId={taskId} />
 
         {/* Timestamps */}
         <div className={`text-[11px] ${text.dimmed} flex flex-wrap gap-4 pt-2`}>
