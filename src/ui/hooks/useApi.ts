@@ -305,6 +305,16 @@ export function useApi() {
       fetchHooksStatus: (worktreeId: string) =>
         api.fetchHooksStatus(worktreeId, serverUrl),
 
+      // Agent Rules
+      fetchAgentRule: (fileId: string) =>
+        api.fetchAgentRule(fileId, serverUrl),
+
+      saveAgentRule: (fileId: string, content: string) =>
+        api.saveAgentRule(fileId, content, serverUrl),
+
+      deleteAgentRule: (fileId: string) =>
+        api.deleteAgentRule(fileId, serverUrl),
+
       // Hook Skills
       importHookSkill: (skillName: string, trigger?: api.HookTrigger, condition?: string) =>
         api.importHookSkill(skillName, serverUrl, trigger, condition),

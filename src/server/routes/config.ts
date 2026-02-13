@@ -9,7 +9,55 @@ import { type BranchSource, hasCustomBranchNameRule, readBranchNameRuleContent, 
 import { type CommitMessageSource, hasCustomCommitMessageRule, readCommitMessageRuleContent, wrapWithExportDefault as wrapCommitExportDefault } from '../commit-message';
 import type { WorktreeManager } from '../manager';
 
+const AGENT_RULE_FILES: Record<string, (dir: string) => string> = {
+  'claude-md': (dir) => path.join(dir, 'CLAUDE.md'),
+  'agents-md': (dir) => path.join(dir, 'AGENTS.md'),
+};
+
 export function registerConfigRoutes(app: Hono, manager: WorktreeManager) {
+  // -- Agent Rules API --
+
+  app.get('/api/agent-rules/:fileId', (c) => {
+    const fileId = c.req.param('fileId');
+    const resolver = AGENT_RULE_FILES[fileId];
+    if (!resolver) return c.json({ error: 'Unknown file' }, 404);
+
+    const filePath = resolver(manager.getConfigDir());
+    const exists = existsSync(filePath);
+    const content = exists ? readFileSync(filePath, 'utf-8') : '';
+    return c.json({ exists, content });
+  });
+
+  app.put('/api/agent-rules/:fileId', async (c) => {
+    const fileId = c.req.param('fileId');
+    const resolver = AGENT_RULE_FILES[fileId];
+    if (!resolver) return c.json({ error: 'Unknown file' }, 404);
+
+    try {
+      const body = await c.req.json<{ content: string }>();
+      const filePath = resolver(manager.getConfigDir());
+      const dir = path.dirname(filePath);
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      writeFileSync(filePath, body.content);
+      return c.json({ success: true });
+    } catch (error) {
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to save file',
+      }, 500);
+    }
+  });
+
+  app.delete('/api/agent-rules/:fileId', (c) => {
+    const fileId = c.req.param('fileId');
+    const resolver = AGENT_RULE_FILES[fileId];
+    if (!resolver) return c.json({ error: 'Unknown file' }, 404);
+
+    const filePath = resolver(manager.getConfigDir());
+    if (existsSync(filePath)) unlinkSync(filePath);
+    return c.json({ success: true });
+  });
+
   app.get('/api/config', (c) => {
     // Check if config file still exists (user may have deleted .work3 folder)
     const configPath = path.join(manager.getConfigDir(), CONFIG_DIR_NAME, 'config.json');

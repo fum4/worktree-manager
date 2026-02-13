@@ -10,7 +10,7 @@ work3 provides a unified system for managing agent tooling -- MCP servers, skill
 - [Skills Management](#skills-management)
 - [Claude Plugins](#claude-plugins)
 - [Agent Git Policy](#agent-git-policy)
-- [Verification Pipeline](#verification-pipeline)
+- [Hooks](#hooks)
 - [UI: Agents View](#ui-agents-view)
 - [API Reference](#api-reference)
 
@@ -102,13 +102,11 @@ The MCP server exposes the following tools (defined in `src/actions.ts`):
 **Git policy:**
 - `get_git_policy` -- Check whether commit/push/PR operations are allowed for a worktree
 
-**Verification pipeline:**
-- `get_verification_config` -- Get verification pipeline configuration
-- `run_verification` -- Run the verification pipeline for a worktree
-- `report_verification_result` -- Report results for agent-driven verification steps
-- `get_verification_status` -- Get current/last verification run status
-- `get_verification_nudges` -- Get context-aware recommendations for verification setup
-- `install_verification_plugin` -- Install a verification plugin (e.g., Playwright, MSW)
+**Hooks:**
+- `get_hooks_config` -- Get hooks configuration (steps and skills by trigger type)
+- `run_hooks` -- Run hook steps for a worktree
+- `report_hook_skill_result` -- Report a skill hook result
+- `get_hooks_status` -- Get current/last hook run status
 
 ### MCP Prompt
 
@@ -405,67 +403,63 @@ A rule receives `{ message, issueId, source }` and returns a formatted string. T
 
 ---
 
-## Verification Pipeline
+## Hooks
 
-work3 includes a verification pipeline that agents can run after completing work in a worktree. The pipeline validates changes through a sequence of configurable steps.
+work3 includes a hooks system that agents can use to run automated checks at defined points in a worktree's lifecycle. Hooks contain shell command steps and skill references, organized by trigger type.
 
-### Step Types
+### Trigger Types
 
-Steps fall into three categories:
+| Trigger | When it fires |
+|---------|---------------|
+| `pre-implementation` | Before agents start working on a task |
+| `post-implementation` | After agents finish implementing a task (default) |
+| `custom` | Agent decides based on a natural-language condition |
+| `on-demand` | Manually triggered from the UI |
 
-| Type             | Execution                                              | Examples                           |
-|------------------|--------------------------------------------------------|------------------------------------|
-| `command`        | work3 runs shell commands and returns stdout/stderr    | Lint, typecheck, test suite        |
-| `agent-driven`   | Agent receives instructions and context, completes the task, then reports results | Code review, test writing, changes summary |
-| `infrastructure` | Requires additional tooling setup                      | Browser testing (Playwright), request mocking (MSW) |
+### Item Types
 
-### Available Steps
+| Type | Execution |
+|------|-----------|
+| Command steps | work3 runs shell commands in the worktree directory and returns stdout/stderr with pass/fail |
+| Skill references | Agent is told which skills to invoke; results are reported back |
 
-| Step Name               | Type            | Description                                           |
-|-------------------------|-----------------|-------------------------------------------------------|
-| `changesSummary`        | agent-driven    | Summarize all changes in the worktree                 |
-| `pipelineChecks`        | command         | Run configured commands (lint, typecheck, tests)      |
-| `codeReview`            | agent-driven    | Review code changes for issues and improvements       |
-| `manualTestInstructions`| agent-driven    | Generate manual testing instructions                  |
-| `testWriting`           | agent-driven    | Write tests for the changes                           |
-| `agentTesting`          | infrastructure  | Automated browser/API testing via Playwright          |
-| `requestMocking`        | infrastructure  | HTTP request mocking via MSW                          |
+The same skill can be used in multiple trigger types (e.g., code-review in both `post-implementation` and `on-demand`). Skills are identified by the composite key `skillName + trigger`.
 
 ### Configuration
 
-Verification config is stored in `.work3/verification.json`:
+Hooks config is stored in `.work3/hooks.json`:
 
 ```json
 {
-  "enabled": true,
-  "steps": {
-    "pipelineChecks": {
+  "steps": [
+    {
+      "id": "step-1234567890-1",
+      "name": "Type check",
+      "command": "pnpm check-types",
       "enabled": true,
-      "config": {
-        "commands": ["pnpm check-types", "pnpm check-lint"],
-        "continueOnFailure": false
-      }
-    },
-    "codeReview": {
-      "enabled": true,
-      "config": {
-        "focus": ["security", "performance"],
-        "guidelines": "Follow project coding standards"
-      }
+      "trigger": "post-implementation"
     }
-  }
+  ],
+  "skills": [
+    {
+      "skillName": "verify-code-review",
+      "enabled": true,
+      "trigger": "post-implementation"
+    }
+  ]
 }
 ```
 
+### Per-Issue Skill Overrides
+
+Each issue can override the global enable/disable state of skills. Overrides are stored in the issue's notes and can be `inherit` (default), `enable`, or `disable`.
+
 ### Agent Workflow
 
-1. Call `get_verification_config` to see what steps are enabled
-2. Call `run_verification` with the worktree ID to start the pipeline
-3. For `command` steps: results (pass/fail, stdout/stderr) are returned inline
-4. For `agent-driven` steps: the agent receives instructions and context, completes the task, then calls `report_verification_result`
-5. Call `get_verification_status` to check overall progress
-
-The `get_verification_nudges` tool provides context-aware recommendations for improving the verification setup (e.g., suggesting steps to enable, plugins to install, or commands to configure).
+1. Read hook configuration to understand what checks are expected
+2. Run `post-implementation` hooks after completing a task
+3. Report skill results back to work3
+4. Check run status to verify all steps passed
 
 ---
 
@@ -481,6 +475,8 @@ The view uses a sidebar + detail panel layout:
 - **Detail panel**: Shows configuration and management options for the selected item.
 
 ### Sidebar Sections
+
+**Rules**: Static items for editing project-level agent instruction files (CLAUDE.md, AGENTS.md). Each item shows an active status dot when the file exists on disk, with a toggle on hover to create or delete the file (deletion requires confirmation). Selecting one opens a detail panel with full-height markdown preview and click-to-edit editing with debounced auto-save.
 
 **MCP Servers**: Lists servers from the registry. Each item shows deployment status indicators for each agent. The built-in work3 server is always present.
 
@@ -504,6 +500,13 @@ The view uses a sidebar + detail panel layout:
 - Optional reference.md and examples.md editors
 - Deployment grid: toggle deployment to each agent at global or project scope
 - Delete skill from registry
+
+**Agent Rule Detail** (`AgentRuleDetailPanel`):
+- File name and path header with delete button
+- Markdown preview (click to switch to edit mode)
+- Textarea editor with debounced auto-save (600ms)
+- Empty state with "Create" button when the file doesn't exist
+- Delete confirmation dialog
 
 **Plugin Detail** (`PluginDetailPanel`):
 - Plugin metadata (name, version, marketplace, scope)
@@ -529,6 +532,16 @@ On first visit, the Agents view automatically runs a device-wide scan for MCP se
 ---
 
 ## API Reference
+
+### Agent Rules
+
+| Method   | Endpoint                          | Description                              |
+|----------|-----------------------------------|------------------------------------------|
+| `GET`    | `/api/agent-rules/:fileId`        | Get file content (`{ exists, content }`) |
+| `PUT`    | `/api/agent-rules/:fileId`        | Save file content (`{ content }`)        |
+| `DELETE` | `/api/agent-rules/:fileId`        | Delete the file from disk                |
+
+Valid `fileId` values: `claude-md` (CLAUDE.md), `agents-md` (AGENTS.md).
 
 ### MCP Servers
 

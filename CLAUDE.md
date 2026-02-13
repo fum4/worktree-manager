@@ -59,7 +59,7 @@ There is no test runner configured.
 - **`src/server/port-manager.ts`** — `PortManager` class. Discovers ports via `lsof`, allocates/releases offsets, builds env vars for spawned processes.
 - **`src/server/terminal-manager.ts`** — `TerminalManager` class. Manages PTY sessions for interactive terminals via WebSockets.
 - **`src/server/notes-manager.ts`** — `NotesManager` class. Issue notes, AI context, and todo checklists.
-- **`src/server/verification-manager.ts`** — `VerificationManager` class. Pre-merge validation pipeline.
+- **`src/server/verification-manager.ts`** — `HooksManager` class. Hooks system (command steps + skill references with trigger types).
 - **`src/runtime/port-hook.cjs`** — The core innovation. Pure CJS with zero dependencies. Patches `net.Server.prototype.listen` and `net.Socket.prototype.connect` to offset known ports.
 - **`src/mcp.ts`** — MCP (Model Context Protocol) server for AI coding agent integration.
 - **`src/actions.ts`** — All MCP tool definitions (20+ tools).
@@ -108,19 +108,21 @@ All agent-facing features must be:
 
 ## Documentation
 
-Comprehensive documentation lives in `/docs/`. When making significant changes, update the relevant doc:
+Comprehensive documentation lives in `/docs/`. **Read the relevant docs before working on unfamiliar areas** — they contain architectural context, component patterns, and API details that will help you make correct changes.
 
-| Document | When to Update |
-|----------|----------------|
-| [Architecture](docs/ARCHITECTURE.md) | System layers, components, or build system changes |
-| [CLI Reference](docs/CLI.md) | New CLI commands or options |
-| [Configuration](docs/CONFIGURATION.md) | New config fields or data storage changes |
-| [API Reference](docs/API.md) | New or modified REST endpoints |
-| [MCP Tools](docs/MCP.md) | New MCP tools or changes to actions.ts |
-| [Agents](docs/AGENTS.md) | Agent tooling, skills, plugins, or git policy changes |
-| [Integrations](docs/INTEGRATIONS.md) | Jira, Linear, or GitHub integration changes |
-| [Port Mapping](docs/PORT-MAPPING.md) | Port discovery, offset algorithm, or hook changes |
-| [Verification](docs/VERIFICATION.md) | Verification pipeline changes |
-| [Electron](docs/ELECTRON.md) | Electron app changes |
-| [Frontend](docs/FRONTEND.md) | UI architecture, new views, or theme changes |
-| [Development](docs/DEVELOPMENT.md) | Build system, dev workflow, or convention changes |
+When making significant changes, **update the relevant docs** to keep them accurate. If a change introduces a new system or concept not covered by existing docs, **create a new doc file** in `/docs/` and add it to the table below and in `README.md`.
+
+| Document | Covers | When to Update |
+|----------|--------|----------------|
+| [Architecture](docs/ARCHITECTURE.md) | System layers, components, data flow, build system | Structural or build changes |
+| [CLI Reference](docs/CLI.md) | All CLI commands and options | New commands or options |
+| [Configuration](docs/CONFIGURATION.md) | Config files, settings, data storage | New config fields or storage changes |
+| [API Reference](docs/API.md) | REST API endpoints | New or modified endpoints |
+| [MCP Tools](docs/MCP.md) | MCP integration and tool reference | New tools or changes to actions.ts |
+| [Agents](docs/AGENTS.md) | Agent tooling, skills, plugins, git policy | Agent system changes |
+| [Integrations](docs/INTEGRATIONS.md) | Jira, Linear, GitHub setup | Integration changes |
+| [Port Mapping](docs/PORT-MAPPING.md) | Port discovery, offset algorithm, runtime hook | Port system changes |
+| [Hooks](docs/HOOKS.md) | Hooks system (trigger types, commands, skills) | Hooks changes |
+| [Electron](docs/ELECTRON.md) | Desktop app, deep linking, multi-project | Electron changes |
+| [Frontend](docs/FRONTEND.md) | UI architecture, views, theme, components | UI changes |
+| [Development](docs/DEVELOPMENT.md) | Build system, dev workflow, conventions | Dev workflow changes |

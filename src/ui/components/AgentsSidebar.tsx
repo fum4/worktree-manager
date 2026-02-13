@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Filter, Plus, Server, Settings, Sparkles } from 'lucide-react';
+import { FileCode, Filter, Plus, Server, Settings, Sparkles } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import type { McpServerSummary, SkillSummary, PluginSummary } from '../types';
 import { useApi } from '../hooks/useApi';
-import { border, mcpServer, surface, text } from '../theme';
+import { useAgentRule } from '../hooks/useAgentRules';
+import { agentRule, border, mcpServer, surface, text } from '../theme';
 import { ConfirmDialog } from './ConfirmDialog';
 import { DeployDialog } from './DeployDialog';
 import { McpServerItem } from './McpServerItem';
@@ -27,6 +28,7 @@ export const WORK3_SERVER: McpServerSummary = {
 
 
 type AgentSelection =
+  | { type: 'agent-rule'; fileId: string }
   | { type: 'mcp-server'; id: string }
   | { type: 'skill'; name: string }
   | { type: 'plugin'; id: string }
@@ -93,6 +95,7 @@ export function AgentsSidebar({
   const api = useApi();
   const queryClient = useQueryClient();
 
+  const [rulesCollapsed, setRulesCollapsed] = useState(() => localStorage.getItem('work3:agentsRulesCollapsed') === '1');
   const [mcpCollapsed, setMcpCollapsed] = useState(() => localStorage.getItem('work3:agentsMcpCollapsed') === '1');
   const [skillsCollapsed, setSkillsCollapsed] = useState(() => localStorage.getItem('work3:agentsSkillsCollapsed') === '1');
   const [pluginsCollapsed, setPluginsCollapsed] = useState(() => localStorage.getItem('work3:agentsPluginsCollapsed') === '1');
@@ -118,6 +121,9 @@ export function AgentsSidebar({
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    localStorage.setItem('work3:agentsRulesCollapsed', rulesCollapsed ? '1' : '0');
+  }, [rulesCollapsed]);
   useEffect(() => {
     localStorage.setItem('work3:agentsMcpCollapsed', mcpCollapsed ? '1' : '0');
   }, [mcpCollapsed]);
@@ -249,6 +255,41 @@ export function AgentsSidebar({
   return (
     <>
     <div className="flex-1 min-h-0 overflow-y-auto space-y-8">
+      {/* Rules Section */}
+      <div>
+        <div className="relative mb-px group">
+          <button
+            type="button"
+            onClick={() => setRulesCollapsed(!rulesCollapsed)}
+            className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-white/[0.03] cursor-pointer transition-colors duration-150"
+          >
+            <ChevronIcon collapsed={rulesCollapsed} />
+            <span className={`text-[11px] font-medium ${text.secondary}`}>Rules</span>
+            <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+              2
+            </span>
+          </button>
+        </div>
+
+        {!rulesCollapsed && (
+          <div className="space-y-px">
+            {([
+              { fileId: 'claude-md', label: 'CLAUDE.md' },
+              { fileId: 'agents-md', label: 'AGENTS.md' },
+            ] as const).map((item) => (
+              <RuleItem
+                key={item.fileId}
+                fileId={item.fileId}
+                label={item.label}
+                isSelected={selection?.type === 'agent-rule' && selection.fileId === item.fileId}
+                onSelect={() => onSelect({ type: 'agent-rule', fileId: item.fileId })}
+                onRequestDelete={setPendingRemove}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* MCP Servers Section */}
       <div>
         <div className="relative mb-px group">
@@ -701,6 +742,91 @@ function SettingsToggle({ label, checked, onToggle }: { label: string; checked: 
         )}
       </span>
       {label}
+    </button>
+  );
+}
+
+// ─── Rule item ──────────────────────────────────────────────────
+
+const RULE_INITIAL: Record<string, string> = {
+  'claude-md': '# CLAUDE.md\n\n',
+  'agents-md': '# AGENTS.md\n\n',
+};
+
+function RuleItem({ fileId, label, isSelected, onSelect, onRequestDelete }: {
+  fileId: string;
+  label: string;
+  isSelected: boolean;
+  onSelect: () => void;
+  onRequestDelete: (opts: { title: string; message: string; confirmLabel: string; action: () => Promise<void> }) => void;
+}) {
+  const api = useApi();
+  const { exists, refetch } = useAgentRule(fileId);
+
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (exists) {
+      onRequestDelete({
+        title: `Delete ${label}?`,
+        message: `This will delete ${label} from disk.`,
+        confirmLabel: 'Delete',
+        action: async () => {
+          await api.deleteAgentRule(fileId);
+          await refetch();
+        },
+      });
+    } else {
+      await api.saveAgentRule(fileId, RULE_INITIAL[fileId]);
+      await refetch();
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`group w-full text-left px-3 py-3.5 transition-colors duration-150 border-l-2 ${
+        isSelected
+          ? `${surface.panelSelected} ${agentRule.accentBorder}`
+          : `border-transparent hover:${surface.panelHover}`
+      }`}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <FileCode className={`w-3.5 h-3.5 flex-shrink-0 transition-colors duration-150 ${
+          isSelected
+            ? 'text-cyan-400'
+            : `${text.muted} group-hover:text-cyan-400`
+        }`} />
+        <span className={`text-xs font-medium truncate flex-1 ${
+          isSelected ? text.primary : text.secondary
+        }`}>
+          {label}
+        </span>
+
+        {/* Status dot / Toggle */}
+        <div className="flex-shrink-0 relative" style={{ width: 52, height: 16 }}>
+          <div className="absolute inset-0 flex items-center justify-end group-hover:hidden">
+            {exists && (
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0 mr-2" />
+            )}
+          </div>
+          <div className="absolute inset-0 hidden group-hover:flex items-center justify-end mr-[4px]">
+            <span
+              role="button"
+              onClick={handleToggle}
+              className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
+                exists ? 'bg-teal-400/35' : 'bg-white/[0.08]'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                  exists ? 'left-[11px] bg-teal-400' : 'left-0.5 bg-white/40'
+                }`}
+              />
+            </span>
+          </div>
+        </div>
+      </div>
     </button>
   );
 }

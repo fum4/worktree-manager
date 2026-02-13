@@ -11,8 +11,8 @@ const BANNER_DISMISSED_KEY = 'work3:hooksBannerDismissed';
 function CircleMinusIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="9" cy="9" r="8" stroke="currentColor" strokeWidth="1.5" />
-      <line x1="5.5" y1="9" x2="12.5" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="9" cy="9" r="8" strokeWidth="1.5" className="fill-none stroke-current group-hover/remove:fill-current" />
+      <line x1="5.5" y1="9" x2="12.5" y2="9" strokeWidth="1.5" strokeLinecap="round" className="stroke-current group-hover/remove:stroke-[#12151a]" />
     </svg>
   );
 }
@@ -512,7 +512,7 @@ function StepCard({
         {/* Remove */}
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
-          className={`${text.dimmed} hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
+          className={`group/remove ${text.dimmed} hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
         >
           <CircleMinusIcon className="w-[18px] h-[18px]" />
         </button>
@@ -566,7 +566,7 @@ function SkillCard({
         {/* Remove */}
         <button
           onClick={onRemove}
-          className={`${text.dimmed} hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
+          className={`group/remove ${text.dimmed} hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
         >
           <CircleMinusIcon className="w-[18px] h-[18px]" />
         </button>

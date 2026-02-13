@@ -10,6 +10,7 @@ import { useSkills, useSkillDeploymentStatus, useClaudePlugins } from '../hooks/
 import { surface } from '../theme';
 import { AgentsSidebar, type AgentSelection } from './AgentsSidebar';
 import { AgentsToolbar } from './AgentsToolbar';
+import { AgentRuleDetailPanel } from './detail/AgentRuleDetailPanel';
 import { McpServerDetailPanel } from './detail/McpServerDetailPanel';
 import { SkillDetailPanel } from './detail/SkillDetailPanel';
 import { PluginDetailPanel } from './detail/PluginDetailPanel';
@@ -297,7 +298,9 @@ export function AgentsView() {
             </button>
           </div>
         ) : null}
-        {selection?.type === 'mcp-server' && selection.id !== WORK3_SERVER.id ? (
+        {selection?.type === 'agent-rule' ? (
+          <AgentRuleDetailPanel fileId={selection.fileId} />
+        ) : selection?.type === 'mcp-server' && selection.id !== WORK3_SERVER.id ? (
           <McpServerDetailPanel
             serverId={selection.id}
             onDeleted={() => {

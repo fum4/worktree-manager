@@ -343,6 +343,13 @@ export function getLabelColor(label: string) {
   return customTask.labelColors[((hash >>> 0) % customTask.labelColors.length)];
 }
 
+// ─── Agent Rules ────────────────────────────────────────────────
+export const agentRule = {
+  accent:          'text-cyan-400',
+  accentBg:        'bg-cyan-400/10',
+  accentBorder:    'border-cyan-400/30',
+} as const;
+
 // ─── Skills ─────────────────────────────────────────────────────
 export const skill = {
   accent:          'text-pink-400',

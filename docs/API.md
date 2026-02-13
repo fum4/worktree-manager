@@ -99,6 +99,37 @@ Recover a worktree that has become inconsistent (e.g., directory deleted externa
 
 ---
 
+## Agent Rules
+
+Read, write, and delete project-level agent instruction files (CLAUDE.md, AGENTS.md) at the project root.
+
+#### `GET /api/agent-rules/:fileId`
+
+Get the content of an agent rule file.
+
+- **URL params**: `fileId` = `claude-md` | `agents-md`
+- **Response**: `{ exists: boolean, content: string }`
+- **Error** (404): `{ error: "Unknown file" }` (invalid fileId)
+
+#### `PUT /api/agent-rules/:fileId`
+
+Create or update an agent rule file. Creates parent directories if needed.
+
+- **Request**:
+  ```json
+  { "content": "# CLAUDE.md\n\nInstructions here..." }
+  ```
+- **Response**: `{ success: true }`
+
+#### `DELETE /api/agent-rules/:fileId`
+
+Delete an agent rule file from disk.
+
+- **Response**: `{ success: true }`
+- **Error** (404): `{ error: "Unknown file" }` (invalid fileId)
+
+---
+
 ## Configuration
 
 Manage `.work3/config.json` and related settings.
@@ -1266,55 +1297,119 @@ WebSocket endpoint for bidirectional terminal communication. Upgrades the HTTP c
 
 ---
 
-## Verification
+## Hooks
 
-Verification pipeline for validating worktree changes before merge. Supports command-based steps (type checks, lint, build) and agent-driven steps (code review, test writing).
+Automated checks and agent skills organized by trigger type. Supports shell command steps and skill references from the registry.
 
-#### `GET /api/verification/config`
+#### `GET /api/hooks/config`
 
-Get the verification pipeline configuration.
+Get the hooks configuration.
 
-- **Response**: `VerificationConfig` object with `enabled` flag and `steps` map
+- **Response**: `HooksConfig` object with `steps` and `skills` arrays
 
-Steps include: `changesSummary`, `pipelineChecks`, `codeReview`, `manualTestInstructions`, `testWriting`, `agentTesting`, `requestMocking`.
+#### `PUT /api/hooks/config`
 
-#### `PATCH /api/verification/config`
+Save the full hooks configuration.
 
-Update the verification pipeline configuration.
+- **Request**: `HooksConfig` object
+- **Response**: `{ success: true, config: HooksConfig }`
 
-- **Request**: Partial `VerificationConfig` object
-- **Response**: `{ success: true, config: VerificationConfig }`
+#### `POST /api/hooks/steps`
 
-#### `POST /api/worktrees/:id/verify`
+Add a command step.
 
-Start a verification pipeline run for a worktree.
-
-- **Request** (optional):
+- **Request**:
   ```json
-  { "steps": ["pipelineChecks", "codeReview"] }
+  { "name": "Type check", "command": "pnpm check-types" }
   ```
-  If `steps` is omitted, all enabled steps run.
+- **Response**: `{ success: true, config: HooksConfig }`
+
+#### `PATCH /api/hooks/steps/:stepId`
+
+Update a step.
+
+- **Request**: Partial fields: `name`, `command`, `enabled`, `trigger`
+- **Response**: `{ success: true, config: HooksConfig }`
+
+#### `DELETE /api/hooks/steps/:stepId`
+
+Remove a step.
+
+- **Response**: `{ success: true, config: HooksConfig }`
+
+#### `POST /api/hooks/skills/import`
+
+Import a skill from the registry into hooks.
+
+- **Request**:
+  ```json
+  { "skillName": "verify-code-review", "trigger": "post-implementation", "condition": "optional" }
+  ```
+  The same skill can be imported into multiple trigger types. Deduplication is by `skillName + trigger`.
+- **Response**: `{ success: true, config: HooksConfig }`
+
+#### `GET /api/hooks/skills/available`
+
+List available skills from the `~/.work3/skills/` registry.
+
+- **Response**: `{ available: [{ name, displayName, description }] }`
+
+#### `PATCH /api/hooks/skills/:name`
+
+Toggle a skill's enabled state.
+
+- **Request**:
+  ```json
+  { "enabled": true, "trigger": "post-implementation" }
+  ```
+  `trigger` identifies which instance to toggle when the same skill exists in multiple trigger types.
+- **Response**: `{ success: true, config: HooksConfig }`
+
+#### `DELETE /api/hooks/skills/:name`
+
+Remove a skill from hooks.
+
+- **Query params**: `?trigger=post-implementation` (identifies which instance to remove)
+- **Response**: `{ success: true, config: HooksConfig }`
+
+#### `POST /api/worktrees/:id/hooks/run`
+
+Run all enabled steps for a worktree.
+
 - **Response**: `PipelineRun` object with `id`, `worktreeId`, `status`, `startedAt`, `steps`
 
-#### `POST /api/worktrees/:id/verify/report`
+#### `POST /api/worktrees/:id/hooks/run/:stepId`
 
-Report the result of an agent-driven verification step.
+Run a single step for a worktree.
+
+- **Response**: `StepResult` object
+
+#### `GET /api/worktrees/:id/hooks/status`
+
+Get the latest hook run status for a worktree.
+
+- **Response**: `{ status: PipelineRun | null }`
+
+#### `POST /api/worktrees/:id/hooks/report`
+
+Report a skill hook result from an agent.
 
 - **Request**:
   ```json
   {
-    "stepName": "codeReview",
+    "skillName": "verify-code-review",
     "success": true,
-    "result": "No critical issues found. Minor suggestions: ..."
+    "summary": "No critical issues found",
+    "content": "Optional detailed markdown content"
   }
   ```
-- **Response**: Updated pipeline state
+- **Response**: `{ success: true }`
 
-#### `GET /api/worktrees/:id/verify/status`
+#### `GET /api/worktrees/:id/hooks/skill-results`
 
-Get the current verification pipeline run status for a worktree.
+Get skill hook results for a worktree.
 
-- **Response**: `{ status: PipelineRun | null }`
+- **Response**: `{ results: SkillHookResult[] }`
 
 ---
 

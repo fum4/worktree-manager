@@ -1997,6 +1997,57 @@ export async function fetchHooksStatus(
   }
 }
 
+// -- Agent Rules API --
+
+export async function fetchAgentRule(
+  fileId: string,
+  serverUrl: string | null = null,
+): Promise<{ exists: boolean; content: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/agent-rules/${encodeURIComponent(fileId)}`);
+    return await res.json();
+  } catch {
+    return { exists: false, content: '' };
+  }
+}
+
+export async function saveAgentRule(
+  fileId: string,
+  content: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/agent-rules/${encodeURIComponent(fileId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to save agent rule',
+    };
+  }
+}
+
+export async function deleteAgentRule(
+  fileId: string,
+  serverUrl: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/agent-rules/${encodeURIComponent(fileId)}`, {
+      method: 'DELETE',
+    });
+    return await res.json();
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to delete agent rule',
+    };
+  }
+}
+
 // -- Hook Skills API --
 
 export async function importHookSkill(

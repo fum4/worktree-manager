@@ -30,7 +30,7 @@ The app operates in two modes:
 The application has five top-level views, defined as the `View` type in `src/ui/components/NavBar.tsx`:
 
 ```typescript
-type View = 'workspace' | 'agents' | 'verification' | 'configuration' | 'integrations';
+type View = 'workspace' | 'agents' | 'hooks' | 'configuration' | 'integrations';
 ```
 
 ### Workspace
@@ -41,9 +41,9 @@ The main view. Displays a two-panel layout: a sidebar with worktree and issue li
 
 Manages MCP servers, skills, and plugins. This is the hub for configuring agent tooling -- registering MCP servers, creating/deploying skills to coding agents (Claude, Cursor, etc.), and managing Claude plugins.
 
-### Verification
+### Hooks
 
-Configures and displays the verification pipeline -- a sequence of steps (type-checking, linting, tests, etc.) that can be run against worktrees to validate changes before merging.
+Configures automated checks and agent skills organized by trigger type (pre-implementation, post-implementation, custom, on-demand). Users add shell command steps and import skills from the registry into each trigger type section.
 
 ### Configuration
 
@@ -108,8 +108,9 @@ The app uses a dark theme with a neutral slate background family and teal as the
 | `skill` | Skill accent (pink) and badge styles |
 | `plugin` | Plugin accent (warm copper) and badge styles |
 | `mcpServer` | MCP server accent (purple), deployment status dot colors |
-| `verification` | Verification accent (emerald), step result status colors |
+| `hooks` | Hooks accent (emerald), step result status colors |
 | `notes` | Notes tab styles, todo checkbox colors |
+| `agentRule` | Agent rule accent (cyan), background, border styles |
 
 ### Integration Color Mapping
 
@@ -122,7 +123,7 @@ Each entity type has a consistent accent color used across the entire UI:
 - **MCP Server** -- purple (`text-purple-400`)
 - **Skill** -- pink (`text-pink-400`)
 - **Plugin** -- warm copper (`#D4A574`)
-- **Verification** -- emerald (`text-emerald-400`)
+- **Hooks** -- emerald (`text-emerald-400`)
 
 ### Label Color Hashing
 
@@ -168,8 +169,8 @@ App
 +-- [Integrations view]
 |   +-- IntegrationsPanel
 |
-+-- [Verification view]
-|   +-- VerificationPanel
++-- [Hooks view]
+|   +-- HooksPanel
 |
 +-- TabBar                    (Electron multi-project tabs, bottom of screen)
 +-- [Modals]                  (CreateWorktreeModal, CreateCustomTaskModal, GitHubSetupModal, etc.)
@@ -254,7 +255,7 @@ Detail view for local custom tasks. Supports inline editing of title, descriptio
 | `GitActionInputs.tsx` | Inline commit message and PR title input forms |
 | `ActionToolbar.tsx` | Git action buttons (commit, push, PR) |
 | `DetailHeader.tsx` | Worktree name/branch display with inline edit and action buttons |
-| `NotesSection.tsx` | Personal notes and AI context notes for issues |
+| `NotesSection.tsx` | PersonalNotesSection + AgentSection (tabbed: Context, Todos, Git Policy, Hooks) |
 | `TodoList.tsx` | Checkbox todo items attached to issues |
 | `AgentPolicySection.tsx` | Per-issue agent git policy overrides |
 
@@ -292,7 +293,8 @@ These use TanStack React Query for caching, background refetching, and stale-whi
 | `useMcpServers` | various | `/api/mcp-servers` |
 | `useSkills` | various | `/api/skills` |
 | `useNotes` | `['notes', source, id, serverUrl]` | `/api/notes/:source/:id` |
-| `useVerification` | various | `/api/verification/*` |
+| `useAgentRule` | `['agentRule', fileId]` | `/api/agent-rules/:fileId` |
+| `useHooksConfig` | `['hooks-config', serverUrl]` | `/api/hooks/config` |
 
 Issue hooks support configurable refresh intervals (from integration settings) and search query debouncing (300ms).
 
@@ -428,7 +430,7 @@ The app uses Framer Motion for transitions:
 
 - **View switching** -- `AnimatePresence` with `mode="wait"` for sidebar tab transitions (worktree list / issue list slide in from opposite directions).
 - **Header fade-in** -- the header fades in on initial render.
-- **Background blobs** -- the configuration, integrations, and verification views have animated gradient blobs drifting in the background via CSS keyframe animations.
+- **Background blobs** -- the configuration, integrations, and hooks views have animated gradient blobs drifting in the background via CSS keyframe animations.
 
 ---
 
@@ -479,7 +481,7 @@ The app uses Framer Motion for transitions:
 | `TabBar.tsx` | Electron multi-project tab bar |
 | `Tooltip.tsx` | Tooltip component (always use this instead of native `title` attribute) |
 | `TruncatedTooltip.tsx` | Text with automatic tooltip on overflow |
-| `VerificationPanel.tsx` | Verification pipeline configuration view |
+| `VerificationPanel.tsx` | Hooks configuration view (trigger-based command steps and skills) |
 | `WelcomeScreen.tsx` | Initial welcome/onboarding screen |
 | `WorktreeExistsModal.tsx` | Handle worktree already exists error |
 | `WorktreeItem.tsx` | Worktree sidebar list item |
@@ -496,13 +498,14 @@ The app uses Framer Motion for transitions:
 | `CustomTaskDetailPanel.tsx` | Custom task detail with inline editing |
 | `McpServerDetailPanel.tsx` | MCP server detail and deployment |
 | `SkillDetailPanel.tsx` | Skill detail with markdown editor |
+| `AgentRuleDetailPanel.tsx` | Agent rule file viewer/editor (CLAUDE.md, AGENTS.md) |
 | `PluginDetailPanel.tsx` | Claude plugin detail |
 | `LogsViewer.tsx` | Streaming ANSI log output |
 | `TerminalView.tsx` | xterm.js interactive terminal |
 | `VerifyTab.tsx` | Verification pipeline runner |
 | `GitActionInputs.tsx` | Inline commit/PR input forms |
 | `ActionToolbar.tsx` | Git action buttons |
-| `NotesSection.tsx` | Personal and AI context notes |
+| `NotesSection.tsx` | PersonalNotesSection + AgentSection (tabbed: Context, Todos, Git Policy, Hooks) |
 | `TodoList.tsx` | Checkbox todo items |
 | `AgentPolicySection.tsx` | Per-issue agent git policy overrides |
 
@@ -523,7 +526,8 @@ The app uses Framer Motion for transitions:
 | `useNotes.ts` | Hook for issue notes and todos |
 | `useSkills.ts` | Hooks for skills data |
 | `useTerminal.ts` | WebSocket terminal session management |
-| `useVerification.ts` | Hooks for verification config and pipeline runs |
+| `useAgentRules.ts` | React Query hook for agent rule file content |
+| `useHooks.ts` | Hooks config and skill results fetching |
 | `useWorktrees.ts` | SSE-based real-time worktree updates + integration status hooks |
 
 ### Context (`src/ui/contexts/`)

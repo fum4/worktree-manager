@@ -39,7 +39,7 @@ flowchart TB
     PM["PortManager\n(port discovery + allocation)"]
     TM["TerminalManager\n(PTY sessions via WebSocket)"]
     NM["NotesManager\n(issue notes, todos, AI context)"]
-    VM["VerificationManager\n(pre-merge validation pipeline)"]
+    VM["HooksManager\n(hooks: commands + skills)"]
     GH["GitHubManager\n(PR status, git operations)"]
     Hook["port-hook.cjs\n(runtime port patching)"]
     Actions["Actions Registry\n(MCP tool definitions)"]
@@ -106,17 +106,18 @@ Stored data per issue:
 
 The `buildWorktreeLinkMap()` method scans all notes files to produce a reverse map from worktree IDs to their linked issues -- used by `WorktreeManager.getWorktrees()` to enrich worktree info with issue metadata.
 
-### VerificationManager
+### HooksManager
 
-`src/server/verification-manager.ts` -- A pre-merge validation pipeline with three step types:
+`src/server/verification-manager.ts` -- Manages automated checks and agent skills organized by trigger type. Contains two item types:
 
-1. **Command steps** (`pipelineChecks`): Run shell commands (lint, typecheck, build) in the worktree directory. Results are returned inline with pass/fail status.
-2. **Agent-driven steps** (`changesSummary`, `codeReview`, `manualTestInstructions`, `testWriting`): Return a git diff and instructions to an MCP agent. The agent completes the task and reports results back via `report_verification_result`.
-3. **Infrastructure steps** (`agentTesting`, `requestMocking`): Require external tooling (Playwright, MSW). Currently return a "not-configured" status with setup instructions.
+1. **Command steps**: Shell commands (lint, typecheck, build) that run in the worktree directory. Each step has a trigger type, can be enabled/disabled, and custom-trigger steps include a natural-language condition.
+2. **Skill references**: References to skills from the `~/.work3/skills/` registry. The same skill can be used in multiple trigger types (identified by `skillName + trigger` composite key). Skills support per-issue overrides (inherit/enable/disable).
 
-Pipeline runs are persisted to `.work3/worktrees/{id}/verification/latest-run.json` and step artifacts to an `artifacts/` subdirectory. The manager also provides `getNudges()` for context-aware setup recommendations and `installPlugin()` for automated dependency installation.
+Four trigger types: `pre-implementation` (before agent work), `post-implementation` (after agent work), `custom` (agent decides based on condition), `on-demand` (manually triggered).
 
-The verification pipeline is configured via `.work3/verification.json` with per-step enable/disable and configuration options.
+Command step runs are persisted to `.work3/worktrees/{id}/hooks/latest-run.json`. Skill results reported by agents are stored at `.work3/worktrees/{id}/hooks/skill-results.json`.
+
+Hooks are configured via `.work3/hooks.json` with `steps` and `skills` arrays.
 
 ## Data Flow
 
@@ -246,7 +247,7 @@ src/
 │   ├── port-manager.ts  Port discovery and offset allocation
 │   ├── terminal-manager.ts  PTY session management
 │   ├── notes-manager.ts     Issue notes, todos, AI context
-│   ├── verification-manager.ts  Pre-merge validation pipeline
+│   ├── verification-manager.ts  HooksManager (commands + skills by trigger type)
 │   ├── mcp-server-factory.ts   Creates MCP server from actions registry
 │   ├── git-policy.ts    Agent git permission resolution
 │   ├── branch-name.ts   Branch name generation from rules
@@ -268,7 +269,7 @@ src/
 │       ├── mcp-servers.ts    External MCP server management
 │       ├── skills.ts      Agent skill definitions
 │       ├── claude-plugins.ts  Claude-specific plugin endpoints
-│       └── verification.ts   Verification pipeline endpoints
+│       └── verification.ts   Hooks endpoints (config, steps, skills, runs)
 ├── ui/                React frontend (SPA)
 │   ├── index.html       HTML entry point
 │   ├── main.tsx         React app bootstrap
@@ -306,7 +307,7 @@ src/
 │       ├── useTerminal.ts   WebSocket terminal connection
 │       ├── useMcpServers.ts
 │       ├── useSkills.ts
-│       └── useVerification.ts
+│       └── useHooks.ts
 ├── integrations/      External service integrations
 │   ├── github/          GitHub via `gh` CLI
 │   │   ├── gh-client.ts   Low-level gh CLI wrapper

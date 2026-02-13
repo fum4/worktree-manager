@@ -2,7 +2,7 @@
 
 A CLI tool and web UI for managing multiple git worktrees with automatic port offsetting, issue tracker integration, and AI agent support. It solves the fundamental problem of running multiple dev server instances concurrently — when your app binds ports 3000 and 3001, a second copy can't start without conflicts. work3 transparently offsets all known ports per worktree by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime.
 
-Beyond port management, work3 provides a full development workflow: create worktrees from Jira or Linear issues, track progress with todos, run verification pipelines, and integrate with AI coding agents via MCP (Model Context Protocol).
+Beyond port management, work3 provides a full development workflow: create worktrees from Jira or Linear issues, track progress with todos, run hooks (automated checks and agent skills), and integrate with AI coding agents via MCP (Model Context Protocol).
 
 ## Quick Start
 
@@ -41,14 +41,14 @@ Connect to **Jira** (OAuth or API token), **Linear** (API key), or create **loca
 See [Integrations](docs/INTEGRATIONS.md) for setup details.
 
 ### AI Agent Support (MCP)
-work3 exposes 20+ tools via MCP (Model Context Protocol) that any AI coding agent can use — browse issues, create worktrees, manage todos, commit/push/PR, run verification. Agents get a structured workflow: pick an issue, create a worktree, read TASK.md, work through todos, verify, and ship.
+work3 exposes 20+ tools via MCP (Model Context Protocol) that any AI coding agent can use — browse issues, create worktrees, manage todos, commit/push/PR, run hooks. Agents get a structured workflow: pick an issue, create a worktree, read TASK.md, work through todos, run hooks, and ship.
 
 See [MCP](docs/MCP.md) for the tool reference and [Agents](docs/AGENTS.md) for the agent tooling system.
 
-### Verification Pipeline
-Configurable pre-merge validation with command steps (lint, typecheck, build) and agent-driven steps (code review, test writing). Run from the UI or via MCP tools.
+### Hooks
+Automated checks and agent skills organized by trigger type (pre-implementation, post-implementation, custom, on-demand). Add shell command steps and import skills from the registry. Run from the UI or via MCP tools.
 
-See [Verification](docs/VERIFICATION.md) for configuration and usage.
+See [Hooks](docs/HOOKS.md) for configuration and usage.
 
 ### Electron Desktop App
 Optional native app with multi-project tab support, `work3://` deep linking, and window state persistence.
@@ -86,7 +86,7 @@ See [Configuration](docs/CONFIGURATION.md) for the complete reference.
 | [Agents](docs/AGENTS.md) | Agent tooling system, skills, plugins, git policy |
 | [Integrations](docs/INTEGRATIONS.md) | Jira, Linear, and GitHub setup |
 | [Port Mapping](docs/PORT-MAPPING.md) | Port discovery, offset algorithm, runtime hook |
-| [Verification](docs/VERIFICATION.md) | Pre-merge validation pipeline |
+| [Hooks](docs/HOOKS.md) | Hooks system (trigger types, commands, skills) |
 | [Electron](docs/ELECTRON.md) | Desktop app, deep linking, multi-project |
 | [Frontend](docs/FRONTEND.md) | React UI architecture, theme, components |
 | [Development](docs/DEVELOPMENT.md) | Developer guide, build commands, conventions |

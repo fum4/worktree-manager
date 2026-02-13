@@ -92,16 +92,14 @@ All git operations are subject to the agent git policy. Call `get_git_policy` fi
 |------|-------------|------------|
 | `get_config` | Get the current work3 configuration and project name. | *(none)* |
 
-### Verification Pipeline
+### Hooks
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `get_verification_config` | Get the verification pipeline configuration, including which steps are enabled and their settings. | *(none)* |
-| `run_verification` | Run the verification pipeline for a worktree. Command steps return results inline; agent-driven steps return instructions for the agent to complete. | `worktreeId` (string, **required**); `steps` (string, optional) -- comma-separated step names, e.g. `"pipelineChecks,codeReview"`. Omit to run all enabled steps. |
-| `report_verification_result` | Report the result of an agent-driven verification step. Call after completing a step that returned type `"agent-task"`. | `worktreeId` (string, **required**); `stepName` (string, **required**) -- e.g. `"changesSummary"`, `"codeReview"`; `success` (boolean, **required**); `result` (string, **required**) -- markdown content with step result |
-| `get_verification_status` | Get the current/last verification run status for a worktree, including step results. | `worktreeId` (string, **required**) |
-| `get_verification_nudges` | Get context-aware recommendations for verification pipeline setup. Returns suggestions like enabling steps, installing plugins, or configuring commands. | *(none)* |
-| `install_verification_plugin` | Install a verification plugin (e.g. Playwright for browser testing, MSW for request mocking). | `pluginName` (string, **required**) -- `"playwright"` or `"msw"` |
+| `get_hooks_config` | Get the hooks configuration, including command steps and skill references organized by trigger type. | *(none)* |
+| `run_hooks` | Run hook command steps for a worktree. Steps matching the trigger type run in parallel. | `worktreeId` (string, **required**) |
+| `report_hook_skill_result` | Report a skill hook result. Call after the agent has executed a skill referenced in the hooks config. | `worktreeId` (string, **required**); `skillName` (string, **required**); `success` (boolean, **required**); `summary` (string, **required**); `content` (string, optional) -- detailed markdown |
+| `get_hooks_status` | Get the current/last hook run status for a worktree, including step results. | `worktreeId` (string, **required**) |
 
 ## MCP Prompt: `work-on-task`
 
@@ -160,13 +158,12 @@ The project owner can restrict agent git operations. Before calling commit, push
 2. If not allowed, inform the user and suggest they enable it in Settings or per-worktree
 3. When committing, the commit message may be automatically formatted by a project-configured rule
 
-## Verification Pipeline
-After completing work in a worktree, run verification to validate changes:
-1. Call get_verification_config to see what steps are enabled
-2. Call run_verification with the worktree ID to start the pipeline
-3. For command steps (e.g. lint, typecheck): results are returned inline
-4. For agent-driven steps (e.g. code review, test writing): you'll get instructions and context -- complete the task, then call report_verification_result
-5. Call get_verification_status to check progress
+## Hooks
+After completing work in a worktree, run hooks to validate changes:
+1. Call get_hooks_config to see what command steps and skills are configured
+2. Call run_hooks with the worktree ID to run command steps
+3. For skill references: invoke the referenced skills and call report_hook_skill_result
+4. Call get_hooks_status to check progress
 ```
 
 ## Setup
