@@ -23,7 +23,6 @@ export function HooksPanel() {
   const [addingStep, setAddingStep] = useState<HookTrigger | null>(null);
   const [newName, setNewName] = useState('');
   const [newCommand, setNewCommand] = useState('');
-  const [newCondition, setNewCondition] = useState('');
   const [showImportPicker, setShowImportPicker] = useState<HookTrigger | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -41,17 +40,19 @@ export function HooksPanel() {
     const name = newName.trim();
     const command = newCommand.trim();
     if (!name || !command) return;
-    if (trigger === 'custom' && !newCondition.trim()) return;
 
     const id = `step-${Date.now()}`;
     const step: HookStep = { id, name, command, enabled: true, trigger };
-    if (trigger === 'custom') step.condition = newCondition.trim();
-    const newSteps = [...config.steps, step];
-    saveConfig({ ...config, steps: newSteps });
+    saveConfig({ ...config, steps: [...config.steps, step] });
     setNewName('');
     setNewCommand('');
-    setNewCondition('');
     setAddingStep(null);
+  };
+
+  const addCustomStep = (name: string, command: string, condition: string) => {
+    const id = `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const step: HookStep = { id, name, command, enabled: true, trigger: 'custom', condition };
+    saveConfig({ ...config, steps: [...config.steps, step] });
   };
 
   const removeStep = (stepId: string) => {
@@ -77,10 +78,40 @@ export function HooksPanel() {
     refetch();
   };
 
+  const updateSkillCondition = (skillName: string, trigger: HookTrigger | undefined, condition: string) => {
+    saveConfig({
+      ...config,
+      skills: config.skills.map((s) =>
+        s.skillName === skillName && (s.trigger ?? 'post-implementation') === (trigger ?? 'post-implementation')
+          ? { ...s, condition }
+          : s,
+      ),
+    });
+  };
+
   const handleImportSkill = async (skillName: string, trigger: HookTrigger, condition?: string) => {
     await api.importHookSkill(skillName, trigger, condition);
     refetch();
     setShowImportPicker(null);
+  };
+
+  const handleImportCustomSkill = async (skillName: string, condition: string) => {
+    await api.importHookSkill(skillName, 'custom', condition);
+    refetch();
+  };
+
+  const updateCustomGroupCondition = (oldCondition: string, newCondition: string) => {
+    const updatedSteps = config.steps.map((s) =>
+      s.trigger === 'custom' && (s.condition ?? '') === oldCondition
+        ? { ...s, condition: newCondition }
+        : s,
+    );
+    const updatedSkills = config.skills.map((s) =>
+      s.trigger === 'custom' && (s.condition ?? '') === oldCondition
+        ? { ...s, condition: newCondition }
+        : s,
+    );
+    saveConfig({ ...config, steps: updatedSteps, skills: updatedSkills });
   };
 
   // Split items by trigger
@@ -128,9 +159,9 @@ export function HooksPanel() {
         hasItems={hasPreItems}
         addingStep={addingStep === 'pre-implementation'}
         onStartAdding={() => { setShowImportPicker(null); setAddingStep('pre-implementation'); }}
-        onCancelAdding={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setNewCondition(''); }}
+        onCancelAdding={() => { setAddingStep(null); setNewName(''); setNewCommand(''); }}
         onAddStep={() => addStep('pre-implementation')}
-        onShowImportPicker={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setNewCondition(''); setShowImportPicker('pre-implementation'); }}
+        onShowImportPicker={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setShowImportPicker('pre-implementation'); }}
         showImportPicker={showImportPicker === 'pre-implementation'}
         onImportSkill={(name) => handleImportSkill(name, 'pre-implementation')}
         onCloseImportPicker={() => setShowImportPicker(null)}
@@ -143,6 +174,7 @@ export function HooksPanel() {
         removeStep={removeStep}
         handleToggleSkill={handleToggleSkill}
         handleRemoveSkill={handleRemoveSkill}
+        updateSkillCondition={updateSkillCondition}
       />
 
       {/* Post-Implementation section */}
@@ -155,9 +187,9 @@ export function HooksPanel() {
         hasItems={hasPostItems}
         addingStep={addingStep === 'post-implementation'}
         onStartAdding={() => { setShowImportPicker(null); setAddingStep('post-implementation'); }}
-        onCancelAdding={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setNewCondition(''); }}
+        onCancelAdding={() => { setAddingStep(null); setNewName(''); setNewCommand(''); }}
         onAddStep={() => addStep('post-implementation')}
-        onShowImportPicker={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setNewCondition(''); setShowImportPicker('post-implementation'); }}
+        onShowImportPicker={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setShowImportPicker('post-implementation'); }}
         showImportPicker={showImportPicker === 'post-implementation'}
         onImportSkill={(name) => handleImportSkill(name, 'post-implementation')}
         onCloseImportPicker={() => setShowImportPicker(null)}
@@ -170,36 +202,20 @@ export function HooksPanel() {
         removeStep={removeStep}
         handleToggleSkill={handleToggleSkill}
         handleRemoveSkill={handleRemoveSkill}
+        updateSkillCondition={updateSkillCondition}
       />
 
       {/* Custom section */}
-      <HooksSection
-        title="Custom"
-        description="Agent decides when to run based on your condition"
-        icon={<MessageSquareText className="w-3.5 h-3.5 text-violet-400" />}
+      <CustomHooksSection
         steps={customSteps}
         skills={customSkills}
-        hasItems={hasCustomItems}
-        addingStep={addingStep === 'custom'}
-        onStartAdding={() => { setShowImportPicker(null); setAddingStep('custom'); }}
-        onCancelAdding={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setNewCondition(''); }}
-        onAddStep={() => addStep('custom')}
-        onShowImportPicker={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setNewCondition(''); setShowImportPicker('custom'); }}
-        showImportPicker={showImportPicker === 'custom'}
-        onImportSkill={(name, condition) => handleImportSkill(name, 'custom', condition)}
-        onCloseImportPicker={() => setShowImportPicker(null)}
-        newName={newName}
-        setNewName={setNewName}
-        newCommand={newCommand}
-        setNewCommand={setNewCommand}
-        newCondition={newCondition}
-        setNewCondition={setNewCondition}
-        showConditionInput
-        nameRef={nameRef}
-        updateStep={updateStep}
-        removeStep={removeStep}
-        handleToggleSkill={handleToggleSkill}
-        handleRemoveSkill={handleRemoveSkill}
+        onAddStep={addCustomStep}
+        onUpdateStep={updateStep}
+        onRemoveStep={removeStep}
+        onImportSkill={handleImportCustomSkill}
+        onToggleSkill={(name, enabled) => handleToggleSkill(name, enabled, 'custom')}
+        onRemoveSkill={(name) => handleRemoveSkill(name, 'custom')}
+        onUpdateGroupCondition={updateCustomGroupCondition}
       />
 
       {/* On-Demand section */}
@@ -212,9 +228,9 @@ export function HooksPanel() {
         hasItems={hasOnDemandItems}
         addingStep={addingStep === 'on-demand'}
         onStartAdding={() => { setShowImportPicker(null); setAddingStep('on-demand'); }}
-        onCancelAdding={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setNewCondition(''); }}
+        onCancelAdding={() => { setAddingStep(null); setNewName(''); setNewCommand(''); }}
         onAddStep={() => addStep('on-demand')}
-        onShowImportPicker={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setNewCondition(''); setShowImportPicker('on-demand'); }}
+        onShowImportPicker={() => { setAddingStep(null); setNewName(''); setNewCommand(''); setShowImportPicker('on-demand'); }}
         showImportPicker={showImportPicker === 'on-demand'}
         onImportSkill={(name) => handleImportSkill(name, 'on-demand')}
         onCloseImportPicker={() => setShowImportPicker(null)}
@@ -227,6 +243,7 @@ export function HooksPanel() {
         removeStep={removeStep}
         handleToggleSkill={handleToggleSkill}
         handleRemoveSkill={handleRemoveSkill}
+        updateSkillCondition={updateSkillCondition}
       />
     </div>
   );
@@ -251,14 +268,12 @@ function HooksSection({
   setNewName,
   newCommand,
   setNewCommand,
-  newCondition,
-  setNewCondition,
-  showConditionInput,
   nameRef,
   updateStep,
   removeStep,
   handleToggleSkill,
   handleRemoveSkill,
+  updateSkillCondition,
 }: {
   title: string;
   description: string;
@@ -272,20 +287,18 @@ function HooksSection({
   onAddStep: () => void;
   onShowImportPicker: () => void;
   showImportPicker: boolean;
-  onImportSkill: (name: string, condition?: string) => void;
+  onImportSkill: (name: string) => void;
   onCloseImportPicker: () => void;
   newName: string;
   setNewName: (v: string) => void;
   newCommand: string;
   setNewCommand: (v: string) => void;
-  newCondition?: string;
-  setNewCondition?: (v: string) => void;
-  showConditionInput?: boolean;
   nameRef: React.RefObject<HTMLInputElement>;
   updateStep: (stepId: string, updates: Partial<Pick<HookStep, 'name' | 'command' | 'enabled' | 'condition'>>) => void;
   removeStep: (stepId: string) => void;
   handleToggleSkill: (skillName: string, enabled: boolean, trigger?: HookTrigger) => void;
   handleRemoveSkill: (skillName: string, trigger?: HookTrigger) => void;
+  updateSkillCondition: (skillName: string, trigger: HookTrigger | undefined, condition: string) => void;
 }) {
   return (
     <div>
@@ -319,6 +332,7 @@ function HooksSection({
             skill={skill}
             onToggle={(enabled) => handleToggleSkill(skill.skillName, enabled, skill.trigger)}
             onRemove={() => handleRemoveSkill(skill.skillName, skill.trigger)}
+            onUpdateCondition={(condition) => updateSkillCondition(skill.skillName, skill.trigger, condition)}
           />
         ))}
 
@@ -342,20 +356,10 @@ function HooksSection({
             <input
               value={newCommand}
               onChange={(e) => setNewCommand(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !showConditionInput) onAddStep(); if (e.key === 'Escape') onCancelAdding(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') onAddStep(); if (e.key === 'Escape') onCancelAdding(); }}
               placeholder="Command (e.g. pnpm check-types)"
               className={`w-full px-3 py-2 rounded-lg text-xs bg-white/[0.04] border border-white/[0.06] text-white placeholder-[#4b5563] focus:outline-none focus:border-white/[0.15] font-mono`}
             />
-            {showConditionInput && setNewCondition && (
-              <textarea
-                value={newCondition ?? ''}
-                onChange={(e) => setNewCondition(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Escape') onCancelAdding(); }}
-                placeholder="When should agents run this? (e.g. &quot;When changes touch database models or migrations&quot;)"
-                rows={2}
-                className={`w-full px-3 py-2 rounded-lg text-xs bg-white/[0.04] border border-white/[0.06] text-white placeholder-[#4b5563] focus:outline-none focus:border-white/[0.15] resize-none`}
-              />
-            )}
             <div className="flex items-center gap-2 justify-end">
               <button
                 onClick={onCancelAdding}
@@ -365,7 +369,7 @@ function HooksSection({
               </button>
               <button
                 onClick={onAddStep}
-                disabled={!newName.trim() || !newCommand.trim() || (showConditionInput && !(newCondition ?? '').trim())}
+                disabled={!newName.trim() || !newCommand.trim()}
                 className="px-3 py-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 rounded-lg transition-colors disabled:opacity-40"
               >
                 Add command
@@ -379,7 +383,6 @@ function HooksSection({
           <ImportSkillPicker
             onImport={onImportSkill}
             onClose={onCloseImportPicker}
-            showConditionInput={showConditionInput}
           />
         )}
 
@@ -525,13 +528,32 @@ function SkillCard({
   skill,
   onToggle,
   onRemove,
+  onUpdateCondition,
 }: {
   skill: HookSkillRef;
   onToggle: (enabled: boolean) => void;
   onRemove: () => void;
+  onUpdateCondition: (condition: string) => void;
 }) {
   const isPredefined = skill.skillName.startsWith('verify-');
   const isCustom = skill.trigger === 'custom';
+  const [editingCondition, setEditingCondition] = useState(false);
+  const [conditionDraft, setConditionDraft] = useState('');
+  const conditionRef = useRef<HTMLTextAreaElement>(null);
+
+  const startEditCondition = () => {
+    setConditionDraft(skill.condition ?? '');
+    setEditingCondition(true);
+    setTimeout(() => conditionRef.current?.focus(), 0);
+  };
+
+  const finishEditCondition = () => {
+    const trimmed = conditionDraft.trim();
+    if (trimmed && trimmed !== (skill.condition ?? '')) {
+      onUpdateCondition(trimmed);
+    }
+    setEditingCondition(false);
+  };
 
   return (
     <div className={`rounded-xl border border-white/[0.06] ${settings.card} group`}>
@@ -545,8 +567,33 @@ function SkillCard({
             )}
           </div>
           <p className={`text-[11px] ${text.dimmed} mt-0.5 font-mono`}>/{skill.skillName}</p>
-          {isCustom && skill.condition && (
-            <p className={`text-[10px] text-violet-400/70 mt-1 italic truncate`}>{skill.condition}</p>
+          {isCustom && (
+            editingCondition ? (
+              <textarea
+                ref={conditionRef}
+                value={conditionDraft}
+                onChange={(e) => setConditionDraft(e.target.value)}
+                onBlur={finishEditCondition}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finishEditCondition(); }
+                  if (e.key === 'Escape') setEditingCondition(false);
+                }}
+                className={`w-full mt-1 text-[10px] text-violet-400 bg-violet-400/[0.06] border border-violet-400/20 rounded-md px-2 py-1 focus:outline-none focus:border-violet-400/40 resize-none font-mono leading-relaxed`}
+                rows={2}
+                placeholder="Describe when this hook should run..."
+              />
+            ) : (
+              <p
+                className={`text-[10px] mt-1 italic truncate cursor-pointer rounded px-1 -mx-1 transition-colors ${
+                  skill.condition
+                    ? 'text-violet-400/70 hover:text-violet-400 hover:bg-violet-400/[0.06]'
+                    : `${text.dimmed} hover:text-violet-400/70 hover:bg-violet-400/[0.06]`
+                }`}
+                onClick={startEditCondition}
+              >
+                {skill.condition || 'Click to set condition...'}
+              </p>
+            )
           )}
         </div>
 
@@ -575,20 +622,466 @@ function SkillCard({
   );
 }
 
-function ImportSkillPicker({
-  onImport,
-  onClose,
-  showConditionInput,
+function CustomHookGroupCard({
+  condition,
+  steps,
+  skills,
+  onUpdateStep,
+  onRemoveStep,
+  onToggleSkill,
+  onRemoveSkill,
+  onEditGroup,
 }: {
-  onImport: (skillName: string, condition?: string) => void;
+  condition: string;
+  steps: HookStep[];
+  skills: HookSkillRef[];
+  onUpdateStep: (stepId: string, updates: Partial<Pick<HookStep, 'enabled'>>) => void;
+  onRemoveStep: (stepId: string) => void;
+  onToggleSkill: (skillName: string, enabled: boolean) => void;
+  onRemoveSkill: (skillName: string) => void;
+  onEditGroup: () => void;
+}) {
+  return (
+    <div className={`rounded-xl border border-white/[0.06] ${settings.card} overflow-hidden`}>
+      {/* Condition header */}
+      <button
+        onClick={onEditGroup}
+        className="w-full text-left px-4 py-2.5 bg-violet-400/[0.04] border-b border-white/[0.04] hover:bg-violet-400/[0.08] transition-colors"
+      >
+        <p className="text-[10px] text-violet-400/80 italic leading-relaxed">{condition || 'No condition set'}</p>
+      </button>
+      <div>
+        {/* Step rows */}
+        {steps.map((step) => {
+          const enabled = step.enabled !== false;
+          return (
+            <div
+              key={step.id}
+              className="flex items-center gap-3 px-4 py-2.5 group cursor-pointer hover:bg-white/[0.02] transition-colors"
+              onClick={onEditGroup}
+            >
+              <Terminal className={`w-3.5 h-3.5 flex-shrink-0 ${enabled ? text.muted : text.dimmed}`} />
+              <div className="flex-1 min-w-0">
+                <span className={`text-xs font-medium ${enabled ? text.primary : text.dimmed}`}>{step.name}</span>
+                <p className={`text-[11px] ${text.dimmed} mt-0.5 font-mono truncate`}>{step.command}</p>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); onUpdateStep(step.id, { enabled: !enabled }); }}
+                className="relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0"
+                style={{ backgroundColor: enabled ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
+              >
+                <span className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${enabled ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'}`} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onRemoveStep(step.id); }}
+                className={`group/remove ${text.dimmed} hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
+              >
+                <CircleMinusIcon className="w-[18px] h-[18px]" />
+              </button>
+            </div>
+          );
+        })}
+        {/* Skill rows */}
+        {skills.map((skill) => (
+          <div
+            key={skill.skillName}
+            className="flex items-center gap-3 px-4 py-2.5 group cursor-pointer hover:bg-white/[0.02] transition-colors"
+            onClick={onEditGroup}
+          >
+            <Sparkles className={`w-3.5 h-3.5 flex-shrink-0 ${skill.enabled ? 'text-pink-400/70' : text.dimmed}`} />
+            <div className="flex-1 min-w-0">
+              <span className={`text-xs font-medium ${skill.enabled ? text.primary : text.dimmed}`}>{skill.skillName}</span>
+              <p className={`text-[11px] ${text.dimmed} mt-0.5 font-mono`}>/{skill.skillName}</p>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleSkill(skill.skillName, !skill.enabled); }}
+              className="relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0"
+              style={{ backgroundColor: skill.enabled ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
+            >
+              <span className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${skill.enabled ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'}`} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemoveSkill(skill.skillName); }}
+              className={`group/remove ${text.dimmed} hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
+            >
+              <CircleMinusIcon className="w-[18px] h-[18px]" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CustomHookEditor({
+  onAddCommand,
+  onImportSkill,
+  onRemoveStep,
+  onRemoveSkill,
+  onConditionChange,
+  onClose,
+  initialCondition,
+  existingSteps,
+  existingSkills,
+}: {
+  onAddCommand: (name: string, command: string, condition: string) => void;
+  onImportSkill: (skillName: string, condition: string) => void;
+  onRemoveStep: (stepId: string) => void;
+  onRemoveSkill: (skillName: string) => void;
+  onConditionChange?: (oldCondition: string, newCondition: string) => void;
   onClose: () => void;
-  showConditionInput?: boolean;
+  initialCondition?: string;
+  existingSteps?: HookStep[];
+  existingSkills?: HookSkillRef[];
 }) {
   const api = useApi();
   const [available, setAvailable] = useState<Array<{ name: string; displayName: string; description: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [condition, setCondition] = useState('');
+  const [condition, setCondition] = useState(initialCondition ?? '');
+  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
+  const [pendingCmds, setPendingCmds] = useState<Array<{ name: string; command: string }>>([]);
+  const [cmdName, setCmdName] = useState('');
+  const [cmdCommand, setCmdCommand] = useState('');
+
+  const isEditMode = initialCondition !== undefined;
+  const conditionChanged = isEditMode && condition.trim() !== (initialCondition ?? '').trim();
+  const existingSkillNames = new Set(existingSkills?.map((s) => s.skillName) ?? []);
+  const newSkillCount = [...selectedSkills].filter((n) => !existingSkillNames.has(n)).length;
+
+  const fetchAvailable = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.fetchAvailableHookSkills();
+      setAvailable(data.available);
+    } finally {
+      setLoading(false);
+    }
+  }, [api]);
+
+  useEffect(() => { fetchAvailable(); }, [fetchAvailable]);
+
+  const toggleSkill = (name: string) => {
+    if (existingSkillNames.has(name)) return;
+    setSelectedSkills((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const addCmd = () => {
+    const n = cmdName.trim();
+    const c = cmdCommand.trim();
+    if (!n || !c) return;
+    setPendingCmds((prev) => [...prev, { name: n, command: c }]);
+    setCmdName('');
+    setCmdCommand('');
+  };
+
+  const handleSubmit = () => {
+    const cond = condition.trim();
+    if (!cond) return;
+    for (const cmd of pendingCmds) {
+      onAddCommand(cmd.name, cmd.command, cond);
+    }
+    for (const name of selectedSkills) {
+      if (!existingSkillNames.has(name)) {
+        onImportSkill(name, cond);
+      }
+    }
+    if (conditionChanged && onConditionChange) {
+      onConditionChange(initialCondition!, cond);
+    }
+    onClose();
+  };
+
+  const totalNew = pendingCmds.length + newSkillCount;
+  const showSubmit = isEditMode ? (totalNew > 0 || conditionChanged) : (!!condition.trim() && totalNew > 0);
+  const submitLabel = totalNew > 0
+    ? `Add ${totalNew} item${totalNew > 1 ? 's' : ''}`
+    : 'Update condition';
+
+  const lowerSearch = search.toLowerCase();
+  const filtered = lowerSearch
+    ? available.filter((s) => s.name.toLowerCase().includes(lowerSearch) || s.displayName.toLowerCase().includes(lowerSearch) || s.description.toLowerCase().includes(lowerSearch))
+    : available;
+
+  // Merge existing and pending commands for display
+  const allCommands: Array<{ type: 'existing' | 'pending'; id: string; name: string; command: string }> = [
+    ...(existingSteps ?? []).map((s) => ({ type: 'existing' as const, id: s.id, name: s.name, command: s.command })),
+    ...pendingCmds.map((c, i) => ({ type: 'pending' as const, id: `pending-${i}`, name: c.name, command: c.command })),
+  ];
+
+  return (
+    <div className={`rounded-xl border border-white/[0.06] ${settings.card} p-4`}>
+      <div className="flex items-center justify-between mb-3">
+        <span className={`text-xs font-medium ${text.primary}`}>{isEditMode ? 'Edit custom hook' : 'Add hook'}</span>
+        <button onClick={onClose} className={`p-1 ${text.dimmed} hover:text-white`}>
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Condition */}
+      <textarea
+        value={condition}
+        onChange={(e) => setCondition(e.target.value)}
+        placeholder="When should agents run this? (e.g. &quot;When changes touch database models or migrations&quot;)"
+        rows={2}
+        className={`w-full px-3 py-2 mb-3 rounded-lg text-xs bg-white/[0.04] border border-white/[0.06] text-white placeholder-[#4b5563] focus:outline-none focus:border-white/[0.15] resize-none`}
+        autoFocus
+      />
+
+      {/* Commands section */}
+      <div className="mb-3">
+        <span className={`text-[10px] font-medium ${text.muted} uppercase tracking-wider`}>Commands</span>
+        {allCommands.length > 0 && (
+          <div className="space-y-1 mt-2">
+            {allCommands.map((cmd) => (
+              <div key={cmd.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.02]">
+                <Terminal className={`w-3 h-3 ${text.dimmed} flex-shrink-0`} />
+                <span className={`text-xs ${text.secondary} flex-1 min-w-0 truncate`}>{cmd.name}</span>
+                <span className={`text-[10px] ${text.dimmed} font-mono truncate max-w-[40%]`}>{cmd.command}</span>
+                <button
+                  onClick={() => cmd.type === 'existing' ? onRemoveStep(cmd.id) : setPendingCmds((prev) => prev.filter((_, j) => `pending-${j}` !== cmd.id))}
+                  className={`${text.dimmed} hover:text-red-400 flex-shrink-0`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2 mt-2">
+          <input
+            value={cmdName}
+            onChange={(e) => setCmdName(e.target.value)}
+            placeholder="Name"
+            className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs bg-white/[0.04] border border-white/[0.06] text-white placeholder-[#4b5563] focus:outline-none focus:border-white/[0.15]`}
+          />
+          <input
+            value={cmdCommand}
+            onChange={(e) => setCmdCommand(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addCmd(); }}
+            placeholder="Command"
+            className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs bg-white/[0.04] border border-white/[0.06] text-white placeholder-[#4b5563] focus:outline-none focus:border-white/[0.15] font-mono`}
+          />
+          <button
+            onClick={addCmd}
+            disabled={!cmdName.trim() || !cmdCommand.trim()}
+            className={`px-2 py-1.5 rounded-lg ${text.dimmed} hover:text-teal-400 hover:bg-teal-400/10 transition-colors disabled:opacity-30 disabled:hover:text-inherit disabled:hover:bg-transparent`}
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Skills section */}
+      <div className="border-t border-white/[0.06] pt-3">
+        <span className={`text-[10px] font-medium ${text.muted} uppercase tracking-wider`}>Skills</span>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search skills..."
+          className={`w-full px-3 py-2 mt-2 mb-2 rounded-lg text-xs bg-white/[0.04] border border-white/[0.06] text-white placeholder-[#4b5563] focus:outline-none focus:border-white/[0.15]`}
+        />
+        {loading ? (
+          <div className="flex justify-center py-4">
+            <div className="w-4 h-4 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className={`text-[11px] ${text.muted} text-center py-3`}>
+            {search ? 'No skills match your search.' : 'No additional skills available.'}
+          </p>
+        ) : (
+          <div className="space-y-0.5 max-h-48 overflow-y-auto">
+            {filtered.map((skill) => {
+              const isChecked = selectedSkills.has(skill.name) || existingSkillNames.has(skill.name);
+              const isLocked = existingSkillNames.has(skill.name);
+              return (
+                <button
+                  key={skill.name}
+                  onClick={() => toggleSkill(skill.name)}
+                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2.5 ${
+                    isLocked ? 'opacity-50 cursor-default' : 'hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isChecked
+                      ? isLocked ? 'bg-teal-400/10 border-teal-400/30' : 'bg-teal-400/20 border-teal-400/50'
+                      : 'border-white/[0.15]'
+                  }`}>
+                    {isChecked && (
+                      <svg className="w-2 h-2 text-teal-400" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 6l3 3 5-5" />
+                      </svg>
+                    )}
+                  </span>
+                  <div className="min-w-0">
+                    <span className={`text-xs font-medium ${text.secondary}`}>{skill.displayName}</span>
+                    {skill.description && (
+                      <p className={`text-[10px] ${text.muted} mt-0.5`}>{skill.description}</p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Submit */}
+      {showSubmit && (
+        <button
+          onClick={handleSubmit}
+          disabled={!condition.trim()}
+          className="w-full mt-3 px-3 py-2 rounded-lg text-xs font-medium bg-teal-400/15 text-teal-300 hover:bg-teal-400/25 transition-colors disabled:opacity-40"
+        >
+          {submitLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CustomHooksSection({
+  steps,
+  skills,
+  onAddStep,
+  onUpdateStep,
+  onRemoveStep,
+  onImportSkill,
+  onToggleSkill,
+  onRemoveSkill,
+  onUpdateGroupCondition,
+}: {
+  steps: HookStep[];
+  skills: HookSkillRef[];
+  onAddStep: (name: string, command: string, condition: string) => void;
+  onUpdateStep: (stepId: string, updates: Partial<Pick<HookStep, 'name' | 'command' | 'enabled' | 'condition'>>) => void;
+  onRemoveStep: (stepId: string) => void;
+  onImportSkill: (skillName: string, condition: string) => void;
+  onToggleSkill: (skillName: string, enabled: boolean) => void;
+  onRemoveSkill: (skillName: string) => void;
+  onUpdateGroupCondition: (oldCondition: string, newCondition: string) => void;
+}) {
+  const [editingCondition, setEditingCondition] = useState<string | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
+
+  // Group all items by condition
+  const groups: Record<string, { steps: HookStep[]; skills: HookSkillRef[] }> = {};
+  for (const step of steps) {
+    const key = step.condition ?? '';
+    (groups[key] ??= { steps: [], skills: [] }).steps.push(step);
+  }
+  for (const skill of skills) {
+    const key = skill.condition ?? '';
+    (groups[key] ??= { steps: [], skills: [] }).skills.push(skill);
+  }
+
+  const hasItems = steps.length > 0 || skills.length > 0;
+  const isEditing = showEditor;
+  const allConditions = new Set([...Object.keys(groups), ...(editingCondition !== null ? [editingCondition] : [])]);
+
+  const openEditor = () => { setEditingCondition(null); setShowEditor(true); };
+  const editGroup = (condition: string) => { setEditingCondition(condition); setShowEditor(true); };
+  const closeEditor = () => { setEditingCondition(null); setShowEditor(false); };
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <MessageSquareText className="w-3.5 h-3.5 text-violet-400" />
+        <h3 className={`text-xs font-semibold ${text.primary} uppercase tracking-wider`}>Custom</h3>
+        <span className={`text-[10px] ${text.dimmed} ml-1`}>Agent decides when to run based on your condition</span>
+      </div>
+      <div className="space-y-2">
+        {!hasItems && !isEditing && (
+          <div className="text-center py-6">
+            <p className={`text-xs ${text.muted}`}>No custom hooks configured yet.</p>
+          </div>
+        )}
+
+        {/* Groups — render editor inline when editing */}
+        {[...allConditions].map((condition) =>
+          isEditing && editingCondition === condition ? (
+            <CustomHookEditor
+              key={`edit-${condition}`}
+              initialCondition={condition}
+              existingSteps={groups[condition]?.steps}
+              existingSkills={groups[condition]?.skills}
+              onAddCommand={onAddStep}
+              onImportSkill={onImportSkill}
+              onRemoveStep={onRemoveStep}
+              onRemoveSkill={onRemoveSkill}
+              onConditionChange={onUpdateGroupCondition}
+              onClose={closeEditor}
+            />
+          ) : groups[condition] ? (
+            <CustomHookGroupCard
+              key={condition}
+              condition={condition}
+              steps={groups[condition].steps}
+              skills={groups[condition].skills}
+              onUpdateStep={onUpdateStep}
+              onRemoveStep={onRemoveStep}
+              onToggleSkill={onToggleSkill}
+              onRemoveSkill={onRemoveSkill}
+              onEditGroup={() => editGroup(condition)}
+            />
+          ) : null,
+        )}
+
+        {/* New editor at bottom */}
+        {isEditing && editingCondition === null && (
+          <CustomHookEditor
+            onAddCommand={onAddStep}
+            onImportSkill={onImportSkill}
+            onRemoveStep={onRemoveStep}
+            onRemoveSkill={onRemoveSkill}
+            onClose={closeEditor}
+          />
+        )}
+
+        {/* Add hook button */}
+        {!isEditing && (
+          <button
+            onClick={openEditor}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium ${text.muted} hover:text-[#9ca3af] border border-dashed border-white/[0.08] hover:border-white/[0.15] rounded-lg transition-colors`}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add hook
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ImportSkillPicker({
+  onImport,
+  onClose,
+  showConditionInput,
+  initialCondition,
+  initialSelected,
+  onConditionChange,
+}: {
+  onImport: (skillName: string, condition?: string) => void;
+  onClose: () => void;
+  showConditionInput?: boolean;
+  initialCondition?: string;
+  initialSelected?: Set<string>;
+  onConditionChange?: (oldCondition: string, newCondition: string) => void;
+}) {
+  const api = useApi();
+  const [available, setAvailable] = useState<Array<{ name: string; displayName: string; description: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [condition, setCondition] = useState(initialCondition ?? '');
+  const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected));
+
+  const isEditMode = initialCondition !== undefined;
+  const conditionChanged = isEditMode && condition.trim() !== (initialCondition ?? '').trim();
 
   const fetchAvailable = useCallback(async () => {
     setLoading(true);
@@ -614,12 +1107,36 @@ function ImportSkillPicker({
       )
     : available;
 
-  const canImport = !showConditionInput || condition.trim();
+  const toggleSkill = (name: string) => {
+    if (initialSelected?.has(name)) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const handleSubmit = () => {
+    const cond = condition.trim() || undefined;
+    for (const name of selected) {
+      if (!initialSelected?.has(name)) {
+        onImport(name, cond);
+      }
+    }
+    if (conditionChanged && onConditionChange) {
+      onConditionChange(initialCondition!, condition.trim());
+    }
+    onClose();
+  };
+
+  const newlySelected = [...selected].filter(n => !initialSelected?.has(n)).length;
+  const showAction = showConditionInput && (newlySelected > 0 || conditionChanged);
 
   return (
     <div className={`rounded-xl border border-white/[0.06] ${settings.card} p-4`}>
       <div className="flex items-center justify-between mb-3">
-        <span className={`text-xs font-medium ${text.primary}`}>Add skill</span>
+        <span className={`text-xs font-medium ${text.primary}`}>{isEditMode ? 'Edit custom hook' : 'Add skill'}</span>
         <button onClick={onClose} className={`p-1 ${text.dimmed} hover:text-white`}>
           <X className="w-3.5 h-3.5" />
         </button>
@@ -655,21 +1172,55 @@ function ImportSkillPicker({
           {search ? 'No skills match your search.' : 'No additional skills available in the registry.'}
         </p>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((skill) => (
-            <button
-              key={skill.name}
-              onClick={() => canImport && onImport(skill.name, condition.trim() || undefined)}
-              disabled={!canImport}
-              className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${canImport ? 'hover:bg-white/[0.04]' : 'opacity-40 cursor-not-allowed'}`}
-            >
-              <span className={`text-xs font-medium ${text.secondary}`}>{skill.displayName}</span>
-              {skill.description && (
-                <p className={`text-[10px] ${text.muted} mt-0.5`}>{skill.description}</p>
-              )}
-            </button>
-          ))}
+        <div className="space-y-1">
+          {filtered.map((skill) => {
+            const isChecked = selected.has(skill.name);
+            const isLocked = initialSelected?.has(skill.name);
+            return (
+              <button
+                key={skill.name}
+                onClick={() => showConditionInput ? toggleSkill(skill.name) : onImport(skill.name)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2.5 ${
+                  isLocked ? 'opacity-50 cursor-default' : 'hover:bg-white/[0.04]'
+                }`}
+              >
+                {showConditionInput && (
+                  <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isChecked
+                      ? isLocked
+                        ? 'bg-teal-400/10 border-teal-400/30'
+                        : 'bg-teal-400/20 border-teal-400/50'
+                      : 'border-white/[0.15]'
+                  }`}>
+                    {isChecked && (
+                      <svg className="w-2 h-2 text-teal-400" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 6l3 3 5-5" />
+                      </svg>
+                    )}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <span className={`text-xs font-medium ${text.secondary}`}>{skill.displayName}</span>
+                  {skill.description && (
+                    <p className={`text-[10px] ${text.muted} mt-0.5`}>{skill.description}</p>
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
+      )}
+
+      {/* Action button */}
+      {showAction && (
+        <button
+          onClick={handleSubmit}
+          className="w-full mt-3 px-3 py-2 rounded-lg text-xs font-medium bg-teal-400/15 text-teal-300 hover:bg-teal-400/25 transition-colors"
+        >
+          {newlySelected > 0
+            ? `Add ${newlySelected} skill${newlySelected > 1 ? 's' : ''}`
+            : 'Update condition'}
+        </button>
       )}
     </div>
   );

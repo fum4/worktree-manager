@@ -233,6 +233,7 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
             {([
               { trigger: 'pre-implementation' as const, label: 'Pre-Implementation' },
               { trigger: 'post-implementation' as const, label: 'Post-Implementation' },
+              { trigger: 'custom' as const, label: 'Custom' },
               { trigger: 'on-demand' as const, label: 'On-Demand' },
             ]).map(({ trigger, label }) => {
               const isActive = hookSkillRef?.enabled && (hookSkillRef.trigger ?? 'post-implementation') === trigger;
