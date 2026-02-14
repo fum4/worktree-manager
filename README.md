@@ -1,16 +1,16 @@
-# work3
+# dawg
 
-A CLI tool and web UI for managing multiple git worktrees with automatic port offsetting, issue tracker integration, and AI agent support. It solves the fundamental problem of running multiple dev server instances concurrently — when your app binds ports 3000 and 3001, a second copy can't start without conflicts. work3 transparently offsets all known ports per worktree by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime.
+A CLI tool and web UI for managing multiple git worktrees with automatic port offsetting, issue tracker integration, and AI agent support. It solves the fundamental problem of running multiple dev server instances concurrently — when your app binds ports 3000 and 3001, a second copy can't start without conflicts. dawg transparently offsets all known ports per worktree by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime.
 
-Beyond port management, work3 provides a full development workflow: create worktrees from Jira or Linear issues, track progress with todos, run hooks (automated checks and agent skills), and integrate with AI coding agents via MCP (Model Context Protocol).
+Beyond port management, dawg provides a full development workflow: create worktrees from Jira or Linear issues, track progress with todos, run hooks (automated checks and agent skills), and integrate with AI coding agents via MCP (Model Context Protocol).
 
 ## Quick Start
 
 ```bash
 # In your project directory
 cd /path/to/your/project
-work3 init    # interactive setup — discovers ports, configures commands
-work3         # start the server and open the UI
+dawg init    # interactive setup — discovers ports, configures commands
+dawg         # start the server and open the UI
 ```
 
 In the UI:
@@ -36,12 +36,12 @@ See [Port Mapping](docs/PORT-MAPPING.md) for the full technical details.
 Create, start, stop, and remove git worktrees from the UI or CLI. Each worktree gets its own port offset, environment variables, and process lifecycle.
 
 ### Issue Tracker Integration
-Connect to **Jira** (OAuth or API token), **Linear** (API key), or create **local issues**. Create worktrees directly from tickets — work3 fetches issue details, generates a TASK.md with context, and sets up the branch.
+Connect to **Jira** (OAuth or API token), **Linear** (API key), or create **local issues**. Create worktrees directly from tickets — dawg fetches issue details, generates a TASK.md with context, and sets up the branch.
 
 See [Integrations](docs/INTEGRATIONS.md) for setup details.
 
 ### AI Agent Support (MCP)
-work3 exposes 20+ tools via MCP (Model Context Protocol) that any AI coding agent can use — browse issues, create worktrees, manage todos, commit/push/PR, run hooks. Agents get a structured workflow: pick an issue, create a worktree, read TASK.md, work through todos, run hooks, and ship.
+dawg exposes 20+ tools via MCP (Model Context Protocol) that any AI coding agent can use — browse issues, create worktrees, manage todos, commit/push/PR, run hooks. Agents get a structured workflow: pick an issue, create a worktree, read TASK.md, work through todos, run hooks, and ship.
 
 See [MCP](docs/MCP.md) for the tool reference and [Agents](docs/AGENTS.md) for the agent tooling system.
 
@@ -51,7 +51,7 @@ Automated checks and agent skills organized by trigger type (pre-implementation,
 See [Hooks](docs/HOOKS.md) for configuration and usage.
 
 ### Electron Desktop App
-Optional native app with multi-project tab support, `work3://` deep linking, and window state persistence.
+Optional native app with multi-project tab support, `dawg://` deep linking, and window state persistence.
 
 See [Electron](docs/ELECTRON.md) for details.
 
@@ -59,18 +59,18 @@ See [Electron](docs/ELECTRON.md) for details.
 
 | Command | Description |
 |---------|-------------|
-| `work3` | Start the server and open the UI |
-| `work3 init` | Interactive setup wizard |
-| `work3 add [name]` | Set up an integration (github, linear, jira) |
-| `work3 mcp` | Start as an MCP server for AI agents |
-| `work3 task <ID>` | Create a worktree from an issue ID |
-| `work3 connect` | Connect to an existing work3 server |
+| `dawg` | Start the server and open the UI |
+| `dawg init` | Interactive setup wizard |
+| `dawg add [name]` | Set up an integration (github, linear, jira) |
+| `dawg mcp` | Start as an MCP server for AI agents |
+| `dawg task <ID>` | Create a worktree from an issue ID |
+| `dawg connect` | Connect to an existing dawg server |
 
 See [CLI Reference](docs/CLI.md) for full details.
 
 ## Configuration
 
-work3 stores its configuration in `.work3/config.json` at the project root. Key settings include start/install commands, discovered ports, offset step, environment variable mappings, and integration credentials.
+dawg stores its configuration in `.dawg/config.json` at the project root. Key settings include start/install commands, discovered ports, offset step, environment variable mappings, and integration credentials.
 
 See [Configuration](docs/CONFIGURATION.md) for the complete reference.
 

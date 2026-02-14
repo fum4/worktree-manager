@@ -1,6 +1,6 @@
 # Development Guide
 
-This document covers everything you need to develop, build, and extend work3.
+This document covers everything you need to develop, build, and extend dawg.
 
 ## Prerequisites
 
@@ -79,7 +79,7 @@ worktree-manager/
 ├── src/
 │   ├── cli/                  -- CLI entry point and subcommands
 │   │   ├── index.ts          -- Main CLI, routes subcommands, starts server
-│   │   ├── config.ts         -- Loads .work3/config.json (walks up dir tree)
+│   │   ├── config.ts         -- Loads .dawg/config.json (walks up dir tree)
 │   │   ├── init.ts           -- Interactive setup wizard
 │   │   ├── add.ts            -- Add worktree from CLI
 │   │   └── task.ts           -- Create worktree from Jira issue ID
@@ -125,7 +125,7 @@ worktree-manager/
 │   │   │   ├── WorktreeList.tsx, WorktreeItem.tsx
 │   │   │   ├── IssueList.tsx, JiraIssueItem.tsx, LinearIssueItem.tsx
 │   │   │   ├── CreateForm.tsx -- Create worktree form
-│   │   │   ├── ConfigurationPanel.tsx -- Edit .work3/config.json
+│   │   │   ├── ConfigurationPanel.tsx -- Edit .dawg/config.json
 │   │   │   ├── IntegrationsPanel.tsx -- Jira/GitHub/Linear setup
 │   │   │   ├── AgentsView.tsx -- Agent tooling management
 │   │   │   ├── Tooltip.tsx   -- Custom tooltip (use instead of native title)
@@ -175,7 +175,7 @@ worktree-manager/
 │   ├── main.ts               -- Window management, IPC handlers
 │   ├── preload.ts            -- Preload script (typed bridge)
 │   ├── preload.cjs           -- Compiled preload for production
-│   ├── server-spawner.ts     -- Spawns work3 server per project
+│   ├── server-spawner.ts     -- Spawns dawg server per project
 │   ├── project-manager.ts    -- Multi-project management
 │   ├── preferences-manager.ts -- User preferences persistence
 │   └── tsconfig.json         -- Separate TS config for Electron
@@ -444,23 +444,23 @@ For reference, these are the CLI entry points (all in `src/cli/`):
 
 | Command | Description |
 |---|---|
-| `work3` | Start the server and open UI (Electron or browser) |
-| `work3 init` | Interactive setup wizard to create `.work3/config.json` |
-| `work3 connect` | Connect to an existing running work3 server |
-| `work3 mcp` | Start as an MCP server (for Claude Code integration) |
-| `work3 task <ID>` | Create a worktree from a Jira issue ID |
+| `dawg` | Start the server and open UI (Electron or browser) |
+| `dawg init` | Interactive setup wizard to create `.dawg/config.json` |
+| `dawg connect` | Connect to an existing running dawg server |
+| `dawg mcp` | Start as an MCP server (for Claude Code integration) |
+| `dawg task <ID>` | Create a worktree from a Jira issue ID |
 
 ## Configuration
 
-The project config lives at `.work3/config.json` in the project root. Key fields:
+The project config lives at `.dawg/config.json` in the project root. Key fields:
 
 - `projectDir` -- absolute path to the project root
 - `startCommand` -- command to start the dev server (e.g., `pnpm dev`)
 - `installCommand` -- command to install dependencies (e.g., `pnpm install`)
 - `baseBranch` -- default base branch (e.g., `main`)
-- `serverPort` -- work3 server port (default 6969)
+- `serverPort` -- dawg server port (default 6969)
 - `ports` -- array of discovered ports with `offsetStep`
 - `envMapping` -- environment variable mappings for port offsetting
 - Integration settings for Jira, GitHub, and Linear
 
-Worktrees are stored in `.work3/worktrees/`. The server writes `server.json` to `.work3/` for agent discovery (contains URL and PID of the running server).
+Worktrees are stored in `.dawg/worktrees/`. The server writes `server.json` to `.dawg/` for agent discovery (contains URL and PID of the running server).

@@ -16,10 +16,10 @@ import { preferencesManager, type AppPreferences, type SetupPreference } from '.
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 // Set app name (shows in dock, menu bar, etc.)
-app.setName('work3');
+app.setName('dawg');
 
 // Custom protocol for opening projects
-const PROTOCOL = 'work3';
+const PROTOCOL = 'dawg';
 
 
 // Single main window and project manager
@@ -49,7 +49,7 @@ function createMainWindow(): BrowserWindow {
     minWidth: 800,
     minHeight: 700,
     backgroundColor: '#0a0c10',
-    title: 'work3',
+    title: 'dawg',
     titleBarStyle: 'hiddenInset' as const,
     trafficLightPosition: { x: 12, y: 12 },
     icon: path.join(currentDir, '..', 'assets', 'icon.png'),
@@ -233,7 +233,7 @@ function createTray() {
   icon.setTemplateImage(true);
 
   tray = new Tray(icon);
-  tray.setToolTip('work3 - Worktree Manager');
+  tray.setToolTip('dawg - Worktree Manager');
 
   tray.on('click', () => {
     if (mainWindow) {
@@ -284,7 +284,7 @@ function handleProtocolUrl(url: string) {
   }
 }
 
-// Register as handler for work3:// protocol
+// Register as handler for dawg:// protocol
 if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
     path.resolve(process.argv[1]),

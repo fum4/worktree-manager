@@ -16,7 +16,7 @@ const PREDEFINED_SKILLS: PredefinedSkill[] = [
       'description: Generate a summary of what changed in this worktree (diff-based)',
       'user-invocable: true',
     ].join('\n'),
-    body: `You are a hook skill for the work3 worktree manager.
+    body: `You are a hook skill for the dawg worktree manager.
 
 ## Task
 
@@ -45,7 +45,7 @@ Keep the summary factual and concise. Focus on what changed, not why.`,
       'description: Review own code for bugs, security issues, and quality problems',
       'user-invocable: true',
     ].join('\n'),
-    body: `You are a hook skill for the work3 worktree manager.
+    body: `You are a hook skill for the dawg worktree manager.
 
 ## Task
 
@@ -74,7 +74,7 @@ Be honest and specific. Flag real issues, not style preferences.`,
       'description: Generate step-by-step manual testing instructions',
       'user-invocable: true',
     ].join('\n'),
-    body: `You are a hook skill for the work3 worktree manager.
+    body: `You are a hook skill for the dawg worktree manager.
 
 ## Task
 
@@ -105,7 +105,7 @@ Write for someone unfamiliar with the codebase. Be specific about clicks, URLs, 
       'description: Write unit/integration tests for the changes',
       'user-invocable: true',
     ].join('\n'),
-    body: `You are a hook skill for the work3 worktree manager.
+    body: `You are a hook skill for the dawg worktree manager.
 
 ## Task
 
@@ -133,7 +133,7 @@ Match the project's testing conventions. Prefer real assertions over snapshot te
       'description: Explain what changed in this worktree like the reader is five years old',
       'user-invocable: true',
     ].join('\n'),
-    body: `You are a hook skill for the work3 worktree manager.
+    body: `You are a hook skill for the dawg worktree manager.
 
 ## Task
 
@@ -161,7 +161,7 @@ Have fun with it. Be playful, be clear, be honest.`,
 ];
 
 function getRegistryDir(): string {
-  return path.join(os.homedir(), '.work3', 'skills');
+  return path.join(os.homedir(), '.dawg', 'skills');
 }
 
 function buildSkillMd(frontmatter: string, body: string): string {

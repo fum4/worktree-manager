@@ -80,7 +80,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
   const notesManager = new NotesManager(manager.getConfigDir());
   const hooksManager = new HooksManager(manager);
 
-  // Auto-create predefined hook skills in ~/.work3/skills/ and import into config
+  // Auto-create predefined hook skills in ~/.dawg/skills/ and import into config
   ensurePredefinedHookSkills();
   hooksManager.ensureSkillsImported(getPredefinedSkillNames());
 
@@ -166,7 +166,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
 }
 
 /**
- * Ensure the work3 CLI is available in PATH.
+ * Ensure the dawg CLI is available in PATH.
  * If not found, creates a symlink in ~/.local/bin/ pointing to the CLI entry point.
  */
 function ensureCliInPath() {

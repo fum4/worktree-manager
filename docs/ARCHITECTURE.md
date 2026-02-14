@@ -2,7 +2,7 @@
 
 ## System Overview
 
-work3 is a CLI tool, web UI, and optional Electron desktop app for managing multiple git worktrees with automatic port offsetting. It solves the problem of port conflicts when running multiple dev server instances concurrently by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime via `--require`.
+dawg is a CLI tool, web UI, and optional Electron desktop app for managing multiple git worktrees with automatic port offsetting. It solves the problem of port conflicts when running multiple dev server instances concurrently by monkey-patching Node.js `net.Server.listen` and `net.Socket.connect` at runtime via `--require`.
 
 The system is organized into three primary layers:
 
@@ -82,7 +82,7 @@ Key responsibilities:
 - **Offset allocation**: `allocateOffset()` hands out sequential multiples of `offsetStep` (e.g., 1, 2, 3...); `releaseOffset()` frees them
 - **Env var generation**: `getEnvForOffset()` builds the environment variables that activate the port hook: `NODE_OPTIONS` (with `--require port-hook.cjs`), `__WM_PORT_OFFSET__`, `__WM_KNOWN_PORTS__`, plus any user-defined `envMapping` templates
 - **Env mapping detection**: `detectEnvMapping()` scans `.env*` files for references to discovered ports and generates template strings like `http://localhost:${3000}`
-- **Persistence**: Discovered ports and env mappings are written back to `.work3/config.json`
+- **Persistence**: Discovered ports and env mappings are written back to `.dawg/config.json`
 
 ### TerminalManager
 
@@ -95,7 +95,7 @@ Key responsibilities:
 
 ### NotesManager
 
-`src/server/notes-manager.ts` -- Manages per-issue metadata stored as JSON files under `.work3/issues/{source}/{issueId}/notes.json`.
+`src/server/notes-manager.ts` -- Manages per-issue metadata stored as JSON files under `.dawg/issues/{source}/{issueId}/notes.json`.
 
 Stored data per issue:
 - **linkedWorktreeId**: Which worktree is associated with this issue
@@ -111,13 +111,13 @@ The `buildWorktreeLinkMap()` method scans all notes files to produce a reverse m
 `src/server/verification-manager.ts` -- Manages automated checks and agent skills organized by trigger type. Contains two item types:
 
 1. **Command steps**: Shell commands (lint, typecheck, build) that run in the worktree directory. Each step has a trigger type, can be enabled/disabled, and custom-trigger steps include a natural-language condition.
-2. **Skill references**: References to skills from the `~/.work3/skills/` registry. The same skill can be used in multiple trigger types (identified by `skillName + trigger` composite key). Skills support per-issue overrides (inherit/enable/disable).
+2. **Skill references**: References to skills from the `~/.dawg/skills/` registry. The same skill can be used in multiple trigger types (identified by `skillName + trigger` composite key). Skills support per-issue overrides (inherit/enable/disable).
 
 Four trigger types: `pre-implementation` (before agent work), `post-implementation` (after agent work), `custom` (agent decides based on condition), `on-demand` (manually triggered).
 
-Command step runs are persisted to `.work3/worktrees/{id}/hooks/latest-run.json`. Skill results reported by agents are stored at `.work3/worktrees/{id}/hooks/skill-results.json`.
+Command step runs are persisted to `.dawg/worktrees/{id}/hooks/latest-run.json`. Skill results reported by agents are stored at `.dawg/worktrees/{id}/hooks/skill-results.json`.
 
-Hooks are configured via `.work3/hooks.json` with `steps` and `skills` arrays.
+Hooks are configured via `.dawg/hooks.json` with `steps` and `skills` arrays.
 
 ## Data Flow
 
@@ -169,11 +169,11 @@ The creation is asynchronous -- the HTTP response returns immediately with a pla
 
 ### 2. MCP Tool Calls
 
-MCP agents communicate with work3 through two modes:
+MCP agents communicate with dawg through two modes:
 
-**Proxy mode** (preferred when the server is running): The `work3 mcp` command detects a running server via `.work3/server.json`, then relays JSON-RPC messages between stdio (connected to Claude Code) and the server's Streamable HTTP transport at `/mcp`. This ensures the agent shares state with the UI.
+**Proxy mode** (preferred when the server is running): The `dawg mcp` command detects a running server via `.dawg/server.json`, then relays JSON-RPC messages between stdio (connected to Claude Code) and the server's Streamable HTTP transport at `/mcp`. This ensures the agent shares state with the UI.
 
-**Standalone mode** (fallback): If no server is running, `work3 mcp` creates its own `WorktreeManager` instance and serves MCP tools directly over stdio.
+**Standalone mode** (fallback): If no server is running, `dawg mcp` creates its own `WorktreeManager` instance and serves MCP tools directly over stdio.
 
 The tool definitions live in `src/actions.ts` as a flat array of `Action` objects. Each action has a name, description, parameter schema, and async handler function. The `MCP Server Factory` (`src/server/mcp-server-factory.ts`) converts these into MCP tools with Zod schemas. The same actions are used for both the Streamable HTTP MCP transport (exposed at `/mcp` on the server) and the standalone stdio MCP server.
 
@@ -188,7 +188,7 @@ Once attached, the `TerminalManager` spawns a PTY process (`node-pty`) in the wo
 
 ## Build System
 
-work3 uses a dual build system to produce the backend and frontend artifacts:
+dawg uses a dual build system to produce the backend and frontend artifacts:
 
 ### Backend: tsup (ESM)
 
@@ -339,7 +339,7 @@ src/
 electron/              Electron desktop app
 ├── main.ts              Main process (window, tray, IPC, protocol)
 ├── preload.cjs          Context bridge for renderer
-├── server-spawner.ts    Spawn/stop work3 server per project
+├── server-spawner.ts    Spawn/stop dawg server per project
 ├── project-manager.ts   Multi-project tab management
 ├── preferences-manager.ts  App preferences persistence
 └── tsconfig.json        Electron-specific TypeScript config
@@ -349,7 +349,7 @@ electron/              Electron desktop app
 
 The Hono server acts as a central hub. All clients -- the React SPA, the Electron shell, and MCP agents -- connect to the same server instance and share the same state.
 
-The server writes a `server.json` file to `.work3/server.json` on startup:
+The server writes a `server.json` file to `.dawg/server.json` on startup:
 
 ```json
 {
@@ -358,16 +358,16 @@ The server writes a `server.json` file to `.work3/server.json` on startup:
 }
 ```
 
-This file enables **agent discovery**: when `work3 mcp` starts, it reads `server.json`, checks if the process is alive (via `process.kill(pid, 0)`), and if so, enters **proxy mode** -- relaying JSON-RPC messages between stdio and the server's `/mcp` endpoint. This means an MCP agent and the web UI always see the same worktree state, running processes, and logs.
+This file enables **agent discovery**: when `dawg mcp` starts, it reads `server.json`, checks if the process is alive (via `process.kill(pid, 0)`), and if so, enters **proxy mode** -- relaying JSON-RPC messages between stdio and the server's `/mcp` endpoint. This means an MCP agent and the web UI always see the same worktree state, running processes, and logs.
 
-If no server is running (e.g., the agent is invoked before the user starts the UI), `work3 mcp` falls back to **standalone mode** with its own `WorktreeManager`.
+If no server is running (e.g., the agent is invoked before the user starts the UI), `dawg mcp` falls back to **standalone mode** with its own `WorktreeManager`.
 
-The Electron app uses a similar pattern: `electron/server-spawner.ts` spawns a `work3` CLI process per project (with `--no-open` to suppress browser opening), polls until the server is ready, then loads the UI at the server URL. The `electron/project-manager.ts` handles multi-project tabs, each backed by its own server process.
+The Electron app uses a similar pattern: `electron/server-spawner.ts` spawns a `dawg` CLI process per project (with `--no-open` to suppress browser opening), polls until the server is ready, then loads the UI at the server URL. The `electron/project-manager.ts` handles multi-project tabs, each backed by its own server process.
 
 `server.json` is cleaned up on graceful shutdown (SIGINT/SIGTERM).
 
 ## Configuration Discovery
 
-Configuration is loaded from `.work3/config.json`. The config loader walks up the directory tree from `process.cwd()` looking for a `.work3/` directory containing `config.json`. This allows running `work3` from any subdirectory within a project.
+Configuration is loaded from `.dawg/config.json`. The config loader walks up the directory tree from `process.cwd()` looking for a `.dawg/` directory containing `config.json`. This allows running `dawg` from any subdirectory within a project.
 
 For full details on configuration options and format, see [CONFIGURATION.md](./CONFIGURATION.md).

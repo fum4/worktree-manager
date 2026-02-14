@@ -6,7 +6,7 @@ Hooks are automated checks and agent skills that run at defined points in a work
 
 Hooks are organized by **trigger type** -- when they fire relative to agent work. Each trigger type can contain both **command steps** (shell commands) and **skill references** (agent skills from the registry).
 
-The hooks system is configured through the web UI's Hooks view and stored in `.work3/.work3/hooks.json`.
+The hooks system is configured through the web UI's Hooks view and stored in `.dawg/.dawg/hooks.json`.
 
 ## Trigger Types
 
@@ -35,7 +35,7 @@ Shell commands that run in the worktree directory and return pass/fail results.
 
 ### Skill References
 
-References to skills from the `~/.work3/skills/` registry. When hooks run, skill references tell the agent which skills to invoke.
+References to skills from the `~/.dawg/skills/` registry. When hooks run, skill references tell the agent which skills to invoke.
 
 - Skills are imported by name from the registry.
 - Each skill reference can be individually enabled/disabled.
@@ -57,7 +57,7 @@ The `getEffectiveSkills()` method resolves overrides by looking up the worktree'
 
 ## Configuration
 
-Hooks configuration is stored in `.work3/.work3/hooks.json`:
+Hooks configuration is stored in `.dawg/.dawg/hooks.json`:
 
 ```json
 {
@@ -114,7 +114,7 @@ Hooks configuration is stored in `.work3/.work3/hooks.json`:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `skillName` | string | Name of the skill in `~/.work3/skills/` |
+| `skillName` | string | Name of the skill in `~/.dawg/skills/` |
 | `enabled` | boolean | Whether this skill is active |
 | `trigger` | HookTrigger | When this skill runs (default: `post-implementation`) |
 | `condition` | string | Natural-language condition for `custom` trigger type |
@@ -149,7 +149,7 @@ Agents interact with hooks through the following workflow:
 2. Run `pre-implementation` hooks before starting work (command steps via `run_hooks`, skills invoked directly).
 3. While working, check `custom` hook conditions — if changes match a condition, run those hooks.
 4. Run `post-implementation` hooks after completing work.
-5. Report skill results back via `report_hook_status` (call twice: once before invoking without `success`/`summary` to show loading, once after with the result). For skills with detailed output, write an MD file to `{worktreePath}/.work3-{skillName}.md` and pass the path via `filePath`.
+5. Report skill results back via `report_hook_status` (call twice: once before invoking without `success`/`summary` to show loading, once after with the result). For skills with detailed output, write an MD file to `{worktreePath}/.dawg-{skillName}.md` and pass the path via `filePath`.
 6. Call `get_hooks_status` to verify all steps passed.
 7. After all work and hooks are done, ask the user if they'd like to start the worktree dev server automatically (via `start_worktree`).
 
@@ -159,14 +159,14 @@ When hooks are triggered for a worktree:
 
 1. The `HooksManager` filters steps by the target trigger type and enabled state.
 2. All matching command steps run in parallel via `execFile` in the worktree directory.
-3. Results are collected and persisted to `.work3/.work3/worktrees/{worktreeId}/hooks/latest-run.json`.
-4. Skill results are reported separately by agents and stored at `.work3/.work3/worktrees/{worktreeId}/hooks/skill-results.json`.
+3. Results are collected and persisted to `.dawg/.dawg/worktrees/{worktreeId}/hooks/latest-run.json`.
+4. Skill results are reported separately by agents and stored at `.dawg/.dawg/worktrees/{worktreeId}/hooks/skill-results.json`.
 
 ## Data Storage
 
 ```
-.work3/
-  .work3/
+.dawg/
+  .dawg/
     hooks.json                              # Global hooks configuration
     worktrees/
       <worktreeId>/

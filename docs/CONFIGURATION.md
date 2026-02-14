@@ -1,30 +1,30 @@
 # Configuration Reference
 
-work3 uses several configuration files at both the project level (`.work3/` directory) and the global level (`~/.work3/` directory). This document covers every file and field.
+dawg uses several configuration files at both the project level (`.dawg/` directory) and the global level (`~/.dawg/` directory). This document covers every file and field.
 
 ---
 
 ## Table of Contents
 
-- [Project Configuration (`.work3/config.json`)](#project-configuration-work3configjson)
-- [Integrations (`.work3/integrations.json`)](#integrations-work3integrationsjson)
-- [Hooks (`.work3/.work3/hooks.json`)](#hooks-work3work3hooksjson)
-- [Branch Naming Rules (`.work3/scripts/branch-name.mjs`)](#branch-naming-rules)
-- [Commit Message Rules (`.work3/scripts/commit-message.mjs`)](#commit-message-rules)
-- [Server Discovery (`.work3/server.json`)](#server-discovery-work3serverjson)
-- [Issue Data (`.work3/issues/`)](#issue-data-work3issues)
-- [Issue Notes (`.work3/issues/<source>/<id>/notes.json`)](#issue-notes)
-- [MCP Environment Overrides (`.work3/mcp-env.json`)](#mcp-environment-overrides-work3mcp-envjson)
-- [Worktree Directory (`.work3/worktrees/`)](#worktree-directory-work3worktrees)
-- [Git Ignore (`.work3/.gitignore`)](#git-ignore-work3gitignore)
-- [Global Preferences (`~/.work3/app-preferences.json`)](#global-preferences-work3app-preferencesjson)
-- [MCP Server Registry (`~/.work3/mcp-servers.json`)](#mcp-server-registry-work3mcp-serversjson)
+- [Project Configuration (`.dawg/config.json`)](#project-configuration-dawgconfigjson)
+- [Integrations (`.dawg/integrations.json`)](#integrations-dawgintegrationsjson)
+- [Hooks (`.dawg/.dawg/hooks.json`)](#hooks-dawgdawghooksjson)
+- [Branch Naming Rules (`.dawg/scripts/branch-name.mjs`)](#branch-naming-rules)
+- [Commit Message Rules (`.dawg/scripts/commit-message.mjs`)](#commit-message-rules)
+- [Server Discovery (`.dawg/server.json`)](#server-discovery-dawgserverjson)
+- [Issue Data (`.dawg/issues/`)](#issue-data-dawgissues)
+- [Issue Notes (`.dawg/issues/<source>/<id>/notes.json`)](#issue-notes)
+- [MCP Environment Overrides (`.dawg/mcp-env.json`)](#mcp-environment-overrides-dawgmcp-envjson)
+- [Worktree Directory (`.dawg/worktrees/`)](#worktree-directory-dawgworktrees)
+- [Git Ignore (`.dawg/.gitignore`)](#git-ignore-dawggitignore)
+- [Global Preferences (`~/.dawg/app-preferences.json`)](#global-preferences-dawgapp-preferencesjson)
+- [MCP Server Registry (`~/.dawg/mcp-servers.json`)](#mcp-server-registry-dawgmcp-serversjson)
 
 ---
 
-## Project Configuration (`.work3/config.json`)
+## Project Configuration (`.dawg/config.json`)
 
-The primary configuration file. Created by `work3 init` (interactive CLI) or via the UI's setup wizard. This file should be committed to your repository so that all team members share the same configuration.
+The primary configuration file. Created by `dawg init` (interactive CLI) or via the UI's setup wizard. This file should be committed to your repository so that all team members share the same configuration.
 
 ### Full Example
 
@@ -69,7 +69,7 @@ Subdirectory to `cd` into before running the start command, relative to the repo
 | **Default** | `""` (empty) |
 | **Required** | Yes |
 
-Command to start the dev server in each worktree. Auto-detected from the package manager lockfile during `work3 init`.
+Command to start the dev server in each worktree. Auto-detected from the package manager lockfile during `dawg init`.
 
 Examples: `"pnpm dev"`, `"npm run dev"`, `"yarn dev"`, `"bun dev"`
 
@@ -81,7 +81,7 @@ Examples: `"pnpm dev"`, `"npm run dev"`, `"yarn dev"`, `"bun dev"`
 | **Default** | `""` (empty) |
 | **Required** | Yes |
 
-Command to install dependencies when a new worktree is created. Auto-detected from the package manager lockfile during `work3 init`.
+Command to install dependencies when a new worktree is created. Auto-detected from the package manager lockfile during `dawg init`.
 
 Examples: `"pnpm install"`, `"npm install"`, `"yarn install"`, `"bun install"`
 
@@ -93,7 +93,7 @@ Examples: `"pnpm install"`, `"npm install"`, `"yarn install"`, `"bun install"`
 | **Default** | `"origin/main"` |
 | **Required** | No |
 
-The base branch from which new worktrees are created. During `work3 init`, this is auto-detected by checking `refs/remotes/origin/HEAD` and then falling back to `origin/develop`, `origin/main`, or `origin/master` in that order.
+The base branch from which new worktrees are created. During `dawg init`, this is auto-detected by checking `refs/remotes/origin/HEAD` and then falling back to `origin/develop`, `origin/main`, or `origin/master` in that order.
 
 Examples: `"origin/main"`, `"origin/develop"`, `"origin/master"`
 
@@ -212,9 +212,9 @@ The UI includes a "Detect Env Mapping" button that scans your project's `.env` f
 
 ---
 
-## Integrations (`.work3/integrations.json`)
+## Integrations (`.dawg/integrations.json`)
 
-Stores credentials and per-project settings for issue tracker integrations. This file is **not** committed to git (covered by `.work3/.gitignore`).
+Stores credentials and per-project settings for issue tracker integrations. This file is **not** committed to git (covered by `.dawg/.gitignore`).
 
 ### Structure
 
@@ -320,7 +320,7 @@ Both Jira and Linear share the same data lifecycle structure:
 
 ---
 
-## Hooks (`.work3/.work3/hooks.json`)
+## Hooks (`.dawg/.dawg/hooks.json`)
 
 Configures automated checks (command steps) and agent skills organized by trigger type. Managed through the UI's Hooks panel or the MCP API.
 
@@ -331,8 +331,8 @@ For full documentation of the hooks system including trigger types, item types, 
 Hook run results are stored per-worktree at:
 
 ```
-.work3/.work3/worktrees/<worktreeId>/hooks/latest-run.json
-.work3/.work3/worktrees/<worktreeId>/hooks/skill-results.json
+.dawg/.dawg/worktrees/<worktreeId>/hooks/latest-run.json
+.dawg/.dawg/worktrees/<worktreeId>/hooks/skill-results.json
 ```
 
 ---
@@ -345,10 +345,10 @@ Branch names are generated from issue metadata when creating worktrees from issu
 
 | File | Scope |
 |------|-------|
-| `.work3/scripts/branch-name.mjs` | Default rule for all sources |
-| `.work3/scripts/branch-name.jira.mjs` | Override for Jira issues |
-| `.work3/scripts/branch-name.linear.mjs` | Override for Linear issues |
-| `.work3/scripts/branch-name.local.mjs` | Override for local issues |
+| `.dawg/scripts/branch-name.mjs` | Default rule for all sources |
+| `.dawg/scripts/branch-name.jira.mjs` | Override for Jira issues |
+| `.dawg/scripts/branch-name.linear.mjs` | Override for Linear issues |
+| `.dawg/scripts/branch-name.local.mjs` | Override for local issues |
 
 Source-specific overrides take priority over the default rule when the issue comes from that source.
 
@@ -415,10 +415,10 @@ Similar to branch naming, commit messages can be formatted via JavaScript functi
 
 | File | Scope |
 |------|-------|
-| `.work3/scripts/commit-message.mjs` | Default rule for all sources |
-| `.work3/scripts/commit-message.jira.mjs` | Override for Jira-linked worktrees |
-| `.work3/scripts/commit-message.linear.mjs` | Override for Linear-linked worktrees |
-| `.work3/scripts/commit-message.local.mjs` | Override for local-issue-linked worktrees |
+| `.dawg/scripts/commit-message.mjs` | Default rule for all sources |
+| `.dawg/scripts/commit-message.jira.mjs` | Override for Jira-linked worktrees |
+| `.dawg/scripts/commit-message.linear.mjs` | Override for Linear-linked worktrees |
+| `.dawg/scripts/commit-message.local.mjs` | Override for local-issue-linked worktrees |
 
 Source-specific overrides take priority over the default rule.
 
@@ -458,9 +458,9 @@ export default ({ issueId, message }) => {
 
 ---
 
-## Server Discovery (`.work3/server.json`)
+## Server Discovery (`.dawg/server.json`)
 
-A runtime file written when the work3 server starts and deleted on shutdown. It is **not** committed to git.
+A runtime file written when the dawg server starts and deleted on shutdown. It is **not** committed to git.
 
 ### Structure
 
@@ -473,25 +473,25 @@ A runtime file written when the work3 server starts and deleted on shutdown. It 
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `url` | `string` | The URL where the work3 server is listening |
+| `url` | `string` | The URL where the dawg server is listening |
 | `pid` | `number` | The operating system process ID of the server |
 
 ### Purpose
 
-- Used by `work3 mcp` to find a running server and start in proxy mode (relaying MCP messages to the HTTP server instead of spawning a standalone instance).
-- Used by `work3 connect` to connect the Electron app to an existing server.
+- Used by `dawg mcp` to find a running server and start in proxy mode (relaying MCP messages to the HTTP server instead of spawning a standalone instance).
+- Used by `dawg connect` to connect the Electron app to an existing server.
 - The `pid` is validated with `process.kill(pid, 0)` to check whether the process is still alive. If the process is dead, the stale `server.json` is ignored.
 
 ---
 
-## Issue Data (`.work3/issues/`)
+## Issue Data (`.dawg/issues/`)
 
 Cached issue data from integrations, organized by source and issue identifier.
 
 ### Directory Structure
 
 ```
-.work3/issues/
+.dawg/issues/
   jira/
     <issueKey>/           # e.g., "PROJ-123"
       issue.json          # Cached Jira issue data (JiraTaskData)
@@ -554,7 +554,7 @@ Each issue (regardless of source) can have a `notes.json` file stored alongside 
 ### File Location
 
 ```
-.work3/issues/<source>/<id>/notes.json
+.dawg/issues/<source>/<id>/notes.json
 ```
 
 ### Structure
@@ -619,7 +619,7 @@ The `gitPolicy` object allows overriding the global agent git policy on a per-wo
 
 ---
 
-## MCP Environment Overrides (`.work3/mcp-env.json`)
+## MCP Environment Overrides (`.dawg/mcp-env.json`)
 
 Per-project environment variable overrides for MCP servers. When deploying an MCP server to an agent's config, these values are merged on top of the server's global `env` (from the registry).
 
@@ -638,28 +638,28 @@ The keys are MCP server IDs (from the registry), and the values are `Record<stri
 
 ---
 
-## Worktree Directory (`.work3/worktrees/`)
+## Worktree Directory (`.dawg/worktrees/`)
 
-Git worktrees are stored under `.work3/worktrees/<worktreeId>/`. Each subdirectory is a full git worktree checkout. When a worktree is created from an issue, a `TASK.md` file is generated in the worktree root containing the issue context, description, comments, AI context notes, and todos.
+Git worktrees are stored under `.dawg/worktrees/<worktreeId>/`. Each subdirectory is a full git worktree checkout. When a worktree is created from an issue, a `TASK.md` file is generated in the worktree root containing the issue context, description, comments, AI context notes, and todos.
 
 The `TASK.md` file is automatically added to the worktree's git exclude file (`.git/worktrees/<name>/info/exclude`) so it does not appear as an untracked file.
 
 ### Per-Worktree Hooks Data
 
 ```
-.work3/.work3/worktrees/<worktreeId>/hooks/
+.dawg/.dawg/worktrees/<worktreeId>/hooks/
   latest-run.json       # Most recent command step run results
   skill-results.json    # Agent-reported skill results
 ```
 
 ---
 
-## Git Ignore (`.work3/.gitignore`)
+## Git Ignore (`.dawg/.gitignore`)
 
-Created automatically during `work3 init`. Uses a whitelist approach: everything in `.work3/` is ignored except the files that should be shared with the team.
+Created automatically during `dawg init`. Uses a whitelist approach: everything in `.dawg/` is ignored except the files that should be shared with the team.
 
 ```gitignore
-# Ignore everything in .work3 by default
+# Ignore everything in .dawg by default
 *
 
 # Except these files (tracked/shared)
@@ -680,7 +680,7 @@ If you want to share branch naming or commit message rules with your team, add t
 
 ---
 
-## Global Preferences (`~/.work3/app-preferences.json`)
+## Global Preferences (`~/.dawg/app-preferences.json`)
 
 User-level preferences stored in the home directory. Not project-specific.
 
@@ -704,7 +704,7 @@ User-level preferences stored in the home directory. Not project-specific.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `basePort` | `number` | `6969` | The port the work3 server listens on |
+| `basePort` | `number` | `6969` | The port the dawg server listens on |
 | `setupPreference` | `string` | `"ask"` | How to handle missing config: `"auto"` (auto-detect and create), `"manual"` (prompt), or `"ask"` (show UI setup screen) |
 | `sidebarWidth` | `number` | `300` | Sidebar width in pixels (persisted across sessions) |
 | `windowBounds` | `object \| null` | `null` | Electron window position and size |
@@ -715,9 +715,9 @@ User-level preferences stored in the home directory. Not project-specific.
 
 ---
 
-## MCP Server Registry (`~/.work3/mcp-servers.json`)
+## MCP Server Registry (`~/.dawg/mcp-servers.json`)
 
-A global registry of MCP servers that can be deployed to various AI agents (Claude Code, Cursor, Windsurf, etc.). Managed via the work3 UI.
+A global registry of MCP servers that can be deployed to various AI agents (Claude Code, Cursor, Windsurf, etc.). Managed via the dawg UI.
 
 ### Structure
 
@@ -768,6 +768,6 @@ For reference, the following constants are defined in the codebase:
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `APP_NAME` | `"work3"` | Application name used in CLI output and branding |
-| `CONFIG_DIR_NAME` | `".work3"` | Name of the config directory at the project root |
+| `APP_NAME` | `"dawg"` | Application name used in CLI output and branding |
+| `CONFIG_DIR_NAME` | `".dawg"` | Name of the config directory at the project root |
 | `DEFAULT_PORT` | `6969` | Default server port |

@@ -1,5 +1,5 @@
-appId: com.work3.app
-productName: work3
+appId: com.dawg.app
+productName: dawg
 directories:
   output: release
 files:

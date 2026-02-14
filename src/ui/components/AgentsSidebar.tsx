@@ -13,12 +13,12 @@ import { SkillItem } from './SkillItem';
 import { PluginItem } from './PluginItem';
 import { Spinner } from './Spinner';
 
-export const WORK3_SERVER: McpServerSummary = {
-  id: 'work3',
-  name: 'work3',
+export const DAWG_SERVER: McpServerSummary = {
+  id: 'dawg',
+  name: 'dawg',
   description: 'Worktree management, issue tracking, and more',
   tags: ['built-in'],
-  command: 'work3',
+  command: 'dawg',
   args: ['mcp'],
   env: {},
   source: 'built-in',
@@ -95,17 +95,17 @@ export function AgentsSidebar({
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const [rulesCollapsed, setRulesCollapsed] = useState(() => localStorage.getItem('work3:agentsRulesCollapsed') === '1');
-  const [mcpCollapsed, setMcpCollapsed] = useState(() => localStorage.getItem('work3:agentsMcpCollapsed') === '1');
-  const [skillsCollapsed, setSkillsCollapsed] = useState(() => localStorage.getItem('work3:agentsSkillsCollapsed') === '1');
-  const [pluginsCollapsed, setPluginsCollapsed] = useState(() => localStorage.getItem('work3:agentsPluginsCollapsed') === '1');
+  const [rulesCollapsed, setRulesCollapsed] = useState(() => localStorage.getItem('dawg:agentsRulesCollapsed') === '1');
+  const [mcpCollapsed, setMcpCollapsed] = useState(() => localStorage.getItem('dawg:agentsMcpCollapsed') === '1');
+  const [skillsCollapsed, setSkillsCollapsed] = useState(() => localStorage.getItem('dawg:agentsSkillsCollapsed') === '1');
+  const [pluginsCollapsed, setPluginsCollapsed] = useState(() => localStorage.getItem('dawg:agentsPluginsCollapsed') === '1');
 
   const [showGlobal, setShowGlobal] = useState(() => {
-    const saved = localStorage.getItem('work3:agentsShowGlobal');
+    const saved = localStorage.getItem('dawg:agentsShowGlobal');
     return saved !== null ? saved === '1' : true;
   });
   const [showProject, setShowProject] = useState(() => {
-    const saved = localStorage.getItem('work3:agentsShowProject');
+    const saved = localStorage.getItem('dawg:agentsShowProject');
     return saved !== null ? saved === '1' : true;
   });
   const [configOpen, setConfigOpen] = useState(false);
@@ -115,29 +115,29 @@ export function AgentsSidebar({
   const [deployDialog, setDeployDialog] = useState<{ type: 'mcp' | 'skill'; id: string; name: string } | null>(null);
 
   const [hiddenMarketplaces, setHiddenMarketplaces] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('work3:hiddenMarketplaces');
+    const saved = localStorage.getItem('dawg:hiddenMarketplaces');
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('work3:agentsRulesCollapsed', rulesCollapsed ? '1' : '0');
+    localStorage.setItem('dawg:agentsRulesCollapsed', rulesCollapsed ? '1' : '0');
   }, [rulesCollapsed]);
   useEffect(() => {
-    localStorage.setItem('work3:agentsMcpCollapsed', mcpCollapsed ? '1' : '0');
+    localStorage.setItem('dawg:agentsMcpCollapsed', mcpCollapsed ? '1' : '0');
   }, [mcpCollapsed]);
   useEffect(() => {
-    localStorage.setItem('work3:agentsSkillsCollapsed', skillsCollapsed ? '1' : '0');
+    localStorage.setItem('dawg:agentsSkillsCollapsed', skillsCollapsed ? '1' : '0');
   }, [skillsCollapsed]);
   useEffect(() => {
-    localStorage.setItem('work3:agentsPluginsCollapsed', pluginsCollapsed ? '1' : '0');
+    localStorage.setItem('dawg:agentsPluginsCollapsed', pluginsCollapsed ? '1' : '0');
   }, [pluginsCollapsed]);
   useEffect(() => {
-    localStorage.setItem('work3:agentsShowGlobal', showGlobal ? '1' : '0');
+    localStorage.setItem('dawg:agentsShowGlobal', showGlobal ? '1' : '0');
   }, [showGlobal]);
   useEffect(() => {
-    localStorage.setItem('work3:agentsShowProject', showProject ? '1' : '0');
+    localStorage.setItem('dawg:agentsShowProject', showProject ? '1' : '0');
   }, [showProject]);
   useEffect(() => {
     if (!configOpen) return;
@@ -150,7 +150,7 @@ export function AgentsSidebar({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [configOpen]);
   useEffect(() => {
-    localStorage.setItem('work3:hiddenMarketplaces', JSON.stringify([...hiddenMarketplaces]));
+    localStorage.setItem('dawg:hiddenMarketplaces', JSON.stringify([...hiddenMarketplaces]));
   }, [hiddenMarketplaces]);
   useEffect(() => {
     if (!filterOpen) return;
@@ -163,9 +163,9 @@ export function AgentsSidebar({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [filterOpen]);
 
-  // Filter servers (exclude work3 duplicates — handled as built-in item)
+  // Filter servers (exclude dawg duplicates — handled as built-in item)
   const filteredServers = servers.filter((s) =>
-    s.id !== WORK3_SERVER.id && !(s.name === 'work3' && s.command === 'work3'),
+    s.id !== DAWG_SERVER.id && !(s.name === 'dawg' && s.command === 'dawg'),
   );
 
   const filteredSkills = search
@@ -183,12 +183,12 @@ export function AgentsSidebar({
       )
     : plugins;
 
-  const work3Seen = typeof localStorage !== 'undefined' && localStorage.getItem('work3:mcpWork3Seen') === '1';
-  const isWork3New = !work3Seen;
+  const dawgSeen = typeof localStorage !== 'undefined' && localStorage.getItem('dawg:mcpWork3Seen') === '1';
+  const isWork3New = !dawgSeen;
 
   const handleSelectWork3 = () => {
-    if (isWork3New) localStorage.setItem('work3:mcpWork3Seen', '1');
-    onSelect({ type: 'mcp-server', id: WORK3_SERVER.id });
+    if (isWork3New) localStorage.setItem('dawg:mcpWork3Seen', '1');
+    onSelect({ type: 'mcp-server', id: DAWG_SERVER.id });
   };
 
   // Filter helpers
@@ -323,32 +323,32 @@ export function AgentsSidebar({
           <div className="space-y-px">
             {serversLoading ? (
               <Work3Item
-                isSelected={selection?.type === 'mcp-server' && selection.id === WORK3_SERVER.id}
+                isSelected={selection?.type === 'mcp-server' && selection.id === DAWG_SERVER.id}
                 onSelect={handleSelectWork3}
                 isNew={isWork3New}
-                isActive={Object.values(deploymentStatus[WORK3_SERVER.id] ?? {}).some((v) => v.global || v.project)}
-                onDeploy={() => setDeployDialog({ type: 'mcp', id: WORK3_SERVER.id, name: 'work3' })}
+                isActive={Object.values(deploymentStatus[DAWG_SERVER.id] ?? {}).some((v) => v.global || v.project)}
+                onDeploy={() => setDeployDialog({ type: 'mcp', id: DAWG_SERVER.id, name: 'dawg' })}
               />
             ) : (
               (() => {
-                const work3Status = deploymentStatus[WORK3_SERVER.id] ?? {};
-                const work3Active = Object.values(work3Status).some((v) => v.global || v.project);
+                const dawgStatus = deploymentStatus[DAWG_SERVER.id] ?? {};
+                const dawgActive = Object.values(dawgStatus).some((v) => v.global || v.project);
 
-                type SortEntry = { type: 'server'; server: McpServerSummary } | { type: 'work3' };
+                type SortEntry = { type: 'server'; server: McpServerSummary } | { type: 'dawg' };
                 const entries: SortEntry[] = [
-                  ...(isServerVisible(WORK3_SERVER.id) ? [{ type: 'work3' as const }] : []),
+                  ...(isServerVisible(DAWG_SERVER.id) ? [{ type: 'dawg' as const }] : []),
                   ...filteredServers
                     .filter((s) => isServerVisible(s.id))
                     .map((s) => ({ type: 'server' as const, server: s })),
                 ];
 
                 const isActive = (e: SortEntry) => {
-                  if (e.type === 'work3') return work3Active;
+                  if (e.type === 'dawg') return dawgActive;
                   const st = deploymentStatus[e.server.id] ?? {};
                   return Object.values(st).some((v) => v.global || v.project);
                 };
                 const getName = (e: SortEntry) =>
-                  e.type === 'work3' ? 'work3' : e.server.name;
+                  e.type === 'dawg' ? 'dawg' : e.server.name;
 
                 entries.sort((a, b) => {
                   const aAct = isActive(a);
@@ -358,15 +358,15 @@ export function AgentsSidebar({
                 });
 
                 return entries.map((entry) => {
-                  if (entry.type === 'work3') {
+                  if (entry.type === 'dawg') {
                     return (
                       <Work3Item
-                        key={WORK3_SERVER.id}
-                        isSelected={selection?.type === 'mcp-server' && selection.id === WORK3_SERVER.id}
+                        key={DAWG_SERVER.id}
+                        isSelected={selection?.type === 'mcp-server' && selection.id === DAWG_SERVER.id}
                         onSelect={handleSelectWork3}
                         isNew={isWork3New}
-                        isActive={work3Active}
-                        onDeploy={() => setDeployDialog({ type: 'mcp', id: WORK3_SERVER.id, name: 'work3' })}
+                        isActive={dawgActive}
+                        onDeploy={() => setDeployDialog({ type: 'mcp', id: DAWG_SERVER.id, name: 'dawg' })}
                       />
                     );
                   }
@@ -857,7 +857,7 @@ function Work3Item({ isSelected, onSelect, isNew, isActive, onDeploy }: {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={`text-xs font-medium truncate ${isSelected ? text.primary : text.secondary}`}>
-              work3
+              dawg
             </span>
             {isNew && (
               <span className="relative flex-shrink-0">

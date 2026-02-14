@@ -6,7 +6,7 @@ import { useApi } from '../hooks/useApi';
 import { useHooksConfig } from '../hooks/useHooks';
 import { infoBanner, settings, text } from '../theme';
 
-const BANNER_DISMISSED_KEY = 'work3:hooksBannerDismissed';
+const BANNER_DISMISSED_KEY = 'dawg:hooksBannerDismissed';
 
 
 export function HooksPanel() {

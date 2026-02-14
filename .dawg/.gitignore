@@ -1,4 +1,4 @@
-# Ignore everything in .work3 by default
+# Ignore everything in .dawg by default
 *
 
 # Except these files (tracked/shared)

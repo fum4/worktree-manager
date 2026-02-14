@@ -32,8 +32,8 @@ export interface ActionContext {
 export const MCP_INSTRUCTIONS = `${APP_NAME} manages git worktrees with automatic port offsetting.
 
 IMPORTANT: When a user mentions an issue key, ticket number, or says "work on <something>",
-you should immediately use the appropriate work3 MCP tool to create a worktree.
-Do NOT read .work3/ files or make HTTP requests to the work3 server. All communication goes through these MCP tools.
+you should immediately use the appropriate dawg MCP tool to create a worktree.
+Do NOT read .dawg/ files or make HTTP requests to the dawg server. All communication goes through these MCP tools.
 
 ## Quick Start
 - Issue key like "PROJ-123" or number like "456" → call create_from_jira with issueKey param
@@ -58,7 +58,7 @@ Do NOT read .work3/ files or make HTTP requests to the work3 server. All communi
 
 ## Issue Data
 - get_jira_issue and get_linear_issue check locally cached data first. They only fetch from the remote API if no local data is found.
-- Prefer these tools over reading .work3/ files directly.
+- Prefer these tools over reading .dawg/ files directly.
 
 ## Todo Workflow
 Todos are a checklist of sub-tasks defined by the user. They appear in TASK.md and in get_task_context output.
@@ -85,7 +85,7 @@ There are four trigger types:
 ### Workflow
 1. Call get_hooks_config immediately after entering a worktree to see all hooks
 2. **Before running** any hook, skill, or command — inform the user what you are about to run and why (e.g. "Running pre-implementation hooks: typecheck, lint" or "Invoking /code-review skill as a post-implementation hook")
-3. **After running** — always summarize the results to the user AND report them back through the MCP tools so the work3 UI stays updated:
+3. **After running** — always summarize the results to the user AND report them back through the MCP tools so the dawg UI stays updated:
    - Command steps: run_hooks saves results automatically. Summarize pass/fail to the user.
    - Skills: call report_hook_status TWICE — once BEFORE invoking (without success/summary) to show loading in the UI, and once AFTER with the result. Summarize to the user.
 4. Run pre-implementation hooks before starting work: call run_hooks for command steps. For each skill: call report_hook_status to mark it running, invoke the skill, then call report_hook_status again with the result.
@@ -96,7 +96,7 @@ There are four trigger types:
 
 ## Skill Report Files
 For skills that produce detailed output (e.g. code review, changes summary, test instructions, explanations), write the full report to a markdown file in the worktree directory and pass the absolute path via the \`filePath\` parameter in report_hook_status. The user can then open and preview the report from the UI.
-- File naming: \`{worktreePath}/.work3-{skillName}.md\` (e.g. \`.work3-code-review.md\`)
+- File naming: \`{worktreePath}/.dawg-{skillName}.md\` (e.g. \`.dawg-code-review.md\`)
 - The \`summary\` field should be a short one-liner; the file contains the full report
 - The \`content\` field can be omitted when \`filePath\` is provided
 
@@ -663,7 +663,7 @@ export const actions: Action[] = [
   },
   {
     name: 'report_hook_status',
-    description: 'Report hook skill status to the work3 UI. Call this TWICE for each skill: once BEFORE invoking (without success/summary) to show a loading state, and once AFTER with the result. The work3 UI updates in real-time based on these reports.',
+    description: 'Report hook skill status to the dawg UI. Call this TWICE for each skill: once BEFORE invoking (without success/summary) to show a loading state, and once AFTER with the result. The dawg UI updates in real-time based on these reports.',
     params: {
       worktreeId: { type: 'string', description: 'Worktree ID', required: true },
       skillName: { type: 'string', description: 'Name of the hook skill (e.g. verify-code-review)', required: true },

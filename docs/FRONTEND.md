@@ -2,11 +2,11 @@
 
 ## Overview
 
-The work3 frontend is a React single-page application built with TypeScript, Tailwind CSS, React Query, and Framer Motion. Vite bundles it into `dist/ui/`, which the Hono backend serves as static files. The UI connects to the backend via REST API calls, Server-Sent Events (SSE) for real-time worktree status, and WebSockets for interactive terminal sessions.
+The dawg frontend is a React single-page application built with TypeScript, Tailwind CSS, React Query, and Framer Motion. Vite bundles it into `dist/ui/`, which the Hono backend serves as static files. The UI connects to the backend via REST API calls, Server-Sent Events (SSE) for real-time worktree status, and WebSockets for interactive terminal sessions.
 
 The app operates in two modes:
 
-- **Web mode** (single-project) -- served directly by the work3 server, uses relative URLs for API calls.
+- **Web mode** (single-project) -- served directly by the dawg server, uses relative URLs for API calls.
 - **Electron mode** (multi-project) -- each project runs its own server instance; the app manages multiple projects with a tab bar and routes API calls to the active project's server URL.
 
 ---
@@ -47,7 +47,7 @@ Configures automated checks and agent skills organized by trigger type (pre-impl
 
 ### Configuration
 
-Edits the `.work3/config.json` settings: start commands, install commands, base branch, port discovery, environment variable mappings, and agent policy defaults.
+Edits the `.dawg/config.json` settings: start commands, install commands, base branch, port discovery, environment variable mappings, and agent policy defaults.
 
 ### Integrations
 
@@ -317,7 +317,7 @@ Sessions are keyed by worktree ID. The `TerminalView` component lazily creates s
 
 ### Configuration
 
-**`useConfig`** (`useConfig.ts`) fetches `.work3/config.json` from the server. Returns the config object, project name, whether a branch name rule exists, and loading state.
+**`useConfig`** (`useConfig.ts`) fetches `.dawg/config.json` from the server. Returns the config object, project name, whether a branch name rule exists, and loading state.
 
 ---
 
@@ -368,12 +368,12 @@ type Selection =
 
 ### Persistence
 
-Selection state is persisted to `localStorage` under the key `work3:wsSel:{serverUrl}`. This means each project in Electron mode remembers its own selection independently.
+Selection state is persisted to `localStorage` under the key `dawg:wsSel:{serverUrl}`. This means each project in Electron mode remembers its own selection independently.
 
 Similarly persisted per server URL:
-- Active view: `work3:view:{serverUrl}`
-- Active sidebar tab (branch/issues): `work3:wsTab:{serverUrl}`
-- Sidebar width: `work3:sidebarWidth` (global, not per-project)
+- Active view: `dawg:view:{serverUrl}`
+- Active sidebar tab (branch/issues): `dawg:wsTab:{serverUrl}`
+- Sidebar width: `dawg:sidebarWidth` (global, not per-project)
 
 ### Auto-Selection
 
@@ -410,7 +410,7 @@ interface ServerContextValue {
 }
 ```
 
-Each project is a separate work3 server running on a different port. The `serverUrl` is derived from the active project's port: `http://localhost:{port}`.
+Each project is a separate dawg server running on a different port. The `serverUrl` is derived from the active project's port: `http://localhost:{port}`.
 
 Hooks like `useServerUrlOptional()` return `null` when no project is active, which disables API calls and SSE connections.
 
@@ -453,7 +453,7 @@ The app uses Framer Motion for transitions:
 | `AppSettingsModal.tsx` | Electron app settings (themes, preferences) |
 | `AttachmentImage.tsx` | Image attachment preview with lightbox |
 | `Button.tsx` | Reusable button component |
-| `ConfigurationPanel.tsx` | Edit `.work3/config.json` settings |
+| `ConfigurationPanel.tsx` | Edit `.dawg/config.json` settings |
 | `ConfirmDialog.tsx` | Confirmation dialog for destructive actions |
 | `ConfirmModal.tsx` | Generic confirmation modal |
 | `CreateCustomTaskModal.tsx` | Create new custom task form |
@@ -481,7 +481,7 @@ The app uses Framer Motion for transitions:
 | `PluginItem.tsx` | Plugin sidebar item |
 | `ProjectSetupScreen.tsx` | First-run setup for new Electron projects |
 | `ResizableHandle.tsx` | Drag handle for sidebar resizing |
-| `SetupCommitModal.tsx` | Commit work3 config files modal |
+| `SetupCommitModal.tsx` | Commit dawg config files modal |
 | `SkillCreateModal.tsx` | Create/edit skill modal |
 | `SkillItem.tsx` | Skill sidebar item |
 | `Spinner.tsx` | Loading spinner component |
@@ -523,7 +523,7 @@ The app uses Framer Motion for transitions:
 |---|---|
 | `api.ts` | Raw fetch functions for all API endpoints |
 | `useApi.ts` | Hook that pre-binds API functions to current server URL |
-| `useConfig.ts` | Fetch and cache `.work3/config.json` |
+| `useConfig.ts` | Fetch and cache `.dawg/config.json` |
 | `useCustomTasks.ts` | React Query hook for custom tasks list |
 | `useCustomTaskDetail.ts` | React Query hook for single custom task |
 | `useJiraIssues.ts` | React Query hook for Jira issues with search debouncing |

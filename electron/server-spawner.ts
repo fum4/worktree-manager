@@ -3,7 +3,7 @@ import { appendFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const debugLog = '/tmp/work3-debug.log';
+const debugLog = '/tmp/dawg-debug.log';
 function debug(msg: string) {
   appendFileSync(debugLog, `${new Date().toISOString()} ${msg}\n`);
 }
@@ -39,8 +39,8 @@ export function spawnServer(
     cwd: projectDir,
     env: {
       ...process.env,
-      WORK3_PORT: String(port),
-      WORK3_NO_OPEN: '1',
+      DAWG_PORT: String(port),
+      DAWG_NO_OPEN: '1',
     },
     detached: false,
     stdio: ['ignore', 'pipe', 'pipe'],

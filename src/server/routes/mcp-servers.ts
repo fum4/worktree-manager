@@ -41,7 +41,7 @@ interface McpServerRegistry {
 // ─── Registry storage ───────────────────────────────────────────
 
 function getRegistryPath(): string {
-  return path.join(os.homedir(), '.work3', 'mcp-servers.json');
+  return path.join(os.homedir(), '.dawg', 'mcp-servers.json');
 }
 
 function loadRegistry(): McpServerRegistry {
@@ -137,7 +137,7 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
     const status: Record<string, Record<string, { global?: boolean; project?: boolean; globalPath?: string; projectPath?: string }>> = {};
 
     const serverIds = new Set(Object.keys(registry.servers));
-    serverIds.add('work3'); // built-in server
+    serverIds.add('dawg'); // built-in server
 
     for (const serverId of serverIds) {
       status[serverId] = {};

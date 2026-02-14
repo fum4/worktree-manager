@@ -46,14 +46,14 @@ export function PluginInstallModal({ onInstalled, onClose }: PluginInstallModalP
 
   // Marketplace filter
   const [hiddenMarketplaces, setHiddenMarketplaces] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('work3:hiddenPluginMarketplaces');
+    const saved = localStorage.getItem('dawg:hiddenPluginMarketplaces');
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem('work3:hiddenPluginMarketplaces', JSON.stringify([...hiddenMarketplaces]));
+    localStorage.setItem('dawg:hiddenPluginMarketplaces', JSON.stringify([...hiddenMarketplaces]));
   }, [hiddenMarketplaces]);
   useEffect(() => {
     if (!filterOpen) return;

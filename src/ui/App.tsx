@@ -121,9 +121,9 @@ export default function App() {
   const handleSetupComplete = () => {
     // Clear stale workspace state from a previous config
     if (serverUrl) {
-      localStorage.removeItem(`work3:wsSel:${serverUrl}`);
-      localStorage.removeItem(`work3:wsTab:${serverUrl}`);
-      localStorage.removeItem(`work3:view:${serverUrl}`);
+      localStorage.removeItem(`dawg:wsSel:${serverUrl}`);
+      localStorage.removeItem(`dawg:wsTab:${serverUrl}`);
+      localStorage.removeItem(`dawg:view:${serverUrl}`);
     }
     setSelectionState(null);
     setActiveCreateTabState('branch');
@@ -150,7 +150,7 @@ export default function App() {
 
   const [activeView, setActiveViewState] = useState<View>(() => {
     if (serverUrl) {
-      const saved = localStorage.getItem(`work3:view:${serverUrl}`);
+      const saved = localStorage.getItem(`dawg:view:${serverUrl}`);
       if (saved === 'workspace' || saved === 'agents' || saved === 'hooks' || saved === 'configuration' || saved === 'integrations') {
         return saved;
       }
@@ -161,14 +161,14 @@ export default function App() {
   const setActiveView = (view: View) => {
     setActiveViewState(view);
     if (serverUrl) {
-      localStorage.setItem(`work3:view:${serverUrl}`, view);
+      localStorage.setItem(`dawg:view:${serverUrl}`, view);
     }
   };
 
   // Restore view when switching projects
   useEffect(() => {
     if (!serverUrl) return;
-    const saved = localStorage.getItem(`work3:view:${serverUrl}`);
+    const saved = localStorage.getItem(`dawg:view:${serverUrl}`);
     if (saved === 'workspace' || saved === 'agents' || saved === 'hooks' || saved === 'configuration' || saved === 'integrations') {
       setActiveViewState(saved);
     } else {
@@ -179,7 +179,7 @@ export default function App() {
   const [selection, setSelectionState] = useState<Selection>(() => {
     if (serverUrl) {
       try {
-        const saved = localStorage.getItem(`work3:wsSel:${serverUrl}`);
+        const saved = localStorage.getItem(`dawg:wsSel:${serverUrl}`);
         if (saved) return JSON.parse(saved);
       } catch { /* ignore */ }
     }
@@ -189,21 +189,21 @@ export default function App() {
   const setSelection = (sel: Selection) => {
     setSelectionState(sel);
     if (serverUrl) {
-      localStorage.setItem(`work3:wsSel:${serverUrl}`, JSON.stringify(sel));
+      localStorage.setItem(`dawg:wsSel:${serverUrl}`, JSON.stringify(sel));
     }
   };
 
   useEffect(() => {
     if (!serverUrl) return;
     try {
-      const saved = localStorage.getItem(`work3:wsSel:${serverUrl}`);
+      const saved = localStorage.getItem(`dawg:wsSel:${serverUrl}`);
       if (saved) setSelectionState(JSON.parse(saved));
       else setSelectionState(null);
     } catch { setSelectionState(null); }
   }, [serverUrl]);
   const [activeCreateTab, setActiveCreateTabState] = useState<'branch' | 'issues'>(() => {
     if (serverUrl) {
-      const saved = localStorage.getItem(`work3:wsTab:${serverUrl}`);
+      const saved = localStorage.getItem(`dawg:wsTab:${serverUrl}`);
       if (saved === 'branch' || saved === 'issues') return saved;
     }
     return 'branch';
@@ -212,13 +212,13 @@ export default function App() {
   const setActiveCreateTab = (tab: 'branch' | 'issues') => {
     setActiveCreateTabState(tab);
     if (serverUrl) {
-      localStorage.setItem(`work3:wsTab:${serverUrl}`, tab);
+      localStorage.setItem(`dawg:wsTab:${serverUrl}`, tab);
     }
   };
 
   useEffect(() => {
     if (!serverUrl) return;
-    const saved = localStorage.getItem(`work3:wsTab:${serverUrl}`);
+    const saved = localStorage.getItem(`dawg:wsTab:${serverUrl}`);
     if (saved === 'branch' || saved === 'issues') {
       setActiveCreateTabState(saved);
     } else {
@@ -291,7 +291,7 @@ export default function App() {
   const [showSetupCommitModal, setShowSetupCommitModal] = useState(false);
   const [configNeedsPush, setConfigNeedsPush] = useState(false);
 
-  // Check if work3 config files need to be committed when project loads
+  // Check if dawg config files need to be committed when project loads
   useEffect(() => {
     if (!serverUrl || configLoading) return;
 
@@ -880,7 +880,7 @@ export default function App() {
         />
       )}
 
-      {/* Setup commit modal for work3 config files */}
+      {/* Setup commit modal for dawg config files */}
       {showSetupCommitModal && (
         <SetupCommitModal
           onCommit={handleSetupCommit}

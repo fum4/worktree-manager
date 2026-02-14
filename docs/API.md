@@ -1,8 +1,8 @@
-# work3 REST API Reference
+# dawg REST API Reference
 
 ## Overview
 
-work3 exposes a REST API via a [Hono](https://hono.dev/) HTTP server. The web UI, Electron app, MCP clients, and external integrations all communicate through this API. The server runs on `localhost` (default port `4040`, auto-incremented if occupied).
+dawg exposes a REST API via a [Hono](https://hono.dev/) HTTP server. The web UI, Electron app, MCP clients, and external integrations all communicate through this API. The server runs on `localhost` (default port `4040`, auto-incremented if occupied).
 
 All endpoints return JSON unless otherwise noted. Standard response patterns:
 
@@ -132,7 +132,7 @@ Delete an agent rule file from disk.
 
 ## Configuration
 
-Manage `.work3/config.json` and related settings.
+Manage `.dawg/config.json` and related settings.
 
 #### `GET /api/config`
 
@@ -158,7 +158,7 @@ Auto-detect configuration values from the project directory without creating a c
 
 #### `POST /api/config/init`
 
-Initialize a new `.work3/config.json` with provided or auto-detected values. Creates the `.work3` directory, config file, and `.gitignore`. Will not overwrite existing config.
+Initialize a new `.dawg/config.json` with provided or auto-detected values. Creates the `.dawg` directory, config file, and `.gitignore`. Will not overwrite existing config.
 
 - **Request** (all optional, falls back to auto-detected):
   ```json
@@ -173,17 +173,17 @@ Initialize a new `.work3/config.json` with provided or auto-detected values. Cre
 
 #### `GET /api/config/setup-status`
 
-Check whether `.work3` config files need to be committed and/or pushed to the remote.
+Check whether `.dawg` config files need to be committed and/or pushed to the remote.
 
 - **Response**: `{ needsPush: boolean, files: string[] }`
 
 #### `POST /api/config/commit-setup`
 
-Commit and push the `.work3/config.json` and `.work3/.gitignore` files.
+Commit and push the `.dawg/config.json` and `.dawg/.gitignore` files.
 
 - **Request** (optional):
   ```json
-  { "message": "chore: add work3 configuration" }
+  { "message": "chore: add dawg configuration" }
   ```
 - **Response**: `{ success: true }` or `{ success: true, alreadyCommitted: true }` or `{ success: true, pushFailed: true }`
 - **Error**: `{ success: false, error: "..." }`
@@ -541,7 +541,7 @@ The connection stays open until the client disconnects.
 
 ## MCP Management
 
-Configure work3 as an MCP server in various AI agent tool configurations.
+Configure dawg as an MCP server in various AI agent tool configurations.
 
 #### `GET /api/mcp/status`
 
@@ -560,7 +560,7 @@ Get MCP registration status across all supported agents (Claude, Cursor, Windsur
 
 #### `POST /api/mcp/setup`
 
-Register work3 as an MCP server in an agent's configuration file.
+Register dawg as an MCP server in an agent's configuration file.
 
 - **Request**:
   ```json
@@ -576,7 +576,7 @@ Also deploys agent-specific instruction files.
 
 #### `POST /api/mcp/remove`
 
-Remove work3 from an agent's MCP server configuration.
+Remove dawg from an agent's MCP server configuration.
 
 - **Request**:
   ```json
@@ -593,7 +593,7 @@ Also removes agent-specific instruction files.
 
 ## MCP Servers Registry
 
-Manage a centralized registry of MCP servers stored at `~/.work3/mcp-servers.json`. Deploy them to any agent's configuration.
+Manage a centralized registry of MCP servers stored at `~/.dawg/mcp-servers.json`. Deploy them to any agent's configuration.
 
 #### `GET /api/mcp-servers`
 
@@ -608,7 +608,7 @@ Each server includes: `id`, `name`, `description`, `tags`, `command`, `args`, `e
 
 #### `GET /api/mcp-servers/deployment-status`
 
-Get deployment status of all registry servers (plus built-in `work3`) across all agents and scopes.
+Get deployment status of all registry servers (plus built-in `dawg`) across all agents and scopes.
 
 - **Response**:
   ```json
@@ -758,7 +758,7 @@ Set per-project environment variable overrides for an MCP server.
 
 ## Skills
 
-Manage a centralized skills registry stored at `~/.work3/skills/`. Skills are directories containing a `SKILL.md` file with frontmatter metadata and instructions.
+Manage a centralized skills registry stored at `~/.dawg/skills/`. Skills are directories containing a `SKILL.md` file with frontmatter metadata and instructions.
 
 #### `GET /api/skills`
 
@@ -796,7 +796,7 @@ Get detailed information about a skill, including its `SKILL.md` content, frontm
       "name": "my-skill",
       "displayName": "My Skill",
       "description": "...",
-      "path": "/Users/.../.work3/skills/my-skill",
+      "path": "/Users/.../.dawg/skills/my-skill",
       "skillMd": "---\nname: ...\n---\n...",
       "frontmatter": { "name": "...", "description": "...", ... },
       "hasReference": true,
@@ -1090,7 +1090,7 @@ Streamable HTTP transport endpoint for direct MCP protocol connections.
 
 MCP Streamable HTTP transport. Handles `POST` requests with JSON-RPC MCP protocol messages, as well as `GET` for SSE-based streaming.
 
-This is a stateless transport (no session tracking) designed for single-user local dev tool use. The endpoint connects to the same MCP server that `work3 mcp` exposes via stdio.
+This is a stateless transport (no session tracking) designed for single-user local dev tool use. The endpoint connects to the same MCP server that `dawg mcp` exposes via stdio.
 
 - **Request** (POST): JSON-RPC 2.0 messages per the MCP specification
 - **Response**: JSON-RPC 2.0 responses (with `enableJsonResponse: true`)
@@ -1174,7 +1174,7 @@ Update the git policy for an issue (controls agent commit/push/PR permissions).
 
 ## Local Tasks
 
-CRUD operations for local (non-integrated) tasks stored at `.work3/issues/local/`. Tasks use auto-incrementing identifiers (e.g., `LOCAL-1`, `LOCAL-2`).
+CRUD operations for local (non-integrated) tasks stored at `.dawg/issues/local/`. Tasks use auto-incrementing identifiers (e.g., `LOCAL-1`, `LOCAL-2`).
 
 #### `GET /api/tasks`
 
@@ -1350,7 +1350,7 @@ Import a skill from the registry into hooks.
 
 #### `GET /api/hooks/skills/available`
 
-List available skills from the `~/.work3/skills/` registry.
+List available skills from the `~/.dawg/skills/` registry.
 
 - **Response**: `{ available: [{ name, displayName, description }] }`
 

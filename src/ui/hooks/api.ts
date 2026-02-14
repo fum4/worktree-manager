@@ -752,7 +752,7 @@ export async function verifyIntegrations(serverUrl: string | null = null): Promi
   }
 }
 
-// Check if work3 config files need to be pushed
+// Check if dawg config files need to be pushed
 export async function fetchSetupStatus(
   serverUrl: string | null = null,
 ): Promise<{ needsPush: boolean; files: string[] }> {
@@ -764,7 +764,7 @@ export async function fetchSetupStatus(
   }
 }
 
-// Commit work3 config files
+// Commit dawg config files
 export async function commitSetup(
   message: string,
   serverUrl: string | null = null,

@@ -1,5 +1,5 @@
 node_modules/
 dist/
 release/
-.work3/*
-!.work3/config.json
+.dawg/*
+!.dawg/config.json

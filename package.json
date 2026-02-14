@@ -1,9 +1,9 @@
 {
-  "name": "work3",
+  "name": "dawg",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "work3": "./dist/cli/index.js"
+    "dawg": "./dist/cli/index.js"
   },
   "main": "dist/electron/main.js",
   "scripts": {

@@ -117,7 +117,7 @@ export function registerHooksRoutes(
 
   // List registry skills (same skill can be used in multiple trigger types)
   app.get('/api/hooks/skills/available', (c) => {
-    const registryDir = path.join(os.homedir(), '.work3', 'skills');
+    const registryDir = path.join(os.homedir(), '.dawg', 'skills');
     const available: Array<{ name: string; displayName: string; description: string }> = [];
 
     if (existsSync(registryDir)) {

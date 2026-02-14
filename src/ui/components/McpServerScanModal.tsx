@@ -9,7 +9,7 @@ import { input, text } from '../theme';
 import { Spinner } from './Spinner';
 
 const isWork3Server = (r: McpScanResult) =>
-  r.key === 'work3' || (r.command === 'npx' && r.args.includes('work3'));
+  r.key === 'dawg' || (r.command === 'npx' && r.args.includes('dawg'));
 
 type ScanMode = 'project' | 'folder' | 'device';
 type ResultTab = 'servers' | 'skills' | 'plugins';
@@ -65,7 +65,7 @@ export function McpServerScanModal({ onImported, onClose, plugins = [] }: McpSer
       return;
     }
 
-    // Filter: hide work3 and already-imported items
+    // Filter: hide dawg and already-imported items
     const newMcps = (mcpRes.discovered ?? []).filter((r) => !isWork3Server(r) && !r.alreadyInRegistry);
     const newSkills = (skillRes.discovered ?? []).filter((r) => !r.alreadyInRegistry);
 
