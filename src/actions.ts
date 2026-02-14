@@ -113,7 +113,7 @@ After finishing all implementation and running all post-implementation hooks:
 2. If commit is allowed, stage and commit all changes (via commit)
 3. If push is allowed, push to the remote (via push)
 4. If create_pr is allowed, create a pull request (via create_pr)
-5. Ask the user if they would like you to start the worktree dev server automatically (via start_worktree)`;
+5. If the worktree dev server is not already running, ask the user if they would like you to start it (via start_worktree)`;
 
 function findWorktreeOrThrow(ctx: ActionContext, id: string) {
   const worktrees = ctx.manager.getWorktrees();

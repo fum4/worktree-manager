@@ -73,7 +73,7 @@ export function createMcpServer(ctx: ActionContext): McpServer {
 6. Read TASK.md to understand the task from the original issue details
 7. Follow AI context directions and todo checklist — these are user-defined and take priority over the task description when they conflict
 8. Start implementing the task
-9. After completing all work and post-implementation hooks, call get_git_policy — if commit/push/create_pr are allowed, do them automatically. Then ask the user if they'd like to start the worktree dev server (via start_worktree)
+9. After completing all work and post-implementation hooks, call get_git_policy — if commit/push/create_pr are allowed, do them automatically. If the dev server is not already running, ask the user if they'd like to start it (via start_worktree)
 
 Skill reports: For skills with detailed output (code review, changes summary, test instructions, explanations), write the full report to {worktreePath}/.work3-{skillName}.md and pass the path via filePath in report_hook_status.
 Skill quality: Code review = thorough investigation (read code, trace logic, find bugs). Changes summary = technical, bullet points by area. Test writing = check for testing framework first, ask user if none found.`,

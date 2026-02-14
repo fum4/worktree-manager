@@ -22,7 +22,7 @@ After creating a worktree:
 5. Read TASK.md to understand the task from the original issue details
 6. Follow AI context directions and todo checklist — these are user-defined and take priority over the original task description when they conflict
 7. Start implementing
-8. After completing all work and post-implementation hooks, call get_git_policy — if commit/push/create_pr are allowed, do them automatically. Then ask the user if they'd like you to start the worktree dev server automatically (via the start_worktree tool)
+8. After completing all work and post-implementation hooks, call get_git_policy — if commit/push/create_pr are allowed, do them automatically. If the dev server is not already running, ask the user if they'd like you to start it (via start_worktree)
 
 Skill report files: For skills that produce detailed output (code review, changes summary, test instructions, explanations), write the full report to \`{worktreePath}/.work3-{skillName}.md\` and pass the absolute path via filePath in report_hook_status.
 
