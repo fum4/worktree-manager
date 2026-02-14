@@ -98,7 +98,7 @@ All git operations are subject to the agent git policy. Call `get_git_policy` fi
 |------|-------------|------------|
 | `get_hooks_config` | Get the hooks configuration, including command steps and skill references organized by trigger type. | *(none)* |
 | `run_hooks` | Run hook command steps for a worktree. Steps matching the trigger type run in parallel. | `worktreeId` (string, **required**) |
-| `report_hook_skill_result` | Report a skill hook result. Call after the agent has executed a skill referenced in the hooks config. | `worktreeId` (string, **required**); `skillName` (string, **required**); `success` (boolean, **required**); `summary` (string, **required**); `content` (string, optional) -- detailed markdown |
+| `report_hook_status` | Report a skill hook status. Call TWICE: once BEFORE invoking a skill (without `success`/`summary`) to show a loading state in the UI, and once AFTER with the result. | `worktreeId` (string, **required**); `skillName` (string, **required**); `success` (boolean, optional -- omit for start); `summary` (string, optional -- omit for start); `content` (string, optional) -- detailed markdown; `filePath` (string, optional) -- absolute path to an MD report file |
 | `get_hooks_status` | Get the current/last hook run status for a worktree, including step results. | `worktreeId` (string, **required**) |
 
 ## MCP Prompt: `work-on-task`
@@ -108,8 +108,10 @@ In addition to tools, the MCP server registers a **prompt** called `work-on-task
 1. Determine the issue type and call the appropriate creation tool (`create_from_jira` or `create_from_linear`)
 2. Poll `list_worktrees` until the worktree status is `stopped` (creation complete)
 3. Navigate to the worktree directory
-4. Read `TASK.md` for full context
-5. Start implementing the task
+4. Call `get_hooks_config` to discover hooks — run any pre-implementation hooks before starting work
+5. Read `TASK.md` for full context
+6. Start implementing the task
+7. After completing all work and post-implementation hooks, ask the user if they'd like to start the worktree dev server automatically
 
 ## MCP Instructions
 
@@ -131,9 +133,11 @@ Do NOT read .work3/ files or make HTTP requests to the work3 server. All communi
 ## After Creating a Worktree
 1. Poll list_worktrees until status is 'stopped' (creation done)
 2. Navigate to the worktree path returned in the response
-3. Read TASK.md for full context (includes issue details, AI directions, and a todo checklist)
-4. Work through the todo items in order -- toggle each one as you complete it using update_todo
-5. Follow any directions in the AI Context section
+3. Call get_hooks_config to discover all configured hooks (pre-implementation, post-implementation, custom, on-demand)
+4. Run any pre-implementation hooks BEFORE starting work (see Hooks section below)
+5. Read TASK.md for full context (includes issue details, AI directions, and a todo checklist)
+6. Work through the todo items in order -- toggle each one as you complete it using update_todo
+7. Follow any directions in the AI Context section
 
 ## While Working in a Worktree
 - get_task_context -- refresh full task details, AI context, and todo checklist
@@ -159,11 +163,35 @@ The project owner can restrict agent git operations. Before calling commit, push
 3. When committing, the commit message may be automatically formatted by a project-configured rule
 
 ## Hooks
-After completing work in a worktree, run hooks to validate changes:
-1. Call get_hooks_config to see what command steps and skills are configured
-2. Call run_hooks with the worktree ID to run command steps
-3. For skill references: invoke the referenced skills and call report_hook_skill_result
-4. Call get_hooks_status to check progress
+Hooks run at different points in the workflow. Call get_hooks_config EARLY (right after worktree creation) to discover all configured hooks.
+
+There are four trigger types:
+- **pre-implementation**: Run BEFORE you start coding. These set up context, run scaffolding, or enforce prerequisites.
+- **post-implementation**: Run AFTER you finish implementing. These validate changes (type checks, linting, tests, code review).
+- **custom**: Run when a natural-language condition is met (e.g. "when changes touch database models"). Check conditions as you work and run matching hooks when appropriate.
+- **on-demand**: Only run when explicitly requested by the user. Do not run these automatically.
+
+### Workflow
+1. Call get_hooks_config immediately after entering a worktree to see all hooks
+2. Before running any hook, skill, or command -- inform the user what you are about to run and why
+3. After running -- summarize results AND report them via report_hook_status (call twice: once before invoking without success/summary to show loading, once after with the result)
+4. Run pre-implementation hooks before starting work
+5. While working, check custom hook conditions -- if your changes match a condition, run those hooks
+6. After completing work, run post-implementation hooks
+7. Call get_hooks_status to verify all steps passed
+8. After all work and hooks are done, ask the user if they'd like to start the worktree dev server automatically (via start_worktree)
+
+## Skill Report Files
+For skills that produce detailed output (e.g. code review, changes summary, test instructions, explanations), write the full report to a markdown file in the worktree directory and pass the absolute path via the filePath parameter in report_hook_status. The user can then open and preview the report from the UI.
+- File naming: {worktreePath}/.work3-{skillName}.md (e.g. .work3-code-review.md)
+- The summary field should be a short one-liner; the file contains the full report
+- The content field can be omitted when filePath is provided
+
+## Skill-Specific Guidelines
+- Code review: thorough investigation — read actual code, trace logic, check for bugs, edge cases, security
+- Changes summary: technical, well-structured, bullet points grouped by area
+- Test writing: check if a testing framework exists first; if not, ask the user about integrating one
+- Explain like I'm 5: simple language, analogies, accessible to non-technical readers
 ```
 
 ## Setup

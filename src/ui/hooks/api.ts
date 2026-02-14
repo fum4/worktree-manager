@@ -1905,9 +1905,11 @@ export interface HooksConfig {
 
 export interface SkillHookResult {
   skillName: string;
-  success: boolean;
-  summary: string;
+  status: 'running' | 'passed' | 'failed';
+  success?: boolean;
+  summary?: string;
   content?: string;
+  filePath?: string;
   reportedAt: string;
 }
 
@@ -2180,5 +2182,19 @@ export async function fetchHookSkillResults(
     return await res.json();
   } catch {
     return { results: [] };
+  }
+}
+
+export async function fetchFileContent(
+  filePath: string,
+  serverUrl: string | null = null,
+): Promise<{ content?: string; error?: string }> {
+  try {
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/files/read?path=${encodeURIComponent(filePath)}`,
+    );
+    return await res.json();
+  } catch {
+    return { error: 'Failed to fetch file' };
   }
 }

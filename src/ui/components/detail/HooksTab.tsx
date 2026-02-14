@@ -1,10 +1,12 @@
-import { Ban, CheckCircle, ChevronDown, CircleCheck, FishingHook, Hand, ListChecks, Loader2, MessageSquareText, Play, Sparkles, Terminal, XCircle } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Ban, CheckCircle, ChevronDown, CircleCheck, FileText, FishingHook, Hand, ListChecks, Loader2, MessageSquareText, Play, Sparkles, Terminal, XCircle } from 'lucide-react';
+import { type Dispatch, type SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 
 import type { HookSkillRef, HookStep, SkillHookResult, StepResult } from '../../hooks/api';
 import { useApi } from '../../hooks/useApi';
 import { useEffectiveHooksConfig, useHookSkillResults } from '../../hooks/useHooks';
-import { button, settings, text } from '../../theme';
+import { settings, text } from '../../theme';
+import { MarkdownContent } from '../MarkdownContent';
+import { Modal } from '../Modal';
 
 function statusIcon(status: StepResult['status']) {
   switch (status) {
@@ -66,21 +68,23 @@ function formatDuration(ms: number): string {
 interface HooksTabProps {
   worktreeId: string;
   visible: boolean;
+  hookUpdateKey?: number;
   hasLinkedIssue?: boolean;
   onNavigateToIssue?: () => void;
   onCreateTask?: () => void;
   onNavigateToHooks?: () => void;
 }
 
-export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssue, onCreateTask, onNavigateToHooks }: HooksTabProps) {
+export function HooksTab({ worktreeId, visible, hookUpdateKey, hasLinkedIssue, onNavigateToIssue, onCreateTask, onNavigateToHooks }: HooksTabProps) {
   const api = useApi();
   const { config, refetch: refetchConfig } = useEffectiveHooksConfig(visible ? worktreeId : null);
   const { results: skillResults, refetch: refetchSkillResults } = useHookSkillResults(visible ? worktreeId : null);
   const [stepResults, setStepResults] = useState<Record<string, StepResult>>({});
   const [runningSteps, setRunningSteps] = useState<Set<string>>(new Set());
   const [runningAll, setRunningAll] = useState(false);
-  const [expandedStep, setExpandedStep] = useState<string | null>(null);
-  const [expandedSkill, setExpandedSkill] = useState<string | null>(null);
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+  const [expandedSkills, setExpandedSkills] = useState<Set<string>>(new Set());
+  const [reportPreview, setReportPreview] = useState<{ skillName: string; content: string } | null>(null);
 
   // Fetch latest status on mount / worktree change
   const fetchStatus = useCallback(async () => {
@@ -101,6 +105,77 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
       refetchSkillResults();
     }
   }, [visible, fetchStatus, refetchConfig, refetchSkillResults]);
+
+  // Auto-refetch and auto-expand when hook updates arrive via SSE
+  const prevSkillResultsRef = useRef(skillResults);
+  useEffect(() => {
+    if (!hookUpdateKey || !visible) return;
+    refetchSkillResults();
+    fetchStatus();
+  }, [hookUpdateKey, visible, refetchSkillResults, fetchStatus]);
+
+  // Auto-expand skills that just got new results
+  useEffect(() => {
+    const prev = prevSkillResultsRef.current;
+    const toExpand: string[] = [];
+    for (const result of skillResults) {
+      if (result.status === 'running') continue;
+      const prevResult = prev.find((r) => r.skillName === result.skillName);
+      if (!prevResult || prevResult.status === 'running' || prevResult.reportedAt !== result.reportedAt) {
+        if (result.content || result.summary) {
+          toExpand.push(result.skillName);
+        }
+      }
+    }
+    if (toExpand.length > 0) {
+      setExpandedSkills(prev => {
+        const next = new Set(prev);
+        for (const name of toExpand) next.add(name);
+        return next;
+      });
+    }
+    prevSkillResultsRef.current = skillResults;
+  }, [skillResults]);
+
+  // Expand all items when entire pipeline completes
+  const pipelineWasCompleteRef = useRef(false);
+  useEffect(() => {
+    if (!config) return;
+    const enabledSteps = config.steps.filter((s) => s.enabled !== false);
+    const enabledSkills = config.skills.filter((s) => s.enabled);
+    if (enabledSteps.length === 0 && enabledSkills.length === 0) return;
+
+    const hasAnyResults = enabledSteps.some(s => stepResults[s.id]) || skillResults.length > 0;
+    if (!hasAnyResults) {
+      pipelineWasCompleteRef.current = false;
+      return;
+    }
+
+    const allStepsComplete = enabledSteps.every((s) => {
+      const r = stepResults[s.id];
+      return r && r.status !== 'running';
+    });
+    const allSkillsComplete = enabledSkills.every((s) => {
+      const r = skillResults.find((r2) => r2.skillName === s.skillName);
+      return r && r.status !== 'running';
+    });
+
+    const isComplete = allStepsComplete && allSkillsComplete;
+    if (isComplete && !pipelineWasCompleteRef.current) {
+      pipelineWasCompleteRef.current = true;
+      setExpandedSteps(new Set(
+        enabledSteps.filter(s => stepResults[s.id]?.output).map(s => s.id),
+      ));
+      setExpandedSkills(new Set(
+        enabledSkills.filter(s => {
+          const r = skillResults.find(r2 => r2.skillName === s.skillName);
+          return r?.content || r?.summary;
+        }).map(s => s.skillName),
+      ));
+    } else if (!isComplete) {
+      pipelineWasCompleteRef.current = false;
+    }
+  }, [config, stepResults, skillResults]);
 
   const handleRunAll = async () => {
     if (!config) return;
@@ -135,6 +210,13 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
       });
     }
   };
+
+  const handleViewReport = useCallback(async (filePath: string, skillName: string) => {
+    const result = await api.fetchFileContent(filePath);
+    if (result.content) {
+      setReportPreview({ skillName, content: result.content });
+    }
+  }, [api]);
 
   if (!visible) return null;
 
@@ -208,8 +290,8 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
               stepResults={stepResults}
               runningSteps={runningSteps}
               runningAll={false}
-              expandedStep={expandedStep}
-              setExpandedStep={setExpandedStep}
+              expandedSteps={expandedSteps}
+              setExpandedSteps={setExpandedSteps}
               onRunSingle={handleRunSingle}
             />
           )}
@@ -218,8 +300,9 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
             <SkillList
               skills={onDemandSkills}
               skillResultMap={skillResultMap}
-              expandedSkill={expandedSkill}
-              setExpandedSkill={setExpandedSkill}
+              expandedSkills={expandedSkills}
+              setExpandedSkills={setExpandedSkills}
+              onViewReport={handleViewReport}
             />
           )}
         </>
@@ -244,8 +327,8 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
               stepResults={stepResults}
               runningSteps={runningSteps}
               runningAll={false}
-              expandedStep={expandedStep}
-              setExpandedStep={setExpandedStep}
+              expandedSteps={expandedSteps}
+              setExpandedSteps={setExpandedSteps}
               onRunSingle={handleRunSingle}
             />
           )}
@@ -254,8 +337,9 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
             <SkillList
               skills={preSkills}
               skillResultMap={skillResultMap}
-              expandedSkill={expandedSkill}
-              setExpandedSkill={setExpandedSkill}
+              expandedSkills={expandedSkills}
+              setExpandedSkills={setExpandedSkills}
+              onViewReport={handleViewReport}
             />
           )}
         </>
@@ -272,11 +356,11 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
                 {postSteps.length + postSkills.length} item{(postSteps.length + postSkills.length) !== 1 ? 's' : ''}
               </span>
             </div>
-            {postSteps.length > 0 && (
+            {postSteps.filter((s) => s.enabled !== false).length > 1 && (
               <button
                 onClick={handleRunAll}
                 disabled={runningAll}
-                className={`group/run flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${button.primary} disabled:opacity-50`}
+                className="group/run flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg transition-colors border border-white/[0.12] text-[#9ca3af] hover:text-white hover:border-white/[0.25] hover:bg-white/[0.04] disabled:opacity-50"
               >
                 {runningAll ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -294,8 +378,8 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
               stepResults={stepResults}
               runningSteps={runningSteps}
               runningAll={runningAll}
-              expandedStep={expandedStep}
-              setExpandedStep={setExpandedStep}
+              expandedSteps={expandedSteps}
+              setExpandedSteps={setExpandedSteps}
               onRunSingle={handleRunSingle}
             />
           )}
@@ -304,8 +388,9 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
             <SkillList
               skills={postSkills}
               skillResultMap={skillResultMap}
-              expandedSkill={expandedSkill}
-              setExpandedSkill={setExpandedSkill}
+              expandedSkills={expandedSkills}
+              setExpandedSkills={setExpandedSkills}
+              onViewReport={handleViewReport}
             />
           )}
         </>
@@ -340,8 +425,8 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
                   stepResults={stepResults}
                   runningSteps={runningSteps}
                   runningAll={false}
-                  expandedStep={expandedStep}
-                  setExpandedStep={setExpandedStep}
+                  expandedSteps={expandedSteps}
+                  setExpandedSteps={setExpandedSteps}
                   onRunSingle={handleRunSingle}
                 />
               )}
@@ -350,8 +435,9 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
                 <SkillList
                   skills={group.skills}
                   skillResultMap={skillResultMap}
-                  expandedSkill={expandedSkill}
-                  setExpandedSkill={setExpandedSkill}
+                  expandedSkills={expandedSkills}
+                  setExpandedSkills={setExpandedSkills}
+                  onViewReport={handleViewReport}
                 />
               )}
             </div>
@@ -414,6 +500,20 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
           )}
         </div>
       </div>
+
+      {/* Markdown report preview modal */}
+      {reportPreview && (
+        <Modal
+          title={reportPreview.skillName}
+          icon={<FileText className="w-4 h-4 text-pink-400" />}
+          onClose={() => setReportPreview(null)}
+          width="lg"
+        >
+          <div className="max-h-[60vh] overflow-y-auto">
+            <MarkdownContent content={reportPreview.content} />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -423,8 +523,8 @@ function StepList({
   stepResults,
   runningSteps,
   runningAll,
-  expandedStep,
-  setExpandedStep,
+  expandedSteps,
+  setExpandedSteps,
   onRunSingle,
   nested,
 }: {
@@ -432,33 +532,42 @@ function StepList({
   stepResults: Record<string, StepResult>;
   runningSteps: Set<string>;
   runningAll: boolean;
-  expandedStep: string | null;
-  setExpandedStep: (id: string | null) => void;
+  expandedSteps: Set<string>;
+  setExpandedSteps: Dispatch<SetStateAction<Set<string>>>;
   onRunSingle: (stepId: string) => void;
   nested?: boolean;
 }) {
+  const toggleStep = (id: string) => {
+    setExpandedSteps(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <div className={`${nested ? 'px-2' : 'px-4'} py-[2.5px] space-y-[5px]`}>
       {steps.map((step) => {
         const disabled = step.enabled === false;
         const result = stepResults[step.id];
         const isRunning = runningSteps.has(step.id);
-        const isExpanded = expandedStep === step.id;
+        const isExpanded = expandedSteps.has(step.id);
 
         return (
           <div key={step.id} className={`relative rounded-lg border ${!result && !isRunning && !disabled ? 'border-dashed border-white/[0.08]' : 'border-white/[0.04]'} ${result || disabled ? settings.card : ''} overflow-visible ${disabled ? 'opacity-50' : ''}`}>
-            {isRunning && <SweepingBorder />}
+            {/* {isRunning && <SweepingBorder />} */}
             <div className="flex items-center gap-2.5 px-3 py-2">
               {/* Type icon */}
               <Terminal className={`w-3.5 h-3.5 flex-shrink-0 ${disabled ? text.dimmed : text.muted}`} />
 
-              <button
-                className="flex-1 flex items-center text-left min-w-0"
-                onClick={() => !disabled && result?.output && setExpandedStep(isExpanded ? null : step.id)}
+              <div
+                className={`flex-1 flex items-center text-left min-w-0 ${!disabled && result?.output ? 'cursor-pointer' : ''}`}
+                onClick={() => !disabled && result?.output && toggleStep(step.id)}
               >
                 <span className={`text-[11px] font-medium ${disabled ? text.dimmed : text.secondary}`}>{step.name}</span>
                 <span className={`text-[10px] ${text.dimmed} ml-2 font-mono`}>{step.command}</span>
-              </button>
+              </div>
 
               {!disabled && result?.durationMs != null && (
                 <span className={`text-[9px] ${text.dimmed} flex-shrink-0`}>
@@ -467,7 +576,7 @@ function StepList({
               )}
 
               {!disabled && result?.output && (
-                <button onClick={() => setExpandedStep(isExpanded ? null : step.id)}>
+                <button onClick={() => toggleStep(step.id)}>
                   <ChevronDown className={`w-3 h-3 ${text.dimmed} transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
               )}
@@ -509,42 +618,63 @@ function StepList({
 function SkillList({
   skills,
   skillResultMap,
-  expandedSkill,
-  setExpandedSkill,
+  expandedSkills,
+  setExpandedSkills,
+  onViewReport,
   nested,
 }: {
   skills: Array<{ skillName: string; enabled: boolean }>;
   skillResultMap: Map<string, SkillHookResult>;
-  expandedSkill: string | null;
-  setExpandedSkill: (name: string | null) => void;
+  expandedSkills: Set<string>;
+  setExpandedSkills: Dispatch<SetStateAction<Set<string>>>;
+  onViewReport?: (filePath: string, skillName: string) => void;
   nested?: boolean;
 }) {
+  const toggleSkill = (name: string) => {
+    setExpandedSkills(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
   return (
     <div className={`${nested ? 'px-2' : 'px-4'} py-[2.5px] space-y-[5px]`}>
       {skills.map((skill) => {
         const disabled = !skill.enabled;
         const result = skillResultMap.get(skill.skillName);
-        const isExpanded = expandedSkill === skill.skillName;
+        const isRunning = result?.status === 'running';
+        const isExpanded = expandedSkills.has(skill.skillName);
 
         return (
           <div key={skill.skillName} className={`relative rounded-lg border ${!result && !disabled ? 'border-dashed border-white/[0.08]' : 'border-white/[0.04]'} ${result || disabled ? settings.card : ''} overflow-visible ${disabled ? 'opacity-50' : ''}`}>
+            {/* {isRunning && <SweepingBorder />} */}
             <div className="flex items-center gap-2.5 px-3 py-2">
               {/* Type icon */}
               <Sparkles className={`w-3.5 h-3.5 flex-shrink-0 ${disabled ? text.dimmed : 'text-pink-400/70'}`} />
 
-              <button
-                className="flex-1 flex items-center text-left min-w-0"
-                onClick={() => !disabled && result && setExpandedSkill(isExpanded ? null : skill.skillName)}
+              <div
+                className={`flex-1 flex items-center text-left min-w-0 ${!disabled && (result?.content || result?.summary) && !isRunning ? 'cursor-pointer' : ''}`}
+                onClick={() => !disabled && result && !isRunning && toggleSkill(skill.skillName)}
               >
                 <span className={`text-[11px] font-medium ${disabled ? text.dimmed : text.secondary}`}>{skill.skillName}</span>
-                {!disabled && result && (
-                  <span className={`text-[10px] ${text.muted} ml-2`}>{result.summary}</span>
-                )}
-              </button>
+              </div>
+
+              {/* View report link */}
+              {!disabled && !isRunning && result?.filePath && onViewReport && (
+                <button
+                  onClick={() => onViewReport(result.filePath!, skill.skillName)}
+                  className={`flex items-center gap-1 text-[10px] ${text.muted} hover:text-white transition-colors flex-shrink-0`}
+                >
+                  <FileText className="w-3 h-3" />
+                  <span>View report</span>
+                </button>
+              )}
 
               {/* Expand toggle */}
-              {!disabled && result?.content && (
-                <button onClick={() => setExpandedSkill(isExpanded ? null : skill.skillName)}>
+              {!disabled && !isRunning && (result?.content || result?.summary) && (
+                <button onClick={() => toggleSkill(skill.skillName)}>
                   <ChevronDown className={`w-3 h-3 ${text.dimmed} transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
               )}
@@ -552,6 +682,8 @@ function SkillList({
               {/* Status icon (right side) */}
               {disabled ? (
                 <Ban className="w-3.5 h-3.5 text-white/[0.2] flex-shrink-0" />
+              ) : isRunning ? (
+                <Loader2 className="w-3.5 h-3.5 text-yellow-400 animate-spin flex-shrink-0" />
               ) : result ? (
                 result.success ? (
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
@@ -562,11 +694,16 @@ function SkillList({
             </div>
 
             {/* Expanded content */}
-            {isExpanded && result?.content && (
+            {isExpanded && !isRunning && (result?.content || result?.summary) && (
               <div className="px-3 pb-3 pt-1 border-t border-white/[0.04]">
-                <pre className={`text-[10px] ${text.muted} whitespace-pre-wrap break-words font-mono leading-relaxed max-h-60 overflow-y-auto`}>
-                  {result.content}
-                </pre>
+                {result?.summary && (
+                  <p className={`text-[10px] ${text.muted} mb-1.5`}>{result.summary}</p>
+                )}
+                {result?.content && (
+                  <pre className={`text-[10px] ${text.muted} whitespace-pre-wrap break-words font-mono leading-relaxed max-h-60 overflow-y-auto`}>
+                    {result.content}
+                  </pre>
+                )}
               </div>
             )}
           </div>

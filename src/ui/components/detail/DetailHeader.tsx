@@ -127,6 +127,17 @@ export function DetailHeader({
           )}
           {!isCreating && (
             <>
+              <button
+                type="button"
+                onClick={onRemove}
+                disabled={isLoading}
+                className="h-7 px-2.5 text-[11px] font-medium text-red-400/70 hover:text-red-300 hover:bg-red-500/15 rounded-md disabled:opacity-50 transition-colors duration-150 inline-flex items-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.519.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
+                </svg>
+                Delete
+              </button>
               {isRunning ? (
                 <button
                   type="button"
@@ -144,7 +155,7 @@ export function DetailHeader({
                   type="button"
                   onClick={onStart}
                   disabled={isLoading}
-                  className={`h-7 px-2.5 text-[11px] font-medium ${action.start.text} ${action.start.hover} rounded-md disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] inline-flex items-center gap-1.5`}
+                  className="h-7 px-3 text-[11px] font-medium text-teal-300 bg-teal-500/15 border border-teal-400/25 hover:bg-teal-500/25 hover:border-teal-400/40 rounded-md disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] inline-flex items-center gap-1.5"
                 >
                   {isLoading ? (
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 animate-spin">
@@ -158,16 +169,6 @@ export function DetailHeader({
                   Run
                 </button>
               )}
-              <button
-                type="button"
-                onClick={onRemove}
-                disabled={isLoading}
-                className={`h-7 w-7 inline-flex items-center justify-center text-[11px] font-medium ${action.delete.text} ${action.delete.hover} rounded-md disabled:opacity-50 transition-colors duration-150`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                  <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.519.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
-                </svg>
-              </button>
             </>
           )}
           {worktree.ports.length > 0 && (

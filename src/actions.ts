@@ -44,9 +44,11 @@ Do NOT read .work3/ files or make HTTP requests to the work3 server. All communi
 ## After Creating a Worktree
 1. Poll list_worktrees until status is 'stopped' (creation done)
 2. Navigate to the worktree path returned in the response
-3. Read TASK.md for full context (includes issue details, AI directions, and a todo checklist)
-4. Work through the todo items in order — toggle each one as you complete it using update_todo
-5. Follow any directions in the AI Context section
+3. Call get_hooks_config to discover all configured hooks (pre-implementation, post-implementation, custom, on-demand)
+4. Run any pre-implementation hooks BEFORE starting work (see Hooks section below)
+5. Read TASK.md to understand the task from the original issue details
+6. Follow AI context directions and work through the todo checklist — these are user-defined and take priority over the original task description when they conflict
+7. Toggle each todo item as you complete it using update_todo
 
 ## While Working in a Worktree
 - get_task_context — refresh full task details, AI context, and todo checklist
@@ -71,13 +73,47 @@ The project owner can restrict agent git operations. Before calling commit, push
 2. If not allowed, inform the user and suggest they enable it in Settings or per-worktree
 3. When committing, the commit message may be automatically formatted by a project-configured rule
 
-## Hooks (Post-Implementation)
-After completing work in a worktree, run hooks to validate changes:
-1. Call get_hooks_config to see what pipeline checks and hook skills are configured
-2. Call run_hooks with the worktree ID — all pipeline check steps run in parallel and results are returned inline
-3. For each enabled hook skill, invoke the corresponding slash command (e.g. /verify-code-review)
-4. After running a hook skill, call report_hook_result with the worktree ID, skill name, success status, and results
-5. TASK.md includes a "Hooks" section listing all enabled checks and skills — follow those instructions`;
+## Hooks
+Hooks run at different points in the workflow. Call get_hooks_config EARLY (right after worktree creation) to discover all configured hooks.
+
+There are four trigger types:
+- **pre-implementation**: Run BEFORE you start coding. These set up context, run scaffolding, or enforce prerequisites.
+- **post-implementation**: Run AFTER you finish implementing. These validate changes (type checks, linting, tests, code review).
+- **custom**: Run when a natural-language condition is met (e.g. "when changes touch database models"). Check conditions as you work and run matching hooks when appropriate.
+- **on-demand**: Only run when explicitly requested by the user. Do not run these automatically.
+
+### Workflow
+1. Call get_hooks_config immediately after entering a worktree to see all hooks
+2. **Before running** any hook, skill, or command — inform the user what you are about to run and why (e.g. "Running pre-implementation hooks: typecheck, lint" or "Invoking /code-review skill as a post-implementation hook")
+3. **After running** — always summarize the results to the user AND report them back through the MCP tools so the work3 UI stays updated:
+   - Command steps: run_hooks saves results automatically. Summarize pass/fail to the user.
+   - Skills: call report_hook_status TWICE — once BEFORE invoking (without success/summary) to show loading in the UI, and once AFTER with the result. Summarize to the user.
+4. Run pre-implementation hooks before starting work: call run_hooks for command steps. For each skill: call report_hook_status to mark it running, invoke the skill, then call report_hook_status again with the result.
+5. While working, check custom hook conditions — if your changes match a condition, run those hooks and report results the same way.
+6. After completing work, run post-implementation hooks the same way.
+7. Call get_hooks_status to verify all steps passed
+8. TASK.md includes a "Hooks" section listing all enabled checks and skills — follow those instructions
+
+## Skill Report Files
+For skills that produce detailed output (e.g. code review, changes summary, test instructions, explanations), write the full report to a markdown file in the worktree directory and pass the absolute path via the \`filePath\` parameter in report_hook_status. The user can then open and preview the report from the UI.
+- File naming: \`{worktreePath}/.work3-{skillName}.md\` (e.g. \`.work3-code-review.md\`)
+- The \`summary\` field should be a short one-liner; the file contains the full report
+- The \`content\` field can be omitted when \`filePath\` is provided
+
+## Skill-Specific Guidelines
+When running hook skills, follow these quality guidelines:
+- **Code review**: Conduct a thorough investigation. Read the actual code files, trace logic, check for bugs, edge cases, security issues, and correctness. Do not just summarize the diff — analyze it critically.
+- **Changes summary**: Be technical and well-structured. Use bullet points, group by area (e.g. backend, frontend, types). Not overly verbose, but cover all meaningful changes.
+- **Test instructions / test writing**: Check if the project has a testing framework configured. If not, ask the user whether they want to integrate one and which framework they prefer before proceeding. Ask about testing scope and priorities.
+- **Explain like I'm 5**: Use simple language and analogies. Make it accessible to non-technical readers.
+
+## After Completing Work
+After finishing all implementation and running all post-implementation hooks:
+1. Call get_git_policy to check what git operations are allowed for this worktree
+2. If commit is allowed, stage and commit all changes (via commit)
+3. If push is allowed, push to the remote (via push)
+4. If create_pr is allowed, create a pull request (via create_pr)
+5. Ask the user if they would like you to start the worktree dev server automatically (via start_worktree)`;
 
 function findWorktreeOrThrow(ctx: ActionContext, id: string) {
   const worktrees = ctx.manager.getWorktrees();
@@ -330,7 +366,7 @@ export const actions: Action[] = [
   // -- Notes --
   {
     name: 'read_issue_notes',
-    description: 'Read AI context notes for a worktree or issue. Returns directions and todo checklist for AI agents. Use this before starting work on a worktree to get context.',
+    description: 'Read AI context and todo checklist for a worktree or issue. These are user-defined directions that take priority over the original task description when they conflict. Read the task first (via get_task_context or TASK.md) to understand what the issue is about, then use this to get overriding directions and todos.',
     params: {
       worktreeId: { type: 'string', description: 'Worktree ID to find linked issue notes for' },
       source: { type: 'string', description: 'Issue source: "jira", "linear", or "local" (use with issueId)' },
@@ -626,30 +662,44 @@ export const actions: Action[] = [
     },
   },
   {
-    name: 'report_hook_result',
-    description: 'Report the result of a hook skill after running it. Call this after invoking a hook skill (e.g. /verify-code-review) to save the result.',
+    name: 'report_hook_status',
+    description: 'Report hook skill status to the work3 UI. Call this TWICE for each skill: once BEFORE invoking (without success/summary) to show a loading state, and once AFTER with the result. The work3 UI updates in real-time based on these reports.',
     params: {
       worktreeId: { type: 'string', description: 'Worktree ID', required: true },
       skillName: { type: 'string', description: 'Name of the hook skill (e.g. verify-code-review)', required: true },
-      success: { type: 'boolean', description: 'Whether the hook passed', required: true },
-      summary: { type: 'string', description: 'Short one-line summary of the result', required: true },
+      success: { type: 'boolean', description: 'Whether the hook passed (omit when reporting start)' },
+      summary: { type: 'string', description: 'Short one-line summary of the result (omit when reporting start)' },
       content: { type: 'string', description: 'Full markdown content with detailed results (optional)' },
+      filePath: { type: 'string', description: 'Absolute path to an MD report file the agent wrote (optional). Shown as a link in the UI.' },
     },
     handler: async (ctx, params) => {
       if (!ctx.hooksManager) return { error: 'Hooks manager not available' };
       const worktreeId = params.worktreeId as string;
       const skillName = params.skillName as string;
-      const success = params.success as boolean;
-      const summary = params.summary as string;
+      const success = params.success as boolean | undefined;
+      const summary = params.summary as string | undefined;
       const content = params.content as string | undefined;
+      const filePath = params.filePath as string | undefined;
 
-      ctx.hooksManager.reportSkillResult(worktreeId, {
-        skillName,
-        success,
-        summary,
-        content,
-        reportedAt: new Date().toISOString(),
-      });
+      if (success === undefined || success === null) {
+        // Starting notification — mark as running
+        ctx.hooksManager.reportSkillResult(worktreeId, {
+          skillName,
+          status: 'running',
+          reportedAt: new Date().toISOString(),
+        });
+      } else {
+        // Completion report
+        ctx.hooksManager.reportSkillResult(worktreeId, {
+          skillName,
+          status: success ? 'passed' : 'failed',
+          success,
+          summary,
+          content,
+          filePath,
+          reportedAt: new Date().toISOString(),
+        });
+      }
 
       return { success: true };
     },

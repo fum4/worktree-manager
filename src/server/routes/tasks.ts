@@ -256,13 +256,16 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
     });
 
     try {
-      const result = await manager.createWorktree({ branch: branchName, name: task.id });
+      const taskId = task.id;
+      const result = await manager.createWorktree({ branch: branchName, name: taskId }, {
+        onSuccess: () => {
+          // Link worktree via notes.json only after async creation actually succeeds
+          notesManager.setLinkedWorktreeId('local', taskId, taskId);
+        },
+      });
 
-      if (result.success) {
-        // Link worktree via notes.json
-        notesManager.setLinkedWorktreeId('local', task.id, task.id);
-      } else {
-        manager.clearPendingWorktreeContext(task.id);
+      if (!result.success) {
+        manager.clearPendingWorktreeContext(taskId);
       }
 
       return c.json(result);

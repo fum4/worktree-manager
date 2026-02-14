@@ -119,8 +119,11 @@ export function TerminalView({ worktreeId, visible }: TerminalViewProps) {
       }
     };
 
-    // Fit after visibility change (needs a frame for DOM layout)
-    requestAnimationFrame(fit);
+    // Fit and focus after visibility change (needs a frame for DOM layout)
+    requestAnimationFrame(() => {
+      fit();
+      terminalRef.current?.focus();
+    });
 
     const observer = new ResizeObserver(() => {
       requestAnimationFrame(fit);

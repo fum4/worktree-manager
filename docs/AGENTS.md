@@ -68,6 +68,10 @@ args = ["mcp"]
 
 work3's UI can deploy this configuration automatically to any supported agent (see [Supported Agents](#supported-agents)).
 
+### Auto-Approval of MCP Tools
+
+When deploying agent instructions for Claude, work3 also merges `mcp__work3__*` into `.claude/settings.json` → `permissions.allow`. This auto-approves all work3 MCP tools so agents can call them (e.g., `report_hook_status`) without prompting the user for permission each time. On removal, the permission entries are cleaned up from the settings file.
+
 ### Exposed Tools
 
 The MCP server exposes the following tools (defined in `src/actions.ts`):
@@ -105,7 +109,7 @@ The MCP server exposes the following tools (defined in `src/actions.ts`):
 **Hooks:**
 - `get_hooks_config` -- Get hooks configuration (steps and skills by trigger type)
 - `run_hooks` -- Run hook steps for a worktree
-- `report_hook_skill_result` -- Report a skill hook result
+- `report_hook_status` -- Report a skill hook result (call twice: once before invoking to show loading, once after with the result)
 - `get_hooks_status` -- Get current/last hook run status
 
 ### MCP Prompt
@@ -457,9 +461,12 @@ Each issue can override the global enable/disable state of skills. Overrides are
 ### Agent Workflow
 
 1. Read hook configuration to understand what checks are expected
-2. Run `post-implementation` hooks after completing a task
-3. Report skill results back to work3
-4. Check run status to verify all steps passed
+2. Run `pre-implementation` hooks before starting work
+3. While working, check `custom` hook conditions and run matching hooks
+4. Run `post-implementation` hooks after completing a task
+5. Report skill results back to work3 via `report_hook_status`
+6. Check run status to verify all steps passed
+7. After all work and hooks are done, ask the user if they'd like to start the worktree dev server automatically
 
 ---
 

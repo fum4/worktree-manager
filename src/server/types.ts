@@ -136,9 +136,11 @@ export interface HooksConfig {
 
 export interface SkillHookResult {
   skillName: string;
-  success: boolean;
-  summary: string;
+  status: 'running' | 'passed' | 'failed';
+  success?: boolean;
+  summary?: string;
   content?: string;
+  filePath?: string;
   reportedAt: string;
 }
 

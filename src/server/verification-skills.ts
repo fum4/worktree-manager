@@ -24,12 +24,13 @@ Generate a concise summary of all changes made in this worktree compared to the 
 
 ## Steps
 
-1. Run \`git diff HEAD~..HEAD\` (or \`git diff main..HEAD\` if multiple commits) to see all changes
-2. Analyze the diff and produce a structured summary:
+1. Call \`report_hook_status\` with just \`worktreeId\` and \`skillName\`: "verify-changes-summary" (no success/summary) to mark it running in the UI
+2. Run \`git diff HEAD~..HEAD\` (or \`git diff main..HEAD\` if multiple commits) to see all changes
+3. Analyze the diff and produce a structured summary:
    - **Files changed** — list of modified/added/deleted files
    - **What changed** — high-level description of the changes grouped by feature/area
    - **Key decisions** — any notable architectural or design choices visible in the diff
-3. Call the \`report_hook_result\` MCP tool with:
+4. Call \`report_hook_status\` again with:
    - \`skillName\`: "verify-changes-summary"
    - \`success\`: true
    - \`summary\`: A one-line summary (e.g. "Added user auth with JWT + 3 new API endpoints")
@@ -52,12 +53,13 @@ Review the code changes in this worktree for bugs, security vulnerabilities, and
 
 ## Steps
 
-1. Run \`git diff main..HEAD\` (adjust base branch as needed) to see all changes
-2. Review each changed file for:
+1. Call \`report_hook_status\` with just \`worktreeId\` and \`skillName\`: "verify-code-review" (no success/summary) to mark it running in the UI
+2. Run \`git diff main..HEAD\` (adjust base branch as needed) to see all changes
+3. Review each changed file for:
    - **Bugs** — logic errors, off-by-one, null/undefined issues, race conditions
    - **Security** — injection, XSS, auth bypasses, secrets in code, OWASP top 10
    - **Quality** — dead code, missing error handling, unclear naming, code duplication
-3. Call the \`report_hook_result\` MCP tool with:
+4. Call \`report_hook_status\` again with:
    - \`skillName\`: "verify-code-review"
    - \`success\`: true if no critical issues found, false if there are blocking problems
    - \`summary\`: One-line verdict (e.g. "No critical issues. 2 minor suggestions.")
@@ -80,14 +82,15 @@ Generate step-by-step manual testing instructions for the changes in this worktr
 
 ## Steps
 
-1. Run \`git diff main..HEAD\` to understand what changed
-2. Read TASK.md to understand the intent of the changes
-3. Create a testing document with:
+1. Call \`report_hook_status\` with just \`worktreeId\` and \`skillName\`: "verify-test-instructions" (no success/summary) to mark it running in the UI
+2. Run \`git diff main..HEAD\` to understand what changed
+3. Read TASK.md to understand the intent of the changes
+4. Create a testing document with:
    - **Prerequisites** — what needs to be running, env setup, test data
    - **Test scenarios** — numbered steps a QA person can follow
    - **Expected results** — what should happen at each step
    - **Edge cases** — boundary conditions to verify
-4. Call the \`report_hook_result\` MCP tool with:
+5. Call \`report_hook_status\` again with:
    - \`skillName\`: "verify-test-instructions"
    - \`success\`: true
    - \`summary\`: "Generated N test scenarios covering [areas]"
@@ -110,11 +113,12 @@ Write unit and/or integration tests for the changes in this worktree.
 
 ## Steps
 
-1. Run \`git diff main..HEAD\` to understand what changed
-2. Identify testable units — new functions, API endpoints, components, logic
-3. Write tests following the project's existing test patterns and framework
-4. If the project has no test runner, note this and write tests that could be added later
-5. Call the \`report_hook_result\` MCP tool with:
+1. Call \`report_hook_status\` with just \`worktreeId\` and \`skillName\`: "verify-test-writing" (no success/summary) to mark it running in the UI
+2. Run \`git diff main..HEAD\` to understand what changed
+3. Identify testable units — new functions, API endpoints, components, logic
+4. Write tests following the project's existing test patterns and framework
+5. If the project has no test runner, note this and write tests that could be added later
+6. Call \`report_hook_status\` again with:
    - \`skillName\`: "verify-test-writing"
    - \`success\`: true if tests were written, false if nothing testable was found
    - \`summary\`: "Wrote N tests covering [areas]"
@@ -137,15 +141,16 @@ Explain the changes in this worktree as if you're talking to a very smart five-y
 
 ## Steps
 
-1. Run \`git diff main..HEAD\` to see all changes
-2. Read through the diff and understand what happened
-3. Write your explanation following these rules:
+1. Call \`report_hook_status\` with just \`worktreeId\` and \`skillName\`: "verify-explain-like-im-5" (no success/summary) to mark it running in the UI
+2. Run \`git diff main..HEAD\` to see all changes
+3. Read through the diff and understand what happened
+4. Write your explanation following these rules:
    - Use simple words a kid would understand
    - Compare code concepts to real-world things (buildings, toys, recipes, animals, etc.)
    - If something is deleted, say what went away. If something is added, say what's new.
    - Keep it short and fun — aim for "bedtime story about code" vibes
    - End with a one-sentence "so basically..." wrap-up
-4. Call the \`report_hook_result\` MCP tool with:
+5. Call \`report_hook_status\` again with:
    - \`skillName\`: "verify-explain-like-im-5"
    - \`success\`: true
    - \`summary\`: A one-line kidspeak summary (e.g. "We taught the app a new trick and fixed a boo-boo")

@@ -130,21 +130,28 @@ The Hooks view (top navigation) is the configuration interface. Users can:
 3. Edit command step names, commands, and conditions.
 4. Remove items.
 
-The worktree detail panel's **Hooks** tab triggers hook runs for a specific worktree. Each hook item shows its state visually:
+The worktree detail panel's **Hooks** tab triggers hook runs for a specific worktree. Multiple items can be expanded simultaneously to view their output. When the entire pipeline completes (all enabled steps and skills have results), all items with content are auto-expanded.
+
+Each hook item shows its state visually:
 
 - **Not yet run** -- dashed border, no background.
-- **Running** -- solid border with an animated sweeping teal border (SVG-based gradient comet effect with variable speed and synchronized opacity fading).
-- **Completed** -- solid border with card background, showing pass/fail status icon.
+- **Running** -- solid border, circular progress spinner (Loader2) in the status icon position.
+- **Completed** -- solid border with card background, showing pass/fail status icon (CheckCircle/XCircle).
 - **Disabled** -- solid border with card background, reduced opacity.
+
+Real-time updates: When agents report hook results via `report_hook_status`, the backend emits a `hook-update` SSE event. The frontend auto-refetches results and auto-expands skills that just received new content.
 
 ### From MCP Tools
 
 Agents interact with hooks through the following workflow:
 
-1. Read hook configuration to understand what checks are expected.
-2. Run `post-implementation` hooks after completing a task.
-3. Report skill results back to work3.
-4. Check run status to verify all steps passed.
+1. Call `get_hooks_config` immediately after entering a worktree to discover all trigger types.
+2. Run `pre-implementation` hooks before starting work (command steps via `run_hooks`, skills invoked directly).
+3. While working, check `custom` hook conditions — if changes match a condition, run those hooks.
+4. Run `post-implementation` hooks after completing work.
+5. Report skill results back via `report_hook_status` (call twice: once before invoking without `success`/`summary` to show loading, once after with the result). For skills with detailed output, write an MD file to `{worktreePath}/.work3-{skillName}.md` and pass the path via `filePath`.
+6. Call `get_hooks_status` to verify all steps passed.
+7. After all work and hooks are done, ask the user if they'd like to start the worktree dev server automatically (via `start_worktree`).
 
 ### Execution
 
@@ -184,8 +191,9 @@ When hooks are triggered for a worktree:
 | `POST` | `/api/worktrees/:id/hooks/run` | Run all enabled steps for a worktree |
 | `POST` | `/api/worktrees/:id/hooks/run/:stepId` | Run a single step |
 | `GET` | `/api/worktrees/:id/hooks/status` | Get latest run status |
-| `POST` | `/api/worktrees/:id/hooks/report` | Report a skill result (`{ skillName, success, summary, content? }`) |
+| `POST` | `/api/worktrees/:id/hooks/report` | Report a skill result (`{ skillName, success, summary, content?, filePath? }`) |
 | `GET` | `/api/worktrees/:id/hooks/skill-results` | Get skill results for a worktree |
+| `GET` | `/api/files/read?path=...` | Read a file by absolute path (used for MD report preview) |
 
 ## Backend
 
@@ -223,6 +231,10 @@ Hook for fetching and saving hooks configuration. Returns `{ config, isLoading, 
 ### useHookSkillResults (`src/ui/hooks/useHooks.ts`)
 
 Hook for fetching agent-reported skill results for a worktree.
+
+### Report Preview Modal
+
+When a skill result includes a `filePath`, the HooksTab shows a "View report" link next to the skill name. Clicking it fetches the file content via `GET /api/files/read` and opens a modal with `MarkdownContent` rendering. This allows agents to produce detailed MD reports that users can read in a formatted preview.
 
 ### Issue Detail Panel: Hooks Tab
 

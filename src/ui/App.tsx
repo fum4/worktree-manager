@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { AlertTriangle, GitBranch, Plus, RefreshCw, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { APP_NAME } from '../constants';
 import { AppSettingsModal } from './components/AppSettingsModal';
@@ -22,11 +22,13 @@ import { ProjectSetupScreen } from './components/ProjectSetupScreen';
 import { HooksPanel } from './components/VerificationPanel';
 import { ResizableHandle } from './components/ResizableHandle';
 import { SetupCommitModal } from './components/SetupCommitModal';
+import { ToastContainer } from './components/Toast';
 import type { View } from './components/NavBar';
 import { TabBar } from './components/TabBar';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { WorktreeList } from './components/WorktreeList';
 import { useServer } from './contexts/ServerContext';
+import { useToast } from './contexts/ToastContext';
 import { useApi } from './hooks/useApi';
 import { useConfig } from './hooks/useConfig';
 import { useCustomTasks } from './hooks/useCustomTasks';
@@ -44,8 +46,13 @@ type Selection =
 
 export default function App() {
   const api = useApi();
+  const { addToast } = useToast();
   const { projects, activeProject, isElectron, projectsLoading, selectFolder, openProject, closeProject, serverUrl } = useServer();
-  const { worktrees, isConnected, error, refetch } = useWorktrees();
+  const [hookUpdateKey, setHookUpdateKey] = useState(0);
+  const { worktrees, isConnected, error, refetch } = useWorktrees(
+    useCallback((message: string, level: 'error' | 'info') => addToast(message, level), [addToast]),
+    useCallback(() => setHookUpdateKey((k) => k + 1), []),
+  );
   const { config, projectName, hasBranchNameRule, isLoading: configLoading, refetch: refetchConfig } = useConfig();
   const { jiraStatus, refetchJiraStatus } = useJiraStatus();
   const { linearStatus, refetchLinearStatus } = useLinearStatus();
@@ -806,6 +813,7 @@ export default function App() {
                     worktree={selectedWorktree}
                     onUpdate={refetch}
                     onDeleted={handleDeleted}
+                    hookUpdateKey={hookUpdateKey}
                     onNavigateToIntegrations={() => setActiveView('integrations')}
                     onNavigateToHooks={() => setActiveView('hooks')}
                     onSelectJiraIssue={(key) => { setActiveCreateTab('issues'); setSelection({ type: 'issue', key }); }}
@@ -933,6 +941,8 @@ export default function App() {
       <div className="absolute bottom-0 left-0 right-0 z-40">
         <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
       </div>
+
+      <ToastContainer />
     </div>
   );
 }

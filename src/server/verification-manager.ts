@@ -169,6 +169,9 @@ export class HooksManager {
       existing.push(result);
     }
     writeFileSync(resultsPath, JSON.stringify(existing, null, 2) + '\n');
+
+    // Notify the frontend via SSE
+    this.manager.emitHookUpdate(worktreeId);
   }
 
   getSkillResults(worktreeId: string): SkillHookResult[] {

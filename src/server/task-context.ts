@@ -119,7 +119,7 @@ export function generateTaskMd(
 
     for (const skill of preSkills) {
       lines.push(`### ${skill.skillName}`);
-      lines.push(`Invoke the \`/${skill.skillName}\` skill. Report results using the \`report_hook_result\` MCP tool.`);
+      lines.push(`Call \`report_hook_status\` (without success/summary) to mark it running, invoke the \`/${skill.skillName}\` skill, then call \`report_hook_status\` again with the result.`);
       lines.push('');
     }
   }
@@ -143,7 +143,7 @@ export function generateTaskMd(
     for (const skill of postSkills) {
       lines.push('');
       lines.push(`### ${skill.skillName}`);
-      lines.push(`Invoke the \`/${skill.skillName}\` skill. Report results using the \`report_hook_result\` MCP tool.`);
+      lines.push(`Call \`report_hook_status\` (without success/summary) to mark it running, invoke the \`/${skill.skillName}\` skill, then call \`report_hook_status\` again with the result.`);
     }
   }
 
@@ -172,7 +172,7 @@ export function generateTaskMd(
       if (skill.condition) {
         lines.push(`**When:** ${skill.condition}`);
       }
-      lines.push(`Invoke the \`/${skill.skillName}\` skill. Report results using the \`report_hook_result\` MCP tool.`);
+      lines.push(`Call \`report_hook_status\` (without success/summary) to mark it running, invoke the \`/${skill.skillName}\` skill, then call \`report_hook_status\` again with the result.`);
       lines.push('');
     }
   }

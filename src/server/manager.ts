@@ -95,7 +95,16 @@ export class WorktreeManager {
 
   private pendingWorktreeContext: Map<string, PendingTaskContext> = new Map();
 
+  private worktreeCallbacks: Map<string, {
+    onSuccess?: (worktreeId: string) => void;
+    onFailure?: (worktreeId: string, error: string) => void;
+  }> = new Map();
+
   private eventListeners: Set<(worktrees: WorktreeInfo[]) => void> = new Set();
+
+  private notificationListeners: Set<(notification: { message: string; level: 'error' | 'info' }) => void> = new Set();
+
+  private hookUpdateListeners: Set<(worktreeId: string) => void> = new Set();
 
   constructor(config: WorktreeConfig, configFilePath: string | null = null) {
     this.config = config;
@@ -191,6 +200,24 @@ export class WorktreeManager {
   subscribe(listener: (worktrees: WorktreeInfo[]) => void): () => void {
     this.eventListeners.add(listener);
     return () => this.eventListeners.delete(listener);
+  }
+
+  subscribeNotifications(listener: (notification: { message: string; level: 'error' | 'info' }) => void): () => void {
+    this.notificationListeners.add(listener);
+    return () => this.notificationListeners.delete(listener);
+  }
+
+  private emitNotification(message: string, level: 'error' | 'info' = 'error'): void {
+    this.notificationListeners.forEach((listener) => listener({ message, level }));
+  }
+
+  subscribeHookUpdates(listener: (worktreeId: string) => void): () => void {
+    this.hookUpdateListeners.add(listener);
+    return () => this.hookUpdateListeners.delete(listener);
+  }
+
+  emitHookUpdate(worktreeId: string): void {
+    this.hookUpdateListeners.forEach((listener) => listener(worktreeId));
   }
 
   private notifyListeners(): void {
@@ -483,6 +510,10 @@ export class WorktreeManager {
 
   async createWorktree(
     request: WorktreeCreateRequest,
+    callbacks?: {
+      onSuccess?: (worktreeId: string) => void;
+      onFailure?: (worktreeId: string, error: string) => void;
+    },
   ): Promise<{ success: boolean; worktree?: WorktreeInfo; error?: string; code?: string; worktreeId?: string }> {
     const { branch, id } = request;
 
@@ -565,6 +596,9 @@ export class WorktreeManager {
     };
 
     this.creatingWorktrees.set(worktreeId, placeholder);
+    if (callbacks) {
+      this.worktreeCallbacks.set(worktreeId, callbacks);
+    }
     this.notifyListeners();
 
     // Run the actual creation async — don't block the HTTP response
@@ -700,6 +734,13 @@ export class WorktreeManager {
       // Done — remove from creating map; getWorktrees() will pick it up from filesystem
       this.creatingWorktrees.delete(worktreeId);
       this.notifyListeners();
+
+      // Call success callback (e.g. to link worktree to issue)
+      const callbacks = this.worktreeCallbacks.get(worktreeId);
+      if (callbacks?.onSuccess) {
+        try { callbacks.onSuccess(worktreeId); } catch { /* ignore */ }
+      }
+      this.worktreeCallbacks.delete(worktreeId);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to create worktree';
@@ -708,6 +749,16 @@ export class WorktreeManager {
 
       // Clean up pending context on error
       this.pendingWorktreeContext.delete(worktreeId);
+
+      // Call failure callback (e.g. to NOT link worktree)
+      const callbacks = this.worktreeCallbacks.get(worktreeId);
+      if (callbacks?.onFailure) {
+        try { callbacks.onFailure(worktreeId, message); } catch { /* ignore */ }
+      }
+      this.worktreeCallbacks.delete(worktreeId);
+
+      // Emit notification so the frontend can show a toast
+      this.emitNotification(`Failed to create worktree "${worktreeId}": ${message}`);
 
       // Remove after a delay so the user can see the error
       setTimeout(() => {
@@ -1360,15 +1411,17 @@ export class WorktreeManager {
     // Create worktree using custom branch or generated name from rule
     const worktreeBranch = branch?.trim()
       || await generateBranchName(this.configDir, { issueId: resolvedKey, name: taskData.summary, type: 'jira' });
-    const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedKey });
+    const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedKey }, {
+      onSuccess: () => {
+        // Link the worktree to the issue only after async creation succeeds
+        this.notesManager.setLinkedWorktreeId('jira', resolvedKey, resolvedKey);
+      },
+    });
 
     if (!result.success) {
       this.clearPendingWorktreeContext(resolvedKey);
       return { success: false, error: result.error, code: result.code, worktreeId: result.worktreeId };
     }
-
-    // Link the worktree to the issue via notes.json
-    this.notesManager.setLinkedWorktreeId('jira', resolvedKey, resolvedKey);
 
     return {
       success: true,
@@ -1494,15 +1547,17 @@ export class WorktreeManager {
     // Create worktree using custom branch or generated name from rule
     const worktreeBranch = branch?.trim()
       || await generateBranchName(this.configDir, { issueId: resolvedId, name: issueDetail.title, type: 'linear' });
-    const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedId });
+    const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedId }, {
+      onSuccess: () => {
+        // Link the worktree to the issue only after async creation succeeds
+        this.notesManager.setLinkedWorktreeId('linear', resolvedId, resolvedId);
+      },
+    });
 
     if (!result.success) {
       this.clearPendingWorktreeContext(resolvedId);
       return { success: false, error: result.error, code: result.code, worktreeId: result.worktreeId };
     }
-
-    // Link the worktree to the issue via notes.json
-    this.notesManager.setLinkedWorktreeId('linear', resolvedId, resolvedId);
 
     return {
       success: true,

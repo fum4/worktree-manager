@@ -316,7 +316,7 @@ export function useMyFeature() {
 
 ### SSE for Real-Time Updates
 
-Worktree state is pushed from the server via Server-Sent Events. The `useWorktrees` hook connects to `/api/events` and updates local state on each message. This is how the UI reflects process start/stop, log output, and status changes without polling.
+State is pushed from the server via Server-Sent Events. The `useWorktrees` hook connects to `/api/events` and handles three event types: `worktrees` (worktree state updates), `notification` (error/info messages displayed as toasts), and `hook-update` (triggers auto-refetch of hook results in the HooksTab). This is how the UI reflects process start/stop, log output, status changes, and agent-reported hook results without polling.
 
 ### Theme System
 
@@ -409,6 +409,7 @@ This follows an established pattern. You will need:
 - **Hono for HTTP.** The backend uses Hono with `@hono/node-server`, not Express.
 - **React 18 + React Query.** State management is via React Query for server state and `useState`/`useContext` for UI state. No Redux or Zustand.
 - **Motion (Framer Motion v12+).** Animations use the `motion/react` import path.
+- **Keep agent instructions in sync with MCP changes.** When modifying MCP tools, workflows, or hooks behavior, update ALL places where agents receive instructions: `MCP_INSTRUCTIONS` in `src/actions.ts`, the `work-on-task` prompt in `src/server/mcp-server-factory.ts`, agent instruction files in `src/server/lib/builtin-instructions.ts` (Claude skill, Cursor rule, VS Code prompt), and the inline instructions block in `docs/MCP.md`.
 
 ## Platform Constraints
 

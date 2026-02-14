@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import os from 'os';
 import path from 'path';
 
@@ -15,8 +15,22 @@ const WORK3_WORKFLOW = `When the user mentions an issue key (like PROJ-123, ENG-
 After creating a worktree:
 1. Poll the work3 list_worktrees tool until status is 'stopped'
 2. Navigate to the worktree path
-3. Read TASK.md for full context
-4. Start implementing`;
+3. Call get_hooks_config to discover hooks (pre-implementation, post-implementation, custom, on-demand)
+4. Always inform the user before running hooks/skills/commands, and summarize results after
+5. For each skill: call report_hook_status BEFORE (without success/summary) to show loading, invoke skill, then call it AGAIN with the result
+6. Run any pre-implementation hooks before starting work
+5. Read TASK.md to understand the task from the original issue details
+6. Follow AI context directions and todo checklist — these are user-defined and take priority over the original task description when they conflict
+7. Start implementing
+8. After completing all work and post-implementation hooks, call get_git_policy — if commit/push/create_pr are allowed, do them automatically. Then ask the user if they'd like you to start the worktree dev server automatically (via the start_worktree tool)
+
+Skill report files: For skills that produce detailed output (code review, changes summary, test instructions, explanations), write the full report to \`{worktreePath}/.work3-{skillName}.md\` and pass the absolute path via filePath in report_hook_status.
+
+Skill quality guidelines:
+- Code review: thorough investigation — read actual code, trace logic, check for bugs, edge cases, security. Don't just summarize the diff.
+- Changes summary: technical, well-structured, bullet points grouped by area. Not overly verbose.
+- Test writing: check if a testing framework exists first. If not, ask the user about integrating one. Ask about scope and priorities.
+- Explain like I'm 5: simple language, analogies, accessible to non-technical readers.`;
 
 // ─── Claude: .claude/skills/work/SKILL.md ────────────────────────
 
@@ -39,9 +53,11 @@ IMPORTANT: Use ONLY the work3 MCP tools (mcp__work3__*) to interact with work3. 
 
 2. **Wait for creation** — poll \`mcp__work3__list_worktrees\` until the worktree status changes from 'creating' to 'stopped'
 
-3. **Navigate** to the worktree path returned in the response and read the TASK.md file
+3. **Navigate** to the worktree path returned in the response
 
-4. **Start implementing** based on the task description and AI context
+4. **Check hooks** — call \`mcp__work3__get_hooks_config\` to discover all configured hooks. Always inform the user before running any hooks/skills/commands, and summarize results after. For each skill: call \`mcp__work3__report_hook_status\` BEFORE (without success/summary) to show loading in the UI, invoke the skill, then call it AGAIN with the result. Run pre-implementation hooks before starting work. Check custom hook conditions as you work. Run post-implementation hooks when done.
+
+5. **Read TASK.md** to understand the task from the original issue details, then follow AI context directions and todos — these are user-defined and take priority over the task description when they conflict
 
 ## Prerequisites
 
@@ -61,6 +77,10 @@ The work3 server must be running for MCP tools to work. Start it with \`work3\` 
 - \`mcp__work3__push\` — push commits to remote
 - \`mcp__work3__create_pr\` — create a pull request
 - \`mcp__work3__read_issue_notes\` — read AI context notes for a worktree
+- \`mcp__work3__get_hooks_config\` — discover all configured hooks and trigger types
+- \`mcp__work3__run_hooks\` — run hook command steps for a worktree
+- \`mcp__work3__report_hook_status\` — report skill hook start (no success/summary = loading) or result (with success/summary = done)
+- \`mcp__work3__get_hooks_status\` — check hook run status
 `;
 
 // ─── Cursor: .cursor/rules/work3.mdc ─────────────────────────────
@@ -121,6 +141,46 @@ const AGENT_INSTRUCTIONS: Partial<Record<AgentId, InstructionFile[]>> = {
   // that we can't safely auto-deploy into. MCP_INSTRUCTIONS cover them.
 };
 
+const CLAUDE_AUTO_ALLOW = ['mcp__work3__*'];
+
+function mergeClaudeSettings(filePath: string, permissions: string[]): void {
+  let settings: Record<string, unknown> = {};
+  if (existsSync(filePath)) {
+    try {
+      settings = JSON.parse(readFileSync(filePath, 'utf-8'));
+    } catch { /* ignore */ }
+  }
+  const perms = (settings.permissions ?? {}) as Record<string, unknown>;
+  const allow = new Set<string>((perms.allow ?? []) as string[]);
+  for (const p of permissions) allow.add(p);
+  perms.allow = [...allow];
+  settings.permissions = perms;
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  writeFileSync(filePath, JSON.stringify(settings, null, 2) + '\n');
+}
+
+function unmergeClaudeSettings(filePath: string, permissions: string[]): void {
+  if (!existsSync(filePath)) return;
+  try {
+    const settings = JSON.parse(readFileSync(filePath, 'utf-8'));
+    const perms = settings.permissions ?? {};
+    const allow = ((perms.allow ?? []) as string[]).filter((p: string) => !permissions.includes(p));
+    if (allow.length > 0) {
+      perms.allow = allow;
+      settings.permissions = perms;
+      writeFileSync(filePath, JSON.stringify(settings, null, 2) + '\n');
+    } else {
+      delete perms.allow;
+      if (Object.keys(perms).length === 0) delete settings.permissions;
+      if (Object.keys(settings).length === 0) {
+        rmSync(filePath);
+      } else {
+        writeFileSync(filePath, JSON.stringify(settings, null, 2) + '\n');
+      }
+    }
+  } catch { /* ignore */ }
+}
+
 export function deployAgentInstructions(agent: AgentId, projectDir: string, scope: Scope): void {
   const files = AGENT_INSTRUCTIONS[agent];
   if (!files) return;
@@ -131,6 +191,14 @@ export function deployAgentInstructions(agent: AgentId, projectDir: string, scop
 
     mkdirSync(path.dirname(filePath), { recursive: true });
     writeFileSync(filePath, file.content);
+  }
+
+  // Auto-approve work3 MCP tools in Claude settings
+  if (agent === 'claude') {
+    const settingsPath = scope === 'global'
+      ? path.join(os.homedir(), '.claude', 'settings.json')
+      : path.join(projectDir, '.claude', 'settings.json');
+    mergeClaudeSettings(settingsPath, CLAUDE_AUTO_ALLOW);
   }
 }
 
@@ -148,5 +216,13 @@ export function removeAgentInstructions(agent: AgentId, projectDir: string, scop
     } else {
       rmSync(filePath);
     }
+  }
+
+  // Remove work3 MCP tool permissions from Claude settings
+  if (agent === 'claude') {
+    const settingsPath = scope === 'global'
+      ? path.join(os.homedir(), '.claude', 'settings.json')
+      : path.join(projectDir, '.claude', 'settings.json');
+    unmergeClaudeSettings(settingsPath, CLAUDE_AUTO_ALLOW);
   }
 }

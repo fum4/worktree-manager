@@ -225,7 +225,7 @@ The worktree detail view. Contains:
 - **Git action toolbar** -- contextual buttons for Commit (when uncommitted changes exist), Push (when unpushed commits exist), and PR (when pushed but no PR exists). Each expands an inline input form.
 - **LogsViewer** -- streaming process output for running worktrees.
 - **TerminalView** -- interactive xterm.js terminal. Terminal sessions are lazily created (only when the Terminal tab is first opened) and kept alive when switching tabs.
-- **HooksTab** -- runs and displays hook results with visual state indicators (dashed borders for unrun hooks, animated sweeping teal border during execution, solid borders with card background for completed/disabled hooks).
+- **HooksTab** -- runs and displays hook results with visual state indicators (dashed borders for unrun hooks, circular progress spinner during execution, solid borders with card background for completed/disabled hooks). Supports multiple expanded items simultaneously; auto-expands all items when the full pipeline completes. Receives real-time updates via `hook-update` SSE events.
 
 ### JiraDetailPanel (`JiraDetailPanel.tsx`)
 
@@ -267,10 +267,16 @@ All hooks live in `src/ui/hooks/`.
 
 ### Real-Time Updates via SSE
 
-**`useWorktrees`** (`useWorktrees.ts`) establishes an `EventSource` connection to `/api/events`. The server pushes worktree state updates whenever anything changes (status, logs, git state). On connection error, it falls back to polling with a 5-second retry.
+**`useWorktrees`** (`useWorktrees.ts`) establishes an `EventSource` connection to `/api/events`. The server pushes several event types:
+
+- `worktrees` -- worktree state updates (status, logs, git state)
+- `notification` -- error/info notifications displayed as toast messages
+- `hook-update` -- signals that hook results changed for a worktree, triggering auto-refetch in the HooksTab
+
+On connection error, it falls back to polling with a 5-second retry.
 
 ```typescript
-const { worktrees, isConnected, error, refetch } = useWorktrees();
+const { worktrees, isConnected, error, refetch } = useWorktrees(onNotification, onHookUpdate);
 ```
 
 Additional hooks in the same file:
@@ -431,7 +437,7 @@ The app uses Framer Motion for transitions:
 - **View switching** -- `AnimatePresence` with `mode="wait"` for sidebar tab transitions (worktree list / issue list slide in from opposite directions).
 - **Header fade-in** -- the header fades in on initial render.
 - **Background blobs** -- the configuration, integrations, and hooks views have animated gradient blobs drifting in the background via CSS keyframe animations.
-- **Sweeping border** -- running hook items display a teal gradient "comet" that sweeps around the card border. Built with 30 overlapping SVG `<rect>` layers using the `pathLength="100"` trick for size-independent dash animations. The `border-sweep` keyframe uses variable speed (fast then slow) and a synchronized `border-sweep-fade` keyframe dims opacity during fast movement. Both keyframes are defined in `src/ui/index.css`.
+- **Sweeping border** (currently commented out) -- hook items previously displayed a teal gradient "comet" that sweeps around the card border during execution. The `SweepingBorder` component is still defined in `HooksTab.tsx` but its usage is commented out, replaced by a circular progress spinner (`Loader2`) in the status icon position. The CSS keyframes (`border-sweep`, `border-sweep-fade`) remain defined in `src/ui/index.css`.
 
 ---
 
@@ -480,6 +486,7 @@ The app uses Framer Motion for transitions:
 | `SkillItem.tsx` | Skill sidebar item |
 | `Spinner.tsx` | Loading spinner component |
 | `TabBar.tsx` | Electron multi-project tab bar |
+| `Toast.tsx` | Animated toast notification component (error=red, info=teal, with dismiss) |
 | `Tooltip.tsx` | Tooltip component (always use this instead of native `title` attribute) |
 | `TruncatedTooltip.tsx` | Text with automatic tooltip on overflow |
 | `VerificationPanel.tsx` | Hooks configuration view (trigger-based command steps and skills) |
@@ -503,7 +510,7 @@ The app uses Framer Motion for transitions:
 | `PluginDetailPanel.tsx` | Claude plugin detail |
 | `LogsViewer.tsx` | Streaming ANSI log output |
 | `TerminalView.tsx` | xterm.js interactive terminal |
-| `HooksTab.tsx` | Hooks runner with animated border effects |
+| `HooksTab.tsx` | Hooks runner with multi-expand, pipeline auto-expand, and circular progress spinner |
 | `GitActionInputs.tsx` | Inline commit/PR input forms |
 | `ActionToolbar.tsx` | Git action buttons |
 | `NotesSection.tsx` | PersonalNotesSection + AgentSection (tabbed: Context, Todos, Git Policy, Hooks) |
@@ -536,3 +543,4 @@ The app uses Framer Motion for transitions:
 | File | Description |
 |---|---|
 | `ServerContext.tsx` | Multi-project server URL management, Electron IPC bridge |
+| `ToastContext.tsx` | Toast/snackbar notification state management (error: 10s auto-dismiss, info: 5s) |

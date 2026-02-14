@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom/client';
 
 import App from './App';
 import { ServerProvider } from './contexts/ServerContext';
+import { ToastProvider } from './contexts/ToastContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,7 +21,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <ServerProvider>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </ServerProvider>
     </QueryClientProvider>
   </React.StrictMode>,

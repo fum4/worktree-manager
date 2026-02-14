@@ -11,7 +11,7 @@ export function registerEventRoutes(app: Hono, manager: WorktreeManager) {
           `data: ${JSON.stringify({ type: 'worktrees', worktrees })}\n\n`,
         );
 
-        const unsubscribe = manager.subscribe((updatedWorktrees) => {
+        const unsubscribeWorktrees = manager.subscribe((updatedWorktrees) => {
           try {
             controller.enqueue(
               `data: ${JSON.stringify({
@@ -20,12 +20,40 @@ export function registerEventRoutes(app: Hono, manager: WorktreeManager) {
               })}\n\n`,
             );
           } catch {
-            unsubscribe();
+            unsubscribeWorktrees();
+          }
+        });
+
+        const unsubscribeNotifications = manager.subscribeNotifications((notification) => {
+          try {
+            controller.enqueue(
+              `data: ${JSON.stringify({
+                type: 'notification',
+                ...notification,
+              })}\n\n`,
+            );
+          } catch {
+            unsubscribeNotifications();
+          }
+        });
+
+        const unsubscribeHookUpdates = manager.subscribeHookUpdates((worktreeId) => {
+          try {
+            controller.enqueue(
+              `data: ${JSON.stringify({
+                type: 'hook-update',
+                worktreeId,
+              })}\n\n`,
+            );
+          } catch {
+            unsubscribeHookUpdates();
           }
         });
 
         c.req.raw.signal.addEventListener('abort', () => {
-          unsubscribe();
+          unsubscribeWorktrees();
+          unsubscribeNotifications();
+          unsubscribeHookUpdates();
           controller.close();
         });
       },

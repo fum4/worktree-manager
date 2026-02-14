@@ -12,7 +12,10 @@ import {
   fetchConfig as apiFetchConfig,
 } from './api';
 
-export function useWorktrees() {
+export function useWorktrees(
+  onNotification?: (message: string, level: 'error' | 'info') => void,
+  onHookUpdate?: (worktreeId: string) => void,
+) {
   const serverUrl = useServerUrlOptional();
   const [worktrees, setWorktrees] = useState<WorktreeInfo[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -30,6 +33,15 @@ export function useWorktrees() {
       );
     }
   }, [serverUrl]);
+
+  // Store callbacks in refs so they don't cause reconnects
+  const notificationRef = useCallback((message: string, level: 'error' | 'info') => {
+    onNotification?.(message, level);
+  }, [onNotification]);
+
+  const hookUpdateRef = useCallback((worktreeId: string) => {
+    onHookUpdate?.(worktreeId);
+  }, [onHookUpdate]);
 
   useEffect(() => {
     if (serverUrl === null) {
@@ -52,6 +64,10 @@ export function useWorktrees() {
         const data = JSON.parse(event.data);
         if (data.type === 'worktrees') {
           setWorktrees(data.worktrees || []);
+        } else if (data.type === 'notification') {
+          notificationRef(data.message, data.level);
+        } else if (data.type === 'hook-update') {
+          hookUpdateRef(data.worktreeId);
         }
       } catch {
         // Ignore parse errors
@@ -69,7 +85,7 @@ export function useWorktrees() {
     return () => {
       eventSource.close();
     };
-  }, [fetchWorktrees, serverUrl]);
+  }, [fetchWorktrees, notificationRef, hookUpdateRef, serverUrl]);
 
   return { worktrees, isConnected, error, refetch: fetchWorktrees };
 }

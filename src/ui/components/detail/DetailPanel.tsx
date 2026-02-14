@@ -25,9 +25,10 @@ interface DetailPanelProps {
   onSelectLocalIssue?: (identifier: string) => void;
   onCreateTask?: (worktreeId: string) => void;
   onLinkIssue?: (worktreeId: string) => void;
+  hookUpdateKey?: number;
 }
 
-export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegrations, onNavigateToHooks, onSelectJiraIssue, onSelectLinearIssue, onSelectLocalIssue, onCreateTask, onLinkIssue }: DetailPanelProps) {
+export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegrations, onNavigateToHooks, onSelectJiraIssue, onSelectLinearIssue, onSelectLocalIssue, onCreateTask, onLinkIssue, hookUpdateKey }: DetailPanelProps) {
   const api = useApi();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -365,6 +366,7 @@ export function DetailPanel({ worktree, onUpdate, onDeleted, onNavigateToIntegra
       <HooksTab
         worktreeId={worktree.id}
         visible={activeTab === 'hooks' && !isCreating}
+        hookUpdateKey={hookUpdateKey}
         hasLinkedIssue={!!(worktree.jiraUrl || worktree.linearUrl || worktree.localIssueId)}
         onNavigateToIssue={() => {
           if (worktree.localIssueId && onSelectLocalIssue) {

@@ -84,5 +84,13 @@ export function useHookSkillResults(worktreeId: string | null) {
     fetchResults();
   }, [fetchResults]);
 
+  // Poll while any skill is in 'running' state
+  useEffect(() => {
+    const hasRunning = results.some((r) => r.status === 'running');
+    if (!hasRunning) return;
+    const interval = setInterval(fetchResults, 2000);
+    return () => clearInterval(interval);
+  }, [results, fetchResults]);
+
   return { results, isLoading, refetch: fetchResults };
 }

@@ -212,22 +212,37 @@ export function registerHooksRoutes(
     return c.json({ status });
   });
 
-  // Agent reports a skill hook result
+  // Agent reports a skill hook result (or start notification)
   app.post('/api/worktrees/:id/hooks/report', async (c) => {
     const worktreeId = c.req.param('id');
     try {
       const body = await c.req.json();
-      const { skillName, success, summary, content } = body;
-      if (!skillName || typeof success !== 'boolean' || !summary) {
-        return c.json({ success: false, error: 'skillName, success (boolean), and summary are required' }, 400);
+      const { skillName, success, summary, content, filePath } = body;
+      if (!skillName) {
+        return c.json({ success: false, error: 'skillName is required' }, 400);
       }
-      hooksManager.reportSkillResult(worktreeId, {
-        skillName,
-        success,
-        summary,
-        content: content || undefined,
-        reportedAt: new Date().toISOString(),
-      });
+
+      if (success === undefined || success === null) {
+        // Starting notification — mark as running
+        hooksManager.reportSkillResult(worktreeId, {
+          skillName,
+          status: 'running',
+          reportedAt: new Date().toISOString(),
+        });
+      } else {
+        if (typeof success !== 'boolean') {
+          return c.json({ success: false, error: 'success must be a boolean' }, 400);
+        }
+        hooksManager.reportSkillResult(worktreeId, {
+          skillName,
+          status: success ? 'passed' : 'failed',
+          success,
+          summary: summary || undefined,
+          content: content || undefined,
+          filePath: filePath || undefined,
+          reportedAt: new Date().toISOString(),
+        });
+      }
       return c.json({ success: true });
     } catch (error) {
       return c.json(
@@ -242,5 +257,22 @@ export function registerHooksRoutes(
     const worktreeId = c.req.param('id');
     const results = hooksManager.getSkillResults(worktreeId);
     return c.json({ results });
+  });
+
+  // Read a file by absolute path (used by the frontend to preview MD skill reports)
+  app.get('/api/files/read', (c) => {
+    const filePath = c.req.query('path');
+    if (!filePath) {
+      return c.json({ error: 'path query parameter is required' }, 400);
+    }
+    if (!existsSync(filePath)) {
+      return c.json({ error: 'File not found' }, 404);
+    }
+    try {
+      const content = readFileSync(filePath, 'utf-8');
+      return c.json({ content });
+    } catch {
+      return c.json({ error: 'Failed to read file' }, 500);
+    }
   });
 }

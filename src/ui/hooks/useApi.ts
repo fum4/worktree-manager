@@ -339,6 +339,9 @@ export function useApi() {
 
       fetchHookSkillResults: (worktreeId: string) =>
         api.fetchHookSkillResults(worktreeId, serverUrl),
+
+      fetchFileContent: (filePath: string) =>
+        api.fetchFileContent(filePath, serverUrl),
     }),
     [serverUrl],
   );
