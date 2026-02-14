@@ -263,7 +263,13 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
             />
 
             <div className="relative flex items-center justify-center">
-              <span className="relative text-sm font-medium text-accent">
+              <span
+                className="relative text-sm font-medium text-accent transition-transform duration-300"
+                style={{
+                  transform: isHovering && !isLaunching ? 'translateX(-6px)' : 'translateX(0)',
+                  transitionDuration: skipTransition.current ? '0ms' : '300ms',
+                }}
+              >
                 Ready to launch
                 <Rocket
                   className="absolute -right-8 top-0 w-4 h-4 text-accent/70 transition-all duration-300"

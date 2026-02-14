@@ -1,5 +1,4 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync, statSync } from 'fs';
-import { randomUUID } from 'crypto';
 import { Hono } from 'hono';
 import path from 'path';
 
@@ -9,7 +8,6 @@ import { generateBranchName } from '../branch-name';
 
 interface CustomTask {
   id: string;
-  identifier: string;
   title: string;
   description: string;
   status: 'todo' | 'in-progress' | 'done';
@@ -154,9 +152,9 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
     }
 
     const now = new Date().toISOString();
+    const identifier = getNextIdentifier(configDir, manager.getConfig().localIssuePrefix);
     const task: CustomTask = {
-      id: randomUUID(),
-      identifier: getNextIdentifier(configDir, manager.getConfig().localIssuePrefix),
+      id: identifier,
       title: body.title.trim(),
       description: body.description?.trim() ?? '',
       status: 'todo',
@@ -231,7 +229,7 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
 
     // Use custom branch or generated name from rule
     const branchName = body.branch
-      || await generateBranchName(configDir, { issueId: task.identifier, name: task.title, type: 'local' });
+      || await generateBranchName(configDir, { issueId: task.id, name: task.title, type: 'local' });
 
     // Load AI context notes
     const notes = notesManager.loadNotes('local', task.id);
@@ -241,11 +239,11 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
     const attachments = listAttachments(configDir, task.id);
 
     // Set pending context so TASK.md gets written after worktree creation
-    manager.setPendingWorktreeContext(task.identifier, {
+    manager.setPendingWorktreeContext(task.id, {
       data: {
         source: 'local',
         issueId: task.id,
-        identifier: task.identifier,
+        identifier: task.id,
         title: task.title,
         description: task.description,
         status: task.status,
@@ -258,19 +256,18 @@ export function registerTaskRoutes(app: Hono, manager: WorktreeManager, notesMan
     });
 
     try {
-      const result = await manager.createWorktree({ branch: branchName, name: task.identifier });
+      const result = await manager.createWorktree({ branch: branchName, name: task.id });
 
       if (result.success) {
-        const worktreeId = task.identifier;
         // Link worktree via notes.json
-        notesManager.setLinkedWorktreeId('local', task.id, worktreeId);
+        notesManager.setLinkedWorktreeId('local', task.id, task.id);
       } else {
-        manager.clearPendingWorktreeContext(task.identifier);
+        manager.clearPendingWorktreeContext(task.id);
       }
 
       return c.json(result);
     } catch (err) {
-      manager.clearPendingWorktreeContext(task.identifier);
+      manager.clearPendingWorktreeContext(task.id);
       return c.json({
         success: false,
         error: err instanceof Error ? err.message : 'Failed to create worktree',

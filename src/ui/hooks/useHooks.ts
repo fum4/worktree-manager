@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useServerUrlOptional } from '../contexts/ServerContext';
 import {
@@ -12,40 +13,26 @@ import {
 
 export function useHooksConfig() {
   const serverUrl = useServerUrlOptional();
-  const [config, setConfig] = useState<HooksConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const queryKey = ['hooks-config', serverUrl];
 
-  const fetchConfig = useCallback(async () => {
-    if (serverUrl === null) {
-      setConfig(null);
-      setIsLoading(false);
-      return;
-    }
-    try {
-      const data = await apiFetchConfig(serverUrl);
-      setConfig(data);
-    } catch {
-      // Ignore
-    } finally {
-      setIsLoading(false);
-    }
-  }, [serverUrl]);
-
-  useEffect(() => {
-    setIsLoading(true);
-    fetchConfig();
-  }, [fetchConfig]);
+  const { data: config = null, isLoading, refetch } = useQuery<HooksConfig>({
+    queryKey,
+    queryFn: () => apiFetchConfig(serverUrl!),
+    enabled: serverUrl !== null,
+    staleTime: 30_000,
+  });
 
   const saveConfig = useCallback(async (newConfig: HooksConfig) => {
     if (serverUrl === null) return;
     const result = await apiSaveConfig(newConfig, serverUrl);
     if (result.success && result.config) {
-      setConfig(result.config);
+      queryClient.setQueryData(queryKey, result.config);
     }
     return result;
-  }, [serverUrl]);
+  }, [serverUrl, queryClient]);
 
-  return { config, isLoading, refetch: fetchConfig, saveConfig };
+  return { config, isLoading, refetch, saveConfig };
 }
 
 export function useEffectiveHooksConfig(worktreeId: string | null) {

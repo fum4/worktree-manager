@@ -44,7 +44,7 @@ type Selection =
 
 export default function App() {
   const api = useApi();
-  const { projects, activeProject, isElectron, selectFolder, openProject, closeProject, serverUrl } = useServer();
+  const { projects, activeProject, isElectron, projectsLoading, selectFolder, openProject, closeProject, serverUrl } = useServer();
   const { worktrees, isConnected, error, refetch } = useWorktrees();
   const { config, projectName, hasBranchNameRule, isLoading: configLoading, refetch: refetchConfig } = useConfig();
   const { jiraStatus, refetchJiraStatus } = useJiraStatus();
@@ -102,7 +102,7 @@ export default function App() {
   // In Electron mode with multi-project: show welcome when no projects
   // In web/single-project mode: show welcome when no config
   const showWelcomeScreen = isElectron
-    ? projects.length === 0
+    ? !projectsLoading && projects.length === 0
     : !configLoading && !config;
 
   // Show error screen when active project failed to start
@@ -278,7 +278,6 @@ export default function App() {
     localStorage.setItem(WS_BANNER_KEY, '1');
   };
 
-  const [tabBarOverlaps, setTabBarOverlaps] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
@@ -625,7 +624,7 @@ export default function App() {
       <div className="flex-1 min-h-0 relative">
           {activeView === 'workspace' && (
             <div
-              className="absolute inset-0 flex px-5 pb-1"
+              className="absolute inset-0 flex px-5 pb-16"
             >
               {/* Left sidebar */}
               <aside
@@ -697,7 +696,7 @@ export default function App() {
                         onSelectJiraIssue={(key) => { setActiveCreateTab('issues'); setSelection({ type: 'issue', key }); }}
                         onSelectLinearIssue={(identifier) => { setActiveCreateTab('issues'); setSelection({ type: 'linear-issue', identifier }); }}
                         onSelectLocalIssue={(identifier) => {
-                          const task = customTasks.find((t) => t.identifier === identifier);
+                          const task = customTasks.find((t) => t.id === identifier);
                           if (task) { setActiveCreateTab('issues'); setSelection({ type: 'custom-task', id: task.id }); }
                         }}
                       />
@@ -812,7 +811,7 @@ export default function App() {
                     onSelectJiraIssue={(key) => { setActiveCreateTab('issues'); setSelection({ type: 'issue', key }); }}
                     onSelectLinearIssue={(identifier) => { setActiveCreateTab('issues'); setSelection({ type: 'linear-issue', identifier }); }}
                     onSelectLocalIssue={(identifier) => {
-                      const task = customTasks.find((t) => t.identifier === identifier);
+                      const task = customTasks.find((t) => t.id === identifier);
                       if (task) { setActiveCreateTab('issues'); setSelection({ type: 'custom-task', id: task.id }); }
                     }}
                     onCreateTask={(worktreeId) => {
@@ -834,7 +833,7 @@ export default function App() {
       )}
 
       {(activeView === 'configuration' || activeView === 'integrations' || activeView === 'hooks') && (
-      <div className={`flex-1 min-h-0 overflow-y-auto -mt-12 pt-12 ${tabBarOverlaps ? '-mb-12 pb-20' : 'pb-8'}`}>
+      <div className="flex-1 min-h-0 overflow-y-auto -mt-12 pt-12 pb-20">
           {activeView === 'configuration' && (
               <ConfigurationPanel
                 config={config}
@@ -931,7 +930,9 @@ export default function App() {
       )}
 
       {/* Tab bar for multi-project (Electron only) */}
-      <TabBar onOpenSettings={() => setShowSettingsModal(true)} onOverlapChange={setTabBarOverlaps} />
+      <div className="absolute bottom-0 left-0 right-0 z-40">
+        <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
+      </div>
     </div>
   );
 }

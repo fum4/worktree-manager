@@ -430,7 +430,7 @@ export const actions: Action[] = [
             taskData = {
               source: 'local',
               issueId,
-              identifier: raw.identifier ?? worktreeId,
+              identifier: issueId,
               title: raw.title ?? '',
               description: raw.description ?? '',
               status: raw.status ?? 'unknown',

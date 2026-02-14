@@ -32,7 +32,7 @@ export function CustomTaskItem({ task, isSelected, onSelect, onViewWorktree, sho
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <span className={`text-[11px] font-semibold text-amber-500 flex-shrink-0`}>
-              {task.identifier}
+              {task.id}
             </span>
             {showStatus && (
               <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>

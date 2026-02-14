@@ -60,17 +60,29 @@ export class TerminalManager {
     // Spawn PTY now that the WebSocket is ready — avoids buffering
     // shell output that causes duplicate prompts on replay
     const shell = process.env.SHELL || '/bin/zsh';
-    const ptyProcess = pty.spawn(shell, [], {
-      name: 'xterm-256color',
-      cols: session.cols,
-      rows: session.rows,
-      cwd: session.worktreePath,
-      env: {
-        ...process.env,
-        TERM: 'xterm-256color',
-        COLORTERM: 'truecolor',
-      } as Record<string, string>,
-    });
+    let ptyProcess: IPty;
+    try {
+      ptyProcess = pty.spawn(shell, [], {
+        name: 'xterm-256color',
+        cols: session.cols,
+        rows: session.rows,
+        cwd: session.worktreePath,
+        env: {
+          ...process.env,
+          SHELL: shell,
+          TERM: 'xterm-256color',
+          COLORTERM: 'truecolor',
+        } as Record<string, string>,
+      });
+    } catch (err) {
+      console.error(`[terminal] Failed to spawn PTY: ${err}`);
+      try {
+        ws.send(`\r\nFailed to start terminal: ${err}\r\n`);
+        ws.close();
+      } catch { /* ws closed */ }
+      this.sessions.delete(sessionId);
+      return false;
+    }
 
     session.pty = ptyProcess;
 

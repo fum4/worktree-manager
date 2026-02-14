@@ -8,14 +8,6 @@ import { infoBanner, settings, text } from '../theme';
 
 const BANNER_DISMISSED_KEY = 'work3:hooksBannerDismissed';
 
-function CircleMinusIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="9" cy="9" r="8" strokeWidth="1.5" className="fill-none stroke-current group-hover/remove:fill-current" />
-      <line x1="5.5" y1="9" x2="12.5" y2="9" strokeWidth="1.5" strokeLinecap="round" className="stroke-current group-hover/remove:stroke-[#12151a]" />
-    </svg>
-  );
-}
 
 export function HooksPanel() {
   const { config, saveConfig, refetch } = useHooksConfig();
@@ -34,7 +26,11 @@ export function HooksPanel() {
     localStorage.setItem(BANNER_DISMISSED_KEY, '1');
   };
 
-  if (!config) return null;
+  if (!config) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-5 h-5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   const addStep = (trigger: HookTrigger) => {
     const name = newName.trim();
@@ -98,6 +94,14 @@ export function HooksPanel() {
   const handleImportCustomSkill = async (skillName: string, condition: string, conditionTitle?: string) => {
     await api.importHookSkill(skillName, 'custom', condition, conditionTitle);
     refetch();
+  };
+
+  const removeCustomGroup = (condition: string) => {
+    saveConfig({
+      ...config,
+      steps: config.steps.filter((s) => !(s.trigger === 'custom' && (s.condition ?? '') === condition)),
+      skills: config.skills.filter((s) => !(s.trigger === 'custom' && (s.condition ?? '') === condition)),
+    });
   };
 
   const updateCustomGroup = (oldCondition: string, newCondition: string, newTitle?: string) => {
@@ -213,6 +217,7 @@ export function HooksPanel() {
         onImportSkill={handleImportCustomSkill}
         onToggleSkill={(name, enabled) => handleToggleSkill(name, enabled, 'custom')}
         onRemoveSkill={(name) => handleRemoveSkill(name, 'custom')}
+        onRemoveGroup={removeCustomGroup}
         onUpdateGroup={updateCustomGroup}
       />
 
@@ -513,9 +518,9 @@ function StepCard({
         {/* Remove */}
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
-          className={`group/remove ${text.dimmed} hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
+          className={`-mr-1 p-1 rounded ${text.dimmed} hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
         >
-          <CircleMinusIcon className="w-[18px] h-[18px]" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
@@ -611,9 +616,9 @@ function SkillCard({
         {/* Remove */}
         <button
           onClick={onRemove}
-          className={`group/remove ${text.dimmed} hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
+          className={`-mr-1 p-1 rounded ${text.dimmed} hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
         >
-          <CircleMinusIcon className="w-[18px] h-[18px]" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
@@ -629,6 +634,7 @@ function CustomHookGroupCard({
   onRemoveStep,
   onToggleSkill,
   onRemoveSkill,
+  onRemoveGroup,
   onEditGroup,
 }: {
   condition: string;
@@ -639,20 +645,29 @@ function CustomHookGroupCard({
   onRemoveStep: (stepId: string) => void;
   onToggleSkill: (skillName: string, enabled: boolean) => void;
   onRemoveSkill: (skillName: string) => void;
+  onRemoveGroup: () => void;
   onEditGroup: () => void;
 }) {
   return (
-    <div className={`rounded-xl border border-white/[0.06] ${settings.card} overflow-hidden`}>
+    <div className={`rounded-xl border border-white/[0.06] ${settings.card} overflow-hidden group/card`}>
       {/* Condition header */}
-      <button
+      <div
+        className="group/header flex items-center bg-violet-400/[0.04] border-b border-white/[0.04] hover:bg-violet-400/[0.08] transition-colors cursor-pointer"
         onClick={onEditGroup}
-        className="w-full text-left px-4 py-2.5 bg-violet-400/[0.04] border-b border-white/[0.04] hover:bg-violet-400/[0.08] transition-colors"
       >
-        {conditionTitle && (
-          <p className="text-[11px] font-medium text-violet-300 leading-relaxed">{conditionTitle}</p>
-        )}
-        <p className={`text-[10px] text-violet-400/80 italic leading-relaxed ${conditionTitle ? 'mt-0.5' : ''}`}>{condition || 'No condition set'}</p>
-      </button>
+        <div className="flex-1 px-4 py-2.5 min-w-0">
+          {conditionTitle && (
+            <p className="text-[11px] font-medium text-violet-300 leading-relaxed">{conditionTitle}</p>
+          )}
+          <p className={`text-[10px] text-violet-400/80 italic leading-relaxed ${conditionTitle ? 'mt-0.5' : ''}`}>{condition || 'No condition set'}</p>
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemoveGroup(); }}
+          className={`p-1 mr-3 rounded ${text.dimmed} hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover/header:opacity-100 transition-all flex-shrink-0`}
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
       <div>
         {/* Step rows */}
         {steps.map((step) => {
@@ -677,9 +692,9 @@ function CustomHookGroupCard({
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onRemoveStep(step.id); }}
-                className={`group/remove ${text.dimmed} hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
+                className={`-mr-1 p-1 rounded ${text.dimmed} hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
               >
-                <CircleMinusIcon className="w-[18px] h-[18px]" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           );
@@ -705,9 +720,9 @@ function CustomHookGroupCard({
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onRemoveSkill(skill.skillName); }}
-              className={`group/remove ${text.dimmed} hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
+              className={`-mr-1 p-1 rounded ${text.dimmed} hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0`}
             >
-              <CircleMinusIcon className="w-[18px] h-[18px]" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         ))}
@@ -720,6 +735,7 @@ function CustomHookEditor({
   onAddCommand,
   onImportSkill,
   onRemoveStep,
+  onRemoveSkill,
   onConditionChange,
   onClose,
   initialCondition,
@@ -730,6 +746,7 @@ function CustomHookEditor({
   onAddCommand: (name: string, command: string, condition: string, conditionTitle?: string) => void;
   onImportSkill: (skillName: string, condition: string, conditionTitle?: string) => void;
   onRemoveStep: (stepId: string) => void;
+  onRemoveSkill?: (skillName: string) => void;
   onConditionChange?: (oldCondition: string, newCondition: string, newTitle?: string) => void;
   onClose: () => void;
   initialCondition?: string;
@@ -744,6 +761,7 @@ function CustomHookEditor({
   const [title, setTitle] = useState(initialTitle ?? '');
   const [condition, setCondition] = useState(initialCondition ?? '');
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
+  const [removedSkills, setRemovedSkills] = useState<Set<string>>(new Set());
   const [pendingCmds, setPendingCmds] = useState<Array<{ name: string; command: string }>>([]);
   const [cmdName, setCmdName] = useState('');
   const [cmdCommand, setCmdCommand] = useState('');
@@ -767,13 +785,22 @@ function CustomHookEditor({
   useEffect(() => { fetchAvailable(); }, [fetchAvailable]);
 
   const toggleSkill = (name: string) => {
-    if (existingSkillNames.has(name)) return;
-    setSelectedSkills((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+    if (existingSkillNames.has(name)) {
+      // Toggle removal of existing skill
+      setRemovedSkills((prev) => {
+        const next = new Set(prev);
+        if (next.has(name)) next.delete(name);
+        else next.add(name);
+        return next;
+      });
+    } else {
+      setSelectedSkills((prev) => {
+        const next = new Set(prev);
+        if (next.has(name)) next.delete(name);
+        else next.add(name);
+        return next;
+      });
+    }
   };
 
   const addCmd = () => {
@@ -789,7 +816,12 @@ function CustomHookEditor({
     const cond = condition.trim();
     if (!cond) return;
     const t = title.trim() || undefined;
-    for (const cmd of pendingCmds) {
+    // Include in-progress command inputs
+    const allCmds = [...pendingCmds];
+    if (cmdName.trim() && cmdCommand.trim()) {
+      allCmds.push({ name: cmdName.trim(), command: cmdCommand.trim() });
+    }
+    for (const cmd of allCmds) {
       onAddCommand(cmd.name, cmd.command, cond, t);
     }
     for (const name of selectedSkills) {
@@ -797,16 +829,26 @@ function CustomHookEditor({
         onImportSkill(name, cond, t);
       }
     }
+    // Remove deselected existing skills
+    for (const name of removedSkills) {
+      onRemoveSkill?.(name);
+    }
     if ((conditionChanged || titleChanged) && onConditionChange) {
       onConditionChange(initialCondition!, cond, t);
     }
     onClose();
   };
 
-  const totalNew = pendingCmds.length + newSkillCount;
-  const showSubmit = isEditMode ? (totalNew > 0 || conditionChanged || titleChanged) : (!!condition.trim() && totalNew > 0);
-  const submitLabel = totalNew > 0
+  const hasInProgressCmd = !!cmdName.trim() && !!cmdCommand.trim();
+  const totalNew = pendingCmds.length + newSkillCount + (hasInProgressCmd ? 1 : 0);
+  const hasChanges = totalNew > 0 || removedSkills.size > 0 || conditionChanged || titleChanged;
+  const showSubmit = isEditMode ? hasChanges : (!!condition.trim() && totalNew > 0);
+  const submitLabel = totalNew > 0 && removedSkills.size > 0
+    ? 'Save changes'
+    : totalNew > 0
     ? `Add ${totalNew} item${totalNew > 1 ? 's' : ''}`
+    : removedSkills.size > 0
+    ? 'Save changes'
     : 'Update condition';
 
   const lowerSearch = search.toLowerCase();
@@ -884,13 +926,16 @@ function CustomHookEditor({
             placeholder="Command"
             className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs bg-white/[0.04] border border-white/[0.06] text-white placeholder-[#4b5563] focus:outline-none focus:border-white/[0.15] font-mono`}
           />
-          <button
-            onClick={addCmd}
-            disabled={!cmdName.trim() || !cmdCommand.trim()}
-            className={`px-2 py-1.5 rounded-lg ${text.dimmed} hover:text-teal-400 hover:bg-teal-400/10 transition-colors disabled:opacity-30 disabled:hover:text-inherit disabled:hover:bg-transparent`}
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
+          {/* Add another command (commits current inputs to list, clears for next) */}
+          {pendingCmds.length > 0 || (cmdName.trim() && cmdCommand.trim()) ? (
+            <button
+              onClick={addCmd}
+              disabled={!cmdName.trim() || !cmdCommand.trim()}
+              className={`px-2 py-1.5 rounded-lg ${text.dimmed} hover:text-[#9ca3af] hover:bg-white/[0.06] transition-colors disabled:opacity-30 disabled:hover:text-inherit disabled:hover:bg-transparent`}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -914,19 +959,17 @@ function CustomHookEditor({
         ) : (
           <div className="space-y-0.5 max-h-48 overflow-y-auto">
             {filtered.map((skill) => {
-              const isChecked = selectedSkills.has(skill.name) || existingSkillNames.has(skill.name);
-              const isLocked = existingSkillNames.has(skill.name);
+              const isExisting = existingSkillNames.has(skill.name);
+              const isChecked = isExisting ? !removedSkills.has(skill.name) : selectedSkills.has(skill.name);
               return (
                 <button
                   key={skill.name}
                   onClick={() => toggleSkill(skill.name)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2.5 ${
-                    isLocked ? 'opacity-50 cursor-default' : 'hover:bg-white/[0.04]'
-                  }`}
+                  className="w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2.5 hover:bg-white/[0.04]"
                 >
                   <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
                     isChecked
-                      ? isLocked ? 'bg-teal-400/10 border-teal-400/30' : 'bg-teal-400/20 border-teal-400/50'
+                      ? 'bg-teal-400/20 border-teal-400/50'
                       : 'border-white/[0.15]'
                   }`}>
                     {isChecked && (
@@ -971,6 +1014,7 @@ function CustomHooksSection({
   onImportSkill,
   onToggleSkill,
   onRemoveSkill,
+  onRemoveGroup,
   onUpdateGroup,
 }: {
   steps: HookStep[];
@@ -981,6 +1025,7 @@ function CustomHooksSection({
   onImportSkill: (skillName: string, condition: string, conditionTitle?: string) => void;
   onToggleSkill: (skillName: string, enabled: boolean) => void;
   onRemoveSkill: (skillName: string) => void;
+  onRemoveGroup: (condition: string) => void;
   onUpdateGroup: (oldCondition: string, newCondition: string, newTitle?: string) => void;
 }) {
   const [editingCondition, setEditingCondition] = useState<string | null>(null);
@@ -1035,6 +1080,7 @@ function CustomHooksSection({
               onAddCommand={onAddStep}
               onImportSkill={onImportSkill}
               onRemoveStep={onRemoveStep}
+              onRemoveSkill={onRemoveSkill}
               onConditionChange={onUpdateGroup}
               onClose={closeEditor}
             />
@@ -1049,6 +1095,7 @@ function CustomHooksSection({
               onRemoveStep={onRemoveStep}
               onToggleSkill={onToggleSkill}
               onRemoveSkill={onRemoveSkill}
+              onRemoveGroup={() => onRemoveGroup(condition)}
               onEditGroup={() => editGroup(condition)}
             />
           ) : null,

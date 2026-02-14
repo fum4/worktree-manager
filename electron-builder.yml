@@ -32,6 +32,7 @@ asar: true
 asarUnpack:
   - dist/*.js
   - dist/cli/**
+  - node_modules/node-pty/**
 extraResources:
   - from: dist/runtime
     to: runtime

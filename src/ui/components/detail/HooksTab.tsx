@@ -276,12 +276,12 @@ export function HooksTab({ worktreeId, visible, hasLinkedIssue, onNavigateToIssu
               <button
                 onClick={handleRunAll}
                 disabled={runningAll}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${button.primary} disabled:opacity-50`}
+                className={`group/run flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg transition-colors ${button.primary} disabled:opacity-50`}
               >
                 {runningAll ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Play className="w-3.5 h-3.5" />
+                  <Play className="w-3.5 h-3.5 group-hover/run:fill-current" />
                 )}
                 {runningAll ? 'Running...' : 'Run All'}
               </button>
@@ -485,9 +485,9 @@ function StepList({
                 <button
                   onClick={() => onRunSingle(step.id)}
                   disabled={isRunning}
-                  className="p-1 rounded text-teal-400 hover:text-teal-300 transition-colors disabled:opacity-50 flex-shrink-0"
+                  className="group/run p-1 rounded text-teal-400 hover:text-teal-300 hover:bg-teal-400/15 transition-colors disabled:opacity-50 flex-shrink-0"
                 >
-                  <Play className="w-3 h-3" />
+                  <Play className="w-3 h-3 group-hover/run:fill-current" />
                 </button>
               )}
             </div>

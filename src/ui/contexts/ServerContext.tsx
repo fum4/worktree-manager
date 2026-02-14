@@ -27,6 +27,9 @@ interface ServerContextValue {
   // Electron detection
   isElectron: boolean;
 
+  // Whether the initial project list is still loading (Electron only)
+  projectsLoading: boolean;
+
   // Folder picker (Electron only)
   selectFolder: () => Promise<string | null>;
 }
@@ -65,6 +68,7 @@ export function ServerProvider({ children }: ServerProviderProps) {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
+  const [projectsLoading, setProjectsLoading] = useState(isElectron);
 
   const activeProject = projects.find(p => p.id === activeProjectId) ?? null;
   const serverUrl = activeProject?.status === 'running'
@@ -82,6 +86,7 @@ export function ServerProvider({ children }: ServerProviderProps) {
       ]);
       setProjects(loadedProjects);
       setActiveProjectId(activeId);
+      setProjectsLoading(false);
     };
 
     loadProjects();
@@ -131,6 +136,7 @@ export function ServerProvider({ children }: ServerProviderProps) {
         closeProject,
         switchProject,
         isElectron,
+        projectsLoading,
         selectFolder,
       }}
     >

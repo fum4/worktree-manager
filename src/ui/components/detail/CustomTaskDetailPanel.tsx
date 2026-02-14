@@ -9,7 +9,7 @@ import { MarkdownContent } from '../MarkdownContent';
 import { PersonalNotesSection, AgentSection } from './NotesSection';
 import { Spinner } from '../Spinner';
 import { ImageModal } from '../ImageModal';
-import { TruncatedTooltip } from '../TruncatedTooltip';
+import { AttachmentThumbnail } from '../AttachmentThumbnail';
 import type { CustomTaskAttachment } from '../../types';
 
 
@@ -186,7 +186,7 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className={`text-xs font-semibold text-amber-500`}>
-                {task.identifier}
+                {task.id}
               </span>
               {task.labels.length > 0 && (
                 <span className={`text-[5px] ${text.dimmed}`}>●</span>
@@ -414,58 +414,18 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
           {task.attachments?.length > 0 ? (
             <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-3">
               <div className="flex flex-wrap gap-3 items-center">
-                {[...task.attachments].reverse().map((att: CustomTaskAttachment) => {
-                  const isImage = att.mimeType.startsWith('image/');
-                  const isPdf = att.mimeType === 'application/pdf';
-                  const url = api.getTaskAttachmentUrl(taskId, att.filename);
-                  return (
-                    <div key={att.filename} className="group flex flex-col w-36">
-                      <div className="relative">
-                        {isImage ? (
-                          <button
-                            type="button"
-                            onClick={() => setPreviewImage({ src: url, filename: att.filename, type: 'image' })}
-                            className="rounded overflow-hidden block"
-                          >
-                            <img
-                              src={url}
-                              alt={att.filename}
-                              className="w-36 h-28 object-cover transition-transform hover:scale-105"
-                            />
-                          </button>
-                        ) : isPdf ? (
-                          <button
-                            type="button"
-                            onClick={() => setPreviewImage({ src: url, filename: att.filename, type: 'pdf' })}
-                            className="w-36 h-28 rounded bg-white/[0.03] flex flex-col items-center justify-center gap-1 hover:gap-1.5 hover:bg-white/[0.06] transition-all group/pdf"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-red-400/70 transition-transform group-hover/pdf:scale-110">
-                              <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625Z" />
-                              <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
-                            </svg>
-                            <span className={`text-[10px] font-semibold ${text.secondary} transition-transform group-hover/pdf:scale-110`}>PDF</span>
-                          </button>
-                        ) : (
-                          <div className="w-36 h-28 rounded bg-white/[0.03] flex items-center justify-center">
-                            <Paperclip className={`w-6 h-6 ${text.dimmed}`} />
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteAttachment(att.filename)}
-                          className="absolute top-1 right-1 p-0.5 rounded bg-black/60 opacity-0 group-hover:opacity-100 text-white transition-all hover:scale-125"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                      <TruncatedTooltip text={att.filename} className={`text-[10px] ${text.muted} mt-1.5`} />
-                      <span className={`text-[9px] ${text.dimmed}`}>
-                        {att.size < 1024 ? `${att.size}B` : att.size < 1048576 ? `${Math.round(att.size / 1024)}KB` : `${(att.size / 1048576).toFixed(1)}MB`}
-                        {att.createdAt && ` · ${new Date(att.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
-                      </span>
-                    </div>
-                  );
-                })}
+                {[...task.attachments].reverse().map((att: CustomTaskAttachment) => (
+                  <AttachmentThumbnail
+                    key={att.filename}
+                    filename={att.filename}
+                    mimeType={att.mimeType}
+                    size={att.size}
+                    src={api.getTaskAttachmentUrl(taskId, att.filename)}
+                    extra={att.createdAt ? new Date(att.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : undefined}
+                    onPreview={setPreviewImage}
+                    onRemove={() => handleDeleteAttachment(att.filename)}
+                  />
+                ))}
                 {/* Add tile */}
                 <button
                   type="button"

@@ -1,8 +1,10 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ListTodo, Paperclip, X } from 'lucide-react';
 
 import { customTask, getLabelColor, text } from '../theme';
 import { Modal } from './Modal';
+import { ImageModal } from './ImageModal';
+import { AttachmentThumbnail } from './AttachmentThumbnail';
 
 interface CreateCustomTaskModalProps {
   onCreated: (taskId?: string) => void;
@@ -21,7 +23,14 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
   const [files, setFiles] = useState<File[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ src: string; filename: string; type: 'image' | 'pdf' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Stable object URLs for file previews
+  const fileUrls = useMemo(
+    () => files.map((f) => (f.type.startsWith('image/') || f.type === 'application/pdf') ? URL.createObjectURL(f) : undefined),
+    [files],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,7 +200,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add details, markdown supported..."
-            rows={4}
+            rows={8}
             className={`w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs ${text.primary} placeholder-[#4b5563] outline-none focus:border-white/[0.15] transition-colors resize-none`}
           />
         </div>
@@ -222,26 +231,20 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
             />
           </div>
           {files.length > 0 && (
-            <div className="space-y-1">
-              {files.map((file, i) => (
-                <div
-                  key={`${file.name}-${i}`}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04] group"
-                >
-                  <Paperclip className={`w-3 h-3 flex-shrink-0 ${text.dimmed}`} />
-                  <span className={`text-xs ${text.primary} truncate flex-1`}>{file.name}</span>
-                  <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>
-                    {file.size < 1024 ? `${file.size}B` : file.size < 1048576 ? `${Math.round(file.size / 1024)}KB` : `${(file.size / 1048576).toFixed(1)}MB`}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
-                    className={`p-0.5 rounded ${text.dimmed} hover:text-red-400 transition-colors`}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+            <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-3">
+              <div className="flex flex-wrap gap-3">
+                {files.map((file, i) => (
+                  <AttachmentThumbnail
+                    key={`${file.name}-${i}`}
+                    filename={file.name}
+                    mimeType={file.type}
+                    size={file.size}
+                    src={fileUrls[i]}
+                    onPreview={setPreviewImage}
+                    onRemove={() => setFiles(files.filter((_, idx) => idx !== i))}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -250,6 +253,10 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
           <p className={`${text.error} text-[11px]`}>{error}</p>
         )}
       </div>
+
+      {previewImage && (
+        <ImageModal src={previewImage.src} filename={previewImage.filename} type={previewImage.type} onClose={() => setPreviewImage(null)} />
+      )}
     </Modal>
   );
 }

@@ -6,7 +6,6 @@ import '@xterm/xterm/css/xterm.css';
 
 import { useTerminal } from '../../hooks/useTerminal';
 import { text } from '../../theme';
-import { Spinner } from '../Spinner';
 
 interface TerminalViewProps {
   worktreeId: string;
@@ -35,7 +34,7 @@ export function TerminalView({ worktreeId, visible }: TerminalViewProps) {
     return { cols: terminal.cols, rows: terminal.rows };
   }, []);
 
-  const { isConnected, error, sendData, sendResize, connect, disconnect } =
+  const { error, sendData, sendResize, connect, disconnect } =
     useTerminal({
       worktreeId,
       onData: handleData,
@@ -150,12 +149,6 @@ export function TerminalView({ worktreeId, visible }: TerminalViewProps) {
       className="flex-1 min-h-0 flex flex-col"
       style={{ display: visible ? undefined : 'none' }}
     >
-      {!isConnected && (
-        <div className={`flex items-center gap-2 px-4 py-1 text-[11px] ${text.muted}`}>
-          <Spinner size="xs" />
-          Connecting...
-        </div>
-      )}
       <div
         ref={containerRef}
         className="flex-1 min-h-0"

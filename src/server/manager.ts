@@ -265,7 +265,7 @@ export class WorktreeManager {
           if (existsSync(taskFile)) {
             try {
               const taskData = JSON.parse(readFileSync(taskFile, 'utf-8'));
-              if (taskData.identifier) info.localIssueId = taskData.identifier;
+              if (taskData.id) info.localIssueId = taskData.id;
               if (taskData.status) info.localIssueStatus = taskData.status;
             } catch { /* ignore */ }
           }

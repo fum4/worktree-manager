@@ -57,7 +57,7 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
   // Filter unlinked local tasks only
   const filteredLocal = localTasks
     .filter((t) => !t.linkedWorktreeId)
-    .filter((t) => !search || t.title.toLowerCase().includes(lowerSearch) || t.identifier.toLowerCase().includes(lowerSearch));
+    .filter((t) => !search || t.title.toLowerCase().includes(lowerSearch) || t.id.toLowerCase().includes(lowerSearch));
 
   const filteredJira = jiraIssues
     .filter((i) => !search || i.summary.toLowerCase().includes(lowerSearch) || i.key.toLowerCase().includes(lowerSearch));
@@ -143,7 +143,7 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
                       <ListTodo className={`w-4 h-4 flex-shrink-0 ${integration.localIssue}`} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-mono ${text.muted}`}>{task.identifier}</span>
+                          <span className={`text-[10px] font-mono ${text.muted}`}>{task.id}</span>
                           <span className={`text-xs ${text.primary} truncate`}>{task.title}</span>
                         </div>
                       </div>

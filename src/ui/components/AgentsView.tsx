@@ -189,7 +189,7 @@ export function AgentsView() {
   };
 
   return (
-    <div className="absolute inset-0 flex px-5 pb-1">
+    <div className="absolute inset-0 flex px-5 pb-16">
       {/* Left sidebar */}
       <aside
         style={{ width: sidebarWidth }}

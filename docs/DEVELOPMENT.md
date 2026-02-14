@@ -393,6 +393,13 @@ This follows an established pattern. You will need:
 7. **Selection type** -- add to the `Selection` union in `App.tsx`.
 8. **Theme colors** -- add a section in `theme.ts` for the entity accent color.
 
+## Code Organization
+
+- **Extract into separate components and modules when it makes sense.** Don't let files grow into monoliths. When a function, hook, or UI section becomes complex enough to reason about independently, pull it into its own file.
+- **Strive for clean, maintainable architecture.** Code should be easy to navigate and understand, especially at the structural level (files and folders). A new contributor should be able to find things by name and location without needing a tour.
+- **Keep files focused.** Each file should have a clear, single responsibility. If a component file contains multiple large sub-components, helper functions, or unrelated logic, split them out.
+- **Follow existing patterns.** The codebase has established conventions for routes, hooks, sidebar items, detail panels, etc. When adding something new, look at how similar things are already done and follow that structure.
+
 ## Important Conventions
 
 - **No backwards compatibility needed.** There are no external users. Data gets deleted and recreated from scratch. Do not add migration code, backfill logic, or compatibility shims.

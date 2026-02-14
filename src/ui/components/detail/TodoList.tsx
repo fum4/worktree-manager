@@ -49,7 +49,7 @@ export function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate }: TodoLis
       <button
         type="button"
         onClick={addDraft}
-        className={`flex items-center gap-1.5 mt-1 py-1 px-1 text-[11px] ${text.dimmed} hover:text-teal-400/80 transition-colors rounded`}
+        className={`flex items-center gap-1.5 mt-1 py-1 px-1 text-[11px] ${text.dimmed} hover:text-[#9ca3af] transition-colors rounded`}
       >
         <Plus className="w-3 h-3" />
         <span>Add todo</span>

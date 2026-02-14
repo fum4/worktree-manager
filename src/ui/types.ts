@@ -119,7 +119,6 @@ export interface CustomTaskAttachment {
 
 export interface CustomTaskSummary {
   id: string;
-  identifier: string;
   title: string;
   status: 'todo' | 'in-progress' | 'done';
   priority: 'high' | 'medium' | 'low';

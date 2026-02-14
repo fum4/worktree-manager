@@ -42,6 +42,13 @@ export function generateTaskMd(
   lines.push(`**Status:** ${data.status}`);
   lines.push(`**URL:** ${data.url}`);
 
+  if (aiContext) {
+    lines.push('');
+    lines.push('## AI Context');
+    lines.push('');
+    lines.push(aiContext);
+  }
+
   if (data.description) {
     lines.push('');
     lines.push('## Description');
@@ -58,13 +65,6 @@ export function generateTaskMd(
       lines.push(`**${comment.author}${dateStr}:** ${comment.body}`);
       lines.push('');
     }
-  }
-
-  if (aiContext) {
-    lines.push('');
-    lines.push('## AI Context');
-    lines.push('');
-    lines.push(aiContext);
   }
 
   if (todos && todos.length > 0) {
@@ -273,7 +273,7 @@ function loadIssueData(
       return {
         source: 'local',
         issueId,
-        identifier: task.identifier ?? issueId,
+        identifier: issueId,
         title: task.title ?? '',
         description: task.description ?? '',
         status: task.status ?? 'unknown',
