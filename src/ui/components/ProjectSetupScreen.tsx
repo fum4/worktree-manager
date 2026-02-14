@@ -1,35 +1,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, Check, ChevronDown, Download, GitBranch, GitCommit, Link, ListTodo, Loader2, LogIn, Plug, Settings, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, Download, GitCommit, Link, Loader2, LogIn, Plug, Settings, Sparkles } from 'lucide-react';
 
 import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
 import { useApi } from '../hooks/useApi';
 import type { DetectedConfig } from '../hooks/api';
-import { fetchGitHubStatus } from '../hooks/api';
+import { fetchGitHubStatus, fetchJiraStatus, fetchLinearStatus } from '../hooks/api';
 import { useServerUrlOptional } from '../contexts/ServerContext';
-import type { GitHubStatus } from '../types';
+import type { GitHubStatus, JiraStatus, LinearStatus } from '../types';
 import { button, input, surface, text } from '../theme';
 import { AGENT_CONFIGS, type AgentId, type McpScope } from '../agent-configs';
+import { GitHubIcon, JiraIcon, LinearIcon } from './icons';
 
 interface ProjectSetupScreenProps {
   projectName: string | null;
   onSetupComplete: () => void;
   onRememberChoice?: (choice: 'auto' | 'manual') => void;
-  onCreateWorktree?: () => void;
-  onCreateTask?: () => void;
-  onNavigateToIntegrations?: () => void;
-  onNavigateToAgents?: () => void;
 }
 
-type SetupMode = 'choice' | 'manual' | 'agents' | 'commit-prompt' | 'getting-started';
+type SetupMode = 'choice' | 'manual' | 'agents' | 'commit-prompt' | 'integrations' | 'getting-started';
 
 export function ProjectSetupScreen({
   projectName,
   onSetupComplete,
   onRememberChoice,
-  onCreateWorktree,
-  onCreateTask,
-  onNavigateToIntegrations,
-  onNavigateToAgents,
 }: ProjectSetupScreenProps) {
   const api = useApi();
   const serverUrl = useServerUrlOptional();
@@ -130,6 +123,121 @@ export function ProjectSetupScreen({
       return desired?.global || desired?.project;
     });
   }, [agentDesired]);
+
+  // Integrations step state
+  const [expandedIntegration, setExpandedIntegration] = useState<'github' | 'jira' | 'linear' | null>(null);
+  const [intJiraStatus, setIntJiraStatus] = useState<JiraStatus | null>(null);
+  const [intLinearStatus, setIntLinearStatus] = useState<LinearStatus | null>(null);
+  const [intGhStatus, setIntGhStatus] = useState<GitHubStatus | null>(null);
+  const [intGhWaiting, setIntGhWaiting] = useState(false);
+  const intGhPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Jira setup form
+  const [jiraBaseUrl, setJiraBaseUrl] = useState('');
+  const [jiraEmail, setJiraEmail] = useState('');
+  const [jiraToken, setJiraToken] = useState('');
+  const [jiraSaving, setJiraSaving] = useState(false);
+  const [jiraFeedback, setJiraFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  // Linear setup form
+  const [linearApiKey, setLinearApiKey] = useState('');
+  const [linearSaving, setLinearSaving] = useState(false);
+  const [linearFeedback, setLinearFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  // GitHub setup in integrations
+  const [intGhLoading, setIntGhLoading] = useState(false);
+  const [intGhFeedback, setIntGhFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Fetch all integration statuses when entering integrations step
+  useEffect(() => {
+    if (mode !== 'integrations') return;
+    fetchGitHubStatus(serverUrl).then(setIntGhStatus);
+    fetchJiraStatus(serverUrl).then(setIntJiraStatus);
+    fetchLinearStatus(serverUrl).then(setIntLinearStatus);
+  }, [mode, serverUrl]);
+
+  // Poll for GitHub auth in integrations step
+  useEffect(() => {
+    if (!intGhWaiting) {
+      if (intGhPollRef.current) clearInterval(intGhPollRef.current);
+      return;
+    }
+    intGhPollRef.current = setInterval(async () => {
+      const data = await fetchGitHubStatus(serverUrl);
+      if (data?.authenticated && data.username) {
+        setIntGhWaiting(false);
+        setIntGhStatus(data);
+        setIntGhFeedback(null);
+        setTimeout(() => setIntGhFeedback(null), 4000);
+      }
+    }, 2000);
+    return () => {
+      if (intGhPollRef.current) clearInterval(intGhPollRef.current);
+    };
+  }, [intGhWaiting, serverUrl]);
+
+  const handleIntGhConnect = useCallback(async () => {
+    setIntGhLoading(true);
+    setIntGhFeedback(null);
+    const result = await api.installGitHubCli();
+    setIntGhLoading(false);
+    if (result.success) {
+      if (result.code) {
+        try { await navigator.clipboard.writeText(result.code); } catch { /* ignore */ }
+        setIntGhFeedback({ type: 'success', message: `Code ${result.code} copied! Paste it in your browser.` });
+        setIntGhWaiting(true);
+      }
+      const data = await fetchGitHubStatus(serverUrl);
+      setIntGhStatus(data);
+    } else {
+      setIntGhFeedback({ type: 'error', message: result.error ?? 'Failed to install gh CLI' });
+    }
+  }, [api, serverUrl]);
+
+  const handleIntGhLogin = useCallback(async () => {
+    setIntGhLoading(true);
+    setIntGhFeedback(null);
+    const result = await api.loginGitHub();
+    setIntGhLoading(false);
+    if (result.success && result.code) {
+      try { await navigator.clipboard.writeText(result.code); } catch { /* ignore */ }
+      setIntGhFeedback({ type: 'success', message: `Code ${result.code} copied! Paste it in your browser.` });
+      setIntGhWaiting(true);
+    } else if (!result.success) {
+      setIntGhFeedback({ type: 'error', message: result.error ?? 'Failed to start login' });
+    }
+  }, [api]);
+
+  const handleJiraConnect = useCallback(async () => {
+    if (!jiraBaseUrl || !jiraEmail || !jiraToken) return;
+    setJiraSaving(true);
+    setJiraFeedback(null);
+    const result = await api.setupJira(jiraBaseUrl, jiraEmail, jiraToken);
+    setJiraSaving(false);
+    if (result.success) {
+      setJiraFeedback(null);
+      setJiraBaseUrl('');
+      setJiraEmail('');
+      setJiraToken('');
+      fetchJiraStatus(serverUrl).then(setIntJiraStatus);
+    } else {
+      setJiraFeedback({ type: 'error', message: result.error ?? 'Failed to connect' });
+    }
+    setTimeout(() => setJiraFeedback(null), 4000);
+  }, [api, jiraBaseUrl, jiraEmail, jiraToken, serverUrl]);
+
+  const handleLinearConnect = useCallback(async () => {
+    if (!linearApiKey) return;
+    setLinearSaving(true);
+    setLinearFeedback(null);
+    const result = await api.setupLinear(linearApiKey);
+    setLinearSaving(false);
+    if (result.success) {
+      setLinearFeedback(null);
+      setLinearApiKey('');
+      fetchLinearStatus(serverUrl).then(setIntLinearStatus);
+    } else {
+      setLinearFeedback({ type: 'error', message: result.error ?? 'Failed to connect' });
+    }
+    setTimeout(() => setLinearFeedback(null), 4000);
+  }, [api, linearApiKey, serverUrl]);
 
   // Load detected config on mount
   useEffect(() => {
@@ -265,7 +373,7 @@ export function ProjectSetupScreen({
     try {
       const result = await api.commitSetup(commitMessage.trim());
       if (result.success) {
-        setMode('getting-started');
+        setMode('integrations');
       } else {
         setError(result.error ?? 'Failed to commit config');
       }
@@ -277,55 +385,410 @@ export function ProjectSetupScreen({
   };
 
   const handleSkipCommit = () => {
-    setMode('getting-started');
+    setMode('integrations');
   };
 
-  if (mode === 'getting-started') {
-    const actions = [
-      { icon: GitBranch, color: 'text-[#2dd4bf]', bg: 'from-[#2dd4bf]/15 to-[#2dd4bf]/5', label: 'Create a worktree', desc: 'Branch off and start developing in isolation', onClick: () => { onSetupComplete(); onCreateWorktree?.(); } },
-      { icon: ListTodo, color: 'text-amber-400', bg: 'from-amber-400/15 to-amber-400/5', label: 'Create a task', desc: 'Track work with local issues', onClick: () => { onSetupComplete(); onCreateTask?.(); } },
-      { icon: Link, color: 'text-blue-400', bg: 'from-blue-400/15 to-blue-400/5', label: 'Connect integrations', desc: 'Pull issues from Jira or Linear', onClick: () => { onSetupComplete(); onNavigateToIntegrations?.(); } },
-      { icon: Bot, color: 'text-purple-400', bg: 'from-purple-400/15 to-purple-400/5', label: 'Set up AI agents', desc: 'Connect Claude or other coding agents', onClick: () => { onSetupComplete(); onNavigateToAgents?.(); } },
+  if (mode === 'integrations') {
+    const integrationInput = `w-full px-2.5 py-1.5 rounded-md text-xs bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all`;
+    const ghReady = intGhStatus?.installed && intGhStatus?.authenticated;
+    const ghNeedsInstall = intGhStatus && !intGhStatus.installed;
+    const ghNeedsAuth = intGhStatus && intGhStatus.installed && !intGhStatus.authenticated;
+    const jiraConfigured = intJiraStatus?.configured ?? false;
+    const linearConfigured = intLinearStatus?.configured ?? false;
+
+    const connectedCount = [ghReady, jiraConfigured, linearConfigured].filter(Boolean).length;
+
+    const integrations: {
+      id: 'github' | 'jira' | 'linear';
+      name: string;
+      description: string;
+      color: string;
+      colorBg: string;
+      borderColor: string;
+      connected: boolean;
+      connectedLabel?: string;
+      icon: React.ReactNode;
+    }[] = [
+      {
+        id: 'github',
+        name: 'GitHub',
+        description: 'Commits, pushes, and pull requests',
+        color: 'text-[#2dd4bf]',
+        colorBg: 'bg-[#2dd4bf]/10',
+        borderColor: 'border-[#2dd4bf]/30',
+        connected: !!ghReady,
+        connectedLabel: intGhStatus?.username ? `@${intGhStatus.username}` : undefined,
+        icon: <GitHubIcon className="w-[18px] h-[18px]" />,
+      },
+      {
+        id: 'jira',
+        name: 'Jira',
+        description: 'Create worktrees from Jira issues',
+        color: 'text-blue-400',
+        colorBg: 'bg-blue-500/10',
+        borderColor: 'border-blue-400/30',
+        connected: jiraConfigured,
+        connectedLabel: intJiraStatus?.domain ?? undefined,
+        icon: <JiraIcon className="w-[18px] h-[18px]" />,
+      },
+      {
+        id: 'linear',
+        name: 'Linear',
+        description: 'Create worktrees from Linear issues',
+        color: 'text-[#5E6AD2]',
+        colorBg: 'bg-[#5E6AD2]/10',
+        borderColor: 'border-[#5E6AD2]/30',
+        connected: linearConfigured,
+        connectedLabel: intLinearStatus?.displayName ?? undefined,
+        icon: <LinearIcon className="w-[18px] h-[18px]" />,
+      },
     ];
+
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center max-w-lg w-full">
+          <div className="mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-[#5E6AD2]/10 mb-4">
+              <Link className="w-8 h-8 text-blue-400" />
+            </div>
+            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>
+              Connect Integrations
+            </h1>
+            <p className={`text-sm ${text.secondary} leading-relaxed`}>
+              Link your tools to create worktrees directly from issues
+              <br />
+              and enable git operations.
+            </p>
+          </div>
+
+          <div className="space-y-3 mb-6">
+            {integrations.map((integration) => {
+              const isExpanded = expandedIntegration === integration.id;
+              const isConnected = integration.connected;
+
+              return (
+                <div
+                  key={integration.id}
+                  className={`rounded-xl ${surface.panel} border transition-all duration-200 overflow-hidden ${
+                    isExpanded
+                      ? integration.borderColor
+                      : isConnected
+                        ? 'border-white/[0.08]'
+                        : 'border-white/[0.08] hover:border-white/[0.12]'
+                  }`}
+                >
+                  {/* Card header — always visible */}
+                  <button
+                    onClick={() => setExpandedIntegration(isExpanded ? null : integration.id)}
+                    className="flex items-center gap-3.5 w-full p-4 text-left group"
+                  >
+                    <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isConnected ? integration.colorBg : 'bg-white/[0.04]'} transition-colors`}>
+                      <span className={isConnected ? integration.color : text.muted}>
+                        {integration.icon}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className={`text-sm font-medium ${text.primary}`}>{integration.name}</h3>
+                        {isConnected && (
+                          <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-medium">
+                            <Check className="w-3 h-3" />
+                            Connected
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-xs ${text.muted} leading-relaxed truncate`}>
+                        {isConnected && integration.connectedLabel ? integration.connectedLabel : integration.description}
+                      </p>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 ${text.dimmed} transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Expanded setup form */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-0">
+                      <div className="border-t border-white/[0.06] pt-4">
+                        {/* GitHub */}
+                        {integration.id === 'github' && (
+                          <>
+                            {isConnected ? (
+                              <div className="flex flex-col gap-2 text-left">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+                                  <span className={`text-xs ${text.secondary}`}>
+                                    Authenticated as <span className="font-medium text-white">{intGhStatus?.username}</span>
+                                  </span>
+                                </div>
+                                {intGhStatus?.repo && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+                                    <span className={`text-xs ${text.secondary}`}>{intGhStatus.repo}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ) : ghNeedsInstall ? (
+                              <div className="flex flex-col gap-3 text-left">
+                                <p className={`text-xs ${text.muted} leading-relaxed`}>
+                                  Install the GitHub CLI to enable commits, pushes, and pull requests.
+                                </p>
+                                <button
+                                  onClick={handleIntGhConnect}
+                                  disabled={intGhLoading}
+                                  className={`text-xs px-3.5 py-2 rounded-lg font-medium ${button.primary} disabled:opacity-50 self-start transition-all flex items-center gap-2`}
+                                >
+                                  {intGhLoading ? (
+                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Installing...</>
+                                  ) : (
+                                    <><Download className="w-3.5 h-3.5" />Install & Connect</>
+                                  )}
+                                </button>
+                              </div>
+                            ) : ghNeedsAuth ? (
+                              <div className="flex flex-col gap-3 text-left">
+                                <p className={`text-xs ${text.muted} leading-relaxed`}>
+                                  Authenticate with GitHub to enable git operations.
+                                </p>
+                                <button
+                                  onClick={handleIntGhLogin}
+                                  disabled={intGhLoading}
+                                  className={`text-xs px-3.5 py-2 rounded-lg font-medium ${button.primary} disabled:opacity-50 self-start transition-all flex items-center gap-2`}
+                                >
+                                  {intGhLoading ? (
+                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Authenticating...</>
+                                  ) : (
+                                    <><LogIn className="w-3.5 h-3.5" />Authenticate</>
+                                  )}
+                                </button>
+                              </div>
+                            ) : intGhWaiting ? (
+                              <div className="flex items-center justify-center gap-2 py-2">
+                                <Loader2 className="w-4 h-4 animate-spin text-[#2dd4bf]" />
+                                <span className={`text-xs ${text.secondary}`}>Waiting for authentication...</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-2 py-2">
+                                <Loader2 className="w-4 h-4 animate-spin text-[#2dd4bf]" />
+                                <span className={`text-xs ${text.muted}`}>Loading...</span>
+                              </div>
+                            )}
+                            {intGhFeedback && (
+                              <p className={`mt-2 text-xs ${intGhFeedback.type === 'success' ? 'text-[#2dd4bf]' : text.error}`}>
+                                {intGhFeedback.message}
+                              </p>
+                            )}
+                          </>
+                        )}
+
+                        {/* Jira */}
+                        {integration.id === 'jira' && (
+                          <>
+                            {isConnected ? (
+                              <div className="flex flex-col gap-2 text-left">
+                                {intJiraStatus?.domain && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+                                    <span className={`text-xs ${text.secondary}`}>{intJiraStatus.domain}</span>
+                                  </div>
+                                )}
+                                {intJiraStatus?.email && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+                                    <span className={`text-xs ${text.secondary}`}>{intJiraStatus.email}</span>
+                                  </div>
+                                )}
+                                <p className={`text-[11px] ${text.dimmed} mt-1`}>
+                                  You can configure project key and refresh settings in the Integrations panel later.
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-3 text-left">
+                                <div className="flex flex-col gap-1.5">
+                                  <label className={`text-[10px] font-medium ${text.muted}`}>Base URL</label>
+                                  <input
+                                    value={jiraBaseUrl}
+                                    onChange={(e) => setJiraBaseUrl(e.target.value)}
+                                    placeholder="https://your-org.atlassian.net"
+                                    className={integrationInput}
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label className={`text-[10px] font-medium ${text.muted}`}>Email</label>
+                                  <input
+                                    value={jiraEmail}
+                                    onChange={(e) => setJiraEmail(e.target.value)}
+                                    placeholder="you@company.com"
+                                    className={integrationInput}
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label className={`text-[10px] font-medium ${text.muted}`}>API Token</label>
+                                  <div className="relative">
+                                    <input
+                                      type="password"
+                                      value={jiraToken}
+                                      onChange={(e) => setJiraToken(e.target.value)}
+                                      placeholder="Your Jira API token"
+                                      className={`${integrationInput} pr-16`}
+                                    />
+                                    <a
+                                      href="https://id.atlassian.com/manage-profile/security/api-tokens"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 text-[10px] font-medium bg-white/[0.06] ${text.muted} hover:bg-white/[0.10] hover:text-white rounded transition-colors`}
+                                    >
+                                      Create
+                                    </a>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={handleJiraConnect}
+                                  disabled={jiraSaving || !jiraBaseUrl || !jiraEmail || !jiraToken}
+                                  className={`text-xs px-3.5 py-2 rounded-lg font-medium ${button.primary} disabled:opacity-50 self-start transition-all flex items-center gap-2`}
+                                >
+                                  {jiraSaving ? (
+                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Connecting...</>
+                                  ) : 'Connect'}
+                                </button>
+                              </div>
+                            )}
+                            {jiraFeedback && (
+                              <p className={`mt-2 text-xs ${jiraFeedback.type === 'success' ? 'text-blue-400' : text.error}`}>
+                                {jiraFeedback.message}
+                              </p>
+                            )}
+                          </>
+                        )}
+
+                        {/* Linear */}
+                        {integration.id === 'linear' && (
+                          <>
+                            {isConnected ? (
+                              <div className="flex flex-col gap-2 text-left">
+                                {intLinearStatus?.displayName && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+                                    <span className={`text-xs ${text.secondary}`}>{intLinearStatus.displayName}</span>
+                                  </div>
+                                )}
+                                <p className={`text-[11px] ${text.dimmed} mt-1`}>
+                                  You can configure team key and refresh settings in the Integrations panel later.
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-3 text-left">
+                                <div className="flex flex-col gap-1.5">
+                                  <label className={`text-[10px] font-medium ${text.muted}`}>API Key</label>
+                                  <div className="relative">
+                                    <input
+                                      type="password"
+                                      value={linearApiKey}
+                                      onChange={(e) => setLinearApiKey(e.target.value)}
+                                      placeholder="lin_api_..."
+                                      className={`${integrationInput} pr-16`}
+                                    />
+                                    <a
+                                      href="https://linear.app/settings/account/security/api-keys/new"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-0.5 text-[10px] font-medium bg-white/[0.06] ${text.muted} hover:bg-white/[0.10] hover:text-white rounded transition-colors`}
+                                    >
+                                      Create
+                                    </a>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={handleLinearConnect}
+                                  disabled={linearSaving || !linearApiKey}
+                                  className={`text-xs px-3.5 py-2 rounded-lg font-medium ${button.primary} disabled:opacity-50 self-start transition-all flex items-center gap-2`}
+                                >
+                                  {linearSaving ? (
+                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Connecting...</>
+                                  ) : 'Connect'}
+                                </button>
+                              </div>
+                            )}
+                            {linearFeedback && (
+                              <p className={`mt-2 text-xs ${linearFeedback.type === 'success' ? 'text-[#5E6AD2]' : text.error}`}>
+                                {linearFeedback.message}
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => setMode('getting-started')}
+              className={`w-full px-4 py-2.5 text-sm font-medium ${button.primary} rounded-xl transition-colors flex items-center justify-center gap-2`}
+            >
+              {connectedCount > 0 ? (
+                <>Continue<ArrowRight className="w-4 h-4" /></>
+              ) : (
+                <>Continue without integrations<ArrowRight className="w-4 h-4" /></>
+              )}
+            </button>
+            {connectedCount === 0 && (
+              <p className={`text-[11px] ${text.dimmed}`}>
+                You can always connect integrations later from the Integrations panel.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'getting-started') {
+    // Build a summary of what was configured during setup
+    const configuredItems: { label: string; color: string }[] = [];
+    if (intGhStatus?.authenticated) configuredItems.push({ label: 'GitHub', color: 'text-[#2dd4bf]' });
+    if (intJiraStatus?.configured) configuredItems.push({ label: 'Jira', color: 'text-blue-400' });
+    if (intLinearStatus?.configured) configuredItems.push({ label: 'Linear', color: 'text-[#5E6AD2]' });
 
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-md w-full">
           <div className="mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2dd4bf]/20 to-[#2dd4bf]/5 mb-4">
-              <Sparkles className="w-8 h-8 text-[#2dd4bf]" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-[#2dd4bf]/20 to-[#2dd4bf]/5 mb-5">
+              <Check className="w-10 h-10 text-[#2dd4bf]" />
             </div>
-            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>
+            <h1 className={`text-2xl font-semibold ${text.primary} mb-2`}>
               You're all set!
             </h1>
             <p className={`text-sm ${text.secondary} leading-relaxed`}>
-              What would you like to do first?
+              Your project is configured and ready to go.
             </p>
           </div>
 
-          <div className="space-y-3 mb-8">
-            {actions.map((a) => (
-              <button
-                key={a.label}
-                onClick={a.onClick}
-                className={`group flex items-center gap-3.5 w-full p-4 rounded-xl ${surface.panel} border border-white/[0.08] hover:border-white/[0.15] hover:bg-white/[0.04] transition-all duration-200 text-left`}
-              >
-                <div className={`flex-shrink-0 p-2 rounded-lg bg-gradient-to-br ${a.bg} flex items-center justify-center`}>
-                  <a.icon className={`w-5 h-5 ${a.color}`} />
-                </div>
-                <div>
-                  <h3 className={`text-sm font-medium ${text.primary} group-hover:text-white transition-colors mb-0.5`}>{a.label}</h3>
-                  <p className={`text-xs ${text.muted} leading-relaxed`}>{a.desc}</p>
-                </div>
-              </button>
-            ))}
-          </div>
+          {configuredItems.length > 0 && (
+            <div className="mb-8">
+              <p className={`text-xs font-medium ${text.muted} mb-3`}>Connected integrations</p>
+              <div className="flex items-center justify-center gap-2">
+                {configuredItems.map((item) => (
+                  <span
+                    key={item.label}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${item.color} bg-white/[0.06]`}
+                  >
+                    <Check className="w-3 h-3" />
+                    {item.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <button
             onClick={onSetupComplete}
-            className={`w-full py-2.5 rounded-xl text-sm font-medium ${button.primary} transition-colors`}
+            className={`w-full py-3 rounded-xl text-sm font-medium ${button.primary} transition-colors flex items-center justify-center gap-2`}
           >
-            Go to workspace →
+            Go to workspace
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>

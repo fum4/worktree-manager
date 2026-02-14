@@ -521,10 +521,6 @@ export default function App() {
           projectName={projectName ?? activeProject?.name ?? null}
           onSetupComplete={handleSetupComplete}
           onRememberChoice={handleRememberChoice}
-          onCreateWorktree={() => { setCreateModalMode('branch'); setShowCreateModal(true); }}
-          onCreateTask={() => { setCreateModalMode('custom'); setShowCreateModal(true); }}
-          onNavigateToIntegrations={() => setActiveView('integrations')}
-          onNavigateToAgents={() => setActiveView('agents')}
         />
         <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
       </div>

@@ -90,6 +90,7 @@ See [Configuration](docs/CONFIGURATION.md) for the complete reference.
 | [Electron](docs/ELECTRON.md) | Desktop app, deep linking, multi-project |
 | [Frontend](docs/FRONTEND.md) | React UI architecture, theme, components |
 | [Development](docs/DEVELOPMENT.md) | Developer guide, build commands, conventions |
+| [Setup Flow](docs/SETUP-FLOW.md) | Project setup wizard, state machine, integrations |
 
 ## Platform Constraints
 

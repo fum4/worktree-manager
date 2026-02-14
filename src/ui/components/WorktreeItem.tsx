@@ -2,6 +2,7 @@ import { ListTodo, Ticket } from 'lucide-react';
 
 import type { WorktreeInfo } from '../types';
 import { border, status, surface, text } from '../theme';
+import { LinearIcon } from './icons';
 import { Tooltip } from './Tooltip';
 
 interface WorktreeItemProps {
@@ -78,7 +79,7 @@ export function WorktreeItem({ worktree, isSelected, onSelect, hasLocalIssue, on
                 className="cursor-pointer p-1 -m-1 rounded text-[#5E6AD2] hover:bg-[#5E6AD2]/10 transition-colors duration-150"
                 onClick={(e) => { e.stopPropagation(); if (id) onSelectLinearIssue?.(id); }}
               >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
+                <LinearIcon className="w-3.5 h-3.5" />
               </span>
             </Tooltip>
           );

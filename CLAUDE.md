@@ -39,3 +39,4 @@ Comprehensive documentation lives in `/docs/`. **Always check the relevant docs 
 | [Port Mapping](docs/PORT-MAPPING.md) | Port discovery, offset algorithm, runtime hook | Port system changes |
 | [Hooks](docs/HOOKS.md) | Hooks system (trigger types, commands, skills) | Hooks changes |
 | [Electron](docs/ELECTRON.md) | Desktop app, deep linking, multi-project | Electron changes |
+| [Setup Flow](docs/SETUP-FLOW.md) | Project setup wizard, steps, state machine, integrations | Setup/onboarding changes |

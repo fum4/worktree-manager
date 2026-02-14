@@ -9,6 +9,7 @@ import { useServerUrlOptional } from '../contexts/ServerContext';
 import type { DataLifecycleConfig, GitHubStatus, JiraStatus, LinearStatus } from '../types';
 import { button, infoBanner, input, settings, surface, text } from '../theme';
 import { GitHubSetupModal } from './GitHubSetupModal';
+import { GitHubIcon, JiraIcon, LinearIcon } from './icons';
 import { Spinner } from './Spinner';
 
 const integrationInput = `px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`;
@@ -349,9 +350,7 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
       {/* Card header with icon */}
       <div className="flex items-center gap-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isReady ? 'bg-accent/10' : 'bg-white/[0.04]'}`}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className={`w-4 h-4 ${isReady ? 'text-accent' : text.muted}`}>
-            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-          </svg>
+          <GitHubIcon className={`w-4 h-4 ${isReady ? 'text-accent' : text.muted}`} />
         </div>
         <div>
           <h3 className={`text-xs font-semibold ${text.primary}`}>GitHub</h3>
@@ -565,9 +564,7 @@ function JiraCard({
       {/* Card header with icon */}
       <div className="flex items-center gap-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isConfigured ? 'bg-blue-500/10' : 'bg-white/[0.04]'}`}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-4 h-4 ${isConfigured ? 'text-blue-400' : text.muted}`}>
-            <path d="M11.53 2.3A1 1 0 0 0 9.47 2.3L1.59 10.18a1 1 0 0 0 0 1.41l3.87 3.88a1 1 0 0 0 1.41 0L12 10.34l5.13 5.13a1 1 0 0 0 1.41 0l3.87-3.88a1 1 0 0 0 0-1.41L11.53 2.3ZM12 13.47L8.53 10 12 6.53 15.47 10 12 13.47Z" />
-          </svg>
+          <JiraIcon className={`w-4 h-4 ${isConfigured ? 'text-blue-400' : text.muted}`} />
         </div>
         <div>
           <h3 className={`text-xs font-semibold ${text.primary}`}>Jira</h3>
@@ -785,9 +782,7 @@ function LinearCard({
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isConfigured ? 'bg-[#5E6AD2]/10' : 'bg-white/[0.04]'}`}>
-          <svg className={`w-4 h-4 ${isConfigured ? 'text-[#5E6AD2]' : text.muted}`} viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          </svg>
+          <LinearIcon className={`w-4 h-4 ${isConfigured ? 'text-[#5E6AD2]' : text.muted}`} />
         </div>
         <div>
           <h3 className={`text-xs font-semibold ${text.primary}`}>Linear</h3>

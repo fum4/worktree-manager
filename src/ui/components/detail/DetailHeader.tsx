@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { WorktreeInfo } from '../../types';
 import { action, badge, border, status, surface, text } from '../../theme';
+import { LinearIcon } from '../icons';
 import { Tooltip } from '../Tooltip';
 
 interface DetailHeaderProps {
@@ -209,9 +210,7 @@ export function DetailHeader({
                   onClick={() => linearId && onSelectLinearIssue?.(linearId)}
                   className={`flex items-center gap-1.5 text-[11px] ${badge.linear} ${badge.linearHover} transition-colors duration-150`}
                 >
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                  </svg>
+                  <LinearIcon className="w-3 h-3" />
                   Linear{worktree.linearStatus ? ` \u00b7 ${worktree.linearStatus}` : ''}
                 </button>
               </Tooltip>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { CustomTaskSummary, JiraIssueSummary, LinearIssueSummary } from '../types';
 import { useApi } from '../hooks/useApi';
 import { integration, tab, text } from '../theme';
+import { LinearIcon } from './icons';
 import { Modal } from './Modal';
 
 type IssueSource = 'local' | 'jira' | 'linear';
@@ -194,9 +195,7 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
                       onClick={() => handleLink('linear', issue.identifier)}
                       className={itemClass}
                     >
-                      <svg className={`w-4 h-4 flex-shrink-0 ${integration.linear}`} viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                      </svg>
+                      <LinearIcon className={`w-4 h-4 flex-shrink-0 ${integration.linear}`} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] font-mono ${text.muted}`}>{issue.identifier}</span>
