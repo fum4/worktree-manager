@@ -40,7 +40,7 @@ There is no test runner configured.
 
 The build script chains several steps:
 
-1. **tsup** bundles `src/cli/index.ts` and `src/electron-entry.ts` into ESM (`dist/`) with `.d.ts` declarations. `node-pty` and `electron` are externalized.
+1. **tsup** bundles `src/cli/index.ts` and `src/electron-entry.ts` into ESM (`dist/`) with `.d.ts` declarations. Config in `tsup.config.ts` externalizes `node-pty` and `electron`, and enables the `.md` text loader for inlining instruction files.
 2. **tsc** compiles the Electron main process (`electron/tsconfig.json` -> `dist/electron/`).
 3. **cp** copies `electron/preload.cjs` to `dist/electron/preload.cjs`.
 4. **cp** copies `src/runtime/port-hook.cjs` to `dist/runtime/port-hook.cjs` (this file must remain CommonJS with zero dependencies).
@@ -157,6 +157,13 @@ worktree-manager/
 │   │   │   ├── adf-to-markdown.ts, types.ts
 │   │   └── linear/           -- Linear GraphQL API
 │   │       ├── index.ts, api.ts, credentials.ts, types.ts
+│   ├── instructions/            -- Agent instruction text (markdown)
+│   │   ├── index.ts             -- Barrel export with placeholder interpolation
+│   │   ├── mcp-server.md       -- MCP server instructions
+│   │   ├── mcp-work-on-task.md -- work-on-task prompt template
+│   │   ├── agents/              -- IDE agent files (claude, cursor, vscode)
+│   │   └── skills/              -- Predefined hook skills (SKILL.md format)
+│   ├── md.d.ts                  -- TypeScript declaration for *.md imports
 │   ├── runtime/
 │   │   └── port-hook.cjs     -- Node.js require hook for port offsetting
 │   ├── core/
@@ -188,6 +195,7 @@ worktree-manager/
 ├── release/                  -- Electron app packages (generated)
 ├── package.json
 ├── tsconfig.json
+├── tsup.config.ts
 ├── vite.config.ts
 ├── tailwind.config.js
 ├── postcss.config.js
@@ -199,16 +207,15 @@ worktree-manager/
 
 ### Backend (tsup)
 
-tsup bundles the backend as ESM. Configuration is inline in the `build` script in `package.json`:
-
-```bash
-tsup src/cli/index.ts src/electron-entry.ts --format esm --dts --clean --external node-pty --external electron
-```
+tsup bundles the backend as ESM. Configuration lives in `tsup.config.ts` at the project root:
 
 - **Entry points:** `src/cli/index.ts` (CLI), `src/electron-entry.ts` (Electron)
 - **Format:** ESM (`"type": "module"` in package.json)
 - **Externals:** `node-pty` (native module) and `electron`
+- **esbuild loader:** `.md` files are inlined as text strings (used by `src/instructions/`)
 - **Output:** `dist/` (tsup flattens the directory structure)
+
+CLI flags `--dts --clean` are passed in the `build` script only (not needed in dev watch mode).
 
 ### Frontend (Vite + React)
 
@@ -409,7 +416,7 @@ This follows an established pattern. You will need:
 - **Hono for HTTP.** The backend uses Hono with `@hono/node-server`, not Express.
 - **React 18 + React Query.** State management is via React Query for server state and `useState`/`useContext` for UI state. No Redux or Zustand.
 - **Motion (Framer Motion v12+).** Animations use the `motion/react` import path.
-- **Keep agent instructions in sync with MCP changes.** When modifying MCP tools, workflows, or hooks behavior, update ALL places where agents receive instructions: `MCP_INSTRUCTIONS` in `src/actions.ts`, the `work-on-task` prompt in `src/server/mcp-server-factory.ts`, agent instruction files in `src/server/lib/builtin-instructions.ts` (Claude skill, Cursor rule, VS Code prompt), and the inline instructions block in `docs/MCP.md`.
+- **Keep agent instructions in sync with MCP changes.** When modifying MCP tools, workflows, or hooks behavior, update the relevant `.md` files in `src/instructions/` (MCP instructions, agent skills/rules, hook skill definitions). All instruction text is centralized there — consumer files import from the barrel at `src/instructions/index.ts`. Also update the inline instructions block in `docs/MCP.md`.
 
 ## Platform Constraints
 

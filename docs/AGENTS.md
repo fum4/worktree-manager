@@ -446,7 +446,7 @@ Hooks config is stored in `.dawg/hooks.json`:
   ],
   "skills": [
     {
-      "skillName": "verify-code-review",
+      "skillName": "review-changes",
       "enabled": true,
       "trigger": "post-implementation"
     }

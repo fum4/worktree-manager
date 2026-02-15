@@ -1343,7 +1343,7 @@ Import a skill from the registry into hooks.
 
 - **Request**:
   ```json
-  { "skillName": "verify-code-review", "trigger": "post-implementation", "condition": "optional" }
+  { "skillName": "review-changes", "trigger": "post-implementation", "condition": "optional" }
   ```
   The same skill can be imported into multiple trigger types. Deduplication is by `skillName + trigger`.
 - **Response**: `{ success: true, config: HooksConfig }`
@@ -1397,7 +1397,7 @@ Report a skill hook result from an agent.
 - **Request**:
   ```json
   {
-    "skillName": "verify-code-review",
+    "skillName": "review-changes",
     "success": true,
     "summary": "No critical issues found",
     "content": "Optional detailed markdown content"

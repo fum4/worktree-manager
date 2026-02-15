@@ -2,6 +2,7 @@
   "name": "dawg",
   "version": "0.1.0",
   "type": "module",
+  "packageManager": "pnpm@9.15.0",
   "bin": {
     "dawg": "./dist/cli/index.js"
   },
@@ -11,14 +12,16 @@
     "dev": "pnpm dev:all",
     "dev:all": "concurrently -k -n ui,backend,electron:compile,electron:run -c blue,green,yellow,magenta \"pnpm dev:ui\" \"pnpm dev:backend\" \"pnpm dev:electron:compile\" \"pnpm dev:electron:run\"",
     "dev:ui": "vite",
-    "dev:backend": "tsup src/cli/index.ts src/electron-entry.ts --format esm --watch --external node-pty --external electron",
+    "dev:backend": "tsup --watch",
     "dev:electron:compile": "mkdir -p dist/electron && cp electron/preload.cjs dist/electron/preload.cjs && tsc -p electron/tsconfig.json --watch --preserveWatchOutput",
     "dev:electron:run": "wait-on http://localhost:6969 dist/electron/main.js && UI_DEV_SERVER_URL=http://localhost:6969 VITE_DEV_SERVER=1 electronmon .",
-    "build": "tsup src/cli/index.ts src/electron-entry.ts --format esm --dts --clean --external node-pty --external electron && tsc -p electron/tsconfig.json && cp electron/preload.cjs dist/electron/preload.cjs && mkdir -p dist/runtime && cp src/runtime/port-hook.cjs dist/runtime/port-hook.cjs && vite build",
+    "build": "tsup --dts --clean && tsc -p electron/tsconfig.json && cp electron/preload.cjs dist/electron/preload.cjs && mkdir -p dist/runtime && cp src/runtime/port-hook.cjs dist/runtime/port-hook.cjs && vite build",
     "build:app": "pnpm build && electron-builder --mac",
     "check-types": "tsc --noEmit",
-    "check-lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.tsx .",
-    "format-lint": "eslint --fix --no-error-on-unmatched-pattern --ext .js,.ts,.tsx ."
+    "check-format": "oxfmt --check .",
+    "check-lint": "oxlint",
+    "format": "oxfmt .",
+    "format-lint": "oxlint --fix"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",
@@ -61,7 +64,10 @@
     "electron": "^33.0.0",
     "electron-builder": "^25.1.0",
     "electronmon": "^2.0.4",
+    "oxfmt": "^0.32.0",
+    "oxlint": "^1.47.0",
     "postcss": "^8.4.38",
+    "release-it": "^19.2.4",
     "tailwindcss": "^3.4.4",
     "tsup": "^8.3.5",
     "tsx": "^4.21.0",

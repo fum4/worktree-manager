@@ -80,12 +80,12 @@ Hooks configuration is stored in `.dawg/.dawg/hooks.json`:
   ],
   "skills": [
     {
-      "skillName": "verify-code-review",
+      "skillName": "review-changes",
       "enabled": true,
       "trigger": "post-implementation"
     },
     {
-      "skillName": "verify-code-review",
+      "skillName": "review-changes",
       "enabled": true,
       "trigger": "on-demand"
     },

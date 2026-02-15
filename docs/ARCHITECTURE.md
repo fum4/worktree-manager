@@ -192,16 +192,26 @@ dawg uses a dual build system to produce the backend and frontend artifacts:
 
 ### Backend: tsup (ESM)
 
-The build command is:
-```
-tsup src/cli/index.ts src/electron-entry.ts --format esm --dts --clean --external node-pty --external electron
+Configuration lives in `tsup.config.ts` at the project root:
+
+```typescript
+export default defineConfig({
+  entry: ['src/cli/index.ts', 'src/electron-entry.ts'],
+  format: 'esm',
+  external: ['node-pty', 'electron'],
+  esbuildOptions(options) {
+    options.loader = { ...options.loader, '.md': 'text' };
+  },
+});
 ```
 
 This bundles two entry points:
 - `src/cli/index.ts` -- The CLI entry point (produces `dist/cli/index.js`)
 - `src/electron-entry.ts` -- The Electron IPC bridge entry point
 
-Both are output as ESM (`--format esm`). `node-pty` and `electron` are externalized since they contain native bindings that cannot be bundled.
+Both are output as ESM. `node-pty` and `electron` are externalized since they contain native bindings that cannot be bundled.
+
+The `.md` text loader inlines markdown files as strings at build time. This is used by the `src/instructions/` directory to keep agent instruction text in standalone `.md` files rather than embedded template literals. See the [Instructions section](#agent-instructions) below.
 
 ### Frontend: Vite (React SPA)
 
@@ -323,6 +333,21 @@ src/
 │       ├── api.ts         Issue fetching and search
 │       ├── credentials.ts Credential loading/saving
 │       └── types.ts
+├── instructions/      Agent instruction text (markdown, inlined at build time)
+│   ├── index.ts         Barrel export with placeholder interpolation
+│   ├── mcp-server.md    MCP server instructions
+│   ├── mcp-work-on-task.md  work-on-task MCP prompt template
+│   ├── agents/          IDE agent instruction files
+│   │   ├── shared-workflow.md  Shared workflow fragment
+│   │   ├── claude-skill.md     Claude Code SKILL.md
+│   │   ├── cursor-rule.md      Cursor rule template
+│   │   └── vscode-prompt.md    VS Code prompt template
+│   └── skills/          Predefined hook skills (SKILL.md format)
+│       ├── summarize-changes.md
+│       ├── review-changes.md
+│       ├── draft-test-plan.md
+│       ├── write-tests.md
+│       └── explain-like-im-5.md
 ├── runtime/           Runtime artifacts (not bundled)
 │   └── port-hook.cjs    Node.js require hook for port offsetting
 ├── core/              Shared core utilities
@@ -344,6 +369,37 @@ electron/              Electron desktop app
 ├── preferences-manager.ts  App preferences persistence
 └── tsconfig.json        Electron-specific TypeScript config
 ```
+
+## Agent Instructions
+
+Agent instruction text (MCP instructions, IDE skill/rule files, hook skill definitions) lives in `src/instructions/` as standalone `.md` files. The tsup esbuild text loader (`{ '.md': 'text' }`) inlines them as strings at build time.
+
+### How it works
+
+1. Each instruction is a `.md` file under `src/instructions/` (or subdirectories `agents/`, `skills/`)
+2. `src/instructions/index.ts` imports all `.md` files, resolves placeholders, and exports typed constants
+3. Consumer files (`actions.ts`, `mcp-server-factory.ts`, `builtin-instructions.ts`, `verification-skills.ts`) import from the barrel
+4. `src/md.d.ts` provides TypeScript declarations for `*.md` imports
+
+### Placeholders
+
+| Placeholder | Resolved | Value |
+|---|---|---|
+| `{{APP_NAME}}` | At module load time in `index.ts` | `APP_NAME` constant ("dawg") |
+| `{{WORKFLOW}}` | At module load time in `index.ts` | Content of `agents/shared-workflow.md` |
+| `{{ISSUE_ID}}` | At runtime by the caller | Function argument (e.g. "PROJ-123") |
+
+### File map
+
+| File | Export | Used by |
+|---|---|---|
+| `mcp-server.md` | `MCP_INSTRUCTIONS` | `mcp-server-factory.ts` (server instructions) |
+| `mcp-work-on-task.md` | `MCP_WORK_ON_TASK_PROMPT` | `mcp-server-factory.ts` (prompt template) |
+| `agents/claude-skill.md` | `CLAUDE_SKILL` | `builtin-instructions.ts` (deployed to `~/.claude/skills/`) |
+| `agents/cursor-rule.md` | `CURSOR_RULE` | `builtin-instructions.ts` (deployed to `.cursor/rules/`) |
+| `agents/vscode-prompt.md` | `VSCODE_PROMPT` | `builtin-instructions.ts` (deployed to `.github/prompts/`) |
+| `agents/shared-workflow.md` | *(internal)* | Interpolated into cursor-rule and vscode-prompt via `{{WORKFLOW}}` |
+| `skills/*.md` | `PREDEFINED_SKILLS` | `verification-skills.ts` (deployed to `~/.dawg/skills/`) |
 
 ## Server-as-Hub Pattern
 

@@ -2,6 +2,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import path from 'path';
 
 import { APP_NAME, CONFIG_DIR_NAME } from './constants';
+
+export { MCP_INSTRUCTIONS } from './instructions';
 import { formatCommitMessage } from './server/commit-message';
 import { resolveGitPolicy } from './server/git-policy';
 import type { WorktreeManager } from './server/manager';
@@ -28,92 +30,6 @@ export interface ActionContext {
   notesManager: NotesManager;
   hooksManager?: HooksManager;
 }
-
-export const MCP_INSTRUCTIONS = `${APP_NAME} manages git worktrees with automatic port offsetting.
-
-IMPORTANT: When a user mentions an issue key, ticket number, or says "work on <something>",
-you should immediately use the appropriate dawg MCP tool to create a worktree.
-Do NOT read .dawg/ files or make HTTP requests to the dawg server. All communication goes through these MCP tools.
-
-## Quick Start
-- Issue key like "PROJ-123" or number like "456" → call create_from_jira with issueKey param
-- Linear identifier like "ENG-42" or "NOM-10" → call create_from_linear with identifier param
-- Branch name → call create_worktree directly with branch param
-- "show my issues" → call list_jira_issues or list_linear_issues
-
-## After Creating a Worktree
-1. Poll list_worktrees until status is 'stopped' (creation done)
-2. Navigate to the worktree path returned in the response
-3. Call get_hooks_config to discover all configured hooks (pre-implementation, post-implementation, custom, on-demand)
-4. Run any pre-implementation hooks BEFORE starting work (see Hooks section below)
-5. Read TASK.md to understand the task from the original issue details
-6. Follow AI context directions and work through the todo checklist — these are user-defined and take priority over the original task description when they conflict
-7. Toggle each todo item as you complete it using update_todo
-
-## While Working in a Worktree
-- get_task_context — refresh full task details, AI context, and todo checklist
-- update_todo — IMPORTANT: mark todo items as done (toggle) as you complete them. The user tracks your progress through these checkboxes in real-time.
-- start_worktree — launch the dev server
-- commit, push, create_pr — git operations
-
-## Issue Data
-- get_jira_issue and get_linear_issue check locally cached data first. They only fetch from the remote API if no local data is found.
-- Prefer these tools over reading .dawg/ files directly.
-
-## Todo Workflow
-Todos are a checklist of sub-tasks defined by the user. They appear in TASK.md and in get_task_context output.
-1. Before starting work, read the todos to understand what needs to be done
-2. As you complete each item, call update_todo with action="toggle" to check it off
-3. The user sees checkbox state update in real-time in the UI
-4. You can also add new todos with action="add" if you discover additional sub-tasks
-
-## Git Policy
-The project owner can restrict agent git operations. Before calling commit, push, or create_pr:
-1. Call get_git_policy with the worktree ID to check if the operation is allowed
-2. If not allowed, inform the user and suggest they enable it in Settings or per-worktree
-3. When committing, the commit message may be automatically formatted by a project-configured rule
-
-## Hooks
-Hooks run at different points in the workflow. Call get_hooks_config EARLY (right after worktree creation) to discover all configured hooks.
-
-There are four trigger types:
-- **pre-implementation**: Run BEFORE you start coding. These set up context, run scaffolding, or enforce prerequisites.
-- **post-implementation**: Run AFTER you finish implementing. These validate changes (type checks, linting, tests, code review).
-- **custom**: Run when a natural-language condition is met (e.g. "when changes touch database models"). Check conditions as you work and run matching hooks when appropriate.
-- **on-demand**: Only run when explicitly requested by the user. Do not run these automatically.
-
-### Workflow
-1. Call get_hooks_config immediately after entering a worktree to see all hooks
-2. **Before running** any hook, skill, or command — inform the user what you are about to run and why (e.g. "Running pre-implementation hooks: typecheck, lint" or "Invoking /code-review skill as a post-implementation hook")
-3. **After running** — always summarize the results to the user AND report them back through the MCP tools so the dawg UI stays updated:
-   - Command steps: run_hooks saves results automatically. Summarize pass/fail to the user.
-   - Skills: call report_hook_status TWICE — once BEFORE invoking (without success/summary) to show loading in the UI, and once AFTER with the result. Summarize to the user.
-4. Run pre-implementation hooks before starting work: call run_hooks for command steps. For each skill: call report_hook_status to mark it running, invoke the skill, then call report_hook_status again with the result.
-5. While working, check custom hook conditions — if your changes match a condition, run those hooks and report results the same way.
-6. After completing work, run post-implementation hooks the same way.
-7. Call get_hooks_status to verify all steps passed
-8. TASK.md includes a "Hooks" section listing all enabled checks and skills — follow those instructions
-
-## Skill Report Files
-For skills that produce detailed output (e.g. code review, changes summary, test instructions, explanations), write the full report to a markdown file in the worktree directory and pass the absolute path via the \`filePath\` parameter in report_hook_status. The user can then open and preview the report from the UI.
-- File naming: \`{worktreePath}/.dawg-{skillName}.md\` (e.g. \`.dawg-code-review.md\`)
-- The \`summary\` field should be a short one-liner; the file contains the full report
-- The \`content\` field can be omitted when \`filePath\` is provided
-
-## Skill-Specific Guidelines
-When running hook skills, follow these quality guidelines:
-- **Code review**: Conduct a thorough investigation. Read the actual code files, trace logic, check for bugs, edge cases, security issues, and correctness. Do not just summarize the diff — analyze it critically.
-- **Changes summary**: Be technical and well-structured. Use bullet points, group by area (e.g. backend, frontend, types). Not overly verbose, but cover all meaningful changes.
-- **Test instructions / test writing**: Check if the project has a testing framework configured. If not, ask the user whether they want to integrate one and which framework they prefer before proceeding. Ask about testing scope and priorities.
-- **Explain like I'm 5**: Use simple language and analogies. Make it accessible to non-technical readers.
-
-## After Completing Work
-After finishing all implementation and running all post-implementation hooks:
-1. Call get_git_policy to check what git operations are allowed for this worktree
-2. If commit is allowed, stage and commit all changes (via commit)
-3. If push is allowed, push to the remote (via push)
-4. If create_pr is allowed, create a pull request (via create_pr)
-5. If the worktree dev server is not already running, ask the user if they would like you to start it (via start_worktree)`;
 
 function findWorktreeOrThrow(ctx: ActionContext, id: string) {
   const worktrees = ctx.manager.getWorktrees();
@@ -666,7 +582,7 @@ export const actions: Action[] = [
     description: 'Report hook skill status to the dawg UI. Call this TWICE for each skill: once BEFORE invoking (without success/summary) to show a loading state, and once AFTER with the result. The dawg UI updates in real-time based on these reports.',
     params: {
       worktreeId: { type: 'string', description: 'Worktree ID', required: true },
-      skillName: { type: 'string', description: 'Name of the hook skill (e.g. verify-code-review)', required: true },
+      skillName: { type: 'string', description: 'Name of the hook skill (e.g. review-changes)', required: true },
       success: { type: 'boolean', description: 'Whether the hook passed (omit when reporting start)' },
       summary: { type: 'string', description: 'Short one-line summary of the result (omit when reporting start)' },
       content: { type: 'string', description: 'Full markdown content with detailed results (optional)' },
