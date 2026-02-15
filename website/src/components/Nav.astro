@@ -27,6 +27,7 @@
       <span>dawg</span>
     </a>
     <div class="nav-links">
+      <a href="/getting-started" class="nav-link">Docs</a>
       <a
         href="https://github.com/fum4/worktree-manager"
         target="_blank"
@@ -40,7 +41,7 @@
           ></path>
         </svg>
       </a>
-      <a href="#download" class="nav-cta">Download</a>
+      <a href="/#download" class="nav-cta">Download</a>
     </div>
   </div>
 </nav>
@@ -119,6 +120,18 @@
     display: flex;
     align-items: center;
     gap: 16px;
+  }
+
+  .nav-link {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted) !important;
+    transition: color 0.2s var(--ease-out-quart) !important;
+  }
+
+  .nav-link:hover {
+    color: var(--text-primary) !important;
   }
 
   .nav-github {

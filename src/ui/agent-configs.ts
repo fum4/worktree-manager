@@ -1,4 +1,4 @@
-export type AgentId = "claude" | "gemini" | "codex" | "cursor" | "vscode";
+export type AgentId = "claude" | "codex" | "cursor" | "kimi" | "gemini" | "vscode";
 export type McpScope = "global" | "project";
 
 export interface ScopeConfig {
@@ -45,13 +45,6 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     project: { config: MCP_JSON_SNIPPET, configPath: ".mcp.json" },
   },
   {
-    id: "gemini",
-    name: "Gemini CLI",
-    docsUrl: "https://geminicli.com/docs/tools/mcp-server/",
-    global: { config: MCP_JSON_SNIPPET, configPath: "~/.gemini/settings.json" },
-    project: { config: MCP_JSON_SNIPPET, configPath: ".gemini/settings.json" },
-  },
-  {
     id: "codex",
     name: "OpenAI Codex",
     docsUrl: "https://developers.openai.com/codex/mcp/",
@@ -64,6 +57,19 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     docsUrl: "https://docs.cursor.com/context/model-context-protocol",
     global: { config: MCP_JSON_SNIPPET, configPath: "~/.cursor/mcp.json" },
     project: { config: MCP_JSON_SNIPPET, configPath: ".cursor/mcp.json" },
+  },
+  {
+    id: "kimi",
+    name: "Kimi K2",
+    docsUrl: "https://moonshotai.github.io/kimi-cli/en/customization/mcp.html",
+    global: { config: MCP_JSON_SNIPPET, configPath: "~/.kimi/mcp.json" },
+  },
+  {
+    id: "gemini",
+    name: "Gemini CLI",
+    docsUrl: "https://geminicli.com/docs/tools/mcp-server/",
+    global: { config: MCP_JSON_SNIPPET, configPath: "~/.gemini/settings.json" },
+    project: { config: MCP_JSON_SNIPPET, configPath: ".gemini/settings.json" },
   },
   {
     id: "vscode",

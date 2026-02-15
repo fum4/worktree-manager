@@ -150,6 +150,12 @@ h3 {
   }
 }
 
+.terminal-line-wrap {
+  display: inline-flex;
+  align-items: center;
+  max-width: max-content;
+}
+
 .terminal-line {
   display: inline-block;
   overflow: hidden;

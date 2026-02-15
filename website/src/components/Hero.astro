@@ -10,15 +10,15 @@
   <div class="container hero-content">
     <div class="hero-text">
       <div class="hero-badge fade-in">
-        <span class="hero-badge-dot"></span>
-        Git worktree manager for macOS
+        <span class="term-success">&#10003;</span>
+        Works with any AI agent
       </div>
       <h1 class="fade-in" data-delay="80">
-        Run multiple dev servers.<br /><span class="text-gradient">Zero port conflicts.</span>
+        Stop babysitting<br /><span class="text-gradient">your AI agents.</span>
       </h1>
       <p class="hero-sub fade-in" data-delay="160">
-        dawg manages git worktrees with automatic port offsetting, so you can run feature branches
-        side-by-side without touching config files.
+        dawg gives your AI agents a real workflow — pick up tasks, work in isolated environments,
+        and ship pull requests. Like engineers, not interns.
       </p>
       <div class="hero-ctas fade-in" data-delay="240">
         <a id="hero-download-btn" href="#download" class="btn-primary glow-pulse">
@@ -97,32 +97,31 @@
             </div>
           </div>
           <div class="terminal-body">
-            <div class="term-line" data-line="1">
+            <div class="term-line">
               <span class="term-prompt">$</span>
-              <span class="terminal-line" id="term-l1">dawg start</span>
+              <span class="terminal-line-wrap">
+                <span class="terminal-line" id="term-l1">let's work on &lt;task_id&gt;</span>
+              </span>
             </div>
-            <div class="term-line term-output" data-line="2" style="opacity: 0">
+            <div class="term-line term-output term-phase-break" style="opacity: 0">
               <span class="term-accent">&#9654;</span>
-              <span>Starting worktrees...</span>
+              <span>Fetching issue details...</span>
             </div>
-            <div class="term-line term-output" data-line="3" style="opacity: 0">
-              <span class="term-success">&#10003;</span>
-              <span>main</span>
-              <span class="term-port">:3000</span>
-            </div>
-            <div class="term-line term-output" data-line="4" style="opacity: 0">
-              <span class="term-success">&#10003;</span>
-              <span>feat/auth</span>
-              <span class="term-port">:3010</span>
-            </div>
-            <div class="term-line term-output" data-line="5" style="opacity: 0">
-              <span class="term-success">&#10003;</span>
-              <span>fix/navbar</span>
-              <span class="term-port">:3020</span>
-            </div>
-            <div class="term-line term-output term-summary" data-line="6" style="opacity: 0">
+            <div class="term-line term-output term-phase-break" style="opacity: 0">
               <span class="term-accent">&#9654;</span>
-              <span>All 3 worktrees running. No conflicts.</span>
+              <span>Creating worktree...</span>
+            </div>
+            <div class="term-line term-output term-phase-break" style="opacity: 0">
+              <span class="term-accent">&#9654;</span>
+              <span>Analyzing...</span>
+            </div>
+            <div class="term-line term-output term-phase-break" style="opacity: 0">
+              <span class="term-accent">&#9654;</span>
+              <span>Implementing...</span>
+            </div>
+            <div class="term-line term-output term-phase-break" style="opacity: 0">
+              <span class="term-success">&#10003;</span>
+              <span>Pull request shipped</span>
             </div>
           </div>
         </div>
@@ -140,14 +139,14 @@
     setTimeout(() => line1.classList.add("animate"), 600);
 
     const outputs = document.querySelectorAll(".term-output");
-    outputs.forEach((el, i) => {
-      setTimeout(
-        () => {
-          (el as HTMLElement).style.opacity = "1";
-          (el as HTMLElement).style.transform = "translateY(0)";
-        },
-        1800 + i * 280,
-      );
+    let t = 1800;
+    outputs.forEach((el) => {
+      if (el.classList.contains("term-phase-break")) t += 350;
+      setTimeout(() => {
+        (el as HTMLElement).style.opacity = "1";
+        (el as HTMLElement).style.transform = "translateY(0)";
+      }, t);
+      t += 280;
     });
 
     setTimeout(() => {
@@ -462,6 +461,11 @@
     gap: 10px;
   }
 
+  .term-line:first-child {
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
   .term-output {
     transition:
       opacity 0.5s var(--ease-out-expo),
@@ -482,16 +486,15 @@
     color: #34d399;
   }
 
-  .term-port {
+  .term-dim {
     color: var(--text-muted);
     margin-left: auto;
     font-variant-numeric: tabular-nums;
   }
 
-  .term-summary {
+  .term-phase-break {
     margin-top: 4px;
     padding-top: 8px;
-    border-top: 1px solid var(--border-subtle);
   }
 
   /* ─── Responsive ─────────────────────────────────────────── */

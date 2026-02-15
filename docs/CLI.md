@@ -172,28 +172,39 @@ Typical usage in a Claude Code MCP configuration:
 
 ---
 
-### `dawg task <ID>`
+### `dawg task [source] [ID...]`
 
-Create a worktree from a Jira issue ID.
+Create worktrees from issue IDs. Supports Jira, Linear, and local issues.
 
 ```bash
-dawg task PROJ-123
-dawg task 123        # Uses default project key from Jira config
+dawg task                               # Interactive: pick source, then enter ID
+dawg task jira PROJ-123                 # Jira issue
+dawg task linear ENG-42                 # Linear issue
+dawg task local 7                       # Local issue (LOCAL-7)
+dawg task jira PROJ-123 PROJ-456        # Batch mode: multiple IDs from same source
+dawg task jira 123                      # Uses default project key from Jira config
 ```
 
-Requires Jira to be connected (`dawg add jira`).
+The first argument is the issue source (`jira`, `linear`, or `local`). If omitted, an interactive prompt asks you to pick a source and enter an ID.
+
+Requires the relevant integration to be connected (`dawg add jira` for Jira, `dawg add linear` for Linear). Local issues don't require an integration.
+
+**Single task mode:** Fetches the issue, prints a summary, saves task data, then prompts for an action (create worktree, link to existing, or just save).
+
+**Batch mode** (multiple IDs): Fetches each issue, auto-creates a worktree for each, and skips interactive prompts. Errors on individual tasks are logged but don't stop the batch.
 
 This command:
 
-1. Resolves the task key (if a bare number is given, prepends the configured default project key)
-2. Fetches issue details from Jira (summary, status, priority, type, assignee, labels)
+1. Resolves the task key (if a bare number is given, prepends the configured default project/team key)
+2. Fetches issue details (summary, status, priority, assignee, labels)
 3. Prints a summary of the issue
-4. Saves task data to `.dawg/tasks/<KEY>/task.json`
-5. Downloads any attachments to `.dawg/tasks/<KEY>/attachments/`
-6. Prompts for an action:
+4. Saves task data locally
+5. Downloads any attachments (Jira only)
+6. In single mode, prompts for an action:
    - **Create a worktree** -- creates a new git worktree with the issue key as the branch name, copies `.env` files, runs the install command
    - **Link to an existing worktree** -- associates the task with a worktree that already exists
    - **Just save the data** -- saves the task data without creating or linking a worktree
+7. In batch mode, automatically creates a worktree for each task
 
 ---
 
@@ -218,7 +229,7 @@ Commands:
   init          Interactive setup wizard to create .dawg/config.json
   add [name]    Set up an integration (github, linear, jira)
   mcp           Start as an MCP server (for AI coding agents)
-  task <ID>     Create a worktree from an issue ID (e.g., PROJ-123)
+  task [source] [ID...] Create worktrees from issues (jira, linear, local)
 
 Options:
   --no-open     Start the server without opening the UI

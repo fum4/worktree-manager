@@ -1,7 +1,7 @@
 import { execFileSync } from "child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync } from "fs";
 import path from "path";
-import { select } from "@inquirer/prompts";
+import { input, select } from "@inquirer/prompts";
 
 import { APP_NAME, CONFIG_DIR_NAME } from "../constants";
 import { copyEnvFiles } from "../core/env-files";
@@ -10,23 +10,73 @@ import { loadJiraCredentials, loadJiraProjectConfig } from "../integrations/jira
 import { getApiBase, getAuthHeaders } from "../integrations/jira/auth";
 import {
   resolveTaskKey,
-  fetchIssue,
-  saveTaskData,
+  fetchIssue as fetchJiraIssue,
+  saveTaskData as saveJiraTaskData,
   downloadAttachments,
 } from "../integrations/jira/api";
 import type { JiraTaskData } from "../integrations/jira/types";
-import { findConfigDir, findConfigFile, loadConfig } from "./config";
+import {
+  loadLinearCredentials,
+  loadLinearProjectConfig,
+} from "../integrations/linear/credentials";
+import {
+  resolveIdentifier as resolveLinearId,
+  fetchIssue as fetchLinearIssue,
+  saveTaskData as saveLinearTaskData,
+} from "../integrations/linear/api";
+import type { LinearTaskData } from "../integrations/linear/types";
+import { findConfigDir, loadConfig } from "./config";
 
-export async function runTask(taskId: string) {
+export type Source = "jira" | "linear" | "local";
+
+export async function runTask(source: Source, taskIds: string[], batch: boolean) {
+  for (const id of taskIds) {
+    await processTask(source, id, batch);
+  }
+}
+
+export async function runTaskInteractive() {
+  const source = await select<Source>({
+    message: "Issue source",
+    choices: [
+      { name: "Jira", value: "jira" },
+      { name: "Linear", value: "linear" },
+      { name: "Local", value: "local" },
+    ],
+  });
+
+  const id = await input({ message: "Issue ID" });
+  if (!id.trim()) {
+    log.error("No issue ID provided.");
+    process.exit(1);
+  }
+
+  await processTask(source, id.trim(), false);
+}
+
+async function processTask(source: Source, taskId: string, batch: boolean) {
   const configDir = findConfigDir();
   if (!configDir) {
     log.error(`No config found. Run "${APP_NAME} init" first.`);
     process.exit(1);
   }
 
+  switch (source) {
+    case "jira":
+      return processJiraTask(taskId, configDir, batch);
+    case "linear":
+      return processLinearTask(taskId, configDir, batch);
+    case "local":
+      return processLocalTask(taskId, configDir, batch);
+  }
+}
+
+// ─── Jira ────────────────────────────────────────────────────────────────────
+
+async function processJiraTask(taskId: string, configDir: string, batch: boolean) {
   const creds = loadJiraCredentials(configDir);
   if (!creds) {
-    log.error(`Jira not connected. Run "${APP_NAME} connect jira" first.`);
+    log.error(`Jira not connected. Run "${APP_NAME} add jira" first.`);
     process.exit(1);
   }
 
@@ -35,30 +85,27 @@ export async function runTask(taskId: string) {
 
   log.info(`Fetching ${key}...`);
 
-  const taskData = await fetchIssue(key, creds, configDir);
+  let taskData: JiraTaskData;
+  try {
+    taskData = await fetchJiraIssue(key, creds, configDir);
+  } catch (err) {
+    if (batch) {
+      log.error(`Failed to fetch ${key}: ${err instanceof Error ? err.message : err}`);
+      return;
+    }
+    throw err;
+  }
 
-  // Print summary
-  console.log("");
-  console.log(`  ${taskData.key}: ${taskData.summary}`);
-  console.log(
-    `  Status: ${taskData.status}  |  Priority: ${taskData.priority}  |  Type: ${taskData.type}`,
-  );
-  if (taskData.assignee) console.log(`  Assignee: ${taskData.assignee}`);
-  if (taskData.labels.length > 0) console.log(`  Labels: ${taskData.labels.join(", ")}`);
-  console.log(`  URL: ${taskData.url}`);
-  console.log("");
+  printSummary(taskData.key, taskData.summary, taskData.status, taskData.priority, taskData.assignee, taskData.labels, taskData.url);
 
-  // Save task data
   const tasksDir = path.join(configDir, CONFIG_DIR_NAME, "tasks");
-  saveTaskData(taskData, tasksDir);
-  log.success(`Task saved to ${CONFIG_DIR_NAME}/tasks/${key}/task.json`);
+  saveJiraTaskData(taskData, tasksDir);
+  log.success(`Task saved`);
 
-  // Download attachments if any
+  // Download attachments
   if (taskData.attachments.length > 0) {
     log.info(`Downloading ${taskData.attachments.length} attachment(s)...`);
 
-    // Re-fetch raw attachment data for download URLs
-    const configPath = findConfigFile()!;
     const base = getApiBase(creds);
     const headers = await getAuthHeaders(creds, configDir);
 
@@ -79,14 +126,141 @@ export async function runTask(taskId: string) {
         configDir,
       );
       taskData.attachments = downloaded;
-
-      // Re-save with updated attachment paths
-      saveTaskData(taskData, tasksDir);
+      saveJiraTaskData(taskData, tasksDir);
       log.success(`${downloaded.length} attachment(s) downloaded`);
     }
   }
 
-  // Prompt for worktree action
+  await handleWorktreeAction(taskData.key, batch, configDir, (branchName) => {
+    taskData.linkedWorktree = branchName;
+    saveJiraTaskData(taskData, tasksDir);
+  });
+}
+
+// ─── Linear ──────────────────────────────────────────────────────────────────
+
+async function processLinearTask(taskId: string, configDir: string, batch: boolean) {
+  const creds = loadLinearCredentials(configDir);
+  if (!creds) {
+    log.error(`Linear not connected. Run "${APP_NAME} add linear" first.`);
+    process.exit(1);
+  }
+
+  const projectConfig = loadLinearProjectConfig(configDir);
+  const identifier = resolveLinearId(taskId, projectConfig);
+
+  log.info(`Fetching ${identifier}...`);
+
+  let issue;
+  try {
+    issue = await fetchLinearIssue(identifier, creds);
+  } catch (err) {
+    if (batch) {
+      log.error(`Failed to fetch ${identifier}: ${err instanceof Error ? err.message : err}`);
+      return;
+    }
+    throw err;
+  }
+
+  const taskData: LinearTaskData = {
+    source: "linear",
+    identifier: issue.identifier,
+    title: issue.title,
+    description: issue.description,
+    status: issue.state.name,
+    priority: issue.priority,
+    assignee: issue.assignee,
+    labels: issue.labels,
+    createdAt: issue.createdAt,
+    updatedAt: issue.updatedAt,
+    comments: issue.comments,
+    attachments: issue.attachments,
+    linkedWorktree: null,
+    fetchedAt: new Date().toISOString(),
+    url: issue.url,
+  };
+
+  printSummary(issue.identifier, issue.title, issue.state.name, null, issue.assignee, issue.labels.map((l) => l.name), issue.url);
+
+  const tasksDir = path.join(configDir, CONFIG_DIR_NAME, "tasks");
+  saveLinearTaskData(taskData, tasksDir);
+  log.success(`Task saved`);
+
+  await handleWorktreeAction(identifier, batch, configDir, (branchName) => {
+    taskData.linkedWorktree = branchName;
+    saveLinearTaskData(taskData, tasksDir);
+  });
+}
+
+// ─── Local ───────────────────────────────────────────────────────────────────
+
+async function processLocalTask(taskId: string, configDir: string, batch: boolean) {
+  const id = taskId.toUpperCase().startsWith("LOCAL-") ? taskId.toUpperCase() : `LOCAL-${taskId}`;
+  const taskFile = path.join(configDir, ".dawg", "issues", "local", id, "task.json");
+
+  if (!existsSync(taskFile)) {
+    if (batch) {
+      log.error(`Local issue ${id} not found.`);
+      return;
+    }
+    log.error(`Local issue ${id} not found.`);
+    process.exit(1);
+  }
+
+  const task = JSON.parse(readFileSync(taskFile, "utf-8")) as {
+    id: string;
+    title: string;
+    status: string;
+    priority: string;
+    labels: string[];
+  };
+
+  printSummary(task.id, task.title, task.status, task.priority, null, task.labels, null);
+
+  await handleWorktreeAction(task.id, batch, configDir, () => {
+    // Local tasks don't have a linkedWorktree field to update in task.json
+  });
+}
+
+// ─── Shared ──────────────────────────────────────────────────────────────────
+
+function printSummary(
+  key: string,
+  title: string,
+  status: string,
+  priority: string | null,
+  assignee: string | null,
+  labels: string[],
+  url: string | null,
+) {
+  console.log("");
+  console.log(`  ${key}: ${title}`);
+  const parts = [`Status: ${status}`];
+  if (priority) parts.push(`Priority: ${priority}`);
+  console.log(`  ${parts.join("  |  ")}`);
+  if (assignee) console.log(`  Assignee: ${assignee}`);
+  if (labels.length > 0) console.log(`  Labels: ${labels.join(", ")}`);
+  if (url) console.log(`  URL: ${url}`);
+  console.log("");
+}
+
+async function handleWorktreeAction(
+  key: string,
+  batch: boolean,
+  configDir: string,
+  onLink: (branchName: string) => void,
+) {
+  if (batch) {
+    try {
+      await createWorktreeForTask(key, configDir, onLink);
+    } catch (err) {
+      log.error(
+        `Failed to create worktree for ${key}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+    return;
+  }
+
   console.log("");
   const action = await select({
     message: "What would you like to do?",
@@ -99,21 +273,21 @@ export async function runTask(taskId: string) {
   });
 
   if (action === "create") {
-    await createWorktreeForTask(taskData, configDir, tasksDir);
+    await createWorktreeForTask(key, configDir, onLink);
   } else if (action === "link") {
-    await linkWorktreeToTask(taskData, configDir, tasksDir);
+    await linkWorktreeToTask(key, configDir, onLink);
   }
 
   log.success("Done.");
 }
 
 async function createWorktreeForTask(
-  taskData: { key: string; linkedWorktree: string | null },
+  key: string,
   configDir: string,
-  tasksDir: string,
+  onLink: (branchName: string) => void,
 ) {
   const { config } = loadConfig();
-  const branchName = taskData.key.toLowerCase();
+  const branchName = key.toLowerCase();
 
   const worktreesDir = path.join(configDir, CONFIG_DIR_NAME, "worktrees");
 
@@ -126,8 +300,7 @@ async function createWorktreeForTask(
   if (existsSync(worktreePath)) {
     log.warn(`Worktree directory already exists: ${worktreePath}`);
     log.info("Linking to existing worktree instead.");
-    taskData.linkedWorktree = branchName;
-    saveTaskData(taskData as JiraTaskData, tasksDir);
+    onLink(branchName);
     return;
   }
 
@@ -188,15 +361,14 @@ async function createWorktreeForTask(
     }
   }
 
-  taskData.linkedWorktree = branchName;
-  saveTaskData(taskData as JiraTaskData, tasksDir);
-  log.success(`Worktree linked to task ${taskData.key}`);
+  onLink(branchName);
+  log.success(`Worktree linked to task ${key}`);
 }
 
 async function linkWorktreeToTask(
-  taskData: { key: string; linkedWorktree: string | null },
+  key: string,
   configDir: string,
-  tasksDir: string,
+  onLink: (branchName: string) => void,
 ) {
   const worktreesDir = path.join(configDir, CONFIG_DIR_NAME, "worktrees");
 
@@ -222,7 +394,6 @@ async function linkWorktreeToTask(
     })),
   });
 
-  taskData.linkedWorktree = chosen;
-  saveTaskData(taskData as JiraTaskData, tasksDir);
-  log.success(`Task ${taskData.key} linked to worktree: ${chosen}`);
+  onLink(chosen);
+  log.success(`Task ${key} linked to worktree: ${chosen}`);
 }

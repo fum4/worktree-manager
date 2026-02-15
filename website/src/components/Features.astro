@@ -1,28 +1,32 @@
 ---
 const features = [
   {
-    title: "Port Offsetting",
+    title: "Task-Driven Development",
     description:
-      "Run multiple dev servers without conflicts. Each worktree gets unique ports automatically — no config changes needed.",
-    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/></svg>`,
-  },
-  {
-    title: "Issue Integration",
-    description:
-      "Create worktrees directly from Jira, Linear, or local issues. One click from ticket to running branch.",
+      "Agents pull tasks from Jira, Linear, or local issues with full context. From ticket to working branch in seconds.",
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`,
+    color: "#34d399",
   },
   {
-    title: "AI Agent Support",
+    title: "Isolated Environments",
     description:
-      "20+ MCP tools for Claude and other AI agents to browse issues, create worktrees, commit, push, and open PRs.",
+      "Each task gets its own worktree with automatic port offsetting. Run multiple agents in parallel — zero conflicts.",
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>`,
+    color: "#38bdf8",
+  },
+  {
+    title: "Agent Tooling Hub",
+    description:
+      "MCP servers, skills, and plugins — managed in one place. Connect once, every agent benefits.",
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>`,
+    color: "#818cf8",
   },
   {
-    title: "Activity Feed",
+    title: "Real-Time Visibility",
     description:
-      "Real-time notifications across all your projects. Toast alerts in the UI, native OS notifications in the desktop app.",
+      "Watch agents work across all your projects. Activity feed, toast alerts, and native OS notifications.",
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`,
+    color: "#f59e0b",
   },
 ];
 ---
@@ -30,16 +34,20 @@ const features = [
 <div class="section-divider"></div>
 <section id="features">
   <div class="container">
-    <h2 class="section-title fade-in">Everything you need to work in parallel</h2>
+    <h2 class="section-title fade-in">From ticket to pull request. Autonomous.</h2>
     <p class="section-sub fade-in" data-delay="80">
-      Worktree management, port orchestration, and developer tooling in one place.
+      Everything your AI agents need to pick up work, develop in isolation, and ship.
     </p>
     <div class="features-grid">
       {
         features.map((f, i) => (
-          <div class="feature-card fade-in" data-delay={String(i * 100 + 160)}>
+          <div
+            class="feature-card fade-in"
+            data-delay={String(i * 100 + 160)}
+            style={`--card-color: ${f.color};`}
+          >
             <div class="feature-icon-wrap">
-              <div class="feature-icon" set:html={f.icon} />
+              <Fragment set:html={f.icon} />
             </div>
             <h3>{f.title}</h3>
             <p>{f.description}</p>
@@ -95,8 +103,8 @@ const features = [
     padding: 1px;
     background: linear-gradient(
       135deg,
-      rgba(45, 212, 191, 0) 0%,
-      rgba(45, 212, 191, 0) 100%
+      transparent 0%,
+      transparent 100%
     );
     mask:
       linear-gradient(#fff 0 0) content-box,
@@ -112,40 +120,35 @@ const features = [
     box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.15),
       0 16px 32px rgba(0, 0, 0, 0.1);
-    border-color: rgba(45, 212, 191, 0.12);
   }
 
   .feature-card:hover::before {
     background: linear-gradient(
       135deg,
-      rgba(45, 212, 191, 0.2) 0%,
-      rgba(45, 212, 191, 0.05) 50%,
-      rgba(45, 212, 191, 0.15) 100%
+      transparent 0%,
+      transparent 100%
     );
   }
 
   .feature-icon-wrap {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     width: 44px;
     height: 44px;
     border-radius: 10px;
-    background: rgba(45, 212, 191, 0.06);
-    border: 1px solid rgba(45, 212, 191, 0.1);
+    background: color-mix(in srgb, var(--card-color) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--card-color) 15%, transparent);
     margin-bottom: 20px;
+    color: var(--card-color);
     transition:
       background 0.3s var(--ease-out-expo),
       box-shadow 0.3s var(--ease-out-expo);
   }
 
   .feature-card:hover .feature-icon-wrap {
-    background: rgba(45, 212, 191, 0.1);
-    box-shadow: 0 0 20px rgba(45, 212, 191, 0.08);
-  }
-
-  .feature-icon {
-    color: var(--accent);
+    background: color-mix(in srgb, var(--card-color) 12%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--card-color) 10%, transparent);
   }
 
   .feature-card h3 {

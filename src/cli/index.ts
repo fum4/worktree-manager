@@ -120,7 +120,7 @@ Commands:
   init          Interactive setup wizard to create .dawg/config.json
   add [name]    Set up an integration (github, linear, jira)
   mcp           Start as an MCP server (for AI coding agents)
-  task <ID>     Create a worktree from an issue ID (e.g., PROJ-123)
+  task [source] [ID...] Create worktrees from issues (jira, linear, local)
 
 Options:
   --no-open     Start the server without opening the UI
@@ -166,13 +166,28 @@ async function main() {
   }
 
   if (subcommand === "task") {
-    const taskId = process.argv[3];
-    if (!taskId) {
-      log.error(`Usage: ${APP_NAME} task <TASK_ID>`);
+    const args = process.argv.slice(3).filter((arg) => !arg.startsWith("--"));
+    const { runTask, runTaskInteractive } = await import("./task");
+    const sources = ["jira", "linear", "local"];
+
+    if (args.length === 0) {
+      await runTaskInteractive();
+      return;
+    }
+
+    const first = args[0].toLowerCase();
+    if (sources.includes(first)) {
+      const source = first as "jira" | "linear" | "local";
+      const ids = args.slice(1);
+      if (ids.length === 0) {
+        log.error(`Usage: ${APP_NAME} task ${source} <ID> [ID...]`);
+        process.exit(1);
+      }
+      await runTask(source, ids, ids.length > 1);
+    } else {
+      log.error(`Unknown source "${args[0]}". Use: ${APP_NAME} task <jira|linear|local> <ID>`);
       process.exit(1);
     }
-    const { runTask } = await import("./task");
-    await runTask(taskId);
     return;
   }
 

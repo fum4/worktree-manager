@@ -82,7 +82,7 @@ Submitting calls `api.initConfig()` and advances to Agents.
 
 ### 3. Agents (`agents`)
 
-**Purpose:** Connect MCP integration to AI coding agents (Claude, Cursor, Windsurf).
+**Purpose:** Connect MCP integration to AI coding agents (Claude Code, OpenAI Codex, Cursor, Kimi K2, Gemini CLI, VS Code).
 
 Each agent shows **Global** and **Project** scope toggles. The user selects which agents to connect, then clicks "Connect Agents" to apply. Calls `api.setupMcpAgent()` / `api.removeMcpAgent()` for each change.
 
