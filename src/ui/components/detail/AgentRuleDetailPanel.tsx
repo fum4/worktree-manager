@@ -1,16 +1,16 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { FileCode, Plus, Trash2 } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect } from "react";
+import { FileCode, Plus, Trash2 } from "lucide-react";
 
-import { useApi } from '../../hooks/useApi';
-import { useAgentRule } from '../../hooks/useAgentRules';
-import { agentRule, text, border } from '../../theme';
-import { ConfirmDialog } from '../ConfirmDialog';
-import { MarkdownContent } from '../MarkdownContent';
-import { Spinner } from '../Spinner';
+import { useApi } from "../../hooks/useApi";
+import { useAgentRule } from "../../hooks/useAgentRules";
+import { agentRule, text, border } from "../../theme";
+import { ConfirmDialog } from "../ConfirmDialog";
+import { MarkdownContent } from "../MarkdownContent";
+import { Spinner } from "../Spinner";
 
 const FILE_META: Record<string, { name: string; path: string; initial: string }> = {
-  'claude-md': { name: 'CLAUDE.md', path: 'CLAUDE.md', initial: '# CLAUDE.md\n\n' },
-  'agents-md': { name: 'AGENTS.md', path: 'AGENTS.md', initial: '# AGENTS.md\n\n' },
+  "claude-md": { name: "CLAUDE.md", path: "CLAUDE.md", initial: "# CLAUDE.md\n\n" },
+  "agents-md": { name: "AGENTS.md", path: "AGENTS.md", initial: "# AGENTS.md\n\n" },
 };
 
 interface Props {
@@ -24,22 +24,28 @@ export function AgentRuleDetailPanel({ fileId }: Props) {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSaved = useRef('');
+  const lastSaved = useRef("");
 
-  const flushSave = useCallback(async (value: string) => {
-    if (value !== lastSaved.current) {
-      lastSaved.current = value;
-      await api.saveAgentRule(fileId, value);
-    }
-  }, [api, fileId]);
+  const flushSave = useCallback(
+    async (value: string) => {
+      if (value !== lastSaved.current) {
+        lastSaved.current = value;
+        await api.saveAgentRule(fileId, value);
+      }
+    },
+    [api, fileId],
+  );
 
-  const scheduleSave = useCallback((value: string) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => flushSave(value), 600);
-  }, [flushSave]);
+  const scheduleSave = useCallback(
+    (value: string) => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => flushSave(value), 600);
+    },
+    [flushSave],
+  );
 
   const finishEditing = useCallback(async () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -49,7 +55,9 @@ export function AgentRuleDetailPanel({ fileId }: Props) {
   }, [draft, flushSave, refetch]);
 
   useEffect(() => {
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
   }, []);
 
   const focusRef = useCallback((el: HTMLTextAreaElement | null) => {
@@ -133,7 +141,9 @@ export function AgentRuleDetailPanel({ fileId }: Props) {
               scheduleSave(e.target.value);
             }}
             onBlur={finishEditing}
-            onKeyDown={(e) => { if (e.key === 'Escape') finishEditing(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") finishEditing();
+            }}
             className={`flex-1 w-full bg-transparent text-xs ${text.primary} focus:outline-none resize-none font-mono leading-relaxed placeholder-[#3b4049]`}
             placeholder={`Write ${meta.name} content...`}
           />
@@ -154,9 +164,7 @@ export function AgentRuleDetailPanel({ fileId }: Props) {
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         >
-          <p className={`text-xs ${text.secondary}`}>
-            This will delete {meta.path} from disk.
-          </p>
+          <p className={`text-xs ${text.secondary}`}>This will delete {meta.path} from disk.</p>
         </ConfirmDialog>
       )}
     </div>

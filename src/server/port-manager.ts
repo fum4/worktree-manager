@@ -1,9 +1,9 @@
-import { execFileSync, spawn } from 'child_process';
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { execFileSync, spawn } from "child_process";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-import type { PortConfig, WorktreeConfig } from './types';
+import type { PortConfig, WorktreeConfig } from "./types";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -59,12 +59,12 @@ export class PortManager {
 
   getHookPath(): string {
     // In dist: currentDir is dist/, hook is at dist/runtime/port-hook.cjs
-    const distHook = path.resolve(currentDir, 'runtime', 'port-hook.cjs');
+    const distHook = path.resolve(currentDir, "runtime", "port-hook.cjs");
     if (existsSync(distHook)) {
       return distHook;
     }
     // In dev (tsx): currentDir is src/server/, hook is at src/runtime/port-hook.cjs
-    const srcHook = path.resolve(currentDir, '..', 'runtime', 'port-hook.cjs');
+    const srcHook = path.resolve(currentDir, "..", "runtime", "port-hook.cjs");
     if (existsSync(srcHook)) {
       return srcHook;
     }
@@ -77,12 +77,10 @@ export class PortManager {
     }
 
     const hookPath = this.getHookPath();
-    const existingNodeOptions = process.env.NODE_OPTIONS || '';
+    const existingNodeOptions = process.env.NODE_OPTIONS || "";
     const requireFlag = `--require ${hookPath}`;
 
-    const nodeOptions = existingNodeOptions
-      ? `${existingNodeOptions} ${requireFlag}`
-      : requireFlag;
+    const nodeOptions = existingNodeOptions ? `${existingNodeOptions} ${requireFlag}` : requireFlag;
 
     const env: Record<string, string> = {
       NODE_OPTIONS: nodeOptions,
@@ -110,19 +108,21 @@ export class PortManager {
     const mapping: Record<string, string> = {};
 
     const scanFile = (filePath: string) => {
-      const content = readFileSync(filePath, 'utf-8');
-      for (const line of content.split('\n')) {
+      const content = readFileSync(filePath, "utf-8");
+      for (const line of content.split("\n")) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) continue;
+        if (!trimmed || trimmed.startsWith("#")) continue;
 
-        const eqIndex = trimmed.indexOf('=');
+        const eqIndex = trimmed.indexOf("=");
         if (eqIndex === -1) continue;
 
         const key = trimmed.slice(0, eqIndex).trim();
         let value = trimmed.slice(eqIndex + 1).trim();
         // Strip surrounding quotes
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
           value = value.slice(1, -1);
         }
 
@@ -148,9 +148,9 @@ export class PortManager {
         const entries = readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
           if (entry.isDirectory()) {
-            if (entry.name === 'node_modules' || entry.name === '.git') continue;
+            if (entry.name === "node_modules" || entry.name === ".git") continue;
             scanDir(path.join(dir, entry.name));
-          } else if (entry.isFile() && entry.name.startsWith('.env')) {
+          } else if (entry.isFile() && entry.name.startsWith(".env")) {
             scanFile(path.join(dir, entry.name));
           }
         }
@@ -169,19 +169,14 @@ export class PortManager {
     this.config.envMapping = mapping;
 
     try {
-      const content = readFileSync(this.configFilePath, 'utf-8');
+      const content = readFileSync(this.configFilePath, "utf-8");
       const config = JSON.parse(content);
       config.envMapping = mapping;
-      writeFileSync(
-        this.configFilePath,
-        JSON.stringify(config, null, 2) + '\n',
-      );
-      console.log(
-        `[port-discovery] Saved env mapping to ${this.configFilePath}`,
-      );
+      writeFileSync(this.configFilePath, JSON.stringify(config, null, 2) + "\n");
+      console.log(`[port-discovery] Saved env mapping to ${this.configFilePath}`);
     } catch (err) {
       console.error(
-        '[port-discovery] Failed to persist env mapping:',
+        "[port-discovery] Failed to persist env mapping:",
         err instanceof Error ? err.message : err,
       );
     }
@@ -192,9 +187,9 @@ export class PortManager {
   ): Promise<{ ports: number[]; error?: string }> {
     const log = onLog || console.log;
 
-    log('[port-discovery] Starting dev command to discover ports...');
+    log("[port-discovery] Starting dev command to discover ports...");
 
-    const [cmd, ...args] = this.config.startCommand.split(' ');
+    const [cmd, ...args] = this.config.startCommand.split(" ");
     const workingDir = this.getProjectDir();
 
     if (!existsSync(workingDir)) {
@@ -206,28 +201,34 @@ export class PortManager {
 
     const child = spawn(cmd, args, {
       cwd: workingDir,
-      env: { ...process.env, FORCE_COLOR: '0' },
-      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, FORCE_COLOR: "0" },
+      stdio: ["ignore", "pipe", "pipe"],
       shell: true,
       detached: true,
     });
 
     const pid = child.pid;
     if (!pid) {
-      return { ports: [], error: 'Failed to spawn discovery process' };
+      return { ports: [], error: "Failed to spawn discovery process" };
     }
 
     log(`[port-discovery] Spawned process (PID: ${pid}), waiting for stabilization...`);
 
-    child.stdout?.on('data', (data) => {
-      const lines = data.toString().split('\n').filter((l: string) => l.trim());
+    child.stdout?.on("data", (data) => {
+      const lines = data
+        .toString()
+        .split("\n")
+        .filter((l: string) => l.trim());
       for (const line of lines) {
         log(`[port-discovery:stdout] ${line}`);
       }
     });
 
-    child.stderr?.on('data', (data) => {
-      const lines = data.toString().split('\n').filter((l: string) => l.trim());
+    child.stderr?.on("data", (data) => {
+      const lines = data
+        .toString()
+        .split("\n")
+        .filter((l: string) => l.trim());
       for (const line of lines) {
         log(`[port-discovery:stderr] ${line}`);
       }
@@ -238,17 +239,17 @@ export class PortManager {
       setTimeout(resolve, DISCOVERY_STABILIZE_MS);
     });
 
-    log('[port-discovery] Scanning for listening ports...');
+    log("[port-discovery] Scanning for listening ports...");
 
     let ports: number[] = [];
     try {
       // Get all child PIDs recursively
       const allPids = this.getProcessTree(pid);
-      log(`[port-discovery] Process tree PIDs: ${allPids.join(', ')}`);
+      log(`[port-discovery] Process tree PIDs: ${allPids.join(", ")}`);
 
       if (allPids.length > 0) {
         ports = this.getListeningPorts(allPids);
-        log(`[port-discovery] Discovered ports: ${ports.join(', ') || '(none)'}`);
+        log(`[port-discovery] Discovered ports: ${ports.join(", ") || "(none)"}`);
       }
     } catch (err) {
       log(
@@ -257,12 +258,12 @@ export class PortManager {
     }
 
     // Kill the discovery process tree
-    log('[port-discovery] Cleaning up discovery process...');
+    log("[port-discovery] Cleaning up discovery process...");
     try {
-      process.kill(-pid, 'SIGTERM');
+      process.kill(-pid, "SIGTERM");
     } catch {
       try {
-        child.kill('SIGTERM');
+        child.kill("SIGTERM");
       } catch {
         // Process may have already exited
       }
@@ -275,7 +276,7 @@ export class PortManager {
 
     // Force kill if still alive
     try {
-      process.kill(-pid, 'SIGKILL');
+      process.kill(-pid, "SIGKILL");
     } catch {
       // Already dead
     }
@@ -288,7 +289,7 @@ export class PortManager {
       const envMapping = this.detectEnvMapping(workingDir);
       if (Object.keys(envMapping).length > 0) {
         this.persistEnvMapping(envMapping);
-        log(`[port-discovery] Detected env var mappings: ${Object.keys(envMapping).join(', ')}`);
+        log(`[port-discovery] Detected env var mappings: ${Object.keys(envMapping).join(", ")}`);
       }
     }
 
@@ -302,14 +303,13 @@ export class PortManager {
     while (queue.length > 0) {
       const parentPid = queue.shift()!;
       try {
-        const output = execFileSync(
-          'pgrep',
-          ['-P', String(parentPid)],
-          { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
-        ).trim();
+        const output = execFileSync("pgrep", ["-P", String(parentPid)], {
+          encoding: "utf-8",
+          stdio: ["pipe", "pipe", "pipe"],
+        }).trim();
 
         if (output) {
-          for (const line of output.split('\n')) {
+          for (const line of output.split("\n")) {
             const childPid = parseInt(line.trim(), 10);
             if (!isNaN(childPid) && !pids.has(childPid)) {
               pids.add(childPid);
@@ -327,15 +327,15 @@ export class PortManager {
 
   private getListeningPorts(pids: number[]): number[] {
     try {
-      const pidList = pids.join(',');
+      const pidList = pids.join(",");
       const output = execFileSync(
-        'lsof',
-        ['-P', '-n', '-iTCP', '-sTCP:LISTEN', '-a', '-p', pidList],
-        { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
+        "lsof",
+        ["-P", "-n", "-iTCP", "-sTCP:LISTEN", "-a", "-p", pidList],
+        { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
       );
 
       const ports: Set<number> = new Set();
-      for (const line of output.split('\n')) {
+      for (const line of output.split("\n")) {
         // Match lines like: node    12345 user   23u  IPv4 ... TCP *:3000 (LISTEN)
         const match = line.match(/:(\d+)\s+\(LISTEN\)/);
         if (match) {
@@ -356,22 +356,17 @@ export class PortManager {
     if (!this.configFilePath) return;
 
     try {
-      const content = readFileSync(this.configFilePath, 'utf-8');
+      const content = readFileSync(this.configFilePath, "utf-8");
       const config = JSON.parse(content);
       if (!config.ports) {
         config.ports = {};
       }
       config.ports.discovered = ports;
-      writeFileSync(
-        this.configFilePath,
-        JSON.stringify(config, null, 2) + '\n',
-      );
-      console.log(
-        `[port-discovery] Saved discovered ports to ${this.configFilePath}`,
-      );
+      writeFileSync(this.configFilePath, JSON.stringify(config, null, 2) + "\n");
+      console.log(`[port-discovery] Saved discovered ports to ${this.configFilePath}`);
     } catch (err) {
       console.error(
-        '[port-discovery] Failed to persist discovered ports:',
+        "[port-discovery] Failed to persist discovered ports:",
         err instanceof Error ? err.message : err,
       );
     }

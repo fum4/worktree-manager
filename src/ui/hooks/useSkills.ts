@@ -1,13 +1,20 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
-import { fetchSkills, fetchSkill, fetchClaudePlugins, fetchClaudePluginDetail, fetchAvailablePlugins, fetchSkillDeploymentStatus } from './api';
-import { useServerUrlOptional } from '../contexts/ServerContext';
+import {
+  fetchSkills,
+  fetchSkill,
+  fetchClaudePlugins,
+  fetchClaudePluginDetail,
+  fetchAvailablePlugins,
+  fetchSkillDeploymentStatus,
+} from "./api";
+import { useServerUrlOptional } from "../contexts/ServerContext";
 
 export function useSkills() {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['skills', serverUrl],
+    queryKey: ["skills", serverUrl],
     queryFn: async () => {
       const result = await fetchSkills(serverUrl);
       if (result.error) throw new Error(result.error);
@@ -30,7 +37,7 @@ export function useSkillDetail(name: string | null) {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['skill', serverUrl, name],
+    queryKey: ["skill", serverUrl, name],
     queryFn: async () => {
       if (!name) return null;
       const result = await fetchSkill(name, serverUrl);
@@ -53,7 +60,7 @@ export function useSkillDeploymentStatus() {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['skillDeploymentStatus', serverUrl],
+    queryKey: ["skillDeploymentStatus", serverUrl],
     queryFn: () => fetchSkillDeploymentStatus(serverUrl),
     enabled: serverUrl !== null,
     staleTime: 5_000,
@@ -70,7 +77,7 @@ export function useClaudePlugins() {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['claudePlugins', serverUrl],
+    queryKey: ["claudePlugins", serverUrl],
     queryFn: () => fetchClaudePlugins(serverUrl),
     enabled: serverUrl !== null,
     staleTime: 5_000,
@@ -89,7 +96,7 @@ export function useClaudePluginDetail(id: string | null) {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['claudePlugin', serverUrl, id],
+    queryKey: ["claudePlugin", serverUrl, id],
     queryFn: async () => {
       if (!id) return null;
       const result = await fetchClaudePluginDetail(id, serverUrl);
@@ -112,7 +119,7 @@ export function useAvailablePlugins(enabled: boolean) {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['availablePlugins', serverUrl],
+    queryKey: ["availablePlugins", serverUrl],
     queryFn: async () => {
       const result = await fetchAvailablePlugins(serverUrl);
       if (result.error) throw new Error(result.error);

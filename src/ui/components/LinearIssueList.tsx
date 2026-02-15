@@ -1,7 +1,7 @@
-import type { LinearIssueSummary } from '../types';
-import { text } from '../theme';
-import { LinearIssueItem } from './LinearIssueItem';
-import { Spinner } from './Spinner';
+import type { LinearIssueSummary } from "../types";
+import { text } from "../theme";
+import { LinearIssueItem } from "./LinearIssueItem";
+import { Spinner } from "./Spinner";
 
 interface LinearIssueListProps {
   issues: LinearIssueSummary[];

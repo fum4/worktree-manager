@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
-import { GitBranch, Ticket } from 'lucide-react';
+import { useEffect, useRef, useState } from "react";
+import { GitBranch, Ticket } from "lucide-react";
 
-import { useApi } from '../hooks/useApi';
-import { input, text } from '../theme';
-import { Button } from './Button';
-import { LinearIcon } from './icons';
-import { Modal } from './Modal';
-import { WorktreeExistsModal } from './WorktreeExistsModal';
+import { useApi } from "../hooks/useApi";
+import { input, text } from "../theme";
+import { Button } from "./Button";
+import { LinearIcon } from "./icons";
+import { Modal } from "./Modal";
+import { WorktreeExistsModal } from "./WorktreeExistsModal";
 
 interface CreateWorktreeModalProps {
-  mode: 'branch' | 'jira' | 'linear';
+  mode: "branch" | "jira" | "linear";
   hasBranchNameRule?: boolean;
   onCreated: () => void;
   onClose: () => void;
@@ -19,53 +19,61 @@ interface CreateWorktreeModalProps {
 function deriveBranch(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
-export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClose, onSetupNeeded }: CreateWorktreeModalProps) {
+export function CreateWorktreeModal({
+  mode,
+  hasBranchNameRule,
+  onCreated,
+  onClose,
+  onSetupNeeded,
+}: CreateWorktreeModalProps) {
   const api = useApi();
 
   // Branch form state
-  const [branch, setBranch] = useState('');
-  const [name, setName] = useState('');
+  const [branch, setBranch] = useState("");
+  const [name, setName] = useState("");
   const [branchManuallyEdited, setBranchManuallyEdited] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Jira form state
-  const [taskId, setTaskId] = useState('');
-  const [jiraBranch, setJiraBranch] = useState('');
+  const [taskId, setTaskId] = useState("");
+  const [jiraBranch, setJiraBranch] = useState("");
   const [jiraBranchManuallyEdited, setJiraBranchManuallyEdited] = useState(false);
 
   // Linear form state
-  const [linearId, setLinearId] = useState('');
-  const [linearBranch, setLinearBranch] = useState('');
+  const [linearId, setLinearId] = useState("");
+  const [linearBranch, setLinearBranch] = useState("");
   const [linearBranchManuallyEdited, setLinearBranchManuallyEdited] = useState(false);
 
   // Worktree exists modal state
-  const [existingWorktree, setExistingWorktree] = useState<{ id: string; branch: string } | null>(null);
+  const [existingWorktree, setExistingWorktree] = useState<{ id: string; branch: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
   useEffect(() => {
-    if (mode === 'branch' && !branchManuallyEdited) {
+    if (mode === "branch" && !branchManuallyEdited) {
       setBranch(deriveBranch(name));
     }
   }, [name, branchManuallyEdited, mode]);
 
   useEffect(() => {
-    if (mode === 'jira' && !jiraBranchManuallyEdited && !hasBranchNameRule) {
+    if (mode === "jira" && !jiraBranchManuallyEdited && !hasBranchNameRule) {
       setJiraBranch(taskId.trim());
     }
   }, [taskId, jiraBranchManuallyEdited, mode, hasBranchNameRule]);
 
   useEffect(() => {
-    if (mode === 'linear' && !linearBranchManuallyEdited && !hasBranchNameRule) {
+    if (mode === "linear" && !linearBranchManuallyEdited && !hasBranchNameRule) {
       setLinearBranch(linearId.trim());
     }
   }, [linearId, linearBranchManuallyEdited, mode, hasBranchNameRule]);
@@ -98,11 +106,11 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
     if (result.success) {
       onCreated();
       onClose();
-    } else if (result.code === 'WORKTREE_EXISTS' && result.worktreeId) {
+    } else if (result.code === "WORKTREE_EXISTS" && result.worktreeId) {
       setExistingWorktree({ id: result.worktreeId, branch: branch.trim() });
     } else {
-      const errorMsg = result.error || 'Failed to create worktree';
-      if (errorMsg.includes('no commits') || errorMsg.includes('invalid reference')) {
+      const errorMsg = result.error || "Failed to create worktree";
+      if (errorMsg.includes("no commits") || errorMsg.includes("invalid reference")) {
         onClose();
         onSetupNeeded?.();
       } else {
@@ -124,11 +132,11 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
     if (result.success) {
       onCreated();
       onClose();
-    } else if (result.code === 'WORKTREE_EXISTS' && result.worktreeId) {
+    } else if (result.code === "WORKTREE_EXISTS" && result.worktreeId) {
       setExistingWorktree({ id: result.worktreeId, branch: jiraBranch.trim() || taskId.trim() });
     } else {
-      const errorMsg = result.error || 'Failed to create from Jira';
-      if (errorMsg.includes('no commits') || errorMsg.includes('invalid reference')) {
+      const errorMsg = result.error || "Failed to create from Jira";
+      if (errorMsg.includes("no commits") || errorMsg.includes("invalid reference")) {
         onClose();
         onSetupNeeded?.();
       } else {
@@ -150,11 +158,14 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
     if (result.success) {
       onCreated();
       onClose();
-    } else if (result.code === 'WORKTREE_EXISTS' && result.worktreeId) {
-      setExistingWorktree({ id: result.worktreeId, branch: linearBranch.trim() || linearId.trim() });
+    } else if (result.code === "WORKTREE_EXISTS" && result.worktreeId) {
+      setExistingWorktree({
+        id: result.worktreeId,
+        branch: linearBranch.trim() || linearId.trim(),
+      });
     } else {
-      const errorMsg = result.error || 'Failed to create from Linear';
-      if (errorMsg.includes('no commits') || errorMsg.includes('invalid reference')) {
+      const errorMsg = result.error || "Failed to create from Linear";
+      if (errorMsg.includes("no commits") || errorMsg.includes("invalid reference")) {
         onClose();
         onSetupNeeded?.();
       } else {
@@ -163,21 +174,36 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
     }
   };
 
-  const focusBorder = 'focus:border-white/[0.15]';
+  const focusBorder = "focus:border-white/[0.15]";
   const inputClass = `w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] outline-none focus:bg-white/[0.05] ${focusBorder} transition-all text-xs`;
 
   return (
     <>
       <Modal
-        title={mode === 'branch' ? 'Create Worktree' : mode === 'jira' ? 'Pull from Jira' : 'Pull from Linear'}
-        icon={mode === 'branch'
-          ? <GitBranch className="w-5 h-5 text-accent" />
-          : mode === 'jira'
-          ? <Ticket className="w-5 h-5 text-blue-400" />
-          : <LinearIcon className="w-5 h-5 text-[#5E6AD2]" />
+        title={
+          mode === "branch"
+            ? "Create Worktree"
+            : mode === "jira"
+              ? "Pull from Jira"
+              : "Pull from Linear"
+        }
+        icon={
+          mode === "branch" ? (
+            <GitBranch className="w-5 h-5 text-accent" />
+          ) : mode === "jira" ? (
+            <Ticket className="w-5 h-5 text-blue-400" />
+          ) : (
+            <LinearIcon className="w-5 h-5 text-[#5E6AD2]" />
+          )
         }
         onClose={onClose}
-        onSubmit={mode === 'branch' ? handleBranchSubmit : mode === 'jira' ? handleJiraSubmit : handleLinearSubmit}
+        onSubmit={
+          mode === "branch"
+            ? handleBranchSubmit
+            : mode === "jira"
+              ? handleJiraSubmit
+              : handleLinearSubmit
+        }
         footer={
           <>
             <Button onClick={onClose} disabled={isCreating}>
@@ -185,16 +211,22 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
             </Button>
             <Button
               type="submit"
-              variant={mode === 'jira' ? 'jira' : mode === 'linear' ? 'linear' : 'primary'}
-              disabled={mode === 'branch' ? !name.trim() : mode === 'jira' ? !taskId.trim() : !linearId.trim()}
+              variant={mode === "jira" ? "jira" : mode === "linear" ? "linear" : "primary"}
+              disabled={
+                mode === "branch"
+                  ? !name.trim()
+                  : mode === "jira"
+                    ? !taskId.trim()
+                    : !linearId.trim()
+              }
               loading={isCreating}
             >
-              {mode === 'branch' ? 'Create Worktree' : 'Pull & Create'}
+              {mode === "branch" ? "Create Worktree" : "Pull & Create"}
             </Button>
           </>
         }
       >
-        {mode === 'branch' ? (
+        {mode === "branch" ? (
           <div className="space-y-3">
             <div>
               <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
@@ -228,15 +260,13 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
             </div>
             {error && <p className={`text-[11px] ${text.error}`}>{error}</p>}
           </div>
-        ) : mode === 'jira' ? (
+        ) : mode === "jira" ? (
           <div className="space-y-3">
             <p className={`text-xs ${text.secondary} leading-relaxed`}>
               Pull a Jira issue into your workspace and create a linked worktree.
             </p>
             <div>
-              <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
-                Task ID
-              </label>
+              <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>Task ID</label>
               <input
                 ref={inputRef}
                 type="text"
@@ -255,7 +285,9 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
                 type="text"
                 value={jiraBranch}
                 onChange={(e) => handleJiraBranchChange(e.target.value)}
-                placeholder={hasBranchNameRule ? 'Leave empty to auto-generate' : 'Defaults to task ID'}
+                placeholder={
+                  hasBranchNameRule ? "Leave empty to auto-generate" : "Defaults to task ID"
+                }
                 className={inputClass}
                 disabled={isCreating}
               />
@@ -273,9 +305,7 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
               Pull a Linear issue into your workspace and create a linked worktree.
             </p>
             <div>
-              <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
-                Issue ID
-              </label>
+              <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>Issue ID</label>
               <input
                 ref={inputRef}
                 type="text"
@@ -294,7 +324,9 @@ export function CreateWorktreeModal({ mode, hasBranchNameRule, onCreated, onClos
                 type="text"
                 value={linearBranch}
                 onChange={(e) => handleLinearBranchChange(e.target.value)}
-                placeholder={hasBranchNameRule ? 'Leave empty to auto-generate' : 'Defaults to issue ID'}
+                placeholder={
+                  hasBranchNameRule ? "Leave empty to auto-generate" : "Defaults to issue ID"
+                }
                 className={inputClass}
                 disabled={isCreating}
               />

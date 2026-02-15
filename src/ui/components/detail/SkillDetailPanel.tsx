@@ -1,24 +1,24 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { useSkillDetail, useSkillDeploymentStatus } from '../../hooks/useSkills';
-import { useApi } from '../../hooks/useApi';
-import { useHooksConfig } from '../../hooks/useHooks';
-import { border, skill as skillTheme, text } from '../../theme';
-import { ConfirmDialog } from '../ConfirmDialog';
-import { MarkdownContent } from '../MarkdownContent';
-import { Spinner } from '../Spinner';
+import { useSkillDetail, useSkillDeploymentStatus } from "../../hooks/useSkills";
+import { useApi } from "../../hooks/useApi";
+import { useHooksConfig } from "../../hooks/useHooks";
+import { border, skill as skillTheme, text } from "../../theme";
+import { ConfirmDialog } from "../ConfirmDialog";
+import { MarkdownContent } from "../MarkdownContent";
+import { Spinner } from "../Spinner";
 
 const AGENTS = [
-  { id: 'claude', label: 'Claude Code' },
-  { id: 'cursor', label: 'Cursor' },
-  { id: 'gemini', label: 'Gemini CLI' },
-  { id: 'vscode', label: 'VS Code' },
-  { id: 'codex', label: 'Codex' },
+  { id: "claude", label: "Claude Code" },
+  { id: "cursor", label: "Cursor" },
+  { id: "gemini", label: "Gemini CLI" },
+  { id: "vscode", label: "VS Code" },
+  { id: "codex", label: "Codex" },
 ] as const;
 
-const SCOPES = ['global', 'project'] as const;
+const SCOPES = ["global", "project"] as const;
 
 interface SkillDetailPanelProps {
   skillName: string;
@@ -34,16 +34,20 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
   const agentDeployments = skillStatus.agents ?? {};
 
   const { skill, isLoading, error, refetch } = useSkillDetail(skillName);
-  const { config: hooksConfig, saveConfig: saveHooksConfig, refetch: refetchHooks } = useHooksConfig();
+  const {
+    config: hooksConfig,
+    saveConfig: saveHooksConfig,
+    refetch: refetchHooks,
+  } = useHooksConfig();
 
   const hookSkillRef = hooksConfig?.skills?.find((s) => s.skillName === skillName) ?? null;
 
   const [editingName, setEditingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState('');
+  const [nameDraft, setNameDraft] = useState("");
   const [editingRef, setEditingRef] = useState(false);
   const [editingExamples, setEditingExamples] = useState(false);
   const [editingConfig, setEditingConfig] = useState<string | null>(null);
-  const [configDraft, setConfigDraft] = useState('');
+  const [configDraft, setConfigDraft] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deploying, setDeploying] = useState<string | null>(null);
 
@@ -54,11 +58,14 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
     setEditingConfig(null);
   }, [skillName]);
 
-  const saveUpdate = useCallback(async (updates: Parameters<typeof api.updateSkill>[1]) => {
-    await api.updateSkill(skillName, updates);
-    refetch();
-    queryClient.invalidateQueries({ queryKey: ['skills'] });
-  }, [api, skillName, refetch, queryClient]);
+  const saveUpdate = useCallback(
+    async (updates: Parameters<typeof api.updateSkill>[1]) => {
+      await api.updateSkill(skillName, updates);
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["skills"] });
+    },
+    [api, skillName, refetch, queryClient],
+  );
 
   const handleSaveConfig = async (key: string, value: string | boolean) => {
     await saveUpdate({ frontmatter: { [key]: value } });
@@ -67,11 +74,11 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
 
   const handleDelete = async () => {
     setShowDeleteConfirm(false);
-    setDeploying('delete');
+    setDeploying("delete");
     await api.deleteSkill(skillName);
     setDeploying(null);
-    queryClient.invalidateQueries({ queryKey: ['skills'] });
-    queryClient.invalidateQueries({ queryKey: ['skillDeploymentStatus'] });
+    queryClient.invalidateQueries({ queryKey: ["skills"] });
+    queryClient.invalidateQueries({ queryKey: ["skillDeploymentStatus"] });
     onDeleted();
   };
 
@@ -79,18 +86,16 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
     const key = `${agentId}-${scope}`;
     setDeploying(key);
     if (isDeployed) {
-      await api.undeploySkill(skillName, agentId, scope as 'global' | 'project');
+      await api.undeploySkill(skillName, agentId, scope as "global" | "project");
     } else {
-      await api.deploySkill(skillName, agentId, scope as 'global' | 'project');
+      await api.deploySkill(skillName, agentId, scope as "global" | "project");
     }
     setDeploying(null);
     refetchDeployment();
   };
 
   // Check if deployed to any agent
-  const isDeployedAnywhere = Object.values(agentDeployments).some(
-    (d) => d.global || d.project,
-  );
+  const isDeployedAnywhere = Object.values(agentDeployments).some((d) => d.global || d.project);
 
   // Redirect when source is deleted / not found
   useEffect(() => {
@@ -115,14 +120,14 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className={`text-[11px] font-mono ${skillTheme.accent}`}>
-                {skill.name}
-              </span>
+              <span className={`text-[11px] font-mono ${skillTheme.accent}`}>{skill.name}</span>
               {fm.mode && (
-                <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${skillTheme.badge}`}>mode</span>
+                <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${skillTheme.badge}`}>
+                  mode
+                </span>
               )}
               <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${skillTheme.badge}`}>
-                {isDeployedAnywhere ? 'Deployed' : 'Not deployed'}
+                {isDeployedAnywhere ? "Deployed" : "Not deployed"}
               </span>
             </div>
             {editingName ? (
@@ -131,11 +136,11 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
                 value={nameDraft}
                 onChange={(e) => setNameDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && nameDraft.trim()) {
+                  if (e.key === "Enter" && nameDraft.trim()) {
                     saveUpdate({ frontmatter: { name: nameDraft.trim() } });
                     setEditingName(false);
                   }
-                  if (e.key === 'Escape') setEditingName(false);
+                  if (e.key === "Escape") setEditingName(false);
                 }}
                 onBlur={() => {
                   if (nameDraft.trim() && nameDraft.trim() !== skill.displayName) {
@@ -148,20 +153,23 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
             ) : (
               <h2
                 className={`text-[15px] font-semibold ${text.primary} leading-snug px-2 py-1 -mx-2 -my-1 rounded-md hover:bg-white/[0.04] cursor-pointer transition-colors`}
-                onClick={() => { setNameDraft(skill.displayName); setEditingName(true); }}
+                onClick={() => {
+                  setNameDraft(skill.displayName);
+                  setEditingName(true);
+                }}
               >
                 {skill.displayName}
               </h2>
             )}
           </div>
           <div className="flex-shrink-0 pt-1 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className={`p-1.5 rounded-lg ${text.muted} hover:text-red-400 hover:bg-red-900/20 transition-colors`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -172,7 +180,7 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
         <AutoSaveTextSection
           key={`desc-${skillName}`}
           title="Description"
-          content={fm.description || ''}
+          content={fm.description || ""}
           emptyText="Click to add description..."
           rows={3}
           onSave={(v) => saveUpdate({ frontmatter: { description: v } })}
@@ -193,7 +201,10 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
             {AGENTS.map((agent) => {
               const agentStatus = agentDeployments[agent.id] ?? {};
               return (
-                <div key={agent.id} className={`grid grid-cols-[1fr_80px_80px] px-3 py-2 border-b last:border-b-0 ${border.subtle} hover:bg-white/[0.02]`}>
+                <div
+                  key={agent.id}
+                  className={`grid grid-cols-[1fr_80px_80px] px-3 py-2 border-b last:border-b-0 ${border.subtle} hover:bg-white/[0.02]`}
+                >
                   <span className={`text-xs ${text.secondary}`}>{agent.label}</span>
                   {SCOPES.map((scope) => {
                     const isDeployed = !!agentStatus[scope];
@@ -208,11 +219,15 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
                             type="button"
                             onClick={() => handleDeploy(agent.id, scope, isDeployed)}
                             className="relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none"
-                            style={{ backgroundColor: isDeployed ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
+                            style={{
+                              backgroundColor: isDeployed
+                                ? "rgba(45,212,191,0.35)"
+                                : "rgba(255,255,255,0.08)",
+                            }}
                           >
                             <span
                               className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
-                                isDeployed ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'
+                                isDeployed ? "left-3.5 bg-teal-400" : "left-0.5 bg-white/40"
                               }`}
                             />
                           </button>
@@ -230,13 +245,15 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
         <section>
           <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>Hooks</h3>
           <div className="flex items-center gap-1.5">
-            {([
-              { trigger: 'pre-implementation' as const, label: 'Pre-Implementation' },
-              { trigger: 'post-implementation' as const, label: 'Post-Implementation' },
-              { trigger: 'custom' as const, label: 'Custom' },
-              { trigger: 'on-demand' as const, label: 'On-Demand' },
-            ]).map(({ trigger, label }) => {
-              const isActive = hookSkillRef?.enabled && (hookSkillRef.trigger ?? 'post-implementation') === trigger;
+            {[
+              { trigger: "pre-implementation" as const, label: "Pre-Implementation" },
+              { trigger: "post-implementation" as const, label: "Post-Implementation" },
+              { trigger: "custom" as const, label: "Custom" },
+              { trigger: "on-demand" as const, label: "On-Demand" },
+            ].map(({ trigger, label }) => {
+              const isActive =
+                hookSkillRef?.enabled &&
+                (hookSkillRef.trigger ?? "post-implementation") === trigger;
               return (
                 <button
                   key={trigger}
@@ -267,40 +284,106 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
                   }}
                   className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors duration-150 ${
                     isActive
-                      ? 'bg-teal-500/[0.15] text-teal-300'
+                      ? "bg-teal-500/[0.15] text-teal-300"
                       : `bg-white/[0.06] ${text.dimmed} hover:${text.muted}`
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-teal-400' : 'bg-white/20'}`} />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-teal-400" : "bg-white/20"}`}
+                  />
                   {label}
                 </button>
               );
             })}
           </div>
-          {hookSkillRef?.enabled && (hookSkillRef.trigger ?? 'post-implementation') !== 'on-demand' && !isDeployedAnywhere && (
-            <p className={`text-[10px] text-amber-400/80 mt-2`}>
-              This skill is an automated hook but isn't deployed to any agent. Deploy it above so agents can invoke it.
-            </p>
-          )}
+          {hookSkillRef?.enabled &&
+            (hookSkillRef.trigger ?? "post-implementation") !== "on-demand" &&
+            !isDeployedAnywhere && (
+              <p className={`text-[10px] text-amber-400/80 mt-2`}>
+                This skill is an automated hook but isn't deployed to any agent. Deploy it above so
+                agents can invoke it.
+              </p>
+            )}
         </section>
 
         {/* Configuration */}
         <section>
           <h3 className={`text-[11px] font-medium ${text.muted} mb-2`}>Configuration</h3>
           <div className="space-y-2">
-            <EditableConfigRow label="Allowed Tools" configKey="allowedTools" value={fm.allowedTools} fallback="none" editingConfig={editingConfig} configDraft={configDraft} setEditingConfig={setEditingConfig} setConfigDraft={setConfigDraft} onSave={handleSaveConfig} />
-            <EditableConfigRow label="Context" configKey="context" value={fm.context} fallback="inline" editingConfig={editingConfig} configDraft={configDraft} setEditingConfig={setEditingConfig} setConfigDraft={setConfigDraft} onSave={handleSaveConfig} options={['inline', 'file', 'tool', 'none']} />
-            <EditableConfigRow label="Agent" configKey="agent" value={fm.agent} fallback="general-purpose" editingConfig={editingConfig} configDraft={configDraft} setEditingConfig={setEditingConfig} setConfigDraft={setConfigDraft} onSave={handleSaveConfig} />
-            <EditableConfigRow label="Model" configKey="model" value={fm.model} fallback="inherit" editingConfig={editingConfig} configDraft={configDraft} setEditingConfig={setEditingConfig} setConfigDraft={setConfigDraft} onSave={handleSaveConfig} options={['', 'sonnet', 'opus', 'haiku']} />
-            <EditableConfigRow label="Argument Hint" configKey="argumentHint" value={fm.argumentHint} editingConfig={editingConfig} configDraft={configDraft} setEditingConfig={setEditingConfig} setConfigDraft={setConfigDraft} onSave={handleSaveConfig} />
-            <ToggleConfigRow label="User-invocable" value={fm.userInvocable} onToggle={(v) => handleSaveConfig('userInvocable', v)} />
-            <ToggleConfigRow label="Model invocation" value={!fm.disableModelInvocation} onToggle={(v) => handleSaveConfig('disableModelInvocation', !v)} />
-            <ToggleConfigRow label="Mode" value={fm.mode} onToggle={(v) => handleSaveConfig('mode', v)} />
+            <EditableConfigRow
+              label="Allowed Tools"
+              configKey="allowedTools"
+              value={fm.allowedTools}
+              fallback="none"
+              editingConfig={editingConfig}
+              configDraft={configDraft}
+              setEditingConfig={setEditingConfig}
+              setConfigDraft={setConfigDraft}
+              onSave={handleSaveConfig}
+            />
+            <EditableConfigRow
+              label="Context"
+              configKey="context"
+              value={fm.context}
+              fallback="inline"
+              editingConfig={editingConfig}
+              configDraft={configDraft}
+              setEditingConfig={setEditingConfig}
+              setConfigDraft={setConfigDraft}
+              onSave={handleSaveConfig}
+              options={["inline", "file", "tool", "none"]}
+            />
+            <EditableConfigRow
+              label="Agent"
+              configKey="agent"
+              value={fm.agent}
+              fallback="general-purpose"
+              editingConfig={editingConfig}
+              configDraft={configDraft}
+              setEditingConfig={setEditingConfig}
+              setConfigDraft={setConfigDraft}
+              onSave={handleSaveConfig}
+            />
+            <EditableConfigRow
+              label="Model"
+              configKey="model"
+              value={fm.model}
+              fallback="inherit"
+              editingConfig={editingConfig}
+              configDraft={configDraft}
+              setEditingConfig={setEditingConfig}
+              setConfigDraft={setConfigDraft}
+              onSave={handleSaveConfig}
+              options={["", "sonnet", "opus", "haiku"]}
+            />
+            <EditableConfigRow
+              label="Argument Hint"
+              configKey="argumentHint"
+              value={fm.argumentHint}
+              editingConfig={editingConfig}
+              configDraft={configDraft}
+              setEditingConfig={setEditingConfig}
+              setConfigDraft={setConfigDraft}
+              onSave={handleSaveConfig}
+            />
+            <ToggleConfigRow
+              label="User-invocable"
+              value={fm.userInvocable}
+              onToggle={(v) => handleSaveConfig("userInvocable", v)}
+            />
+            <ToggleConfigRow
+              label="Model invocation"
+              value={!fm.disableModelInvocation}
+              onToggle={(v) => handleSaveConfig("disableModelInvocation", !v)}
+            />
+            <ToggleConfigRow
+              label="Mode"
+              value={fm.mode}
+              onToggle={(v) => handleSaveConfig("mode", v)}
+            />
             <div className="flex items-center gap-2 pt-1">
               <span className={`text-[10px] ${text.dimmed} w-28 flex-shrink-0`}>Path</span>
-              <span className={`text-[10px] font-mono ${text.dimmed} truncate`}>
-                {skill.path}
-              </span>
+              <span className={`text-[10px] font-mono ${text.dimmed} truncate`}>{skill.path}</span>
             </div>
           </div>
         </section>
@@ -319,10 +402,13 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
           <AutoSaveFileSection
             key={`ref-${skillName}`}
             title="reference.md"
-            content={skill.referenceMd ?? ''}
+            content={skill.referenceMd ?? ""}
             rows={12}
             onSave={(v) => saveUpdate({ referenceMd: v })}
-            onDelete={async () => { await saveUpdate({ referenceMd: '' }); setEditingRef(false); }}
+            onDelete={async () => {
+              await saveUpdate({ referenceMd: "" });
+              setEditingRef(false);
+            }}
             startEditing={!skill.hasReference}
           />
         ) : (
@@ -344,10 +430,13 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
           <AutoSaveFileSection
             key={`ex-${skillName}`}
             title="examples.md"
-            content={skill.examplesMd ?? ''}
+            content={skill.examplesMd ?? ""}
             rows={12}
             onSave={(v) => saveUpdate({ examplesMd: v })}
-            onDelete={async () => { await saveUpdate({ examplesMd: '' }); setEditingExamples(false); }}
+            onDelete={async () => {
+              await saveUpdate({ examplesMd: "" });
+              setEditingExamples(false);
+            }}
             startEditing={!skill.hasExamples}
           />
         ) : (
@@ -373,7 +462,8 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
           onCancel={() => setShowDeleteConfirm(false)}
         >
           <p className={`text-xs ${text.secondary}`}>
-            The skill "{skill.displayName}" will be deleted from the registry and all agent deployments will be cleaned up.
+            The skill "{skill.displayName}" will be deleted from the registry and all agent
+            deployments will be cleaned up.
           </p>
         </ConfirmDialog>
       )}
@@ -383,7 +473,15 @@ export function SkillDetailPanel({ skillName, onDeleted }: SkillDetailPanelProps
 
 // ─── Helper components ───────────────────────────────────────
 
-function ToggleConfigRow({ label, value, onToggle }: { label: string; value: boolean; onToggle: (v: boolean) => void }) {
+function ToggleConfigRow({
+  label,
+  value,
+  onToggle,
+}: {
+  label: string;
+  value: boolean;
+  onToggle: (v: boolean) => void;
+}) {
   return (
     <div className="flex items-center gap-2">
       <span className={`text-[10px] ${text.dimmed} w-28 flex-shrink-0`}>{label}</span>
@@ -391,11 +489,11 @@ function ToggleConfigRow({ label, value, onToggle }: { label: string; value: boo
         type="button"
         onClick={() => onToggle(!value)}
         className="relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none"
-        style={{ backgroundColor: value ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
+        style={{ backgroundColor: value ? "rgba(45,212,191,0.35)" : "rgba(255,255,255,0.08)" }}
       >
         <span
           className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
-            value ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'
+            value ? "left-3.5 bg-teal-400" : "left-0.5 bg-white/40"
           }`}
         />
       </button>
@@ -429,14 +527,18 @@ function EditableConfigRow({
   const inputRef = useRef<HTMLInputElement>(null);
   const selectRef = useRef<HTMLSelectElement>(null);
   const isEditing = editingConfig === configKey;
-  const hasValue = value && value !== '';
+  const hasValue = value && value !== "";
 
   useEffect(() => {
     if (isEditing) {
       inputRef.current?.focus();
       if (selectRef.current) {
         selectRef.current.focus();
-        try { selectRef.current.showPicker(); } catch { /* unsupported */ }
+        try {
+          selectRef.current.showPicker();
+        } catch {
+          /* unsupported */
+        }
       }
     }
   }, [isEditing]);
@@ -448,12 +550,16 @@ function EditableConfigRow({
         <select
           ref={selectRef}
           value={configDraft}
-          onChange={(e) => { onSave(configKey, e.target.value); }}
+          onChange={(e) => {
+            onSave(configKey, e.target.value);
+          }}
           onBlur={() => setEditingConfig(null)}
           className={`text-xs font-mono bg-white/[0.04] border border-white/[0.12] rounded px-1.5 py-0.5 ${text.primary} focus:outline-none`}
         >
           {options.map((opt) => (
-            <option key={opt} value={opt}>{opt || (fallback ? `(${fallback})` : '—')}</option>
+            <option key={opt} value={opt}>
+              {opt || (fallback ? `(${fallback})` : "—")}
+            </option>
           ))}
         </select>
       </div>
@@ -469,8 +575,12 @@ function EditableConfigRow({
           value={configDraft}
           onChange={(e) => setConfigDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') { onSave(configKey, configDraft); }
-            if (e.key === 'Escape') { setEditingConfig(null); }
+            if (e.key === "Enter") {
+              onSave(configKey, configDraft);
+            }
+            if (e.key === "Escape") {
+              setEditingConfig(null);
+            }
           }}
           onBlur={() => onSave(configKey, configDraft)}
           className={`text-xs font-mono bg-white/[0.04] border border-white/[0.12] rounded px-1.5 py-0.5 ${text.primary} focus:outline-none flex-1`}
@@ -484,9 +594,12 @@ function EditableConfigRow({
       <span className={`text-[10px] ${text.dimmed} w-28 flex-shrink-0`}>{label}</span>
       <span
         className={`text-xs font-mono ${hasValue ? text.secondary : text.dimmed} cursor-pointer hover:bg-white/[0.04] px-1.5 py-0.5 -mx-1.5 rounded transition-colors`}
-        onClick={() => { setConfigDraft(value ?? ''); setEditingConfig(configKey); }}
+        onClick={() => {
+          setConfigDraft(value ?? "");
+          setEditingConfig(configKey);
+        }}
       >
-        {hasValue ? value : (fallback ?? '—')}
+        {hasValue ? value : (fallback ?? "—")}
       </span>
     </div>
   );
@@ -508,18 +621,27 @@ function AutoSaveTextSection({
   onSave: (value: string) => Promise<unknown>;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSaved = useRef('');
+  const lastSaved = useRef("");
 
-  const flush = useCallback((v: string) => {
-    if (v !== lastSaved.current) { lastSaved.current = v; onSave(v); }
-  }, [onSave]);
+  const flush = useCallback(
+    (v: string) => {
+      if (v !== lastSaved.current) {
+        lastSaved.current = v;
+        onSave(v);
+      }
+    },
+    [onSave],
+  );
 
-  const schedule = useCallback((v: string) => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => flush(v), 600);
-  }, [flush]);
+  const schedule = useCallback(
+    (v: string) => {
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => flush(v), 600);
+    },
+    [flush],
+  );
 
   const finish = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -527,7 +649,12 @@ function AutoSaveTextSection({
     setEditing(false);
   }, [draft, flush]);
 
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   return (
     <section>
@@ -535,9 +662,14 @@ function AutoSaveTextSection({
       {editing ? (
         <textarea
           value={draft}
-          onChange={(e) => { setDraft(e.target.value); schedule(e.target.value); }}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            schedule(e.target.value);
+          }}
           onBlur={finish}
-          onKeyDown={(e) => { if (e.key === 'Escape') finish(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") finish();
+          }}
           className={`w-full px-3 py-2 bg-white/[0.02] border border-white/[0.08] rounded-lg text-xs ${text.primary} focus:outline-none resize-none`}
           rows={rows}
           autoFocus
@@ -545,7 +677,11 @@ function AutoSaveTextSection({
       ) : (
         <div
           className="rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] px-3 py-2 cursor-pointer transition-colors"
-          onClick={() => { setDraft(content); lastSaved.current = content; setEditing(true); }}
+          onClick={() => {
+            setDraft(content);
+            lastSaved.current = content;
+            setEditing(true);
+          }}
         >
           {content ? (
             <MarkdownContent content={content} />
@@ -576,18 +712,27 @@ function AutoSaveFileSection({
   startEditing?: boolean;
 }) {
   const [editing, setEditing] = useState(!!startEditing);
-  const [draft, setDraft] = useState(startEditing ? content : '');
+  const [draft, setDraft] = useState(startEditing ? content : "");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSaved = useRef(content);
 
-  const flush = useCallback((v: string) => {
-    if (v !== lastSaved.current) { lastSaved.current = v; onSave(v); }
-  }, [onSave]);
+  const flush = useCallback(
+    (v: string) => {
+      if (v !== lastSaved.current) {
+        lastSaved.current = v;
+        onSave(v);
+      }
+    },
+    [onSave],
+  );
 
-  const schedule = useCallback((v: string) => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => flush(v), 600);
-  }, [flush]);
+  const schedule = useCallback(
+    (v: string) => {
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => flush(v), 600);
+    },
+    [flush],
+  );
 
   const finish = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -595,7 +740,12 @@ function AutoSaveFileSection({
     setEditing(false);
   }, [draft, flush]);
 
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   return (
     <section>
@@ -614,9 +764,14 @@ function AutoSaveFileSection({
       {editing ? (
         <textarea
           value={draft}
-          onChange={(e) => { setDraft(e.target.value); schedule(e.target.value); }}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            schedule(e.target.value);
+          }}
           onBlur={finish}
-          onKeyDown={(e) => { if (e.key === 'Escape') finish(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") finish();
+          }}
           className={`w-full px-3 py-2 bg-white/[0.02] border border-white/[0.08] rounded-lg text-xs font-mono ${text.primary} focus:outline-none resize-none`}
           rows={rows}
           autoFocus
@@ -624,11 +779,13 @@ function AutoSaveFileSection({
       ) : content ? (
         <div
           className="rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] px-3 py-2 max-h-80 overflow-y-auto cursor-pointer transition-colors"
-          onClick={() => { setDraft(content); lastSaved.current = content; setEditing(true); }}
+          onClick={() => {
+            setDraft(content);
+            lastSaved.current = content;
+            setEditing(true);
+          }}
         >
-          <pre className={`text-xs font-mono ${text.secondary} whitespace-pre-wrap`}>
-            {content}
-          </pre>
+          <pre className={`text-xs font-mono ${text.secondary} whitespace-pre-wrap`}>{content}</pre>
         </div>
       ) : null}
     </section>

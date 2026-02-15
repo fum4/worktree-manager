@@ -1,7 +1,7 @@
 // -- Config types (stored in integrations.json) --
 
 export interface DataLifecycleConfig {
-  saveOn: 'view' | 'worktree-creation' | 'never';
+  saveOn: "view" | "worktree-creation" | "never";
   autoCleanup: {
     enabled: boolean;
     statusTriggers: string[];
@@ -21,7 +21,7 @@ export interface JiraProjectConfig {
 }
 
 export interface JiraOAuthCredentials {
-  authMethod: 'oauth';
+  authMethod: "oauth";
   oauth: {
     clientId: string;
     clientSecret: string;
@@ -34,7 +34,7 @@ export interface JiraOAuthCredentials {
 }
 
 export interface JiraApiTokenCredentials {
-  authMethod: 'api-token';
+  authMethod: "api-token";
   apiToken: {
     baseUrl: string;
     email: string;

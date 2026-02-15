@@ -1,19 +1,19 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
-import path from 'path';
+import { existsSync, readFileSync, readdirSync, statSync } from "fs";
+import path from "path";
 
-import { APP_NAME, CONFIG_DIR_NAME } from './constants';
+import { APP_NAME, CONFIG_DIR_NAME } from "./constants";
 
-export { MCP_INSTRUCTIONS } from './instructions';
-import { formatCommitMessage } from './server/commit-message';
-import { resolveGitPolicy } from './server/git-policy';
-import type { WorktreeManager } from './server/manager';
-import type { NotesManager } from './server/notes-manager';
-import { generateTaskMd, writeTaskMd } from './server/task-context';
-import type { TaskContextData } from './server/task-context';
-import type { HooksManager } from './server/verification-manager';
+export { MCP_INSTRUCTIONS } from "./instructions";
+import { formatCommitMessage } from "./server/commit-message";
+import { resolveGitPolicy } from "./server/git-policy";
+import type { WorktreeManager } from "./server/manager";
+import type { NotesManager } from "./server/notes-manager";
+import { generateTaskMd, writeTaskMd } from "./server/task-context";
+import type { TaskContextData } from "./server/task-context";
+import type { HooksManager } from "./server/verification-manager";
 
 export interface ActionParam {
-  type: 'string' | 'number' | 'boolean';
+  type: "string" | "number" | "boolean";
   description: string;
   required?: boolean;
 }
@@ -41,10 +41,11 @@ function findWorktreeOrThrow(ctx: ActionContext, id: string) {
 export const actions: Action[] = [
   // -- Issue browsing --
   {
-    name: 'list_jira_issues',
-    description: 'List your assigned Jira issues (unresolved). Optionally search by text. Use this when the user wants to see their issues or find something to work on.',
+    name: "list_jira_issues",
+    description:
+      "List your assigned Jira issues (unresolved). Optionally search by text. Use this when the user wants to see their issues or find something to work on.",
     params: {
-      query: { type: 'string', description: 'Optional text search to filter issues' },
+      query: { type: "string", description: "Optional text search to filter issues" },
     },
     handler: async (ctx, params) => {
       const query = params.query as string | undefined;
@@ -52,28 +53,43 @@ export const actions: Action[] = [
     },
   },
   {
-    name: 'get_jira_issue',
-    description: 'Get full details of a Jira issue including description and comments. Checks locally cached data first, only fetches from Jira API if not found locally. Use this to show issue details before creating a worktree.',
+    name: "get_jira_issue",
+    description:
+      "Get full details of a Jira issue including description and comments. Checks locally cached data first, only fetches from Jira API if not found locally. Use this to show issue details before creating a worktree.",
     params: {
-      issueKey: { type: 'string', description: 'Jira issue key (e.g. PROJ-123 or just 123 if default project is configured)', required: true },
+      issueKey: {
+        type: "string",
+        description: "Jira issue key (e.g. PROJ-123 or just 123 if default project is configured)",
+        required: true,
+      },
     },
     handler: async (ctx, params) => {
       const issueKey = params.issueKey as string;
       // Check local cache first
-      const issueFile = path.join(ctx.manager.getConfigDir(), CONFIG_DIR_NAME, 'issues', 'jira', issueKey, 'issue.json');
+      const issueFile = path.join(
+        ctx.manager.getConfigDir(),
+        CONFIG_DIR_NAME,
+        "issues",
+        "jira",
+        issueKey,
+        "issue.json",
+      );
       if (existsSync(issueFile)) {
         try {
-          return JSON.parse(readFileSync(issueFile, 'utf-8'));
-        } catch { /* fall through to API */ }
+          return JSON.parse(readFileSync(issueFile, "utf-8"));
+        } catch {
+          /* fall through to API */
+        }
       }
       return ctx.manager.getJiraIssue(issueKey);
     },
   },
   {
-    name: 'list_linear_issues',
-    description: 'List your assigned Linear issues (open/in progress). Optionally search by text. Use this when the user wants to see their issues or find something to work on.',
+    name: "list_linear_issues",
+    description:
+      "List your assigned Linear issues (open/in progress). Optionally search by text. Use this when the user wants to see their issues or find something to work on.",
     params: {
-      query: { type: 'string', description: 'Optional text search to filter issues' },
+      query: { type: "string", description: "Optional text search to filter issues" },
     },
     handler: async (ctx, params) => {
       const query = params.query as string | undefined;
@@ -81,19 +97,34 @@ export const actions: Action[] = [
     },
   },
   {
-    name: 'get_linear_issue',
-    description: 'Get full details of a Linear issue including description. Checks locally cached data first, only fetches from Linear API if not found locally. Use this to show issue details before creating a worktree.',
+    name: "get_linear_issue",
+    description:
+      "Get full details of a Linear issue including description. Checks locally cached data first, only fetches from Linear API if not found locally. Use this to show issue details before creating a worktree.",
     params: {
-      identifier: { type: 'string', description: 'Linear issue identifier (e.g. ENG-123 or just 123 if default team is configured)', required: true },
+      identifier: {
+        type: "string",
+        description:
+          "Linear issue identifier (e.g. ENG-123 or just 123 if default team is configured)",
+        required: true,
+      },
     },
     handler: async (ctx, params) => {
       const identifier = params.identifier as string;
       // Check local cache first
-      const issueFile = path.join(ctx.manager.getConfigDir(), CONFIG_DIR_NAME, 'issues', 'linear', identifier, 'issue.json');
+      const issueFile = path.join(
+        ctx.manager.getConfigDir(),
+        CONFIG_DIR_NAME,
+        "issues",
+        "linear",
+        identifier,
+        "issue.json",
+      );
       if (existsSync(issueFile)) {
         try {
-          return JSON.parse(readFileSync(issueFile, 'utf-8'));
-        } catch { /* fall through to API */ }
+          return JSON.parse(readFileSync(issueFile, "utf-8"));
+        } catch {
+          /* fall through to API */
+        }
       }
       return ctx.manager.getLinearIssue(identifier);
     },
@@ -101,17 +132,22 @@ export const actions: Action[] = [
 
   // -- Worktree management --
   {
-    name: 'list_worktrees',
-    description: 'List all worktrees with their status, branch, ports, and git/PR info. Use this to see existing worktrees before creating new ones.',
+    name: "list_worktrees",
+    description:
+      "List all worktrees with their status, branch, ports, and git/PR info. Use this to see existing worktrees before creating new ones.",
     params: {},
     handler: async (ctx) => ctx.manager.getWorktrees(),
   },
   {
-    name: 'create_worktree',
-    description: 'Create a new git worktree from a branch name. Use create_from_jira or create_from_linear instead when the user provides an issue key.',
+    name: "create_worktree",
+    description:
+      "Create a new git worktree from a branch name. Use create_from_jira or create_from_linear instead when the user provides an issue key.",
     params: {
-      branch: { type: 'string', description: 'Git branch name for the worktree', required: true },
-      name: { type: 'string', description: 'Optional worktree directory name (defaults to sanitized branch name)' },
+      branch: { type: "string", description: "Git branch name for the worktree", required: true },
+      name: {
+        type: "string",
+        description: "Optional worktree directory name (defaults to sanitized branch name)",
+      },
     },
     handler: async (ctx, params) => {
       const branch = params.branch as string;
@@ -120,10 +156,15 @@ export const actions: Action[] = [
     },
   },
   {
-    name: 'create_from_jira',
-    description: 'Create a worktree from a Jira issue key. Fetches the issue, saves task data locally, and creates a worktree with the issue key as branch name. The user might say "jira 123", "PROJ-123", or just a number.',
+    name: "create_from_jira",
+    description:
+      'Create a worktree from a Jira issue key. Fetches the issue, saves task data locally, and creates a worktree with the issue key as branch name. The user might say "jira 123", "PROJ-123", or just a number.',
     params: {
-      issueKey: { type: 'string', description: 'Jira issue key (e.g. PROJ-123 or just 123 if default project is configured)', required: true },
+      issueKey: {
+        type: "string",
+        description: "Jira issue key (e.g. PROJ-123 or just 123 if default project is configured)",
+        required: true,
+      },
     },
     handler: async (ctx, params) => {
       const issueKey = params.issueKey as string;
@@ -131,10 +172,16 @@ export const actions: Action[] = [
     },
   },
   {
-    name: 'create_from_linear',
-    description: 'Create a worktree from a Linear issue identifier. Fetches the issue, saves task data locally, and creates a worktree with the identifier as branch name. The user might say "linear 42", "ENG-42", or just a number.',
+    name: "create_from_linear",
+    description:
+      'Create a worktree from a Linear issue identifier. Fetches the issue, saves task data locally, and creates a worktree with the identifier as branch name. The user might say "linear 42", "ENG-42", or just a number.',
     params: {
-      identifier: { type: 'string', description: 'Linear issue identifier (e.g. ENG-123 or just 123 if default team is configured)', required: true },
+      identifier: {
+        type: "string",
+        description:
+          "Linear issue identifier (e.g. ENG-123 or just 123 if default team is configured)",
+        required: true,
+      },
     },
     handler: async (ctx, params) => {
       const identifier = params.identifier as string;
@@ -142,10 +189,10 @@ export const actions: Action[] = [
     },
   },
   {
-    name: 'start_worktree',
-    description: 'Start the dev server in a worktree (allocates port offset, spawns process)',
+    name: "start_worktree",
+    description: "Start the dev server in a worktree (allocates port offset, spawns process)",
     params: {
-      id: { type: 'string', description: 'Worktree ID', required: true },
+      id: { type: "string", description: "Worktree ID", required: true },
     },
     handler: async (ctx, params) => {
       const id = params.id as string;
@@ -154,10 +201,10 @@ export const actions: Action[] = [
     },
   },
   {
-    name: 'stop_worktree',
-    description: 'Stop the running dev server in a worktree',
+    name: "stop_worktree",
+    description: "Stop the running dev server in a worktree",
     params: {
-      id: { type: 'string', description: 'Worktree ID', required: true },
+      id: { type: "string", description: "Worktree ID", required: true },
     },
     handler: async (ctx, params) => {
       const id = params.id as string;
@@ -165,10 +212,11 @@ export const actions: Action[] = [
     },
   },
   {
-    name: 'remove_worktree',
-    description: 'Remove a worktree (stops it first if running, then deletes the directory and git worktree reference)',
+    name: "remove_worktree",
+    description:
+      "Remove a worktree (stops it first if running, then deletes the directory and git worktree reference)",
     params: {
-      id: { type: 'string', description: 'Worktree ID', required: true },
+      id: { type: "string", description: "Worktree ID", required: true },
     },
     handler: async (ctx, params) => {
       const id = params.id as string;
@@ -176,10 +224,10 @@ export const actions: Action[] = [
     },
   },
   {
-    name: 'get_logs',
-    description: 'Get recent output logs from a running worktree (up to 100 lines)',
+    name: "get_logs",
+    description: "Get recent output logs from a running worktree (up to 100 lines)",
     params: {
-      id: { type: 'string', description: 'Worktree ID', required: true },
+      id: { type: "string", description: "Worktree ID", required: true },
     },
     handler: async (ctx, params) => {
       const id = params.id as string;
@@ -189,24 +237,25 @@ export const actions: Action[] = [
 
   // -- Git operations --
   {
-    name: 'commit',
-    description: 'Stage all changes and commit in a worktree (requires GitHub integration). Subject to agent git policy — call get_git_policy first to check.',
+    name: "commit",
+    description:
+      "Stage all changes and commit in a worktree (requires GitHub integration). Subject to agent git policy — call get_git_policy first to check.",
     params: {
-      id: { type: 'string', description: 'Worktree ID', required: true },
-      message: { type: 'string', description: 'Commit message', required: true },
+      id: { type: "string", description: "Worktree ID", required: true },
+      message: { type: "string", description: "Commit message", required: true },
     },
     handler: async (ctx, params) => {
       const id = params.id as string;
       const message = params.message as string;
 
-      const policy = resolveGitPolicy('commit', id, ctx.manager.getConfig(), ctx.notesManager);
+      const policy = resolveGitPolicy("commit", id, ctx.manager.getConfig(), ctx.notesManager);
       if (!policy.allowed) {
         return { success: false, error: policy.reason };
       }
 
       const ghManager = ctx.manager.getGitHubManager();
       if (!ghManager?.isAvailable()) {
-        return { success: false, error: 'GitHub integration not available' };
+        return { success: false, error: "GitHub integration not available" };
       }
 
       const linkMap = ctx.notesManager.buildWorktreeLinkMap();
@@ -222,55 +271,57 @@ export const actions: Action[] = [
     },
   },
   {
-    name: 'push',
-    description: 'Push commits in a worktree to the remote (requires GitHub integration). Subject to agent git policy — call get_git_policy first to check.',
+    name: "push",
+    description:
+      "Push commits in a worktree to the remote (requires GitHub integration). Subject to agent git policy — call get_git_policy first to check.",
     params: {
-      id: { type: 'string', description: 'Worktree ID', required: true },
+      id: { type: "string", description: "Worktree ID", required: true },
     },
     handler: async (ctx, params) => {
       const id = params.id as string;
 
-      const policy = resolveGitPolicy('push', id, ctx.manager.getConfig(), ctx.notesManager);
+      const policy = resolveGitPolicy("push", id, ctx.manager.getConfig(), ctx.notesManager);
       if (!policy.allowed) {
         return { success: false, error: policy.reason };
       }
 
       const ghManager = ctx.manager.getGitHubManager();
       if (!ghManager?.isAvailable()) {
-        return { success: false, error: 'GitHub integration not available' };
+        return { success: false, error: "GitHub integration not available" };
       }
       const wt = findWorktreeOrThrow(ctx, id);
       return ghManager.pushBranch(wt.path, id);
     },
   },
   {
-    name: 'create_pr',
-    description: 'Create a GitHub pull request for a worktree branch (requires GitHub integration). Subject to agent git policy (follows push policy) — call get_git_policy first to check.',
+    name: "create_pr",
+    description:
+      "Create a GitHub pull request for a worktree branch (requires GitHub integration). Subject to agent git policy (follows push policy) — call get_git_policy first to check.",
     params: {
-      id: { type: 'string', description: 'Worktree ID', required: true },
-      title: { type: 'string', description: 'PR title', required: true },
-      body: { type: 'string', description: 'PR body/description' },
+      id: { type: "string", description: "Worktree ID", required: true },
+      title: { type: "string", description: "PR title", required: true },
+      body: { type: "string", description: "PR body/description" },
     },
     handler: async (ctx, params) => {
       const id = params.id as string;
       const title = params.title as string;
       const body = params.body as string | undefined;
 
-      const policy = resolveGitPolicy('create_pr', id, ctx.manager.getConfig(), ctx.notesManager);
+      const policy = resolveGitPolicy("create_pr", id, ctx.manager.getConfig(), ctx.notesManager);
       if (!policy.allowed) {
         return { success: false, error: policy.reason };
       }
 
       const ghManager = ctx.manager.getGitHubManager();
       if (!ghManager?.isAvailable()) {
-        return { success: false, error: 'GitHub integration not available' };
+        return { success: false, error: "GitHub integration not available" };
       }
       const wt = findWorktreeOrThrow(ctx, id);
       return ghManager.createPR(wt.path, id, title, body);
     },
   },
   {
-    name: 'get_config',
+    name: "get_config",
     description: `Get the current ${APP_NAME} configuration and project name`,
     params: {},
     handler: async (ctx) => ({
@@ -281,12 +332,16 @@ export const actions: Action[] = [
 
   // -- Notes --
   {
-    name: 'read_issue_notes',
-    description: 'Read AI context and todo checklist for a worktree or issue. These are user-defined directions that take priority over the original task description when they conflict. Read the task first (via get_task_context or TASK.md) to understand what the issue is about, then use this to get overriding directions and todos.',
+    name: "read_issue_notes",
+    description:
+      "Read AI context and todo checklist for a worktree or issue. These are user-defined directions that take priority over the original task description when they conflict. Read the task first (via get_task_context or TASK.md) to understand what the issue is about, then use this to get overriding directions and todos.",
     params: {
-      worktreeId: { type: 'string', description: 'Worktree ID to find linked issue notes for' },
-      source: { type: 'string', description: 'Issue source: "jira", "linear", or "local" (use with issueId)' },
-      issueId: { type: 'string', description: 'Issue ID (use with source)' },
+      worktreeId: { type: "string", description: "Worktree ID to find linked issue notes for" },
+      source: {
+        type: "string",
+        description: 'Issue source: "jira", "linear", or "local" (use with issueId)',
+      },
+      issueId: { type: "string", description: "Issue ID (use with source)" },
     },
     handler: async (ctx, params) => {
       const worktreeId = params.worktreeId as string | undefined;
@@ -310,10 +365,10 @@ export const actions: Action[] = [
       }
 
       if (source && issueId) {
-        if (!['jira', 'linear', 'local'].includes(source)) {
+        if (!["jira", "linear", "local"].includes(source)) {
           return { error: 'Invalid source (must be "jira", "linear", or "local")' };
         }
-        const notes = ctx.notesManager.loadNotes(source as 'jira' | 'linear' | 'local', issueId);
+        const notes = ctx.notesManager.loadNotes(source as "jira" | "linear" | "local", issueId);
         return {
           source,
           issueId,
@@ -322,16 +377,17 @@ export const actions: Action[] = [
         };
       }
 
-      return { error: 'Provide either worktreeId or both source and issueId' };
+      return { error: "Provide either worktreeId or both source and issueId" };
     },
   },
 
   // -- Task context --
   {
-    name: 'get_task_context',
-    description: 'Get full task context for a worktree. Returns issue details, description, comments, AI context directions, todo checklist, and worktree path. Call this before starting work to understand the full scope and see which todos need to be completed. Also regenerates TASK.md.',
+    name: "get_task_context",
+    description:
+      "Get full task context for a worktree. Returns issue details, description, comments, AI context directions, todo checklist, and worktree path. Call this before starting work to understand the full scope and see which todos need to be completed. Also regenerates TASK.md.",
     params: {
-      worktreeId: { type: 'string', description: 'Worktree ID (e.g., PROJ-123)', required: true },
+      worktreeId: { type: "string", description: "Worktree ID (e.g., PROJ-123)", required: true },
     },
     handler: async (ctx, params) => {
       const worktreeId = params.worktreeId as string;
@@ -341,12 +397,14 @@ export const actions: Action[] = [
       const linked = linkMap.get(worktreeId);
 
       if (!linked) {
-        return { error: `No linked issue found for worktree "${worktreeId}". This worktree may have been created from a plain branch.` };
+        return {
+          error: `No linked issue found for worktree "${worktreeId}". This worktree may have been created from a plain branch.`,
+        };
       }
 
       const { source, issueId } = linked;
       const configDir = ctx.manager.getConfigDir();
-      const issuesDir = path.join(configDir, CONFIG_DIR_NAME, 'issues');
+      const issuesDir = path.join(configDir, CONFIG_DIR_NAME, "issues");
 
       // Load notes (personal notes are private — not exposed to agents)
       const notes = ctx.notesManager.loadNotes(source, issueId);
@@ -355,85 +413,95 @@ export const actions: Action[] = [
       // Load issue data based on source
       let taskData: TaskContextData | null = null;
 
-      if (source === 'local') {
-        const taskFile = path.join(issuesDir, 'local', issueId, 'task.json');
+      if (source === "local") {
+        const taskFile = path.join(issuesDir, "local", issueId, "task.json");
         if (existsSync(taskFile)) {
           try {
-            const raw = JSON.parse(readFileSync(taskFile, 'utf-8'));
+            const raw = JSON.parse(readFileSync(taskFile, "utf-8"));
 
             // Load local attachments from filesystem
-            const attDir = path.join(issuesDir, 'local', issueId, 'attachments');
-            let localAttachments: TaskContextData['attachments'];
+            const attDir = path.join(issuesDir, "local", issueId, "attachments");
+            let localAttachments: TaskContextData["attachments"];
             if (existsSync(attDir)) {
-              const metaFile = path.join(attDir, '.meta.json');
+              const metaFile = path.join(attDir, ".meta.json");
               const meta: Record<string, string> = existsSync(metaFile)
-                ? JSON.parse(readFileSync(metaFile, 'utf-8'))
+                ? JSON.parse(readFileSync(metaFile, "utf-8"))
                 : {};
               localAttachments = readdirSync(attDir)
-                .filter((f) => !f.startsWith('.') && statSync(path.join(attDir, f)).isFile())
+                .filter((f) => !f.startsWith(".") && statSync(path.join(attDir, f)).isFile())
                 .map((f) => ({
                   filename: f,
                   localPath: path.join(attDir, f),
-                  mimeType: meta[f] || 'application/octet-stream',
+                  mimeType: meta[f] || "application/octet-stream",
                 }));
               if (localAttachments.length === 0) localAttachments = undefined;
             }
 
             taskData = {
-              source: 'local',
+              source: "local",
               issueId,
               identifier: issueId,
-              title: raw.title ?? '',
-              description: raw.description ?? '',
-              status: raw.status ?? 'unknown',
-              url: '',
+              title: raw.title ?? "",
+              description: raw.description ?? "",
+              status: raw.status ?? "unknown",
+              url: "",
               attachments: localAttachments,
             };
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
       } else {
-        const issueFile = path.join(issuesDir, source, issueId, 'issue.json');
+        const issueFile = path.join(issuesDir, source, issueId, "issue.json");
         if (existsSync(issueFile)) {
           try {
-            const raw = JSON.parse(readFileSync(issueFile, 'utf-8'));
-            if (source === 'jira') {
+            const raw = JSON.parse(readFileSync(issueFile, "utf-8"));
+            if (source === "jira") {
               taskData = {
-                source: 'jira',
+                source: "jira",
                 issueId,
                 identifier: raw.key ?? worktreeId,
-                title: raw.summary ?? '',
-                description: raw.description ?? '',
-                status: raw.status ?? 'Unknown',
-                url: raw.url ?? '',
+                title: raw.summary ?? "",
+                description: raw.description ?? "",
+                status: raw.status ?? "Unknown",
+                url: raw.url ?? "",
                 comments: raw.comments?.slice(0, 10),
-                attachments: raw.attachments?.filter((a: { localPath?: string }) => a.localPath).map((a: { filename: string; localPath: string; mimeType: string }) => ({
-                  filename: a.filename,
-                  localPath: a.localPath,
-                  mimeType: a.mimeType,
-                })),
+                attachments: raw.attachments
+                  ?.filter((a: { localPath?: string }) => a.localPath)
+                  .map((a: { filename: string; localPath: string; mimeType: string }) => ({
+                    filename: a.filename,
+                    localPath: a.localPath,
+                    mimeType: a.mimeType,
+                  })),
               };
-            } else if (source === 'linear') {
+            } else if (source === "linear") {
               taskData = {
-                source: 'linear',
+                source: "linear",
                 issueId,
                 identifier: raw.identifier ?? worktreeId,
-                title: raw.title ?? '',
-                description: raw.description ?? '',
-                status: raw.status ?? raw.state?.name ?? 'Unknown',
-                url: raw.url ?? '',
-                comments: raw.comments?.map((c: { author?: string; body?: string; createdAt?: string }) => ({
-                  author: c.author ?? 'Unknown',
-                  body: c.body ?? '',
-                  created: c.createdAt,
-                })),
-                linkedResources: raw.attachments?.map((a: { title?: string; url?: string; sourceType?: string }) => ({
-                  title: a.title ?? '',
-                  url: a.url ?? '',
-                  sourceType: a.sourceType,
-                })),
+                title: raw.title ?? "",
+                description: raw.description ?? "",
+                status: raw.status ?? raw.state?.name ?? "Unknown",
+                url: raw.url ?? "",
+                comments: raw.comments?.map(
+                  (c: { author?: string; body?: string; createdAt?: string }) => ({
+                    author: c.author ?? "Unknown",
+                    body: c.body ?? "",
+                    created: c.createdAt,
+                  }),
+                ),
+                linkedResources: raw.attachments?.map(
+                  (a: { title?: string; url?: string; sourceType?: string }) => ({
+                    title: a.title ?? "",
+                    url: a.url ?? "",
+                    sourceType: a.sourceType,
+                  }),
+                ),
               };
             }
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
       }
 
@@ -444,7 +512,7 @@ export const actions: Action[] = [
           issueId,
           aiContext,
           todos: notes.todos,
-          error: 'Issue data file not found on disk. Notes are still available.',
+          error: "Issue data file not found on disk. Notes are still available.",
         };
       }
 
@@ -458,12 +526,17 @@ export const actions: Action[] = [
           let hooksInfo = null;
           if (ctx.hooksManager) {
             const hConfig = ctx.hooksManager.getConfig();
-            const effectiveSkills = ctx.hooksManager.getEffectiveSkills(worktreeId, ctx.notesManager);
+            const effectiveSkills = ctx.hooksManager.getEffectiveSkills(
+              worktreeId,
+              ctx.notesManager,
+            );
             hooksInfo = { checks: hConfig.steps, skills: effectiveSkills };
           }
           const content = generateTaskMd(taskData, aiContext, notes.todos, hooksInfo);
           writeTaskMd(worktreePath, content);
-        } catch { /* non-critical */ }
+        } catch {
+          /* non-critical */
+        }
       }
 
       return {
@@ -478,14 +551,23 @@ export const actions: Action[] = [
 
   // -- Todos --
   {
-    name: 'update_todo',
-    description: 'Add, toggle, or delete a todo checklist item on an issue. IMPORTANT: As you complete each sub-task, call this with action="toggle" to check it off — the user monitors your progress through these checkboxes in real-time.',
+    name: "update_todo",
+    description:
+      'Add, toggle, or delete a todo checklist item on an issue. IMPORTANT: As you complete each sub-task, call this with action="toggle" to check it off — the user monitors your progress through these checkboxes in real-time.',
     params: {
-      source: { type: 'string', description: 'Issue source: "jira", "linear", or "local"', required: true },
-      issueId: { type: 'string', description: 'Issue ID', required: true },
-      action: { type: 'string', description: 'Action to perform: "add", "toggle", or "delete"', required: true },
-      todoId: { type: 'string', description: 'Todo ID (required for toggle and delete)' },
-      text: { type: 'string', description: 'Todo text (required for add)' },
+      source: {
+        type: "string",
+        description: 'Issue source: "jira", "linear", or "local"',
+        required: true,
+      },
+      issueId: { type: "string", description: "Issue ID", required: true },
+      action: {
+        type: "string",
+        description: 'Action to perform: "add", "toggle", or "delete"',
+        required: true,
+      },
+      todoId: { type: "string", description: "Todo ID (required for toggle and delete)" },
+      text: { type: "string", description: "Todo text (required for add)" },
     },
     handler: async (ctx, params) => {
       const source = params.source as string;
@@ -494,24 +576,24 @@ export const actions: Action[] = [
       const todoId = params.todoId as string | undefined;
       const text = params.text as string | undefined;
 
-      if (!['jira', 'linear', 'local'].includes(source)) {
+      if (!["jira", "linear", "local"].includes(source)) {
         return { error: 'Invalid source (must be "jira", "linear", or "local")' };
       }
-      if (!['add', 'toggle', 'delete'].includes(action)) {
+      if (!["add", "toggle", "delete"].includes(action)) {
         return { error: 'Invalid action (must be "add", "toggle", or "delete")' };
       }
 
-      const src = source as 'jira' | 'linear' | 'local';
+      const src = source as "jira" | "linear" | "local";
 
-      if (action === 'add') {
-        if (!text) return { error: 'Text is required for add action' };
+      if (action === "add") {
+        if (!text) return { error: "Text is required for add action" };
         const notes = ctx.notesManager.addTodo(src, issueId, text);
         return { success: true, todos: notes.todos };
       }
 
-      if (!todoId) return { error: 'todoId is required for toggle and delete actions' };
+      if (!todoId) return { error: "todoId is required for toggle and delete actions" };
 
-      if (action === 'toggle') {
+      if (action === "toggle") {
         const currentNotes = ctx.notesManager.loadNotes(src, issueId);
         const todo = currentNotes.todos.find((t) => t.id === todoId);
         if (!todo) return { error: `Todo "${todoId}" not found` };
@@ -527,69 +609,90 @@ export const actions: Action[] = [
 
   // -- Git policy --
   {
-    name: 'get_git_policy',
-    description: 'Check whether agent git operations (commit, push, create_pr) are allowed for a worktree. Call this before attempting any git operation to avoid errors.',
+    name: "get_git_policy",
+    description:
+      "Check whether agent git operations (commit, push, create_pr) are allowed for a worktree. Call this before attempting any git operation to avoid errors.",
     params: {
-      id: { type: 'string', description: 'Worktree ID', required: true },
+      id: { type: "string", description: "Worktree ID", required: true },
     },
     handler: async (ctx, params) => {
       const id = params.id as string;
       const config = ctx.manager.getConfig();
       return {
-        commit: resolveGitPolicy('commit', id, config, ctx.notesManager),
-        push: resolveGitPolicy('push', id, config, ctx.notesManager),
-        createPr: resolveGitPolicy('create_pr', id, config, ctx.notesManager),
+        commit: resolveGitPolicy("commit", id, config, ctx.notesManager),
+        push: resolveGitPolicy("push", id, config, ctx.notesManager),
+        createPr: resolveGitPolicy("create_pr", id, config, ctx.notesManager),
       };
     },
   },
 
   // -- Hooks (Post-Implementation) --
   {
-    name: 'get_hooks_config',
-    description: 'Get the hooks configuration — pipeline check steps (shell commands) and hook skills (agent-driven analysis). Both are used to validate work in worktrees after implementation.',
+    name: "get_hooks_config",
+    description:
+      "Get the hooks configuration — pipeline check steps (shell commands) and hook skills (agent-driven analysis). Both are used to validate work in worktrees after implementation.",
     params: {},
     handler: async (ctx) => {
-      if (!ctx.hooksManager) return { error: 'Hooks manager not available' };
+      if (!ctx.hooksManager) return { error: "Hooks manager not available" };
       return ctx.hooksManager.getConfig();
     },
   },
   {
-    name: 'run_hooks',
-    description: 'Run all hook pipeline steps for a worktree in parallel. Each step is a shell command (e.g. lint, typecheck, build). Returns results inline.',
+    name: "run_hooks",
+    description:
+      "Run all hook pipeline steps for a worktree in parallel. Each step is a shell command (e.g. lint, typecheck, build). Returns results inline.",
     params: {
-      worktreeId: { type: 'string', description: 'Worktree ID to run hooks on', required: true },
+      worktreeId: { type: "string", description: "Worktree ID to run hooks on", required: true },
     },
     handler: async (ctx, params) => {
-      if (!ctx.hooksManager) return { error: 'Hooks manager not available' };
+      if (!ctx.hooksManager) return { error: "Hooks manager not available" };
       const worktreeId = params.worktreeId as string;
       return ctx.hooksManager.runAll(worktreeId);
     },
   },
   {
-    name: 'get_hooks_status',
-    description: 'Get the last hooks run status for a worktree, including per-step results.',
+    name: "get_hooks_status",
+    description: "Get the last hooks run status for a worktree, including per-step results.",
     params: {
-      worktreeId: { type: 'string', description: 'Worktree ID', required: true },
+      worktreeId: { type: "string", description: "Worktree ID", required: true },
     },
     handler: async (ctx, params) => {
-      if (!ctx.hooksManager) return { error: 'Hooks manager not available' };
+      if (!ctx.hooksManager) return { error: "Hooks manager not available" };
       const worktreeId = params.worktreeId as string;
       return ctx.hooksManager.getStatus(worktreeId) ?? { status: null };
     },
   },
   {
-    name: 'report_hook_status',
-    description: 'Report hook skill status to the dawg UI. Call this TWICE for each skill: once BEFORE invoking (without success/summary) to show a loading state, and once AFTER with the result. The dawg UI updates in real-time based on these reports.',
+    name: "report_hook_status",
+    description:
+      "Report hook skill status to the dawg UI. Call this TWICE for each skill: once BEFORE invoking (without success/summary) to show a loading state, and once AFTER with the result. The dawg UI updates in real-time based on these reports.",
     params: {
-      worktreeId: { type: 'string', description: 'Worktree ID', required: true },
-      skillName: { type: 'string', description: 'Name of the hook skill (e.g. review-changes)', required: true },
-      success: { type: 'boolean', description: 'Whether the hook passed (omit when reporting start)' },
-      summary: { type: 'string', description: 'Short one-line summary of the result (omit when reporting start)' },
-      content: { type: 'string', description: 'Full markdown content with detailed results (optional)' },
-      filePath: { type: 'string', description: 'Absolute path to an MD report file the agent wrote (optional). Shown as a link in the UI.' },
+      worktreeId: { type: "string", description: "Worktree ID", required: true },
+      skillName: {
+        type: "string",
+        description: "Name of the hook skill (e.g. review-changes)",
+        required: true,
+      },
+      success: {
+        type: "boolean",
+        description: "Whether the hook passed (omit when reporting start)",
+      },
+      summary: {
+        type: "string",
+        description: "Short one-line summary of the result (omit when reporting start)",
+      },
+      content: {
+        type: "string",
+        description: "Full markdown content with detailed results (optional)",
+      },
+      filePath: {
+        type: "string",
+        description:
+          "Absolute path to an MD report file the agent wrote (optional). Shown as a link in the UI.",
+      },
     },
     handler: async (ctx, params) => {
-      if (!ctx.hooksManager) return { error: 'Hooks manager not available' };
+      if (!ctx.hooksManager) return { error: "Hooks manager not available" };
       const worktreeId = params.worktreeId as string;
       const skillName = params.skillName as string;
       const success = params.success as boolean | undefined;
@@ -601,14 +704,14 @@ export const actions: Action[] = [
         // Starting notification — mark as running
         ctx.hooksManager.reportSkillResult(worktreeId, {
           skillName,
-          status: 'running',
+          status: "running",
           reportedAt: new Date().toISOString(),
         });
       } else {
         // Completion report
         ctx.hooksManager.reportSkillResult(worktreeId, {
           skillName,
-          status: success ? 'passed' : 'failed',
+          status: success ? "passed" : "failed",
           success,
           summary,
           content,

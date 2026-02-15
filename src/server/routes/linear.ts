@@ -1,21 +1,26 @@
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'fs';
-import { Hono } from 'hono';
-import path from 'path';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
+import { Hono } from "hono";
+import path from "path";
 
-import { CONFIG_DIR_NAME } from '../../constants';
+import { CONFIG_DIR_NAME } from "../../constants";
 import {
   loadLinearCredentials,
   loadLinearProjectConfig,
   saveLinearCredentials,
   saveLinearProjectConfig,
-} from '../../integrations/linear/credentials';
-import { testConnection, fetchIssues, fetchIssue, saveTaskData } from '../../integrations/linear/api';
-import type { DataLifecycleConfig } from '../../integrations/linear/types';
-import { log } from '../../logger';
-import type { WorktreeManager } from '../manager';
+} from "../../integrations/linear/credentials";
+import {
+  testConnection,
+  fetchIssues,
+  fetchIssue,
+  saveTaskData,
+} from "../../integrations/linear/api";
+import type { DataLifecycleConfig } from "../../integrations/linear/types";
+import { log } from "../../logger";
+import type { WorktreeManager } from "../manager";
 
 export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
-  app.get('/api/linear/status', (c) => {
+  app.get("/api/linear/status", (c) => {
     const configDir = manager.getConfigDir();
     const creds = loadLinearCredentials(configDir);
     const projectConfig = loadLinearProjectConfig(configDir);
@@ -29,11 +34,11 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
     });
   });
 
-  app.post('/api/linear/setup', async (c) => {
+  app.post("/api/linear/setup", async (c) => {
     try {
       const body = await c.req.json<{ apiKey: string }>();
       if (!body.apiKey) {
-        return c.json({ success: false, error: 'apiKey is required' }, 400);
+        return c.json({ success: false, error: "apiKey is required" }, 400);
       }
 
       const configDir = manager.getConfigDir();
@@ -44,10 +49,13 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
         const viewer = await testConnection(creds);
         creds.displayName = viewer.name;
       } catch (err) {
-        return c.json({
-          success: false,
-          error: `Connection failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
-        }, 400);
+        return c.json(
+          {
+            success: false,
+            error: `Connection failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+          },
+          400,
+        );
       }
 
       saveLinearCredentials(configDir, creds);
@@ -61,15 +69,19 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
       return c.json({ success: true });
     } catch (error) {
       return c.json(
-        { success: false, error: error instanceof Error ? error.message : 'Invalid request' },
+        { success: false, error: error instanceof Error ? error.message : "Invalid request" },
         400,
       );
     }
   });
 
-  app.patch('/api/linear/config', async (c) => {
+  app.patch("/api/linear/config", async (c) => {
     try {
-      const body = await c.req.json<{ defaultTeamKey?: string; refreshIntervalMinutes?: number; dataLifecycle?: DataLifecycleConfig }>();
+      const body = await c.req.json<{
+        defaultTeamKey?: string;
+        refreshIntervalMinutes?: number;
+        dataLifecycle?: DataLifecycleConfig;
+      }>();
       const configDir = manager.getConfigDir();
       const current = loadLinearProjectConfig(configDir);
       if (body.defaultTeamKey !== undefined) {
@@ -85,40 +97,40 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
       return c.json({ success: true });
     } catch (error) {
       return c.json(
-        { success: false, error: error instanceof Error ? error.message : 'Invalid request' },
+        { success: false, error: error instanceof Error ? error.message : "Invalid request" },
         400,
       );
     }
   });
 
-  app.delete('/api/linear/credentials', (c) => {
+  app.delete("/api/linear/credentials", (c) => {
     try {
       const configDir = manager.getConfigDir();
-      const intPath = path.join(configDir, CONFIG_DIR_NAME, 'integrations.json');
+      const intPath = path.join(configDir, CONFIG_DIR_NAME, "integrations.json");
       if (existsSync(intPath)) {
-        const data = JSON.parse(readFileSync(intPath, 'utf-8'));
+        const data = JSON.parse(readFileSync(intPath, "utf-8"));
         delete data.linear;
-        writeFileSync(intPath, JSON.stringify(data, null, 2) + '\n');
+        writeFileSync(intPath, JSON.stringify(data, null, 2) + "\n");
       }
       return c.json({ success: true });
     } catch (error) {
       return c.json(
-        { success: false, error: error instanceof Error ? error.message : 'Failed to disconnect' },
+        { success: false, error: error instanceof Error ? error.message : "Failed to disconnect" },
         400,
       );
     }
   });
 
-  app.get('/api/linear/issues', async (c) => {
+  app.get("/api/linear/issues", async (c) => {
     try {
       const configDir = manager.getConfigDir();
       const creds = loadLinearCredentials(configDir);
       if (!creds) {
-        return c.json({ issues: [], error: 'Linear not configured' }, 400);
+        return c.json({ issues: [], error: "Linear not configured" }, 400);
       }
 
       const projectConfig = loadLinearProjectConfig(configDir);
-      const query = c.req.query('query');
+      const query = c.req.query("query");
       const issues = await fetchIssues(creds, projectConfig.defaultTeamKey, query || undefined);
 
       // Fire-and-forget: auto-cleanup cached issues whose status matches triggers
@@ -127,7 +139,7 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
         const triggers = lifecycle.autoCleanup.statusTriggers.map((t) => t.toLowerCase());
         const liveStatusMap = new Map(issues.map((i) => [i.identifier, i.state.name]));
 
-        const linearIssuesDir = path.join(configDir, CONFIG_DIR_NAME, 'issues', 'linear');
+        const linearIssuesDir = path.join(configDir, CONFIG_DIR_NAME, "issues", "linear");
         if (existsSync(linearIssuesDir)) {
           try {
             const cachedDirs = readdirSync(linearIssuesDir, { withFileTypes: true });
@@ -136,83 +148,91 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
               const issueId = dir.name;
               let status = liveStatusMap.get(issueId);
               if (!status) {
-                const issueFile = path.join(linearIssuesDir, issueId, 'issue.json');
+                const issueFile = path.join(linearIssuesDir, issueId, "issue.json");
                 if (existsSync(issueFile)) {
                   try {
-                    const cached = JSON.parse(readFileSync(issueFile, 'utf-8'));
+                    const cached = JSON.parse(readFileSync(issueFile, "utf-8"));
                     status = cached.status;
-                  } catch { /* ignore */ }
+                  } catch {
+                    /* ignore */
+                  }
                 }
               }
               if (status && triggers.includes(status.toLowerCase())) {
-                manager.cleanupIssueData('linear', issueId, lifecycle.autoCleanup.actions)
+                manager
+                  .cleanupIssueData("linear", issueId, lifecycle.autoCleanup.actions)
                   .catch((err) => log.warn(`Auto-cleanup failed for ${issueId}: ${err}`));
               }
             }
-          } catch { /* ignore scan errors */ }
+          } catch {
+            /* ignore scan errors */
+          }
         }
       }
 
       return c.json({ issues });
     } catch (error) {
       return c.json(
-        { issues: [], error: error instanceof Error ? error.message : 'Failed to fetch issues' },
+        { issues: [], error: error instanceof Error ? error.message : "Failed to fetch issues" },
         500,
       );
     }
   });
 
-  app.get('/api/linear/issues/:identifier', async (c) => {
+  app.get("/api/linear/issues/:identifier", async (c) => {
     try {
       const configDir = manager.getConfigDir();
       const creds = loadLinearCredentials(configDir);
       if (!creds) {
-        return c.json({ error: 'Linear not configured' }, 400);
+        return c.json({ error: "Linear not configured" }, 400);
       }
 
-      const identifier = c.req.param('identifier');
+      const identifier = c.req.param("identifier");
       const issue = await fetchIssue(identifier, creds);
 
       // Check saveOn preference — skip persisting when set to 'worktree-creation'
       const projectConfig = loadLinearProjectConfig(configDir);
-      const saveOn = projectConfig.dataLifecycle?.saveOn ?? 'view';
+      const saveOn = projectConfig.dataLifecycle?.saveOn ?? "view";
 
-      if (saveOn === 'view') {
+      if (saveOn === "view") {
         // Persist issue data to disk for TASK.md generation and MCP tools
-        const tasksDir = path.join(configDir, CONFIG_DIR_NAME, 'tasks');
-        saveTaskData({
-          source: 'linear',
-          identifier: issue.identifier,
-          title: issue.title,
-          description: issue.description,
-          status: issue.state.name,
-          priority: issue.priority,
-          assignee: issue.assignee,
-          labels: issue.labels,
-          createdAt: issue.createdAt,
-          updatedAt: issue.updatedAt,
-          comments: issue.comments,
-          attachments: issue.attachments,
-          linkedWorktree: null,
-          fetchedAt: new Date().toISOString(),
-          url: issue.url,
-        }, tasksDir);
+        const tasksDir = path.join(configDir, CONFIG_DIR_NAME, "tasks");
+        saveTaskData(
+          {
+            source: "linear",
+            identifier: issue.identifier,
+            title: issue.title,
+            description: issue.description,
+            status: issue.state.name,
+            priority: issue.priority,
+            assignee: issue.assignee,
+            labels: issue.labels,
+            createdAt: issue.createdAt,
+            updatedAt: issue.updatedAt,
+            comments: issue.comments,
+            attachments: issue.attachments,
+            linkedWorktree: null,
+            fetchedAt: new Date().toISOString(),
+            url: issue.url,
+          },
+          tasksDir,
+        );
       }
 
       return c.json({ issue });
     } catch (error) {
       return c.json(
-        { error: error instanceof Error ? error.message : 'Failed to fetch issue' },
-        error instanceof Error && error.message.includes('not found') ? 404 : 500,
+        { error: error instanceof Error ? error.message : "Failed to fetch issue" },
+        error instanceof Error && error.message.includes("not found") ? 404 : 500,
       );
     }
   });
 
-  app.post('/api/linear/task', async (c) => {
+  app.post("/api/linear/task", async (c) => {
     try {
       const body = await c.req.json<{ identifier: string; branch?: string }>();
       if (!body.identifier) {
-        return c.json({ success: false, error: 'Identifier is required' }, 400);
+        return c.json({ success: false, error: "Identifier is required" }, 400);
       }
       const result = await manager.createWorktreeFromLinear(body.identifier, body.branch);
       return c.json(result, result.success ? 201 : 400);
@@ -220,7 +240,7 @@ export function registerLinearRoutes(app: Hono, manager: WorktreeManager) {
       return c.json(
         {
           success: false,
-          error: error instanceof Error ? error.message : 'Invalid request',
+          error: error instanceof Error ? error.message : "Invalid request",
         },
         400,
       );

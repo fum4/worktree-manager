@@ -49,6 +49,7 @@ Future CLI subcommands should be thin clients that talk to the running server:
 - `dawg status` — `GET /api/integrations/verify` and print connection status
 
 If the server isn't running, the CLI should either:
+
 1. Auto-start it in the background (write PID to `server.json`)
 2. Error with a helpful message ("run `dawg` first")
 

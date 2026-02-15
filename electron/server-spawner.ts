@@ -1,9 +1,9 @@
-import { spawn, type ChildProcess } from 'child_process';
-import { appendFileSync } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { spawn, type ChildProcess } from "child_process";
+import { appendFileSync } from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const debugLog = '/tmp/dawg-debug.log';
+const debugLog = "/tmp/dawg-debug.log";
 function debug(msg: string) {
   appendFileSync(debugLog, `${new Date().toISOString()} ${msg}\n`);
 }
@@ -12,22 +12,18 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 // In dev mode, we're in electron/ directory
 // In prod, we're in dist/electron/ directory
-const isDev = currentDir.includes('/electron') && !currentDir.includes('/dist/');
-const projectRoot = isDev
-  ? path.resolve(currentDir, '..')
-  : path.resolve(currentDir, '..', '..');
+const isDev = currentDir.includes("/electron") && !currentDir.includes("/dist/");
+const projectRoot = isDev ? path.resolve(currentDir, "..") : path.resolve(currentDir, "..", "..");
 
-export function spawnServer(
-  projectDir: string,
-  port: number,
-): ChildProcess {
+export function spawnServer(projectDir: string, port: number): ChildProcess {
   // Path to the CLI entry point
   // In packaged app, files are in app.asar.unpacked since external node can't read asar
-  const cliPath = path.join(projectRoot, 'dist', 'cli', 'index.js')
-    .replace('app.asar', 'app.asar.unpacked');
+  const cliPath = path
+    .join(projectRoot, "dist", "cli", "index.js")
+    .replace("app.asar", "app.asar.unpacked");
 
   // --no-open: don't open browser/electron
-  const args = ['--no-open'];
+  const args = ["--no-open"];
 
   debug(`--- spawn ---`);
   debug(`cliPath: ${cliPath}`);
@@ -35,37 +31,34 @@ export function spawnServer(
   debug(`port: ${port}`);
   debug(`PATH: ${process.env.PATH}`);
 
-  const child = spawn('node', [cliPath, ...args], {
+  const child = spawn("node", [cliPath, ...args], {
     cwd: projectDir,
     env: {
       ...process.env,
       DAWG_PORT: String(port),
-      DAWG_NO_OPEN: '1',
+      DAWG_NO_OPEN: "1",
     },
     detached: false,
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ["ignore", "pipe", "pipe"],
   });
 
-  child.on('error', (err) => {
+  child.on("error", (err) => {
     debug(`spawn error: ${err.message}`);
   });
 
   // Log server output for debugging
-  child.stdout?.on('data', (data: Buffer) => {
+  child.stdout?.on("data", (data: Buffer) => {
     debug(`[stdout] ${data.toString().trim()}`);
   });
 
-  child.stderr?.on('data', (data: Buffer) => {
+  child.stderr?.on("data", (data: Buffer) => {
     debug(`[stderr] ${data.toString().trim()}`);
   });
 
   return child;
 }
 
-export async function waitForServerReady(
-  port: number,
-  timeout = 30000
-): Promise<boolean> {
+export async function waitForServerReady(port: number, timeout = 30000): Promise<boolean> {
   const start = Date.now();
 
   while (Date.now() - start < timeout) {
@@ -90,16 +83,16 @@ export async function stopServer(process: ChildProcess): Promise<void> {
 
     const timeout = setTimeout(() => {
       // Force kill if graceful shutdown takes too long
-      process.kill('SIGKILL');
+      process.kill("SIGKILL");
       resolve();
     }, 5000);
 
-    process.once('exit', () => {
+    process.once("exit", () => {
       clearTimeout(timeout);
       resolve();
     });
 
     // Send graceful shutdown signal
-    process.kill('SIGTERM');
+    process.kill("SIGTERM");
   });
 }

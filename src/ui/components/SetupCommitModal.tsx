@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Upload } from 'lucide-react';
+import { useState } from "react";
+import { Upload } from "lucide-react";
 
-import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
-import { input, text } from '../theme';
-import { Button } from './Button';
-import { Modal } from './Modal';
+import { APP_NAME, CONFIG_DIR_NAME } from "../../constants";
+import { input, text } from "../theme";
+import { Button } from "./Button";
+import { Modal } from "./Modal";
 
 interface SetupCommitModalProps {
   onCommit: (message: string) => Promise<void>;
@@ -23,7 +23,7 @@ export function SetupCommitModal({ onCommit, onSkip }: SetupCommitModalProps) {
     try {
       await onCommit(message.trim());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to commit and push');
+      setError(e instanceof Error ? e.message : "Failed to commit and push");
       setIsPushing(false);
     }
   };
@@ -57,9 +57,7 @@ export function SetupCommitModal({ onCommit, onSkip }: SetupCommitModalProps) {
         </p>
 
         <div>
-          <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>
-            Commit message
-          </label>
+          <label className={`block text-xs font-medium ${text.muted} mb-1.5`}>Commit message</label>
           <input
             type="text"
             value={message}
@@ -72,7 +70,9 @@ export function SetupCommitModal({ onCommit, onSkip }: SetupCommitModalProps) {
 
         <div className={`text-[11px] ${text.dimmed}`}>
           <p className="mb-1">Files to commit:</p>
-          <p className="font-mono text-[10px]">{CONFIG_DIR_NAME}/config.json, {CONFIG_DIR_NAME}/.gitignore</p>
+          <p className="font-mono text-[10px]">
+            {CONFIG_DIR_NAME}/config.json, {CONFIG_DIR_NAME}/.gitignore
+          </p>
         </div>
 
         {error && <p className={`text-[11px] ${text.error}`}>{error}</p>}

@@ -5,11 +5,11 @@ interface ElectronProject {
   projectDir: string;
   port: number;
   name: string;
-  status: 'starting' | 'running' | 'stopped' | 'error';
+  status: "starting" | "running" | "stopped" | "error";
   error?: string;
 }
 
-type SetupPreference = 'auto' | 'manual' | 'ask';
+type SetupPreference = "auto" | "manual" | "ask";
 
 interface AppPreferences {
   basePort: number;
@@ -25,7 +25,9 @@ interface AppPreferences {
 
 interface ElectronAPI {
   selectFolder: () => Promise<string | null>;
-  openProject: (folderPath: string) => Promise<{ success: boolean; error?: string; project?: ElectronProject }>;
+  openProject: (
+    folderPath: string,
+  ) => Promise<{ success: boolean; error?: string; project?: ElectronProject }>;
   closeProject: (projectId: string) => Promise<void>;
   getProjects: () => Promise<ElectronProject[]>;
   getActiveProject: () => Promise<string | null>;

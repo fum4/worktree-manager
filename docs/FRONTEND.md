@@ -13,15 +13,15 @@ The app operates in two modes:
 
 ## Tech Stack
 
-| Technology | Purpose |
-|---|---|
-| React 18+ | UI framework with TypeScript |
-| Tailwind CSS | Utility-first styling (dark theme) |
-| TanStack React Query | Data fetching and caching for issues |
-| Framer Motion | Page transitions and list animations |
-| xterm.js | Terminal emulation in the browser |
-| Vite | Build tool and dev server for the frontend |
-| Lucide React | Icon library |
+| Technology           | Purpose                                    |
+| -------------------- | ------------------------------------------ |
+| React 18+            | UI framework with TypeScript               |
+| Tailwind CSS         | Utility-first styling (dark theme)         |
+| TanStack React Query | Data fetching and caching for issues       |
+| Framer Motion        | Page transitions and list animations       |
+| xterm.js             | Terminal emulation in the browser          |
+| Vite                 | Build tool and dev server for the frontend |
+| Lucide React         | Icon library                               |
 
 ---
 
@@ -30,7 +30,7 @@ The app operates in two modes:
 The application has five top-level views, defined as the `View` type in `src/ui/components/NavBar.tsx`:
 
 ```typescript
-type View = 'workspace' | 'agents' | 'hooks' | 'configuration' | 'integrations';
+type View = "workspace" | "agents" | "hooks" | "configuration" | "integrations";
 ```
 
 ### Workspace
@@ -75,42 +75,42 @@ import { surface, text, border } from '../../theme';
 
 The app uses a dark theme with a neutral slate background family and teal as the primary accent:
 
-| Token | Hex | Usage |
-|---|---|---|
-| `bg0` | `#0c0e12` | Page background |
-| `bg1` | `#12151a` | Panel backgrounds |
-| `bg2` | `#1a1e25` | Elevated surfaces (cards, modals) |
-| `bg3` | `#242930` | Input fields, pressed states |
-| `accent` | `#2dd4bf` | Primary accent (teal-400) |
+| Token    | Hex       | Usage                             |
+| -------- | --------- | --------------------------------- |
+| `bg0`    | `#0c0e12` | Page background                   |
+| `bg1`    | `#12151a` | Panel backgrounds                 |
+| `bg2`    | `#1a1e25` | Elevated surfaces (cards, modals) |
+| `bg3`    | `#242930` | Input fields, pressed states      |
+| `accent` | `#2dd4bf` | Primary accent (teal-400)         |
 
 ### Theme Token Categories
 
-| Export | Purpose |
-|---|---|
-| `palette` | Raw hex/rgba color values |
-| `surface` | Background classes for page, panels, modals, overlays |
-| `border` | Border classes (subtle, section, modal, input, accent, focus) |
-| `input` | Input field backgrounds, text, placeholder, ring styles |
-| `text` | Text hierarchy: primary, secondary, muted, dimmed, error |
-| `status` | Worktree status indicators (running, stopped, creating, deleting) |
-| `action` | Ghost-style action button colors (start, stop, delete, commit, push, PR) |
-| `button` | Filled button variants (primary, secondary, confirm/destructive) |
-| `tab` | Tab active/inactive styles |
-| `badge` | Integration and status badge colors |
+| Export        | Purpose                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| `palette`     | Raw hex/rgba color values                                                                             |
+| `surface`     | Background classes for page, panels, modals, overlays                                                 |
+| `border`      | Border classes (subtle, section, modal, input, accent, focus)                                         |
+| `input`       | Input field backgrounds, text, placeholder, ring styles                                               |
+| `text`        | Text hierarchy: primary, secondary, muted, dimmed, error                                              |
+| `status`      | Worktree status indicators (running, stopped, creating, deleting)                                     |
+| `action`      | Ghost-style action button colors (start, stop, delete, commit, push, PR)                              |
+| `button`      | Filled button variants (primary, secondary, confirm/destructive)                                      |
+| `tab`         | Tab active/inactive styles                                                                            |
+| `badge`       | Integration and status badge colors                                                                   |
 | `integration` | Per-integration accent colors (jira=blue, linear=indigo, localIssue=amber, worktree=teal, mcp=purple) |
-| `header` | Header bar specific styles |
-| `nav` | Navigation bar active/inactive styles |
-| `settings` | Configuration panel label/description/card styles |
-| `detailTab` | Detail panel tab (Logs/Terminal/Hooks) active/inactive styles |
-| `errorBanner` | Error banner backgrounds and borders |
-| `infoBanner` | Informational banner (teal accent) styles |
-| `customTask` | Custom task accent, badge, button, status, priority, and label colors |
-| `skill` | Skill accent (pink) and badge styles |
-| `plugin` | Plugin accent (warm copper) and badge styles |
-| `mcpServer` | MCP server accent (purple), deployment status dot colors |
-| `hooks` | Hooks accent (emerald), step result status colors |
-| `notes` | Notes tab styles, todo checkbox colors |
-| `agentRule` | Agent rule accent (cyan), background, border styles |
+| `header`      | Header bar specific styles                                                                            |
+| `nav`         | Navigation bar active/inactive styles                                                                 |
+| `settings`    | Configuration panel label/description/card styles                                                     |
+| `detailTab`   | Detail panel tab (Logs/Terminal/Hooks) active/inactive styles                                         |
+| `errorBanner` | Error banner backgrounds and borders                                                                  |
+| `infoBanner`  | Informational banner (teal accent) styles                                                             |
+| `customTask`  | Custom task accent, badge, button, status, priority, and label colors                                 |
+| `skill`       | Skill accent (pink) and badge styles                                                                  |
+| `plugin`      | Plugin accent (warm copper) and badge styles                                                          |
+| `mcpServer`   | MCP server accent (purple), deployment status dot colors                                              |
+| `hooks`       | Hooks accent (emerald), step result status colors                                                     |
+| `notes`       | Notes tab styles, todo checkbox colors                                                                |
+| `agentRule`   | Agent rule accent (cyan), background, border styles                                                   |
 
 ### Integration Color Mapping
 
@@ -130,9 +130,9 @@ Each entity type has a consistent accent color used across the entire UI:
 Custom task labels get deterministic colors via `getLabelColor()`, which uses an FNV-1a hash of the label string to index into a 17-color palette:
 
 ```typescript
-import { getLabelColor } from '../../theme';
+import { getLabelColor } from "../../theme";
 
-const { text: textClass, bg: bgClass } = getLabelColor('frontend');
+const { text: textClass, bg: bgClass } = getLabelColor("frontend");
 ```
 
 ---
@@ -247,17 +247,17 @@ Detail view for local custom tasks. Supports inline editing of title, descriptio
 
 ### Supporting Components
 
-| Component | Purpose |
-|---|---|
-| `LogsViewer.tsx` | ANSI-aware streaming log output with auto-scroll |
-| `TerminalView.tsx` | xterm.js terminal with WebSocket connection |
-| `HooksTab.tsx` | Hooks runner with animated running state and step/skill result display |
-| `GitActionInputs.tsx` | Inline commit message and PR title input forms |
-| `ActionToolbar.tsx` | Git action buttons (commit, push, PR) |
-| `DetailHeader.tsx` | Worktree name/branch display with inline edit and action buttons |
-| `NotesSection.tsx` | PersonalNotesSection + AgentSection (tabbed: Context, Todos, Git Policy, Hooks) |
-| `TodoList.tsx` | Checkbox todo items attached to issues |
-| `AgentPolicySection.tsx` | Per-issue agent git policy overrides |
+| Component                | Purpose                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `LogsViewer.tsx`         | ANSI-aware streaming log output with auto-scroll                                |
+| `TerminalView.tsx`       | xterm.js terminal with WebSocket connection                                     |
+| `HooksTab.tsx`           | Hooks runner with animated running state and step/skill result display          |
+| `GitActionInputs.tsx`    | Inline commit message and PR title input forms                                  |
+| `ActionToolbar.tsx`      | Git action buttons (commit, push, PR)                                           |
+| `DetailHeader.tsx`       | Worktree name/branch display with inline edit and action buttons                |
+| `NotesSection.tsx`       | PersonalNotesSection + AgentSection (tabbed: Context, Todos, Git Policy, Hooks) |
+| `TodoList.tsx`           | Checkbox todo items attached to issues                                          |
+| `AgentPolicySection.tsx` | Per-issue agent git policy overrides                                            |
 
 ---
 
@@ -280,6 +280,7 @@ const { worktrees, isConnected, error, refetch } = useWorktrees(onNotification, 
 ```
 
 Additional hooks in the same file:
+
 - `useProjectName()` -- fetches the project name from config.
 - `usePorts()` -- fetches discovered ports and offset step.
 - `useJiraStatus()` / `useLinearStatus()` / `useGitHubStatus()` -- fetch integration connection status.
@@ -288,19 +289,19 @@ Additional hooks in the same file:
 
 These use TanStack React Query for caching, background refetching, and stale-while-revalidate:
 
-| Hook | Query Key | Data Source |
-|---|---|---|
-| `useJiraIssues` | `['jira-issues', query, serverUrl]` | `/api/jira/issues` |
-| `useJiraIssueDetail` | `['jira-issue', key, serverUrl]` | `/api/jira/issues/:key` |
-| `useLinearIssues` | `['linear-issues', query, serverUrl]` | `/api/linear/issues` |
-| `useLinearIssueDetail` | `['linear-issue', id, serverUrl]` | `/api/linear/issues/:id` |
-| `useCustomTasks` | `['custom-tasks', serverUrl]` | `/api/tasks` |
-| `useCustomTaskDetail` | `['custom-task', id, serverUrl]` | `/api/tasks/:id` |
-| `useMcpServers` | various | `/api/mcp-servers` |
-| `useSkills` | various | `/api/skills` |
-| `useNotes` | `['notes', source, id, serverUrl]` | `/api/notes/:source/:id` |
-| `useAgentRule` | `['agentRule', fileId]` | `/api/agent-rules/:fileId` |
-| `useHooksConfig` | `['hooks-config', serverUrl]` | `/api/hooks/config` |
+| Hook                   | Query Key                             | Data Source                |
+| ---------------------- | ------------------------------------- | -------------------------- |
+| `useJiraIssues`        | `['jira-issues', query, serverUrl]`   | `/api/jira/issues`         |
+| `useJiraIssueDetail`   | `['jira-issue', key, serverUrl]`      | `/api/jira/issues/:key`    |
+| `useLinearIssues`      | `['linear-issues', query, serverUrl]` | `/api/linear/issues`       |
+| `useLinearIssueDetail` | `['linear-issue', id, serverUrl]`     | `/api/linear/issues/:id`   |
+| `useCustomTasks`       | `['custom-tasks', serverUrl]`         | `/api/tasks`               |
+| `useCustomTaskDetail`  | `['custom-task', id, serverUrl]`      | `/api/tasks/:id`           |
+| `useMcpServers`        | various                               | `/api/mcp-servers`         |
+| `useSkills`            | various                               | `/api/skills`              |
+| `useNotes`             | `['notes', source, id, serverUrl]`    | `/api/notes/:source/:id`   |
+| `useAgentRule`         | `['agentRule', fileId]`               | `/api/agent-rules/:fileId` |
+| `useHooksConfig`       | `['hooks-config', serverUrl]`         | `/api/hooks/config`        |
 
 Issue hooks support configurable refresh intervals (from integration settings) and search query debouncing (300ms).
 
@@ -333,7 +334,7 @@ Every API function accepts an optional `serverUrl` parameter as its last argumen
 export async function startWorktree(
   id: string,
   serverUrl: string | null = null,
-): Promise<{ success: boolean; error?: string }>
+): Promise<{ success: boolean; error?: string }>;
 ```
 
 When `serverUrl` is `null` (web mode), requests use relative URLs. When provided (Electron mode), requests use the full URL (e.g., `http://localhost:6970/api/worktrees`).
@@ -346,7 +347,7 @@ The `useApi()` hook reads the current `serverUrl` from `ServerContext` and retur
 
 ```typescript
 const api = useApi();
-await api.startWorktree(worktreeId);  // serverUrl is automatically included
+await api.startWorktree(worktreeId); // serverUrl is automatically included
 ```
 
 This means components never need to think about which server they are talking to.
@@ -359,10 +360,10 @@ The `Selection` type is a discriminated union that tracks what the user has sele
 
 ```typescript
 type Selection =
-  | { type: 'worktree'; id: string }
-  | { type: 'issue'; key: string }
-  | { type: 'linear-issue'; identifier: string }
-  | { type: 'custom-task'; id: string }
+  | { type: "worktree"; id: string }
+  | { type: "issue"; key: string }
+  | { type: "linear-issue"; identifier: string }
+  | { type: "custom-task"; id: string }
   | null;
 ```
 
@@ -371,6 +372,7 @@ type Selection =
 Selection state is persisted to `localStorage` under the key `dawg:wsSel:{serverUrl}`. This means each project in Electron mode remembers its own selection independently.
 
 Similarly persisted per server URL:
+
 - Active view: `dawg:view:{serverUrl}`
 - Active sidebar tab (branch/issues): `dawg:wsTab:{serverUrl}`
 - Sidebar width: `dawg:sidebarWidth` (global, not per-project)
@@ -445,102 +447,102 @@ The app uses Framer Motion for transitions:
 
 ### Components (`src/ui/components/`)
 
-| File | Description |
-|---|---|
-| `AgentsView.tsx` | Top-level agents management view |
-| `AgentsSidebar.tsx` | Sidebar for agents view (MCP servers, skills, plugins lists) |
-| `AgentsToolbar.tsx` | Toolbar for agents view actions |
-| `AppSettingsModal.tsx` | Electron app settings (themes, preferences) |
-| `AttachmentImage.tsx` | Image attachment preview with lightbox |
-| `Button.tsx` | Reusable button component |
-| `ConfigurationPanel.tsx` | Edit `.dawg/config.json` settings |
-| `ConfirmDialog.tsx` | Confirmation dialog for destructive actions |
-| `ConfirmModal.tsx` | Generic confirmation modal |
-| `CreateCustomTaskModal.tsx` | Create new custom task form |
-| `CreateForm.tsx` | Sidebar tab switcher (Branch/Issues) with create buttons |
-| `CreateWorktreeModal.tsx` | Create worktree modal (from branch, Jira, or Linear) |
-| `CustomTaskItem.tsx` | Custom task sidebar list item |
-| `CustomTaskList.tsx` | Custom task list in sidebar |
-| `DeployDialog.tsx` | MCP server/skill deployment dialog |
-| `GitHubSetupModal.tsx` | GitHub initial setup (commit + repo creation) |
-| `Header.tsx` | Top header bar with nav tabs and running count |
-| `ImageModal.tsx` | Full-screen image lightbox |
-| `IntegrationsPanel.tsx` | Configure Jira/Linear/GitHub integrations |
-| `IssueList.tsx` | Aggregated issue list (Jira + Linear + custom tasks) |
-| `JiraIssueItem.tsx` | Jira issue sidebar item |
-| `JiraIssueList.tsx` | Jira-specific issue list |
-| `LinearIssueItem.tsx` | Linear issue sidebar item |
-| `LinearIssueList.tsx` | Linear-specific issue list |
-| `MarkdownContent.tsx` | Markdown renderer with dark theme styling |
-| `McpServerCreateModal.tsx` | Create/edit MCP server modal |
-| `McpServerItem.tsx` | MCP server sidebar item |
-| `McpServerScanModal.tsx` | Scan for MCP servers on device |
-| `Modal.tsx` | Base modal component (sm/md/lg widths) |
-| `NavBar.tsx` | Navigation bar (defines View type) |
-| `PluginInstallModal.tsx` | Install Claude plugin modal |
-| `PluginItem.tsx` | Plugin sidebar item |
-| `ProjectSetupScreen.tsx` | First-run setup for new Electron projects |
-| `ResizableHandle.tsx` | Drag handle for sidebar resizing |
-| `SetupCommitModal.tsx` | Commit dawg config files modal |
-| `SkillCreateModal.tsx` | Create/edit skill modal |
-| `SkillItem.tsx` | Skill sidebar item |
-| `Spinner.tsx` | Loading spinner component |
-| `TabBar.tsx` | Electron multi-project tab bar |
-| `Toast.tsx` | Animated toast notification component (error=red, info=teal, with dismiss) |
-| `Tooltip.tsx` | Tooltip component (always use this instead of native `title` attribute) |
-| `TruncatedTooltip.tsx` | Text with automatic tooltip on overflow |
-| `VerificationPanel.tsx` | Hooks configuration view (trigger-based command steps and skills) |
-| `WelcomeScreen.tsx` | Initial welcome/onboarding screen |
-| `WorktreeExistsModal.tsx` | Handle worktree already exists error |
-| `WorktreeItem.tsx` | Worktree sidebar list item |
-| `WorktreeList.tsx` | Worktree list in sidebar |
+| File                        | Description                                                                |
+| --------------------------- | -------------------------------------------------------------------------- |
+| `AgentsView.tsx`            | Top-level agents management view                                           |
+| `AgentsSidebar.tsx`         | Sidebar for agents view (MCP servers, skills, plugins lists)               |
+| `AgentsToolbar.tsx`         | Toolbar for agents view actions                                            |
+| `AppSettingsModal.tsx`      | Electron app settings (themes, preferences)                                |
+| `AttachmentImage.tsx`       | Image attachment preview with lightbox                                     |
+| `Button.tsx`                | Reusable button component                                                  |
+| `ConfigurationPanel.tsx`    | Edit `.dawg/config.json` settings                                          |
+| `ConfirmDialog.tsx`         | Confirmation dialog for destructive actions                                |
+| `ConfirmModal.tsx`          | Generic confirmation modal                                                 |
+| `CreateCustomTaskModal.tsx` | Create new custom task form                                                |
+| `CreateForm.tsx`            | Sidebar tab switcher (Branch/Issues) with create buttons                   |
+| `CreateWorktreeModal.tsx`   | Create worktree modal (from branch, Jira, or Linear)                       |
+| `CustomTaskItem.tsx`        | Custom task sidebar list item                                              |
+| `CustomTaskList.tsx`        | Custom task list in sidebar                                                |
+| `DeployDialog.tsx`          | MCP server/skill deployment dialog                                         |
+| `GitHubSetupModal.tsx`      | GitHub initial setup (commit + repo creation)                              |
+| `Header.tsx`                | Top header bar with nav tabs and running count                             |
+| `ImageModal.tsx`            | Full-screen image lightbox                                                 |
+| `IntegrationsPanel.tsx`     | Configure Jira/Linear/GitHub integrations                                  |
+| `IssueList.tsx`             | Aggregated issue list (Jira + Linear + custom tasks)                       |
+| `JiraIssueItem.tsx`         | Jira issue sidebar item                                                    |
+| `JiraIssueList.tsx`         | Jira-specific issue list                                                   |
+| `LinearIssueItem.tsx`       | Linear issue sidebar item                                                  |
+| `LinearIssueList.tsx`       | Linear-specific issue list                                                 |
+| `MarkdownContent.tsx`       | Markdown renderer with dark theme styling                                  |
+| `McpServerCreateModal.tsx`  | Create/edit MCP server modal                                               |
+| `McpServerItem.tsx`         | MCP server sidebar item                                                    |
+| `McpServerScanModal.tsx`    | Scan for MCP servers on device                                             |
+| `Modal.tsx`                 | Base modal component (sm/md/lg widths)                                     |
+| `NavBar.tsx`                | Navigation bar (defines View type)                                         |
+| `PluginInstallModal.tsx`    | Install Claude plugin modal                                                |
+| `PluginItem.tsx`            | Plugin sidebar item                                                        |
+| `ProjectSetupScreen.tsx`    | First-run setup for new Electron projects                                  |
+| `ResizableHandle.tsx`       | Drag handle for sidebar resizing                                           |
+| `SetupCommitModal.tsx`      | Commit dawg config files modal                                             |
+| `SkillCreateModal.tsx`      | Create/edit skill modal                                                    |
+| `SkillItem.tsx`             | Skill sidebar item                                                         |
+| `Spinner.tsx`               | Loading spinner component                                                  |
+| `TabBar.tsx`                | Electron multi-project tab bar                                             |
+| `Toast.tsx`                 | Animated toast notification component (error=red, info=teal, with dismiss) |
+| `Tooltip.tsx`               | Tooltip component (always use this instead of native `title` attribute)    |
+| `TruncatedTooltip.tsx`      | Text with automatic tooltip on overflow                                    |
+| `VerificationPanel.tsx`     | Hooks configuration view (trigger-based command steps and skills)          |
+| `WelcomeScreen.tsx`         | Initial welcome/onboarding screen                                          |
+| `WorktreeExistsModal.tsx`   | Handle worktree already exists error                                       |
+| `WorktreeItem.tsx`          | Worktree sidebar list item                                                 |
+| `WorktreeList.tsx`          | Worktree list in sidebar                                                   |
 
 ### Detail Components (`src/ui/components/detail/`)
 
-| File | Description |
-|---|---|
-| `DetailPanel.tsx` | Worktree detail (logs, terminal, hooks, git actions) |
-| `DetailHeader.tsx` | Worktree header with inline rename and action buttons |
-| `JiraDetailPanel.tsx` | Jira issue detail view |
-| `LinearDetailPanel.tsx` | Linear issue detail view |
-| `CustomTaskDetailPanel.tsx` | Custom task detail with inline editing |
-| `McpServerDetailPanel.tsx` | MCP server detail and deployment |
-| `SkillDetailPanel.tsx` | Skill detail with markdown editor |
-| `AgentRuleDetailPanel.tsx` | Agent rule file viewer/editor (CLAUDE.md, AGENTS.md) |
-| `PluginDetailPanel.tsx` | Claude plugin detail |
-| `LogsViewer.tsx` | Streaming ANSI log output |
-| `TerminalView.tsx` | xterm.js interactive terminal |
-| `HooksTab.tsx` | Hooks runner with multi-expand, pipeline auto-expand, and circular progress spinner |
-| `GitActionInputs.tsx` | Inline commit/PR input forms |
-| `ActionToolbar.tsx` | Git action buttons |
-| `NotesSection.tsx` | PersonalNotesSection + AgentSection (tabbed: Context, Todos, Git Policy, Hooks) |
-| `TodoList.tsx` | Checkbox todo items |
-| `AgentPolicySection.tsx` | Per-issue agent git policy overrides |
+| File                        | Description                                                                         |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `DetailPanel.tsx`           | Worktree detail (logs, terminal, hooks, git actions)                                |
+| `DetailHeader.tsx`          | Worktree header with inline rename and action buttons                               |
+| `JiraDetailPanel.tsx`       | Jira issue detail view                                                              |
+| `LinearDetailPanel.tsx`     | Linear issue detail view                                                            |
+| `CustomTaskDetailPanel.tsx` | Custom task detail with inline editing                                              |
+| `McpServerDetailPanel.tsx`  | MCP server detail and deployment                                                    |
+| `SkillDetailPanel.tsx`      | Skill detail with markdown editor                                                   |
+| `AgentRuleDetailPanel.tsx`  | Agent rule file viewer/editor (CLAUDE.md, AGENTS.md)                                |
+| `PluginDetailPanel.tsx`     | Claude plugin detail                                                                |
+| `LogsViewer.tsx`            | Streaming ANSI log output                                                           |
+| `TerminalView.tsx`          | xterm.js interactive terminal                                                       |
+| `HooksTab.tsx`              | Hooks runner with multi-expand, pipeline auto-expand, and circular progress spinner |
+| `GitActionInputs.tsx`       | Inline commit/PR input forms                                                        |
+| `ActionToolbar.tsx`         | Git action buttons                                                                  |
+| `NotesSection.tsx`          | PersonalNotesSection + AgentSection (tabbed: Context, Todos, Git Policy, Hooks)     |
+| `TodoList.tsx`              | Checkbox todo items                                                                 |
+| `AgentPolicySection.tsx`    | Per-issue agent git policy overrides                                                |
 
 ### Hooks (`src/ui/hooks/`)
 
-| File | Description |
-|---|---|
-| `api.ts` | Raw fetch functions for all API endpoints |
-| `useApi.ts` | Hook that pre-binds API functions to current server URL |
-| `useConfig.ts` | Fetch and cache `.dawg/config.json` |
-| `useCustomTasks.ts` | React Query hook for custom tasks list |
-| `useCustomTaskDetail.ts` | React Query hook for single custom task |
-| `useJiraIssues.ts` | React Query hook for Jira issues with search debouncing |
-| `useJiraIssueDetail.ts` | React Query hook for single Jira issue |
-| `useLinearIssues.ts` | React Query hook for Linear issues with search debouncing |
-| `useLinearIssueDetail.ts` | React Query hook for single Linear issue |
-| `useMcpServers.ts` | Hooks for MCP server data |
-| `useNotes.ts` | Hook for issue notes and todos |
-| `useSkills.ts` | Hooks for skills data |
-| `useTerminal.ts` | WebSocket terminal session management |
-| `useAgentRules.ts` | React Query hook for agent rule file content |
-| `useHooks.ts` | Hooks config and skill results fetching |
-| `useWorktrees.ts` | SSE-based real-time worktree updates + integration status hooks |
+| File                      | Description                                                     |
+| ------------------------- | --------------------------------------------------------------- |
+| `api.ts`                  | Raw fetch functions for all API endpoints                       |
+| `useApi.ts`               | Hook that pre-binds API functions to current server URL         |
+| `useConfig.ts`            | Fetch and cache `.dawg/config.json`                             |
+| `useCustomTasks.ts`       | React Query hook for custom tasks list                          |
+| `useCustomTaskDetail.ts`  | React Query hook for single custom task                         |
+| `useJiraIssues.ts`        | React Query hook for Jira issues with search debouncing         |
+| `useJiraIssueDetail.ts`   | React Query hook for single Jira issue                          |
+| `useLinearIssues.ts`      | React Query hook for Linear issues with search debouncing       |
+| `useLinearIssueDetail.ts` | React Query hook for single Linear issue                        |
+| `useMcpServers.ts`        | Hooks for MCP server data                                       |
+| `useNotes.ts`             | Hook for issue notes and todos                                  |
+| `useSkills.ts`            | Hooks for skills data                                           |
+| `useTerminal.ts`          | WebSocket terminal session management                           |
+| `useAgentRules.ts`        | React Query hook for agent rule file content                    |
+| `useHooks.ts`             | Hooks config and skill results fetching                         |
+| `useWorktrees.ts`         | SSE-based real-time worktree updates + integration status hooks |
 
 ### Context (`src/ui/contexts/`)
 
-| File | Description |
-|---|---|
-| `ServerContext.tsx` | Multi-project server URL management, Electron IPC bridge |
-| `ToastContext.tsx` | Toast/snackbar notification state management (error: 10s auto-dismiss, info: 5s) |
+| File                | Description                                                                      |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `ServerContext.tsx` | Multi-project server URL management, Electron IPC bridge                         |
+| `ToastContext.tsx`  | Toast/snackbar notification state management (error: 10s auto-dismiss, info: 5s) |

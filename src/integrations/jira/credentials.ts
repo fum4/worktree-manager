@@ -1,16 +1,16 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
-import path from 'path';
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
 
-import { CONFIG_DIR_NAME } from '../../constants';
-import type { DataLifecycleConfig, JiraCredentials, JiraProjectConfig } from './types';
+import { CONFIG_DIR_NAME } from "../../constants";
+import type { DataLifecycleConfig, JiraCredentials, JiraProjectConfig } from "./types";
 
-const INTEGRATIONS_FILE = 'integrations.json';
+const INTEGRATIONS_FILE = "integrations.json";
 
 function readIntegrations(configDir: string): Record<string, unknown> {
   const filePath = path.join(configDir, CONFIG_DIR_NAME, INTEGRATIONS_FILE);
   if (!existsSync(filePath)) return {};
   try {
-    return JSON.parse(readFileSync(filePath, 'utf-8'));
+    return JSON.parse(readFileSync(filePath, "utf-8"));
   } catch {
     return {};
   }
@@ -18,7 +18,7 @@ function readIntegrations(configDir: string): Record<string, unknown> {
 
 function writeIntegrations(configDir: string, data: Record<string, unknown>): void {
   const filePath = path.join(configDir, CONFIG_DIR_NAME, INTEGRATIONS_FILE);
-  writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
+  writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
 }
 
 export function loadJiraCredentials(configDir: string): JiraCredentials | null {
@@ -29,7 +29,7 @@ export function loadJiraCredentials(configDir: string): JiraCredentials | null {
 
 export function saveJiraCredentials(configDir: string, creds: JiraCredentials): void {
   const data = readIntegrations(configDir);
-  data.jira = { ...(data.jira as Record<string, unknown> ?? {}), ...creds };
+  data.jira = { ...((data.jira as Record<string, unknown>) ?? {}), ...creds };
   writeIntegrations(configDir, data);
 }
 
@@ -45,6 +45,6 @@ export function loadJiraProjectConfig(configDir: string): JiraProjectConfig {
 
 export function saveJiraProjectConfig(configDir: string, config: JiraProjectConfig): void {
   const data = readIntegrations(configDir);
-  data.jira = { ...(data.jira as Record<string, unknown> ?? {}), ...config };
+  data.jira = { ...((data.jira as Record<string, unknown>) ?? {}), ...config };
   writeIntegrations(configDir, data);
 }

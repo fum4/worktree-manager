@@ -1,11 +1,10 @@
 {
   "name": "dawg",
   "version": "0.1.0",
-  "type": "module",
-  "packageManager": "pnpm@9.15.0",
   "bin": {
     "dawg": "./dist/cli/index.js"
   },
+  "type": "module",
   "main": "dist/electron/main.js",
   "scripts": {
     "start": "node dist/cli/index.js",
@@ -46,13 +45,6 @@
     "remark-gfm": "^4.0.1",
     "zod": "^4.3.6"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "electron",
-      "node-pty"
-    ]
-  },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@types/react": "^18.2.20",
@@ -74,5 +66,13 @@
     "typescript": "^5.5.4",
     "vite": "^6.2.4",
     "wait-on": "^9.0.3"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "electron",
+      "node-pty"
+    ]
   }
 }

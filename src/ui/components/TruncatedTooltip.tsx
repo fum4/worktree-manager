@@ -1,6 +1,6 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback } from "react";
 
-import { Tooltip } from './Tooltip';
+import { Tooltip } from "./Tooltip";
 
 interface TruncatedTooltipProps {
   text: string;
@@ -10,7 +10,7 @@ interface TruncatedTooltipProps {
 /**
  * Renders a truncated span that shows a Tooltip only when the text overflows.
  */
-export function TruncatedTooltip({ text: content, className = '' }: TruncatedTooltipProps) {
+export function TruncatedTooltip({ text: content, className = "" }: TruncatedTooltipProps) {
   const spanRef = useRef<HTMLSpanElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
 
@@ -20,11 +20,7 @@ export function TruncatedTooltip({ text: content, className = '' }: TruncatedToo
   }, []);
 
   const span = (
-    <span
-      ref={spanRef}
-      className={`truncate block ${className}`}
-      onMouseEnter={checkTruncation}
-    >
+    <span ref={spanRef} className={`truncate block ${className}`} onMouseEnter={checkTruncation}>
       {content}
     </span>
   );

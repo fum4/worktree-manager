@@ -1,12 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import path from 'path';
-import os from 'os';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
+import os from "os";
 
-import { DEFAULT_PORT } from '../constants';
+import { DEFAULT_PORT } from "../constants";
 
 export interface GlobalPreferences {
   basePort: number;
-  setupPreference: 'auto' | 'manual' | 'ask';
+  setupPreference: "auto" | "manual" | "ask";
   sidebarWidth: number;
   windowBounds: {
     x?: number;
@@ -16,12 +16,12 @@ export interface GlobalPreferences {
   } | null;
 }
 
-const STATE_DIR = path.join(os.homedir(), '.dawg');
-const PREFERENCES_FILE = path.join(STATE_DIR, 'app-preferences.json');
+const STATE_DIR = path.join(os.homedir(), ".dawg");
+const PREFERENCES_FILE = path.join(STATE_DIR, "app-preferences.json");
 
 const DEFAULT_PREFERENCES: GlobalPreferences = {
   basePort: DEFAULT_PORT,
-  setupPreference: 'ask',
+  setupPreference: "ask",
   sidebarWidth: 300,
   windowBounds: null,
 };
@@ -35,7 +35,7 @@ function ensureStateDir() {
 export function loadGlobalPreferences(): GlobalPreferences {
   try {
     if (existsSync(PREFERENCES_FILE)) {
-      const data = JSON.parse(readFileSync(PREFERENCES_FILE, 'utf-8'));
+      const data = JSON.parse(readFileSync(PREFERENCES_FILE, "utf-8"));
       return { ...DEFAULT_PREFERENCES, ...data };
     }
   } catch {

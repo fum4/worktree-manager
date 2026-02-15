@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Puzzle, Trash2 } from 'lucide-react';
+import { useState } from "react";
+import { Puzzle, Trash2 } from "lucide-react";
 
-import type { PluginSummary } from '../types';
-import { surface, text } from '../theme';
-import { Spinner } from './Spinner';
-import { Tooltip } from './Tooltip';
+import type { PluginSummary } from "../types";
+import { surface, text } from "../theme";
+import { Spinner } from "./Spinner";
+import { Tooltip } from "./Tooltip";
 
 interface PluginItemProps {
   plugin: PluginSummary;
@@ -17,23 +17,30 @@ interface PluginItemProps {
 
 function parsePluginName(plugin: PluginSummary): { name: string; marketplace: string } {
   if (plugin.marketplace) {
-    const name = plugin.name.replace(/@.*$/, '');
+    const name = plugin.name.replace(/@.*$/, "");
     return { name, marketplace: plugin.marketplace };
   }
-  if (plugin.name.includes('@')) {
-    const [name, marketplace] = plugin.name.split('@', 2);
+  if (plugin.name.includes("@")) {
+    const [name, marketplace] = plugin.name.split("@", 2);
     return { name, marketplace };
   }
-  return { name: plugin.name, marketplace: '' };
+  return { name: plugin.name, marketplace: "" };
 }
 
-export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRemove, disabled }: PluginItemProps) {
+export function PluginItem({
+  plugin,
+  isSelected,
+  onSelect,
+  onToggleEnabled,
+  onRemove,
+  disabled,
+}: PluginItemProps) {
   const { name, marketplace } = parsePluginName(plugin);
   const [acting, setActing] = useState<string | null>(null);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setActing('toggle');
+    setActing("toggle");
     await onToggleEnabled();
     setActing(null);
   };
@@ -43,16 +50,16 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
     onRemove();
   };
 
-  const badgeDot = plugin.error
-    ? <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 bg-red-400" />
-    : plugin.warning
-      ? <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 bg-yellow-400" />
-      : plugin.enabled
-        ? <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 bg-teal-400" />
-        : null;
+  const badgeDot = plugin.error ? (
+    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 bg-red-400" />
+  ) : plugin.warning ? (
+    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 bg-yellow-400" />
+  ) : plugin.enabled ? (
+    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 bg-teal-400" />
+  ) : null;
 
   const tooltipText = plugin.error || plugin.warning;
-  const tooltipDotColor = plugin.error ? 'bg-red-400' : 'bg-yellow-400';
+  const tooltipDotColor = plugin.error ? "bg-red-400" : "bg-yellow-400";
 
   const item = (
     <button
@@ -65,17 +72,19 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
       }`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <Puzzle className={`w-3.5 h-3.5 flex-shrink-0 transition-colors duration-150 ${isSelected ? 'text-[#D4A574]' : `${text.muted} group-hover:text-[#D4A574]`}`} />
+        <Puzzle
+          className={`w-3.5 h-3.5 flex-shrink-0 transition-colors duration-150 ${isSelected ? "text-[#D4A574]" : `${text.muted} group-hover:text-[#D4A574]`}`}
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-medium truncate ${isSelected ? text.primary : text.secondary}`}>
+            <span
+              className={`text-xs font-medium truncate ${isSelected ? text.primary : text.secondary}`}
+            >
               {name}
             </span>
           </div>
           {marketplace && (
-            <div className={`text-[10px] ${text.dimmed} truncate mt-0.5`}>
-              {marketplace}
-            </div>
+            <div className={`text-[10px] ${text.dimmed} truncate mt-0.5`}>{marketplace}</div>
           )}
         </div>
 
@@ -83,7 +92,7 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
         <div className="flex-shrink-0 relative" style={{ width: 52, height: 16 }}>
           {acting ? (
             <div className="absolute inset-0 mr-[5px] flex items-center justify-end">
-              <Spinner size="xs" className={acting === 'remove' ? 'text-red-400' : text.muted} />
+              <Spinner size="xs" className={acting === "remove" ? "text-red-400" : text.muted} />
             </div>
           ) : (
             <>
@@ -94,24 +103,28 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
                 <span
                   role="button"
                   onClick={disabled ? undefined : handleRemove}
-                  className={`p-0.5 rounded transition-colors ${disabled ? 'text-white/15 cursor-default' : 'text-white/30 hover:text-red-400 hover:bg-red-400/15 cursor-pointer'}`}
+                  className={`p-0.5 rounded transition-colors ${disabled ? "text-white/15 cursor-default" : "text-white/30 hover:text-red-400 hover:bg-red-400/15 cursor-pointer"}`}
                 >
                   <Trash2 className="w-3 h-3" />
                 </span>
                 <span
                   role="button"
                   onClick={disabled ? undefined : handleToggle}
-                  className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 block ${disabled ? 'cursor-default opacity-50' : 'cursor-pointer'} ${
+                  className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 block ${disabled ? "cursor-default opacity-50" : "cursor-pointer"} ${
                     plugin.enabled
-                      ? plugin.error ? 'bg-red-400/35' : plugin.warning ? 'bg-yellow-400/35' : 'bg-teal-400/35'
-                      : 'bg-white/[0.08]'
+                      ? plugin.error
+                        ? "bg-red-400/35"
+                        : plugin.warning
+                          ? "bg-yellow-400/35"
+                          : "bg-teal-400/35"
+                      : "bg-white/[0.08]"
                   }`}
                 >
                   <span
                     className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
                       plugin.enabled
-                        ? `left-[11px] ${plugin.error ? 'bg-red-400' : plugin.warning ? 'bg-yellow-400' : 'bg-teal-400'}`
-                        : 'left-0.5 bg-white/40'
+                        ? `left-[11px] ${plugin.error ? "bg-red-400" : plugin.warning ? "bg-yellow-400" : "bg-teal-400"}`
+                        : "left-0.5 bg-white/40"
                     }`}
                   />
                 </span>
@@ -126,7 +139,12 @@ export function PluginItem({ plugin, isSelected, onSelect, onToggleEnabled, onRe
   if (tooltipText) {
     return (
       <Tooltip
-        text={<span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tooltipDotColor}`} />{tooltipText}</span>}
+        text={
+          <span className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tooltipDotColor}`} />
+            {tooltipText}
+          </span>
+        }
         position="right"
       >
         {item}

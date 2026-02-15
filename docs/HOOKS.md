@@ -12,12 +12,12 @@ The hooks system is configured through the web UI's Hooks view and stored in `.d
 
 Every hook belongs to one of four trigger types:
 
-| Trigger | Description | Icon | Color |
-|---------|-------------|------|-------|
-| `pre-implementation` | Runs before agents start working on a task | ListChecks | sky-400 |
-| `post-implementation` | Runs after agents finish implementing a task | CircleCheck | emerald-400 |
-| `custom` | Agent decides when to run, based on a natural-language condition | MessageSquareText | violet-400 |
-| `on-demand` | Manually triggered from the worktree detail panel | Hand | amber-400 |
+| Trigger               | Description                                                      | Icon              | Color       |
+| --------------------- | ---------------------------------------------------------------- | ----------------- | ----------- |
+| `pre-implementation`  | Runs before agents start working on a task                       | ListChecks        | sky-400     |
+| `post-implementation` | Runs after agents finish implementing a task                     | CircleCheck       | emerald-400 |
+| `custom`              | Agent decides when to run, based on a natural-language condition | MessageSquareText | violet-400  |
+| `on-demand`           | Manually triggered from the worktree detail panel                | Hand              | amber-400   |
 
 Steps and skills default to `post-implementation` if no trigger is specified.
 
@@ -47,11 +47,11 @@ References to skills from the `~/.dawg/skills/` registry. When hooks run, skill 
 
 Individual issues can override the global enable/disable state of skills. Overrides are stored in the issue's notes (`hookSkills` field) and can be:
 
-| Override | Behavior |
-|----------|----------|
+| Override  | Behavior                                        |
+| --------- | ----------------------------------------------- |
 | `inherit` | Use the global enabled/disabled state (default) |
-| `enable` | Force-enable for this issue's worktree |
-| `disable` | Force-disable for this issue's worktree |
+| `enable`  | Force-enable for this issue's worktree          |
+| `disable` | Force-disable for this issue's worktree         |
 
 The `getEffectiveSkills()` method resolves overrides by looking up the worktree's linked issue.
 
@@ -101,23 +101,23 @@ Hooks configuration is stored in `.dawg/.dawg/hooks.json`:
 
 ### HookStep Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Unique identifier (auto-generated: `step-{timestamp}-{counter}`) |
-| `name` | string | Human-readable name shown in the UI |
-| `command` | string | Shell command to execute in the worktree directory |
-| `enabled` | boolean | Whether this step is active (default: `true`) |
-| `trigger` | HookTrigger | When this step runs (default: `post-implementation`) |
-| `condition` | string | Natural-language condition for `custom` trigger type |
+| Field       | Type        | Description                                                      |
+| ----------- | ----------- | ---------------------------------------------------------------- |
+| `id`        | string      | Unique identifier (auto-generated: `step-{timestamp}-{counter}`) |
+| `name`      | string      | Human-readable name shown in the UI                              |
+| `command`   | string      | Shell command to execute in the worktree directory               |
+| `enabled`   | boolean     | Whether this step is active (default: `true`)                    |
+| `trigger`   | HookTrigger | When this step runs (default: `post-implementation`)             |
+| `condition` | string      | Natural-language condition for `custom` trigger type             |
 
 ### HookSkillRef Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `skillName` | string | Name of the skill in `~/.dawg/skills/` |
-| `enabled` | boolean | Whether this skill is active |
-| `trigger` | HookTrigger | When this skill runs (default: `post-implementation`) |
-| `condition` | string | Natural-language condition for `custom` trigger type |
+| Field       | Type        | Description                                           |
+| ----------- | ----------- | ----------------------------------------------------- |
+| `skillName` | string      | Name of the skill in `~/.dawg/skills/`                |
+| `enabled`   | boolean     | Whether this skill is active                          |
+| `trigger`   | HookTrigger | When this skill runs (default: `post-implementation`) |
+| `condition` | string      | Natural-language condition for `custom` trigger type  |
 
 ## Running Hooks
 
@@ -177,23 +177,23 @@ When hooks are triggered for a worktree:
 
 ## REST API
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/hooks/config` | Get hooks configuration |
-| `PUT` | `/api/hooks/config` | Save full hooks configuration |
-| `POST` | `/api/hooks/steps` | Add a command step (`{ name, command }`) |
-| `PATCH` | `/api/hooks/steps/:stepId` | Update a step (`{ name?, command?, enabled?, trigger? }`) |
-| `DELETE` | `/api/hooks/steps/:stepId` | Remove a step |
-| `POST` | `/api/hooks/skills/import` | Import a skill (`{ skillName, trigger?, condition? }`) |
-| `GET` | `/api/hooks/skills/available` | List available skills from registry |
-| `PATCH` | `/api/hooks/skills/:name` | Toggle a skill (`{ enabled, trigger? }`) |
-| `DELETE` | `/api/hooks/skills/:name` | Remove a skill (`?trigger=` query param) |
-| `POST` | `/api/worktrees/:id/hooks/run` | Run all enabled steps for a worktree |
-| `POST` | `/api/worktrees/:id/hooks/run/:stepId` | Run a single step |
-| `GET` | `/api/worktrees/:id/hooks/status` | Get latest run status |
-| `POST` | `/api/worktrees/:id/hooks/report` | Report a skill result (`{ skillName, success, summary, content?, filePath? }`) |
-| `GET` | `/api/worktrees/:id/hooks/skill-results` | Get skill results for a worktree |
-| `GET` | `/api/files/read?path=...` | Read a file by absolute path (used for MD report preview) |
+| Method   | Path                                     | Description                                                                    |
+| -------- | ---------------------------------------- | ------------------------------------------------------------------------------ |
+| `GET`    | `/api/hooks/config`                      | Get hooks configuration                                                        |
+| `PUT`    | `/api/hooks/config`                      | Save full hooks configuration                                                  |
+| `POST`   | `/api/hooks/steps`                       | Add a command step (`{ name, command }`)                                       |
+| `PATCH`  | `/api/hooks/steps/:stepId`               | Update a step (`{ name?, command?, enabled?, trigger? }`)                      |
+| `DELETE` | `/api/hooks/steps/:stepId`               | Remove a step                                                                  |
+| `POST`   | `/api/hooks/skills/import`               | Import a skill (`{ skillName, trigger?, condition? }`)                         |
+| `GET`    | `/api/hooks/skills/available`            | List available skills from registry                                            |
+| `PATCH`  | `/api/hooks/skills/:name`                | Toggle a skill (`{ enabled, trigger? }`)                                       |
+| `DELETE` | `/api/hooks/skills/:name`                | Remove a skill (`?trigger=` query param)                                       |
+| `POST`   | `/api/worktrees/:id/hooks/run`           | Run all enabled steps for a worktree                                           |
+| `POST`   | `/api/worktrees/:id/hooks/run/:stepId`   | Run a single step                                                              |
+| `GET`    | `/api/worktrees/:id/hooks/status`        | Get latest run status                                                          |
+| `POST`   | `/api/worktrees/:id/hooks/report`        | Report a skill result (`{ skillName, success, summary, content?, filePath? }`) |
+| `GET`    | `/api/worktrees/:id/hooks/skill-results` | Get skill results for a worktree                                               |
+| `GET`    | `/api/files/read?path=...`               | Read a file by absolute path (used for MD report preview)                      |
 
 ## Backend
 

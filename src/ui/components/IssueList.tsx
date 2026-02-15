@@ -1,12 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Settings } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Settings } from "lucide-react";
 
-import type { CustomTaskSummary, JiraIssueSummary, LinearIssueSummary, WorktreeInfo } from '../types';
-import { border, text } from '../theme';
-import { Tooltip } from './Tooltip';
-import { CustomTaskList } from './CustomTaskList';
-import { JiraIssueList } from './JiraIssueList';
-import { LinearIssueList } from './LinearIssueList';
+import type {
+  CustomTaskSummary,
+  JiraIssueSummary,
+  LinearIssueSummary,
+  WorktreeInfo,
+} from "../types";
+import { border, text } from "../theme";
+import { Tooltip } from "./Tooltip";
+import { CustomTaskList } from "./CustomTaskList";
+import { JiraIssueList } from "./JiraIssueList";
+import { LinearIssueList } from "./LinearIssueList";
 
 function ChevronIcon({ collapsed }: { collapsed: boolean }) {
   return (
@@ -14,14 +19,26 @@ function ChevronIcon({ collapsed }: { collapsed: boolean }) {
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 16 16"
       fill="currentColor"
-      className={`w-3 h-3 ${text.muted} transition-transform duration-150 ${collapsed ? '' : 'rotate-90'}`}
+      className={`w-3 h-3 ${text.muted} transition-transform duration-150 ${collapsed ? "" : "rotate-90"}`}
     >
-      <path fillRule="evenodd" d="M6.22 4.22a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.75.75 0 0 1-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+      <path
+        fillRule="evenodd"
+        d="M6.22 4.22a.75.75 0 0 1 1.06 0l3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.75.75 0 0 1-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 0 1 0-1.06Z"
+        clipRule="evenodd"
+      />
     </svg>
   );
 }
 
-function RefreshIcon({ spinning, onClick, tooltip }: { spinning: boolean; onClick: () => void; tooltip: string }) {
+function RefreshIcon({
+  spinning,
+  onClick,
+  tooltip,
+}: {
+  spinning: boolean;
+  onClick: () => void;
+  tooltip: string;
+}) {
   return (
     <Tooltip position="right" text={tooltip}>
       <button
@@ -36,7 +53,7 @@ function RefreshIcon({ spinning, onClick, tooltip }: { spinning: boolean; onClic
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 16 16"
           fill="currentColor"
-          className={`w-3 h-3 ${spinning ? 'animate-spin' : ''}`}
+          className={`w-3 h-3 ${spinning ? "animate-spin" : ""}`}
         >
           <path
             fillRule="evenodd"
@@ -50,9 +67,9 @@ function RefreshIcon({ spinning, onClick, tooltip }: { spinning: boolean; onClic
 }
 
 function formatTimeAgo(timestamp: number): string {
-  if (!timestamp) return '';
+  if (!timestamp) return "";
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return 'just now';
+  if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
@@ -121,12 +138,12 @@ export function IssueList({
   const [linearCollapsed, setLinearCollapsed] = useState(false);
   const [customCollapsed, setCustomCollapsed] = useState(false);
   const [showPriority, setShowPriority] = useState(() => {
-    const saved = localStorage.getItem('dawg:issueShowPriority');
-    return saved !== null ? saved === '1' : true;
+    const saved = localStorage.getItem("dawg:issueShowPriority");
+    return saved !== null ? saved === "1" : true;
   });
   const [showStatus, setShowStatus] = useState(() => {
-    const saved = localStorage.getItem('dawg:issueShowStatus');
-    return saved !== null ? saved === '1' : true;
+    const saved = localStorage.getItem("dawg:issueShowStatus");
+    return saved !== null ? saved === "1" : true;
   });
   const [configOpen, setConfigOpen] = useState(false);
   const configRef = useRef<HTMLDivElement>(null);
@@ -138,16 +155,16 @@ export function IssueList({
         setConfigOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [configOpen]);
 
   useEffect(() => {
-    localStorage.setItem('dawg:issueShowPriority', showPriority ? '1' : '0');
+    localStorage.setItem("dawg:issueShowPriority", showPriority ? "1" : "0");
   }, [showPriority]);
 
   useEffect(() => {
-    localStorage.setItem('dawg:issueShowStatus', showStatus ? '1' : '0');
+    localStorage.setItem("dawg:issueShowStatus", showStatus ? "1" : "0");
   }, [showStatus]);
 
   // Build map of issueKey -> worktreeId (Jira)
@@ -178,33 +195,34 @@ export function IssueList({
   // Split Jira issues into linked and unlinked
   const linkedJiraIssues = useMemo(
     () => issues.filter((i) => linkedJiraWorktrees.has(i.key)),
-    [issues, linkedJiraWorktrees]
+    [issues, linkedJiraWorktrees],
   );
   const unlinkedJiraIssues = useMemo(
     () => issues.filter((i) => !linkedJiraWorktrees.has(i.key)),
-    [issues, linkedJiraWorktrees]
+    [issues, linkedJiraWorktrees],
   );
 
   // Split Linear issues into linked and unlinked
   const linkedLinearIssues = useMemo(
     () => linearIssues.filter((i) => linkedLinearWorktrees.has(i.identifier)),
-    [linearIssues, linkedLinearWorktrees]
+    [linearIssues, linkedLinearWorktrees],
   );
   const unlinkedLinearIssues = useMemo(
     () => linearIssues.filter((i) => !linkedLinearWorktrees.has(i.identifier)),
-    [linearIssues, linkedLinearWorktrees]
+    [linearIssues, linkedLinearWorktrees],
   );
 
   const linkedCustomTasks = useMemo(
     () => customTasks.filter((t) => t.linkedWorktreeId !== null),
-    [customTasks]
+    [customTasks],
   );
   const unlinkedCustomTasks = useMemo(
     () => customTasks.filter((t) => t.linkedWorktreeId === null),
-    [customTasks]
+    [customTasks],
   );
 
-  const allLinkedCount = linkedJiraIssues.length + linkedLinearIssues.length + linkedCustomTasks.length;
+  const allLinkedCount =
+    linkedJiraIssues.length + linkedLinearIssues.length + linkedCustomTasks.length;
 
   const jiraEmpty = unlinkedJiraIssues.length === 0 && !isLoading && !error;
   const linearEmpty = unlinkedLinearIssues.length === 0 && !linearLoading && !linearError;
@@ -223,10 +241,11 @@ export function IssueList({
             >
               <ChevronIcon collapsed={linkedCollapsed} />
               <span className={`text-[11px] font-medium ${text.secondary}`}>With Worktrees</span>
-              <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+              <span
+                className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}
+              >
                 {allLinkedCount}
               </span>
-
             </button>
 
             {!linkedCollapsed && (
@@ -280,7 +299,7 @@ export function IssueList({
         {issues.length > 0 && (
           <div>
             <div
-              className={`w-full pl-3 pr-4 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${jiraEmpty ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
+              className={`w-full pl-3 pr-4 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${jiraEmpty ? "" : "hover:bg-white/[0.03] cursor-pointer"}`}
               onClick={jiraEmpty ? undefined : () => setJiraCollapsed(!jiraCollapsed)}
             >
               {jiraEmpty ? (
@@ -290,7 +309,9 @@ export function IssueList({
               )}
               <span className={`text-[11px] font-medium ${text.secondary}`}>Jira</span>
               {!isLoading && (
-                <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+                <span
+                  className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}
+                >
                   {unlinkedJiraIssues.length}
                 </span>
               )}
@@ -298,7 +319,9 @@ export function IssueList({
               <RefreshIcon
                 spinning={isFetching && issues.length > 0}
                 onClick={onRefreshJira}
-                tooltip={jiraUpdatedAt ? `Last refreshed: ${formatTimeAgo(jiraUpdatedAt)}` : 'Refresh'}
+                tooltip={
+                  jiraUpdatedAt ? `Last refreshed: ${formatTimeAgo(jiraUpdatedAt)}` : "Refresh"
+                }
               />
             </div>
 
@@ -332,7 +355,9 @@ export function IssueList({
               <RefreshIcon
                 spinning={isFetching}
                 onClick={onRefreshJira}
-                tooltip={jiraUpdatedAt ? `Last refreshed: ${formatTimeAgo(jiraUpdatedAt)}` : 'Refresh'}
+                tooltip={
+                  jiraUpdatedAt ? `Last refreshed: ${formatTimeAgo(jiraUpdatedAt)}` : "Refresh"
+                }
               />
             </div>
 
@@ -356,7 +381,7 @@ export function IssueList({
         {linearConfigured && (
           <div>
             <div
-              className={`w-full pl-3 pr-4 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${linearEmpty ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
+              className={`w-full pl-3 pr-4 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${linearEmpty ? "" : "hover:bg-white/[0.03] cursor-pointer"}`}
               onClick={linearEmpty ? undefined : () => setLinearCollapsed(!linearCollapsed)}
             >
               {linearEmpty ? (
@@ -366,7 +391,9 @@ export function IssueList({
               )}
               <span className={`text-[11px] font-medium ${text.secondary}`}>Linear</span>
               {!linearLoading && (
-                <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+                <span
+                  className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}
+                >
                   {unlinkedLinearIssues.length}
                 </span>
               )}
@@ -374,7 +401,9 @@ export function IssueList({
               <RefreshIcon
                 spinning={linearFetching && linearIssues.length > 0}
                 onClick={onRefreshLinear}
-                tooltip={linearUpdatedAt ? `Last refreshed: ${formatTimeAgo(linearUpdatedAt)}` : 'Refresh'}
+                tooltip={
+                  linearUpdatedAt ? `Last refreshed: ${formatTimeAgo(linearUpdatedAt)}` : "Refresh"
+                }
               />
             </div>
 
@@ -399,7 +428,7 @@ export function IssueList({
         {(customTasks.length > 0 || customTasksLoading || customTasksError) && (
           <div>
             <div
-              className={`w-full px-3 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${customEmpty ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
+              className={`w-full px-3 py-1.5 mb-px flex items-center gap-2 transition-colors duration-150 ${customEmpty ? "" : "hover:bg-white/[0.03] cursor-pointer"}`}
               onClick={customEmpty ? undefined : () => setCustomCollapsed(!customCollapsed)}
             >
               {customEmpty ? (
@@ -409,11 +438,12 @@ export function IssueList({
               )}
               <span className={`text-[11px] font-medium ${text.secondary}`}>Local</span>
               {!customTasksLoading && (
-                <span className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}>
+                <span
+                  className={`text-[10px] ${text.muted} bg-white/[0.06] px-1.5 py-0.5 rounded-full`}
+                >
                   {unlinkedCustomTasks.length}
                 </span>
               )}
-
             </div>
 
             {!customEmpty && !customCollapsed && (
@@ -439,7 +469,9 @@ export function IssueList({
             type="button"
             onClick={() => setConfigOpen(!configOpen)}
             className={`p-1 rounded transition-colors duration-150 ${
-              configOpen ? `${text.secondary} bg-white/[0.06]` : `${text.dimmed} hover:${text.secondary} hover:bg-white/[0.06]`
+              configOpen
+                ? `${text.secondary} bg-white/[0.06]`
+                : `${text.dimmed} hover:${text.secondary} hover:bg-white/[0.06]`
             }`}
           >
             <Settings className="w-[18px] h-[18px]" />
@@ -452,11 +484,21 @@ export function IssueList({
                 onClick={() => setShowPriority(!showPriority)}
                 className={`w-full px-3 py-1.5 flex items-center gap-2 text-left text-[11px] ${text.secondary} hover:bg-white/[0.04] transition-colors duration-150`}
               >
-                <span className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
-                  showPriority ? 'bg-accent/20 border-accent/40' : 'border-white/[0.15]'
-                }`}>
+                <span
+                  className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
+                    showPriority ? "bg-accent/20 border-accent/40" : "border-white/[0.15]"
+                  }`}
+                >
                   {showPriority && (
-                    <svg className="w-2 h-2 text-accent" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      className="w-2 h-2 text-accent"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <path d="M2 6l3 3 5-5" />
                     </svg>
                   )}
@@ -468,11 +510,21 @@ export function IssueList({
                 onClick={() => setShowStatus(!showStatus)}
                 className={`w-full px-3 py-1.5 flex items-center gap-2 text-left text-[11px] ${text.secondary} hover:bg-white/[0.04] transition-colors duration-150`}
               >
-                <span className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
-                  showStatus ? 'bg-accent/20 border-accent/40' : 'border-white/[0.15]'
-                }`}>
+                <span
+                  className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
+                    showStatus ? "bg-accent/20 border-accent/40" : "border-white/[0.15]"
+                  }`}
+                >
                   {showStatus && (
-                    <svg className="w-2 h-2 text-accent" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      className="w-2 h-2 text-accent"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <path d="M2 6l3 3 5-5" />
                     </svg>
                   )}

@@ -24,15 +24,15 @@ pnpm start
 
 ## Build Commands
 
-| Command | Description |
-|---|---|
-| `pnpm build` | Full production build (tsup backend + Electron compile + copy port-hook.cjs + Vite frontend) |
-| `pnpm dev` | Dev mode with concurrent watchers for UI, backend, and Electron |
-| `pnpm start` | Run the built CLI (`node dist/cli/index.js`) |
-| `pnpm check-types` | TypeScript type checking (`tsc --noEmit`) |
-| `pnpm check-lint` | Run ESLint |
-| `pnpm format-lint` | Run ESLint with `--fix` for auto-formatting |
-| `pnpm build:app` | Full build + package as macOS Electron app via `electron-builder` |
+| Command            | Description                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------- |
+| `pnpm build`       | Full production build (tsup backend + Electron compile + copy port-hook.cjs + Vite frontend) |
+| `pnpm dev`         | Dev mode with concurrent watchers for UI, backend, and Electron                              |
+| `pnpm start`       | Run the built CLI (`node dist/cli/index.js`)                                                 |
+| `pnpm check-types` | TypeScript type checking (`tsc --noEmit`)                                                    |
+| `pnpm check-lint`  | Run ESLint                                                                                   |
+| `pnpm format-lint` | Run ESLint with `--fix` for auto-formatting                                                  |
+| `pnpm build:app`   | Full build + package as macOS Electron app via `electron-builder`                            |
 
 There is no test runner configured.
 
@@ -54,12 +54,12 @@ pnpm dev
 
 This runs four concurrent processes via `concurrently`:
 
-| Process | What it does |
-|---|---|
-| `dev:ui` | Vite dev server on `http://localhost:6969` with HMR |
-| `dev:backend` | tsup in watch mode, rebuilding `src/cli/index.ts` and `src/electron-entry.ts` on changes |
-| `dev:electron:compile` | TypeScript watcher for `electron/*.ts` -> `dist/electron/` |
-| `dev:electron:run` | Waits for both the Vite server and compiled Electron main, then launches Electron via `electronmon` with auto-restart |
+| Process                | What it does                                                                                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `dev:ui`               | Vite dev server on `http://localhost:6969` with HMR                                                                   |
+| `dev:backend`          | tsup in watch mode, rebuilding `src/cli/index.ts` and `src/electron-entry.ts` on changes                              |
+| `dev:electron:compile` | TypeScript watcher for `electron/*.ts` -> `dist/electron/`                                                            |
+| `dev:electron:run`     | Waits for both the Vite server and compiled Electron main, then launches Electron via `electronmon` with auto-restart |
 
 ### How Changes Propagate
 
@@ -258,16 +258,16 @@ Backend routes follow a consistent pattern. Each route file exports a `register*
 
 ```typescript
 // src/server/routes/my-feature.ts
-import type { Hono } from 'hono';
-import type { WorktreeManager } from '../manager';
+import type { Hono } from "hono";
+import type { WorktreeManager } from "../manager";
 
 export function registerMyFeatureRoutes(app: Hono, manager: WorktreeManager) {
-  app.get('/api/my-feature', (c) => {
+  app.get("/api/my-feature", (c) => {
     // ...
     return c.json({ data });
   });
 
-  app.post('/api/my-feature', async (c) => {
+  app.post("/api/my-feature", async (c) => {
     const body = await c.req.json();
     // ...
     return c.json({ success: true });
@@ -278,7 +278,7 @@ export function registerMyFeatureRoutes(app: Hono, manager: WorktreeManager) {
 Routes are registered in `src/server/index.ts`:
 
 ```typescript
-import { registerMyFeatureRoutes } from './routes/my-feature';
+import { registerMyFeatureRoutes } from "./routes/my-feature";
 // ...
 registerMyFeatureRoutes(app, manager);
 ```
@@ -296,7 +296,7 @@ The frontend API layer has two parts:
 ```typescript
 // In a component:
 const api = useApi();
-await api.createWorktree('feature/my-branch');
+await api.createWorktree("feature/my-branch");
 ```
 
 ### React Query Hooks
@@ -305,15 +305,15 @@ Data-fetching hooks follow React Query patterns:
 
 ```typescript
 // src/ui/hooks/useMyFeature.ts
-import { useQuery } from '@tanstack/react-query';
-import { fetchMyData } from './api';
-import { useServerUrlOptional } from '../contexts/ServerContext';
+import { useQuery } from "@tanstack/react-query";
+import { fetchMyData } from "./api";
+import { useServerUrlOptional } from "../contexts/ServerContext";
 
 export function useMyFeature() {
   const serverUrl = useServerUrlOptional();
 
   return useQuery({
-    queryKey: ['my-feature', serverUrl],
+    queryKey: ["my-feature", serverUrl],
     queryFn: () => fetchMyData(serverUrl),
     enabled: serverUrl !== null,
     staleTime: 30_000,
@@ -346,10 +346,10 @@ The main `App.tsx` manages selection state with a discriminated union:
 
 ```typescript
 type Selection =
-  | { type: 'worktree'; id: string }
-  | { type: 'issue'; key: string }
-  | { type: 'linear-issue'; identifier: string }
-  | { type: 'custom-task'; id: string }
+  | { type: "worktree"; id: string }
+  | { type: "issue"; key: string }
+  | { type: "linear-issue"; identifier: string }
+  | { type: "custom-task"; id: string }
   | null;
 ```
 
@@ -428,34 +428,34 @@ This follows an established pattern. You will need:
 
 ## Key Dependencies
 
-| Package | Purpose |
-|---|---|
-| `hono` | HTTP server framework |
-| `@hono/node-server` | Node.js adapter for Hono |
-| `@hono/node-ws` | WebSocket support for Hono |
-| `@tanstack/react-query` | Server state management |
-| `@modelcontextprotocol/sdk` | MCP server/client for agent integration |
-| `@monaco-editor/react` | Code editor (used in configuration) |
-| `@xterm/xterm` | Terminal emulator in the browser |
-| `node-pty` | Native PTY for terminal sessions |
-| `motion` | Animation library (Framer Motion) |
-| `lucide-react` | Icon library |
-| `react-markdown` | Markdown rendering (Jira descriptions, notes) |
-| `zod` | Schema validation |
-| `picocolors` | CLI colored output |
-| `@inquirer/prompts` | Interactive CLI prompts (init wizard) |
+| Package                     | Purpose                                       |
+| --------------------------- | --------------------------------------------- |
+| `hono`                      | HTTP server framework                         |
+| `@hono/node-server`         | Node.js adapter for Hono                      |
+| `@hono/node-ws`             | WebSocket support for Hono                    |
+| `@tanstack/react-query`     | Server state management                       |
+| `@modelcontextprotocol/sdk` | MCP server/client for agent integration       |
+| `@monaco-editor/react`      | Code editor (used in configuration)           |
+| `@xterm/xterm`              | Terminal emulator in the browser              |
+| `node-pty`                  | Native PTY for terminal sessions              |
+| `motion`                    | Animation library (Framer Motion)             |
+| `lucide-react`              | Icon library                                  |
+| `react-markdown`            | Markdown rendering (Jira descriptions, notes) |
+| `zod`                       | Schema validation                             |
+| `picocolors`                | CLI colored output                            |
+| `@inquirer/prompts`         | Interactive CLI prompts (init wizard)         |
 
 ## CLI Subcommands
 
 For reference, these are the CLI entry points (all in `src/cli/`):
 
-| Command | Description |
-|---|---|
-| `dawg` | Start the server and open UI (Electron or browser) |
-| `dawg init` | Interactive setup wizard to create `.dawg/config.json` |
-| `dawg connect` | Connect to an existing running dawg server |
-| `dawg mcp` | Start as an MCP server (for Claude Code integration) |
-| `dawg task <ID>` | Create a worktree from a Jira issue ID |
+| Command          | Description                                            |
+| ---------------- | ------------------------------------------------------ |
+| `dawg`           | Start the server and open UI (Electron or browser)     |
+| `dawg init`      | Interactive setup wizard to create `.dawg/config.json` |
+| `dawg connect`   | Connect to an existing running dawg server             |
+| `dawg mcp`       | Start as an MCP server (for Claude Code integration)   |
+| `dawg task <ID>` | Create a worktree from a Jira issue ID                 |
 
 ## Configuration
 

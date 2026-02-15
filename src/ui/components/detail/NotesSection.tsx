@@ -1,16 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { CircleCheck, Copy, Hand, ListChecks, MessageSquareText, Sparkles, Terminal } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  CircleCheck,
+  Copy,
+  Hand,
+  ListChecks,
+  MessageSquareText,
+  Sparkles,
+  Terminal,
+} from "lucide-react";
 
-import { useNotes } from '../../hooks/useNotes';
-import { useHooksConfig } from '../../hooks/useHooks';
-import { notes as notesTheme, text } from '../../theme';
-import { MarkdownContent } from '../MarkdownContent';
-import { Tooltip } from '../Tooltip';
-import { TodoList } from './TodoList';
-import type { GitPolicyOverride, HookSkillOverride, HookTrigger } from '../../hooks/api';
+import { useNotes } from "../../hooks/useNotes";
+import { useHooksConfig } from "../../hooks/useHooks";
+import { notes as notesTheme, text } from "../../theme";
+import { MarkdownContent } from "../MarkdownContent";
+import { Tooltip } from "../Tooltip";
+import { TodoList } from "./TodoList";
+import type { GitPolicyOverride, HookSkillOverride, HookTrigger } from "../../hooks/api";
 
 interface SectionProps {
-  source: 'jira' | 'linear' | 'local';
+  source: "jira" | "linear" | "local";
   issueId: string;
 }
 
@@ -18,8 +26,8 @@ interface SectionProps {
 
 export function PersonalNotesSection({ source, issueId }: SectionProps) {
   const { notes, updateSection, addTodo } = useNotes(source, issueId);
-  const personalContent = notes?.personal?.content ?? '';
-  const aiContent = notes?.aiContext?.content ?? '';
+  const personalContent = notes?.personal?.content ?? "";
+  const aiContent = notes?.aiContext?.content ?? "";
 
   return (
     <section>
@@ -31,7 +39,7 @@ export function PersonalNotesSection({ source, issueId }: SectionProps) {
         updateSection={updateSection}
         onMoveToAiContext={(selectedText) => {
           const appended = aiContent ? `${aiContent}\n\n${selectedText}` : selectedText;
-          updateSection('aiContext', appended);
+          updateSection("aiContext", appended);
         }}
         onAddTodo={addTodo}
         placeholder="Personal notes about this issue..."
@@ -45,21 +53,30 @@ export function PersonalNotesSection({ source, issueId }: SectionProps) {
 
 // ─── AgentSection ──────────────────────────────────────────────
 
-type AgentTab = 'context' | 'todos' | 'gitPolicy' | 'hooks';
+type AgentTab = "context" | "todos" | "gitPolicy" | "hooks";
 
 const AGENT_TABS: { key: AgentTab; label: string }[] = [
-  { key: 'context', label: 'Context' },
-  { key: 'todos', label: 'Todos' },
-  { key: 'gitPolicy', label: 'Git Policy' },
-  { key: 'hooks', label: 'Hooks' },
+  { key: "context", label: "Context" },
+  { key: "todos", label: "Todos" },
+  { key: "gitPolicy", label: "Git Policy" },
+  { key: "hooks", label: "Hooks" },
 ];
 
 export function AgentSection({ source, issueId }: SectionProps) {
-  const { notes, updateSection, addTodo, toggleTodo, deleteTodo, updateTodoText, updateGitPolicy, updateHookSkills } = useNotes(source, issueId);
+  const {
+    notes,
+    updateSection,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    updateTodoText,
+    updateGitPolicy,
+    updateHookSkills,
+  } = useNotes(source, issueId);
   const { config: hooksConfig } = useHooksConfig();
-  const [activeTab, setActiveTab] = useState<AgentTab>('context');
+  const [activeTab, setActiveTab] = useState<AgentTab>("context");
 
-  const aiContent = notes?.aiContext?.content ?? '';
+  const aiContent = notes?.aiContext?.content ?? "";
   const todos = notes?.todos ?? [];
   const gitPolicy = notes?.gitPolicy;
   const hookSkills = notes?.hookSkills;
@@ -75,7 +92,9 @@ export function AgentSection({ source, issueId }: SectionProps) {
               type="button"
               onClick={() => setActiveTab(tab.key)}
               className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                activeTab === tab.key ? `${notesTheme.tabActive} ${notesTheme.aiIcon}` : notesTheme.tabInactive
+                activeTab === tab.key
+                  ? `${notesTheme.tabActive} ${notesTheme.aiIcon}`
+                  : notesTheme.tabInactive
               }`}
             >
               {tab.label}
@@ -85,8 +104,10 @@ export function AgentSection({ source, issueId }: SectionProps) {
       </div>
 
       {/* Context tab keeps the card — it's an editable markdown area */}
-      {activeTab === 'context' && (
-        <div className={`rounded-lg ${notesTheme.aiAccent} border ${notesTheme.aiBorder} overflow-hidden`}>
+      {activeTab === "context" && (
+        <div
+          className={`rounded-lg ${notesTheme.aiAccent} border ${notesTheme.aiBorder} overflow-hidden`}
+        >
           <DirectionsPane
             key={`${source}-${issueId}-aiContext`}
             content={aiContent}
@@ -96,7 +117,7 @@ export function AgentSection({ source, issueId }: SectionProps) {
       )}
 
       {/* Todos — open layout, no card */}
-      {activeTab === 'todos' && (
+      {activeTab === "todos" && (
         <TodoList
           todos={todos}
           onAdd={addTodo}
@@ -107,15 +128,12 @@ export function AgentSection({ source, issueId }: SectionProps) {
       )}
 
       {/* Git Policy — inline row of controls */}
-      {activeTab === 'gitPolicy' && (
-        <GitPolicyPane
-          gitPolicy={gitPolicy}
-          updateGitPolicy={updateGitPolicy}
-        />
+      {activeTab === "gitPolicy" && (
+        <GitPolicyPane gitPolicy={gitPolicy} updateGitPolicy={updateGitPolicy} />
       )}
 
       {/* Hooks — grouped list */}
-      {activeTab === 'hooks' && (
+      {activeTab === "hooks" && (
         <HooksPane
           hooksConfig={hooksConfig}
           hookSkills={hookSkills}
@@ -129,38 +147,46 @@ export function AgentSection({ source, issueId }: SectionProps) {
 // ─── Git Policy pane ──────────────────────────────────────────
 
 const POLICY_OPTIONS: { value: GitPolicyOverride; label: string }[] = [
-  { value: 'inherit', label: 'Inherit' },
-  { value: 'allow', label: 'Allow' },
-  { value: 'deny', label: 'Deny' },
+  { value: "inherit", label: "Inherit" },
+  { value: "allow", label: "Allow" },
+  { value: "deny", label: "Deny" },
 ];
 
 function GitPolicyPane({
   gitPolicy,
   updateGitPolicy,
 }: {
-  gitPolicy?: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride; agentPRs?: GitPolicyOverride };
-  updateGitPolicy: (policy: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride; agentPRs?: GitPolicyOverride }) => void;
+  gitPolicy?: {
+    agentCommits?: GitPolicyOverride;
+    agentPushes?: GitPolicyOverride;
+    agentPRs?: GitPolicyOverride;
+  };
+  updateGitPolicy: (policy: {
+    agentCommits?: GitPolicyOverride;
+    agentPushes?: GitPolicyOverride;
+    agentPRs?: GitPolicyOverride;
+  }) => void;
 }) {
   const operations = [
-    { key: 'agentCommits' as const, label: 'Commits' },
-    { key: 'agentPushes' as const, label: 'Pushes' },
-    { key: 'agentPRs' as const, label: 'PRs' },
+    { key: "agentCommits" as const, label: "Commits" },
+    { key: "agentPushes" as const, label: "Pushes" },
+    { key: "agentPRs" as const, label: "PRs" },
   ];
 
   return (
     <div className="space-y-2.5">
       {operations.map((op) => {
-        const value: GitPolicyOverride = gitPolicy?.[op.key] ?? 'inherit';
+        const value: GitPolicyOverride = gitPolicy?.[op.key] ?? "inherit";
         return (
           <div key={op.key} className="flex items-center gap-4">
             <span className={`text-[11px] ${text.secondary} w-14`}>{op.label}</span>
             <div className="flex gap-0.5 bg-white/[0.04] rounded-md p-0.5">
               {POLICY_OPTIONS.map((opt) => {
-                let selectedStyle = 'text-[#4b5563] hover:text-[#6b7280]';
+                let selectedStyle = "text-[#4b5563] hover:text-[#6b7280]";
                 if (value === opt.value) {
-                  if (opt.value === 'allow') selectedStyle = 'bg-teal-500/[0.15] text-teal-300';
-                  else if (opt.value === 'deny') selectedStyle = 'bg-red-500/[0.15] text-red-300';
-                  else selectedStyle = 'bg-white/[0.10] text-[#e0e2e5]';
+                  if (opt.value === "allow") selectedStyle = "bg-teal-500/[0.15] text-teal-300";
+                  else if (opt.value === "deny") selectedStyle = "bg-red-500/[0.15] text-red-300";
+                  else selectedStyle = "bg-white/[0.10] text-[#e0e2e5]";
                 }
                 return (
                   <button
@@ -184,16 +210,46 @@ function GitPolicyPane({
 // ─── Hooks pane ───────────────────────────────────────────────
 
 const SKILL_OVERRIDE_OPTIONS: { value: HookSkillOverride; label: string }[] = [
-  { value: 'inherit', label: 'Inherit' },
-  { value: 'enable', label: 'Enable' },
-  { value: 'disable', label: 'Disable' },
+  { value: "inherit", label: "Inherit" },
+  { value: "enable", label: "Enable" },
+  { value: "disable", label: "Disable" },
 ];
 
-const TRIGGER_GROUPS: { trigger: HookTrigger; label: string; description: string; Icon: typeof ListChecks; iconColor: string }[] = [
-  { trigger: 'pre-implementation', label: 'Pre-Implementation', description: 'Run before agents start', Icon: ListChecks, iconColor: 'text-sky-400' },
-  { trigger: 'post-implementation', label: 'Post-Implementation', description: 'Run after agents finish', Icon: CircleCheck, iconColor: 'text-emerald-400' },
-  { trigger: 'custom', label: 'Custom', description: 'Agent decides when to run', Icon: MessageSquareText, iconColor: 'text-violet-400' },
-  { trigger: 'on-demand', label: 'On-Demand', description: 'Manually triggered', Icon: Hand, iconColor: 'text-amber-400' },
+const TRIGGER_GROUPS: {
+  trigger: HookTrigger;
+  label: string;
+  description: string;
+  Icon: typeof ListChecks;
+  iconColor: string;
+}[] = [
+  {
+    trigger: "pre-implementation",
+    label: "Pre-Implementation",
+    description: "Run before agents start",
+    Icon: ListChecks,
+    iconColor: "text-sky-400",
+  },
+  {
+    trigger: "post-implementation",
+    label: "Post-Implementation",
+    description: "Run after agents finish",
+    Icon: CircleCheck,
+    iconColor: "text-emerald-400",
+  },
+  {
+    trigger: "custom",
+    label: "Custom",
+    description: "Agent decides when to run",
+    Icon: MessageSquareText,
+    iconColor: "text-violet-400",
+  },
+  {
+    trigger: "on-demand",
+    label: "On-Demand",
+    description: "Manually triggered",
+    Icon: Hand,
+    iconColor: "text-amber-400",
+  },
 ];
 
 function HooksPane({
@@ -201,7 +257,22 @@ function HooksPane({
   hookSkills,
   updateHookSkills,
 }: {
-  hooksConfig?: { steps: Array<{ id: string; name: string; command: string; enabled?: boolean; trigger?: HookTrigger; condition?: string }>; skills: Array<{ skillName: string; enabled: boolean; trigger?: HookTrigger; condition?: string }> } | null;
+  hooksConfig?: {
+    steps: Array<{
+      id: string;
+      name: string;
+      command: string;
+      enabled?: boolean;
+      trigger?: HookTrigger;
+      condition?: string;
+    }>;
+    skills: Array<{
+      skillName: string;
+      enabled: boolean;
+      trigger?: HookTrigger;
+      condition?: string;
+    }>;
+  } | null;
   hookSkills?: Record<string, HookSkillOverride>;
   updateHookSkills: (overrides: Record<string, HookSkillOverride>) => void;
 }) {
@@ -210,15 +281,17 @@ function HooksPane({
 
   if (steps.length === 0 && skills.length === 0) {
     return (
-      <p className={`text-xs ${text.dimmed} italic py-1`}>No hooks configured. Add hooks in the Agents view.</p>
+      <p className={`text-xs ${text.dimmed} italic py-1`}>
+        No hooks configured. Add hooks in the Agents view.
+      </p>
     );
   }
 
   return (
     <div className="space-y-7">
       {TRIGGER_GROUPS.map(({ trigger, label, description, Icon, iconColor }) => {
-        const groupSteps = steps.filter((s) => (s.trigger ?? 'post-implementation') === trigger);
-        const groupSkills = skills.filter((s) => (s.trigger ?? 'post-implementation') === trigger);
+        const groupSteps = steps.filter((s) => (s.trigger ?? "post-implementation") === trigger);
+        const groupSkills = skills.filter((s) => (s.trigger ?? "post-implementation") === trigger);
         if (groupSteps.length === 0 && groupSkills.length === 0) return null;
 
         return (
@@ -235,30 +308,36 @@ function HooksPane({
                   <div className="flex items-center gap-2 py-1">
                     <Terminal className={`w-3 h-3 ${text.dimmed} flex-shrink-0`} />
                     <span className={`text-[10px] ${text.muted} flex-shrink-0`}>{step.name}</span>
-                    <code className={`text-[9px] ${text.dimmed} font-mono truncate`}>{step.command}</code>
+                    <code className={`text-[9px] ${text.dimmed} font-mono truncate`}>
+                      {step.command}
+                    </code>
                   </div>
-                  {trigger === 'custom' && step.condition && (
-                    <p className={`text-[9px] text-violet-400/60 italic ml-5 mt-0.5 truncate`}>{step.condition}</p>
+                  {trigger === "custom" && step.condition && (
+                    <p className={`text-[9px] text-violet-400/60 italic ml-5 mt-0.5 truncate`}>
+                      {step.condition}
+                    </p>
                   )}
                 </div>
               ))}
 
               {groupSkills.map((skill) => {
                 const overrideKey = `${trigger}:${skill.skillName}`;
-                const value: HookSkillOverride = hookSkills?.[overrideKey] ?? 'inherit';
+                const value: HookSkillOverride = hookSkills?.[overrideKey] ?? "inherit";
                 return (
                   <div key={overrideKey}>
                     <div className="flex items-center gap-5">
                       <span className={`text-[10px] ${text.muted} w-28 truncate`}>
-                        {skill.skillName.replace(/^verify-/, '')}
+                        {skill.skillName.replace(/^verify-/, "")}
                       </span>
                       <div className="flex gap-0.5 bg-white/[0.04] rounded-md p-0.5">
                         {SKILL_OVERRIDE_OPTIONS.map((opt) => {
-                          let selectedStyle = 'text-[#4b5563] hover:text-[#6b7280]';
+                          let selectedStyle = "text-[#4b5563] hover:text-[#6b7280]";
                           if (value === opt.value) {
-                            if (opt.value === 'enable') selectedStyle = 'bg-emerald-500/[0.15] text-emerald-300';
-                            else if (opt.value === 'disable') selectedStyle = 'bg-red-500/[0.15] text-red-300';
-                            else selectedStyle = 'bg-white/[0.10] text-[#e0e2e5]';
+                            if (opt.value === "enable")
+                              selectedStyle = "bg-emerald-500/[0.15] text-emerald-300";
+                            else if (opt.value === "disable")
+                              selectedStyle = "bg-red-500/[0.15] text-red-300";
+                            else selectedStyle = "bg-white/[0.10] text-[#e0e2e5]";
                           }
                           return (
                             <button
@@ -273,8 +352,10 @@ function HooksPane({
                         })}
                       </div>
                     </div>
-                    {trigger === 'custom' && skill.condition && (
-                      <p className={`text-[9px] text-violet-400/60 italic ml-0.5 mt-0.5 truncate`}>{skill.condition}</p>
+                    {trigger === "custom" && skill.condition && (
+                      <p className={`text-[9px] text-violet-400/60 italic ml-0.5 mt-0.5 truncate`}>
+                        {skill.condition}
+                      </p>
                     )}
                   </div>
                 );
@@ -294,25 +375,31 @@ function DirectionsPane({
   updateSection,
 }: {
   content: string;
-  updateSection: (section: 'personal' | 'aiContext', content: string) => Promise<unknown>;
+  updateSection: (section: "personal" | "aiContext", content: string) => Promise<unknown>;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSaved = useRef('');
+  const lastSaved = useRef("");
 
-  const flushSave = useCallback((value: string) => {
-    if (value !== lastSaved.current) {
-      lastSaved.current = value;
-      updateSection('aiContext', value);
-    }
-  }, [updateSection]);
+  const flushSave = useCallback(
+    (value: string) => {
+      if (value !== lastSaved.current) {
+        lastSaved.current = value;
+        updateSection("aiContext", value);
+      }
+    },
+    [updateSection],
+  );
 
-  const scheduleSave = useCallback((value: string) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => flushSave(value), 600);
-  }, [flushSave]);
+  const scheduleSave = useCallback(
+    (value: string) => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => flushSave(value), 600);
+    },
+    [flushSave],
+  );
 
   const finishEditing = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -321,14 +408,16 @@ function DirectionsPane({
   }, [draft, flushSave]);
 
   useEffect(() => {
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
   }, []);
 
   const autoResize = useCallback((el: HTMLTextAreaElement | null) => {
     textareaRef.current = el;
     if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.max(el.scrollHeight, 80) + 'px';
+    el.style.height = "auto";
+    el.style.height = Math.max(el.scrollHeight, 80) + "px";
     el.focus();
   }, []);
 
@@ -348,12 +437,15 @@ function DirectionsPane({
             setDraft(e.target.value);
             scheduleSave(e.target.value);
             if (textareaRef.current) {
-              textareaRef.current.style.height = 'auto';
-              textareaRef.current.style.height = Math.max(textareaRef.current.scrollHeight, 80) + 'px';
+              textareaRef.current.style.height = "auto";
+              textareaRef.current.style.height =
+                Math.max(textareaRef.current.scrollHeight, 80) + "px";
             }
           }}
           onBlur={finishEditing}
-          onKeyDown={(e) => { if (e.key === 'Escape') finishEditing(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") finishEditing();
+          }}
           placeholder="Directions for AI agents..."
           className={`w-full bg-transparent text-xs ${text.primary} focus:outline-none resize-none placeholder-[#3b4049] leading-relaxed`}
           style={{ minHeight: 80 }}
@@ -370,7 +462,9 @@ function DirectionsPane({
       {content ? (
         <MarkdownContent content={content} />
       ) : (
-        <p className={`text-xs ${notesTheme.emptyText} italic`}>Click to add directions for AI agents...</p>
+        <p className={`text-xs ${notesTheme.emptyText} italic`}>
+          Click to add directions for AI agents...
+        </p>
       )}
     </div>
   );
@@ -397,7 +491,10 @@ function SelectionMenu({
       <Tooltip text="Copy" position="top">
         <button
           type="button"
-          onMouseDown={(e) => { e.preventDefault(); onCopy(); }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onCopy();
+          }}
           className={`p-1.5 rounded-md ${text.dimmed} hover:${text.primary} hover:bg-white/[0.06] transition-colors`}
         >
           <Copy className="w-3.5 h-3.5" />
@@ -406,7 +503,10 @@ function SelectionMenu({
       <Tooltip text="Move to AI context" position="top">
         <button
           type="button"
-          onMouseDown={(e) => { e.preventDefault(); onMoveToAiContext(); }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onMoveToAiContext();
+          }}
           className={`p-1.5 rounded-md ${text.dimmed} hover:text-purple-400 hover:bg-purple-400/[0.08] transition-colors`}
         >
           <Sparkles className="w-3.5 h-3.5" />
@@ -415,7 +515,10 @@ function SelectionMenu({
       <Tooltip text="Add to AI todos" position="top">
         <button
           type="button"
-          onMouseDown={(e) => { e.preventDefault(); onAddTodo(); }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onAddTodo();
+          }}
           className={`p-1.5 rounded-md ${text.dimmed} hover:text-teal-400 hover:bg-teal-400/[0.08] transition-colors`}
         >
           <ListChecks className="w-3.5 h-3.5" />
@@ -439,8 +542,8 @@ function NotePane({
   accentBorder,
 }: {
   content: string;
-  section: 'personal' | 'aiContext';
-  updateSection: (section: 'personal' | 'aiContext', content: string) => Promise<unknown>;
+  section: "personal" | "aiContext";
+  updateSection: (section: "personal" | "aiContext", content: string) => Promise<unknown>;
   onMoveToAiContext?: (selectedText: string) => void;
   onAddTodo?: (text: string) => void;
   placeholder: string;
@@ -449,24 +552,32 @@ function NotePane({
   accentBorder: string;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSaved = useRef('');
-  const [selectionMenu, setSelectionMenu] = useState<{ x: number; y: number; text: string } | null>(null);
+  const lastSaved = useRef("");
+  const [selectionMenu, setSelectionMenu] = useState<{ x: number; y: number; text: string } | null>(
+    null,
+  );
 
-  const flushSave = useCallback((value: string) => {
-    if (value !== lastSaved.current) {
-      lastSaved.current = value;
-      updateSection(section, value);
-    }
-  }, [updateSection, section]);
+  const flushSave = useCallback(
+    (value: string) => {
+      if (value !== lastSaved.current) {
+        lastSaved.current = value;
+        updateSection(section, value);
+      }
+    },
+    [updateSection, section],
+  );
 
-  const scheduleSave = useCallback((value: string) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => flushSave(value), 600);
-  }, [flushSave]);
+  const scheduleSave = useCallback(
+    (value: string) => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => flushSave(value), 600);
+    },
+    [flushSave],
+  );
 
   const finishEditing = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -475,7 +586,9 @@ function NotePane({
   }, [draft, flushSave]);
 
   useEffect(() => {
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
   }, []);
 
   // Detect text selection inside the note pane
@@ -508,8 +621,8 @@ function NotePane({
       });
     };
 
-    document.addEventListener('selectionchange', handleSelectionChange);
-    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => document.removeEventListener("selectionchange", handleSelectionChange);
   }, []);
 
   const clearSelection = () => {
@@ -520,8 +633,8 @@ function NotePane({
   const autoResize = useCallback((el: HTMLTextAreaElement | null) => {
     textareaRef.current = el;
     if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.max(el.scrollHeight, 80) + 'px';
+    el.style.height = "auto";
+    el.style.height = Math.max(el.scrollHeight, 80) + "px";
     el.focus();
   }, []);
 
@@ -541,12 +654,15 @@ function NotePane({
             setDraft(e.target.value);
             scheduleSave(e.target.value);
             if (textareaRef.current) {
-              textareaRef.current.style.height = 'auto';
-              textareaRef.current.style.height = Math.max(textareaRef.current.scrollHeight, 80) + 'px';
+              textareaRef.current.style.height = "auto";
+              textareaRef.current.style.height =
+                Math.max(textareaRef.current.scrollHeight, 80) + "px";
             }
           }}
           onBlur={finishEditing}
-          onKeyDown={(e) => { if (e.key === 'Escape') finishEditing(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") finishEditing();
+          }}
           placeholder={placeholder}
           className={`w-full px-4 py-3 ${accentBg} border ${accentBorder} rounded-lg text-xs ${text.primary} focus:outline-none resize-none placeholder-[#4b5563]`}
           style={{ minHeight: 80 }}

@@ -1,7 +1,7 @@
-import { GitBranch } from 'lucide-react';
-import type { LinearIssueSummary } from '../types';
-import { linearPriority, linearStateType, surface, text } from '../theme';
-import { Tooltip } from './Tooltip';
+import { GitBranch } from "lucide-react";
+import type { LinearIssueSummary } from "../types";
+import { linearPriority, linearStateType, surface, text } from "../theme";
+import { Tooltip } from "./Tooltip";
 
 interface LinearIssueItemProps {
   issue: LinearIssueSummary;
@@ -13,7 +13,15 @@ interface LinearIssueItemProps {
   showStatus?: boolean;
 }
 
-export function LinearIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, onViewWorktree, showPriority = true, showStatus = true }: LinearIssueItemProps) {
+export function LinearIssueItem({
+  issue,
+  isSelected,
+  onSelect,
+  linkedWorktreeId,
+  onViewWorktree,
+  showPriority = true,
+  showStatus = true,
+}: LinearIssueItemProps) {
   const stateTypeLower = issue.state.type.toLowerCase();
   const stateClasses = linearStateType[stateTypeLower] ?? `${text.secondary} bg-white/[0.06]`;
 
@@ -34,7 +42,9 @@ export function LinearIssueItem({ issue, isSelected, onSelect, linkedWorktreeId,
               {issue.identifier}
             </span>
             {showStatus && (
-              <span className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${stateClasses}`}>
+              <span
+                className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${stateClasses}`}
+              >
                 {issue.state.name}
               </span>
             )}
@@ -44,9 +54,7 @@ export function LinearIssueItem({ issue, isSelected, onSelect, linkedWorktreeId,
               </span>
             )}
           </div>
-          <div className={`text-xs ${text.primary} truncate mt-0.5`}>
-            {issue.title}
-          </div>
+          <div className={`text-xs ${text.primary} truncate mt-0.5`}>{issue.title}</div>
         </div>
         {linkedWorktreeId && (
           <Tooltip position="right" text="View worktree">

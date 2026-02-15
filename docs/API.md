@@ -707,14 +707,16 @@ Scan the filesystem for MCP server definitions in agent config files.
 - **Response**:
   ```json
   {
-    "discovered": [{
-      "key": "server-name",
-      "command": "npx",
-      "args": ["..."],
-      "env": {},
-      "foundIn": [{ "configPath": "..." }],
-      "alreadyInRegistry": false
-    }]
+    "discovered": [
+      {
+        "key": "server-name",
+        "command": "npx",
+        "args": ["..."],
+        "env": {},
+        "foundIn": [{ "configPath": "..." }],
+        "alreadyInRegistry": false
+      }
+    ]
   }
   ```
 
@@ -725,14 +727,16 @@ Bulk import discovered servers into the registry.
 - **Request**:
   ```json
   {
-    "servers": [{
-      "key": "server-name",
-      "name": "Display Name",
-      "command": "npx",
-      "args": ["..."],
-      "env": {},
-      "source": "/path/to/config"
-    }]
+    "servers": [
+      {
+        "key": "server-name",
+        "name": "Display Name",
+        "command": "npx",
+        "args": ["..."],
+        "env": {},
+        "source": "/path/to/config"
+      }
+    ]
   }
   ```
 - **Response**: `{ success: true, imported: ["server-name", ...] }`
@@ -940,22 +944,28 @@ List installed Claude plugins with component counts and health status.
 - **Response**:
   ```json
   {
-    "plugins": [{
-      "id": "plugin-id",
-      "name": "Plugin Name",
-      "description": "...",
-      "version": "1.0.0",
-      "scope": "user",
-      "enabled": true,
-      "marketplace": "...",
-      "author": "...",
-      "error": null,
-      "warning": "Needs authentication",
-      "componentCounts": {
-        "commands": 2, "agents": 1, "skills": 3,
-        "mcpServers": 1, "hooks": false, "lsp": false
+    "plugins": [
+      {
+        "id": "plugin-id",
+        "name": "Plugin Name",
+        "description": "...",
+        "version": "1.0.0",
+        "scope": "user",
+        "enabled": true,
+        "marketplace": "...",
+        "author": "...",
+        "error": null,
+        "warning": "Needs authentication",
+        "componentCounts": {
+          "commands": 2,
+          "agents": 1,
+          "skills": 3,
+          "mcpServers": 1,
+          "hooks": false,
+          "lsp": false
+        }
       }
-    }],
+    ],
     "cliAvailable": true
   }
   ```
@@ -975,14 +985,16 @@ List available plugins from configured marketplaces.
 - **Response**:
   ```json
   {
-    "available": [{
-      "pluginId": "...",
-      "name": "...",
-      "description": "...",
-      "marketplaceName": "...",
-      "version": "...",
-      "installed": false
-    }]
+    "available": [
+      {
+        "pluginId": "...",
+        "name": "...",
+        "description": "...",
+        "marketplaceName": "...",
+        "version": "...",
+        "installed": false
+      }
+    ]
   }
   ```
 
@@ -1239,7 +1251,12 @@ Upload a file attachment to a task. Uses `multipart/form-data`.
   ```json
   {
     "success": true,
-    "attachment": { "filename": "image.png", "mimeType": "image/png", "size": 12345, "localPath": "..." }
+    "attachment": {
+      "filename": "image.png",
+      "mimeType": "image/png",
+      "size": 12345,
+      "localPath": "..."
+    }
   }
   ```
 
@@ -1291,6 +1308,7 @@ Destroy a terminal session.
 WebSocket endpoint for bidirectional terminal communication. Upgrades the HTTP connection to a WebSocket.
 
 **Protocol**:
+
 - **Client to Server**: Send raw terminal input as text/binary frames
 - **Server to Client**: Receive PTY output as text/binary frames
 - **Connection**: Automatically attaches to the PTY session on open; closes with code `1008` if session not found

@@ -1,7 +1,7 @@
 // -- Config types (stored in integrations.json) --
 
 export interface DataLifecycleConfig {
-  saveOn: 'view' | 'worktree-creation' | 'never';
+  saveOn: "view" | "worktree-creation" | "never";
   autoCleanup: {
     enabled: boolean;
     statusTriggers: string[];
@@ -70,7 +70,7 @@ export interface LinearIssueDetail extends LinearIssueSummary {
 }
 
 export interface LinearTaskData {
-  source: 'linear';
+  source: "linear";
   identifier: string;
   title: string;
   description: string | null;

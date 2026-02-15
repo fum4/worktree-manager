@@ -1,23 +1,41 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Check, ChevronDown, Download, GitCommit, Link, Loader2, LogIn, Plug, Settings, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Download,
+  GitCommit,
+  Link,
+  Loader2,
+  LogIn,
+  Plug,
+  Settings,
+  Sparkles,
+} from "lucide-react";
 
-import { APP_NAME, CONFIG_DIR_NAME } from '../../constants';
-import { useApi } from '../hooks/useApi';
-import type { DetectedConfig } from '../hooks/api';
-import { fetchGitHubStatus, fetchJiraStatus, fetchLinearStatus } from '../hooks/api';
-import { useServerUrlOptional } from '../contexts/ServerContext';
-import type { GitHubStatus, JiraStatus, LinearStatus } from '../types';
-import { button, input, surface, text } from '../theme';
-import { AGENT_CONFIGS, type AgentId, type McpScope } from '../agent-configs';
-import { GitHubIcon, JiraIcon, LinearIcon } from './icons';
+import { APP_NAME, CONFIG_DIR_NAME } from "../../constants";
+import { useApi } from "../hooks/useApi";
+import type { DetectedConfig } from "../hooks/api";
+import { fetchGitHubStatus, fetchJiraStatus, fetchLinearStatus } from "../hooks/api";
+import { useServerUrlOptional } from "../contexts/ServerContext";
+import type { GitHubStatus, JiraStatus, LinearStatus } from "../types";
+import { button, input, surface, text } from "../theme";
+import { AGENT_CONFIGS, type AgentId, type McpScope } from "../agent-configs";
+import { GitHubIcon, JiraIcon, LinearIcon } from "./icons";
 
 interface ProjectSetupScreenProps {
   projectName: string | null;
   onSetupComplete: () => void;
-  onRememberChoice?: (choice: 'auto' | 'manual') => void;
+  onRememberChoice?: (choice: "auto" | "manual") => void;
 }
 
-type SetupMode = 'choice' | 'manual' | 'agents' | 'commit-prompt' | 'integrations' | 'getting-started';
+type SetupMode =
+  | "choice"
+  | "manual"
+  | "agents"
+  | "commit-prompt"
+  | "integrations"
+  | "getting-started";
 
 export function ProjectSetupScreen({
   projectName,
@@ -26,7 +44,7 @@ export function ProjectSetupScreen({
 }: ProjectSetupScreenProps) {
   const api = useApi();
   const serverUrl = useServerUrlOptional();
-  const [mode, setMode] = useState<SetupMode>('choice');
+  const [mode, setMode] = useState<SetupMode>("choice");
   const [rememberChoice, setRememberChoice] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +57,7 @@ export function ProjectSetupScreen({
 
   // Fetch GitHub status when entering commit-prompt
   useEffect(() => {
-    if (mode !== 'commit-prompt') return;
+    if (mode !== "commit-prompt") return;
     fetchGitHubStatus(serverUrl).then(setGhStatus);
   }, [mode, serverUrl]);
 
@@ -68,15 +86,21 @@ export function ProjectSetupScreen({
     setGhLoading(false);
     if (result.success) {
       if (result.code) {
-        try { await navigator.clipboard.writeText(result.code); } catch { /* ignore */ }
-        setError(`Code ${result.code} copied to clipboard! Paste it in your browser to authenticate.`);
+        try {
+          await navigator.clipboard.writeText(result.code);
+        } catch {
+          /* ignore */
+        }
+        setError(
+          `Code ${result.code} copied to clipboard! Paste it in your browser to authenticate.`,
+        );
         setGhWaitingForAuth(true);
       }
       // Refresh status
       const data = await fetchGitHubStatus(serverUrl);
       setGhStatus(data);
     } else {
-      setError(result.error ?? 'Failed to install gh CLI');
+      setError(result.error ?? "Failed to install gh CLI");
     }
   }, [api, serverUrl]);
 
@@ -86,34 +110,44 @@ export function ProjectSetupScreen({
     const result = await api.loginGitHub();
     setGhLoading(false);
     if (result.success && result.code) {
-      try { await navigator.clipboard.writeText(result.code); } catch { /* ignore */ }
-      setError(`Code ${result.code} copied to clipboard! Paste it in your browser to authenticate.`);
+      try {
+        await navigator.clipboard.writeText(result.code);
+      } catch {
+        /* ignore */
+      }
+      setError(
+        `Code ${result.code} copied to clipboard! Paste it in your browser to authenticate.`,
+      );
       setGhWaitingForAuth(true);
     } else if (!result.success) {
-      setError(result.error ?? 'Failed to authenticate');
+      setError(result.error ?? "Failed to authenticate");
     }
   }, [api]);
 
   // Form values for manual setup
   const [detectedConfig, setDetectedConfig] = useState<DetectedConfig | null>(null);
   const [formValues, setFormValues] = useState<DetectedConfig>({
-    baseBranch: 'origin/main',
-    startCommand: 'npm run dev',
-    installCommand: 'npm install',
+    baseBranch: "origin/main",
+    startCommand: "npm run dev",
+    installCommand: "npm install",
   });
   const [showAll, setShowAll] = useState(false);
   const [extraValues, setExtraValues] = useState({
-    projectDir: '',
+    projectDir: "",
     autoInstall: true,
-    localIssuePrefix: 'LOCAL',
+    localIssuePrefix: "LOCAL",
   });
 
   // Commit message for the commit prompt
   const [commitMessage, setCommitMessage] = useState(`chore: initialize ${APP_NAME} configuration`);
 
   // Agents step state
-  const [agentStatuses, setAgentStatuses] = useState<Record<string, { global?: boolean; project?: boolean }>>({});
-  const [agentDesired, setAgentDesired] = useState<Record<string, { global: boolean; project: boolean }>>({});
+  const [agentStatuses, setAgentStatuses] = useState<
+    Record<string, { global?: boolean; project?: boolean }>
+  >({});
+  const [agentDesired, setAgentDesired] = useState<
+    Record<string, { global: boolean; project: boolean }>
+  >({});
   const [agentsApplying, setAgentsApplying] = useState(false);
   const [agentsError, setAgentsError] = useState<string | null>(null);
 
@@ -125,29 +159,40 @@ export function ProjectSetupScreen({
   }, [agentDesired]);
 
   // Integrations step state
-  const [expandedIntegration, setExpandedIntegration] = useState<'github' | 'jira' | 'linear' | null>(null);
+  const [expandedIntegration, setExpandedIntegration] = useState<
+    "github" | "jira" | "linear" | null
+  >(null);
   const [intJiraStatus, setIntJiraStatus] = useState<JiraStatus | null>(null);
   const [intLinearStatus, setIntLinearStatus] = useState<LinearStatus | null>(null);
   const [intGhStatus, setIntGhStatus] = useState<GitHubStatus | null>(null);
   const [intGhWaiting, setIntGhWaiting] = useState(false);
   const intGhPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Jira setup form
-  const [jiraBaseUrl, setJiraBaseUrl] = useState('');
-  const [jiraEmail, setJiraEmail] = useState('');
-  const [jiraToken, setJiraToken] = useState('');
+  const [jiraBaseUrl, setJiraBaseUrl] = useState("");
+  const [jiraEmail, setJiraEmail] = useState("");
+  const [jiraToken, setJiraToken] = useState("");
   const [jiraSaving, setJiraSaving] = useState(false);
-  const [jiraFeedback, setJiraFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [jiraFeedback, setJiraFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   // Linear setup form
-  const [linearApiKey, setLinearApiKey] = useState('');
+  const [linearApiKey, setLinearApiKey] = useState("");
   const [linearSaving, setLinearSaving] = useState(false);
-  const [linearFeedback, setLinearFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [linearFeedback, setLinearFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   // GitHub setup in integrations
   const [intGhLoading, setIntGhLoading] = useState(false);
-  const [intGhFeedback, setIntGhFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [intGhFeedback, setIntGhFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   // Fetch all integration statuses when entering integrations step
   useEffect(() => {
-    if (mode !== 'integrations') return;
+    if (mode !== "integrations") return;
     fetchGitHubStatus(serverUrl).then(setIntGhStatus);
     fetchJiraStatus(serverUrl).then(setIntJiraStatus);
     fetchLinearStatus(serverUrl).then(setIntLinearStatus);
@@ -180,14 +225,21 @@ export function ProjectSetupScreen({
     setIntGhLoading(false);
     if (result.success) {
       if (result.code) {
-        try { await navigator.clipboard.writeText(result.code); } catch { /* ignore */ }
-        setIntGhFeedback({ type: 'success', message: `Code ${result.code} copied! Paste it in your browser.` });
+        try {
+          await navigator.clipboard.writeText(result.code);
+        } catch {
+          /* ignore */
+        }
+        setIntGhFeedback({
+          type: "success",
+          message: `Code ${result.code} copied! Paste it in your browser.`,
+        });
         setIntGhWaiting(true);
       }
       const data = await fetchGitHubStatus(serverUrl);
       setIntGhStatus(data);
     } else {
-      setIntGhFeedback({ type: 'error', message: result.error ?? 'Failed to install gh CLI' });
+      setIntGhFeedback({ type: "error", message: result.error ?? "Failed to install gh CLI" });
     }
   }, [api, serverUrl]);
 
@@ -197,11 +249,18 @@ export function ProjectSetupScreen({
     const result = await api.loginGitHub();
     setIntGhLoading(false);
     if (result.success && result.code) {
-      try { await navigator.clipboard.writeText(result.code); } catch { /* ignore */ }
-      setIntGhFeedback({ type: 'success', message: `Code ${result.code} copied! Paste it in your browser.` });
+      try {
+        await navigator.clipboard.writeText(result.code);
+      } catch {
+        /* ignore */
+      }
+      setIntGhFeedback({
+        type: "success",
+        message: `Code ${result.code} copied! Paste it in your browser.`,
+      });
       setIntGhWaiting(true);
     } else if (!result.success) {
-      setIntGhFeedback({ type: 'error', message: result.error ?? 'Failed to start login' });
+      setIntGhFeedback({ type: "error", message: result.error ?? "Failed to start login" });
     }
   }, [api]);
 
@@ -213,12 +272,12 @@ export function ProjectSetupScreen({
     setJiraSaving(false);
     if (result.success) {
       setJiraFeedback(null);
-      setJiraBaseUrl('');
-      setJiraEmail('');
-      setJiraToken('');
+      setJiraBaseUrl("");
+      setJiraEmail("");
+      setJiraToken("");
       fetchJiraStatus(serverUrl).then(setIntJiraStatus);
     } else {
-      setJiraFeedback({ type: 'error', message: result.error ?? 'Failed to connect' });
+      setJiraFeedback({ type: "error", message: result.error ?? "Failed to connect" });
     }
     setTimeout(() => setJiraFeedback(null), 4000);
   }, [api, jiraBaseUrl, jiraEmail, jiraToken, serverUrl]);
@@ -231,10 +290,10 @@ export function ProjectSetupScreen({
     setLinearSaving(false);
     if (result.success) {
       setLinearFeedback(null);
-      setLinearApiKey('');
+      setLinearApiKey("");
       fetchLinearStatus(serverUrl).then(setIntLinearStatus);
     } else {
-      setLinearFeedback({ type: 'error', message: result.error ?? 'Failed to connect' });
+      setLinearFeedback({ type: "error", message: result.error ?? "Failed to connect" });
     }
     setTimeout(() => setLinearFeedback(null), 4000);
   }, [api, linearApiKey, serverUrl]);
@@ -251,7 +310,7 @@ export function ProjectSetupScreen({
 
   // Fetch agent statuses when entering agents step
   useEffect(() => {
-    if (mode === 'agents') {
+    if (mode === "agents") {
       api.fetchMcpStatus().then((result) => {
         setAgentStatuses(result.statuses);
         const desired: Record<string, { global: boolean; project: boolean }> = {};
@@ -274,21 +333,21 @@ export function ProjectSetupScreen({
       const result = await api.initConfig({});
       if (result.success) {
         if (rememberChoice) {
-          onRememberChoice?.('auto');
+          onRememberChoice?.("auto");
         }
-        setMode('agents');
+        setMode("agents");
       } else {
-        setError(result.error ?? 'Failed to initialize config');
+        setError(result.error ?? "Failed to initialize config");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to initialize config');
+      setError(e instanceof Error ? e.message : "Failed to initialize config");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleManualSetup = () => {
-    setMode('manual');
+    setMode("manual");
   };
 
   const handleManualSubmit = async () => {
@@ -299,42 +358,42 @@ export function ProjectSetupScreen({
       const result = await api.initConfig({ ...formValues, ...extraValues });
       if (result.success) {
         if (rememberChoice) {
-          onRememberChoice?.('manual');
+          onRememberChoice?.("manual");
         }
-        setMode('agents');
+        setMode("agents");
       } else {
-        setError(result.error ?? 'Failed to initialize config');
+        setError(result.error ?? "Failed to initialize config");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to initialize config');
+      setError(e instanceof Error ? e.message : "Failed to initialize config");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleBack = () => {
-    setMode('choice');
+    setMode("choice");
     setError(null);
   };
 
   const handleAgentsSetup = async () => {
-    const changes: { agentId: AgentId; scope: McpScope; action: 'setup' | 'remove' }[] = [];
+    const changes: { agentId: AgentId; scope: McpScope; action: "setup" | "remove" }[] = [];
 
     for (const agent of AGENT_CONFIGS) {
       const desired = agentDesired[agent.id];
       const current = agentStatuses[agent.id];
       if (!desired) continue;
 
-      for (const scope of ['global', 'project'] as McpScope[]) {
+      for (const scope of ["global", "project"] as McpScope[]) {
         const wantEnabled = desired[scope];
         const isEnabled = current?.[scope] === true;
-        if (wantEnabled && !isEnabled) changes.push({ agentId: agent.id, scope, action: 'setup' });
-        if (!wantEnabled && isEnabled) changes.push({ agentId: agent.id, scope, action: 'remove' });
+        if (wantEnabled && !isEnabled) changes.push({ agentId: agent.id, scope, action: "setup" });
+        if (!wantEnabled && isEnabled) changes.push({ agentId: agent.id, scope, action: "remove" });
       }
     }
 
     if (changes.length === 0) {
-      setMode('commit-prompt');
+      setMode("commit-prompt");
       return;
     }
 
@@ -343,27 +402,28 @@ export function ProjectSetupScreen({
 
     const errors: string[] = [];
     for (const { agentId, scope, action } of changes) {
-      const result = action === 'setup'
-        ? await api.setupMcpAgent(agentId, scope)
-        : await api.removeMcpAgent(agentId, scope);
+      const result =
+        action === "setup"
+          ? await api.setupMcpAgent(agentId, scope)
+          : await api.removeMcpAgent(agentId, scope);
       if (!result.success) {
         const agent = AGENT_CONFIGS.find((a) => a.id === agentId)!;
-        errors.push(`${agent.name} (${scope}): ${result.error ?? 'failed'}`);
+        errors.push(`${agent.name} (${scope}): ${result.error ?? "failed"}`);
       }
     }
 
     setAgentsApplying(false);
 
     if (errors.length > 0) {
-      setAgentsError(errors.join(', '));
+      setAgentsError(errors.join(", "));
     } else {
-      setMode('commit-prompt');
+      setMode("commit-prompt");
     }
   };
 
   const handleCommitConfig = async () => {
     if (!commitMessage.trim()) {
-      setError('Commit message is required');
+      setError("Commit message is required");
       return;
     }
 
@@ -373,22 +433,22 @@ export function ProjectSetupScreen({
     try {
       const result = await api.commitSetup(commitMessage.trim());
       if (result.success) {
-        setMode('integrations');
+        setMode("integrations");
       } else {
-        setError(result.error ?? 'Failed to commit config');
+        setError(result.error ?? "Failed to commit config");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to commit config');
+      setError(e instanceof Error ? e.message : "Failed to commit config");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSkipCommit = () => {
-    setMode('integrations');
+    setMode("integrations");
   };
 
-  if (mode === 'integrations') {
+  if (mode === "integrations") {
     const integrationInput = `w-full px-2.5 py-1.5 rounded-md text-xs bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all`;
     const ghReady = intGhStatus?.installed && intGhStatus?.authenticated;
     const ghNeedsInstall = intGhStatus && !intGhStatus.installed;
@@ -399,7 +459,7 @@ export function ProjectSetupScreen({
     const connectedCount = [ghReady, jiraConfigured, linearConfigured].filter(Boolean).length;
 
     const integrations: {
-      id: 'github' | 'jira' | 'linear';
+      id: "github" | "jira" | "linear";
       name: string;
       description: string;
       color: string;
@@ -410,34 +470,34 @@ export function ProjectSetupScreen({
       icon: React.ReactNode;
     }[] = [
       {
-        id: 'github',
-        name: 'GitHub',
-        description: 'Commits, pushes, and pull requests',
-        color: 'text-[#2dd4bf]',
-        colorBg: 'bg-[#2dd4bf]/10',
-        borderColor: 'border-[#2dd4bf]/30',
+        id: "github",
+        name: "GitHub",
+        description: "Commits, pushes, and pull requests",
+        color: "text-[#2dd4bf]",
+        colorBg: "bg-[#2dd4bf]/10",
+        borderColor: "border-[#2dd4bf]/30",
         connected: !!ghReady,
         connectedLabel: intGhStatus?.username ? `@${intGhStatus.username}` : undefined,
         icon: <GitHubIcon className="w-[18px] h-[18px]" />,
       },
       {
-        id: 'jira',
-        name: 'Jira',
-        description: 'Create worktrees from Jira issues',
-        color: 'text-blue-400',
-        colorBg: 'bg-blue-500/10',
-        borderColor: 'border-blue-400/30',
+        id: "jira",
+        name: "Jira",
+        description: "Create worktrees from Jira issues",
+        color: "text-blue-400",
+        colorBg: "bg-blue-500/10",
+        borderColor: "border-blue-400/30",
         connected: jiraConfigured,
         connectedLabel: intJiraStatus?.domain ?? undefined,
         icon: <JiraIcon className="w-[18px] h-[18px]" />,
       },
       {
-        id: 'linear',
-        name: 'Linear',
-        description: 'Create worktrees from Linear issues',
-        color: 'text-[#5E6AD2]',
-        colorBg: 'bg-[#5E6AD2]/10',
-        borderColor: 'border-[#5E6AD2]/30',
+        id: "linear",
+        name: "Linear",
+        description: "Create worktrees from Linear issues",
+        color: "text-[#5E6AD2]",
+        colorBg: "bg-[#5E6AD2]/10",
+        borderColor: "border-[#5E6AD2]/30",
         connected: linearConfigured,
         connectedLabel: intLinearStatus?.displayName ?? undefined,
         icon: <LinearIcon className="w-[18px] h-[18px]" />,
@@ -451,9 +511,7 @@ export function ProjectSetupScreen({
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-[#5E6AD2]/10 mb-4">
               <Link className="w-8 h-8 text-blue-400" />
             </div>
-            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>
-              Connect Integrations
-            </h1>
+            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>Connect Integrations</h1>
             <p className={`text-sm ${text.secondary} leading-relaxed`}>
               Link your tools to create worktrees directly from issues
               <br />
@@ -473,8 +531,8 @@ export function ProjectSetupScreen({
                     isExpanded
                       ? integration.borderColor
                       : isConnected
-                        ? 'border-white/[0.08]'
-                        : 'border-white/[0.08] hover:border-white/[0.12]'
+                        ? "border-white/[0.08]"
+                        : "border-white/[0.08] hover:border-white/[0.12]"
                   }`}
                 >
                   {/* Card header — always visible */}
@@ -482,14 +540,18 @@ export function ProjectSetupScreen({
                     onClick={() => setExpandedIntegration(isExpanded ? null : integration.id)}
                     className="flex items-center gap-3.5 w-full p-4 text-left group"
                   >
-                    <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isConnected ? integration.colorBg : 'bg-white/[0.04]'} transition-colors`}>
+                    <div
+                      className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isConnected ? integration.colorBg : "bg-white/[0.04]"} transition-colors`}
+                    >
                       <span className={isConnected ? integration.color : text.muted}>
                         {integration.icon}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className={`text-sm font-medium ${text.primary}`}>{integration.name}</h3>
+                        <h3 className={`text-sm font-medium ${text.primary}`}>
+                          {integration.name}
+                        </h3>
                         {isConnected && (
                           <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-medium">
                             <Check className="w-3 h-3" />
@@ -498,10 +560,14 @@ export function ProjectSetupScreen({
                         )}
                       </div>
                       <p className={`text-xs ${text.muted} leading-relaxed truncate`}>
-                        {isConnected && integration.connectedLabel ? integration.connectedLabel : integration.description}
+                        {isConnected && integration.connectedLabel
+                          ? integration.connectedLabel
+                          : integration.description}
                       </p>
                     </div>
-                    <ChevronDown className={`w-4 h-4 ${text.dimmed} transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    <ChevronDown
+                      className={`w-4 h-4 ${text.dimmed} transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                    />
                   </button>
 
                   {/* Expanded setup form */}
@@ -509,27 +575,33 @@ export function ProjectSetupScreen({
                     <div className="px-4 pb-4 pt-0">
                       <div className="border-t border-white/[0.06] pt-4">
                         {/* GitHub */}
-                        {integration.id === 'github' && (
+                        {integration.id === "github" && (
                           <>
                             {isConnected ? (
                               <div className="flex flex-col gap-2 text-left">
                                 <div className="flex items-center gap-2">
                                   <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
                                   <span className={`text-xs ${text.secondary}`}>
-                                    Authenticated as <span className="font-medium text-white">{intGhStatus?.username}</span>
+                                    Authenticated as{" "}
+                                    <span className="font-medium text-white">
+                                      {intGhStatus?.username}
+                                    </span>
                                   </span>
                                 </div>
                                 {intGhStatus?.repo && (
                                   <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-                                    <span className={`text-xs ${text.secondary}`}>{intGhStatus.repo}</span>
+                                    <span className={`text-xs ${text.secondary}`}>
+                                      {intGhStatus.repo}
+                                    </span>
                                   </div>
                                 )}
                               </div>
                             ) : ghNeedsInstall ? (
                               <div className="flex flex-col gap-3 text-left">
                                 <p className={`text-xs ${text.muted} leading-relaxed`}>
-                                  Install the GitHub CLI to enable commits, pushes, and pull requests.
+                                  Install the GitHub CLI to enable commits, pushes, and pull
+                                  requests.
                                 </p>
                                 <button
                                   onClick={handleIntGhConnect}
@@ -537,9 +609,15 @@ export function ProjectSetupScreen({
                                   className={`text-xs px-3.5 py-2 rounded-lg font-medium ${button.primary} disabled:opacity-50 self-start transition-all flex items-center gap-2`}
                                 >
                                   {intGhLoading ? (
-                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Installing...</>
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      Installing...
+                                    </>
                                   ) : (
-                                    <><Download className="w-3.5 h-3.5" />Install & Connect</>
+                                    <>
+                                      <Download className="w-3.5 h-3.5" />
+                                      Install & Connect
+                                    </>
                                   )}
                                 </button>
                               </div>
@@ -554,16 +632,24 @@ export function ProjectSetupScreen({
                                   className={`text-xs px-3.5 py-2 rounded-lg font-medium ${button.primary} disabled:opacity-50 self-start transition-all flex items-center gap-2`}
                                 >
                                   {intGhLoading ? (
-                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Authenticating...</>
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      Authenticating...
+                                    </>
                                   ) : (
-                                    <><LogIn className="w-3.5 h-3.5" />Authenticate</>
+                                    <>
+                                      <LogIn className="w-3.5 h-3.5" />
+                                      Authenticate
+                                    </>
                                   )}
                                 </button>
                               </div>
                             ) : intGhWaiting ? (
                               <div className="flex items-center justify-center gap-2 py-2">
                                 <Loader2 className="w-4 h-4 animate-spin text-[#2dd4bf]" />
-                                <span className={`text-xs ${text.secondary}`}>Waiting for authentication...</span>
+                                <span className={`text-xs ${text.secondary}`}>
+                                  Waiting for authentication...
+                                </span>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-2 py-2">
@@ -572,7 +658,9 @@ export function ProjectSetupScreen({
                               </div>
                             )}
                             {intGhFeedback && (
-                              <p className={`mt-2 text-xs ${intGhFeedback.type === 'success' ? 'text-[#2dd4bf]' : text.error}`}>
+                              <p
+                                className={`mt-2 text-xs ${intGhFeedback.type === "success" ? "text-[#2dd4bf]" : text.error}`}
+                              >
                                 {intGhFeedback.message}
                               </p>
                             )}
@@ -580,30 +668,37 @@ export function ProjectSetupScreen({
                         )}
 
                         {/* Jira */}
-                        {integration.id === 'jira' && (
+                        {integration.id === "jira" && (
                           <>
                             {isConnected ? (
                               <div className="flex flex-col gap-2 text-left">
                                 {intJiraStatus?.domain && (
                                   <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-                                    <span className={`text-xs ${text.secondary}`}>{intJiraStatus.domain}</span>
+                                    <span className={`text-xs ${text.secondary}`}>
+                                      {intJiraStatus.domain}
+                                    </span>
                                   </div>
                                 )}
                                 {intJiraStatus?.email && (
                                   <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-                                    <span className={`text-xs ${text.secondary}`}>{intJiraStatus.email}</span>
+                                    <span className={`text-xs ${text.secondary}`}>
+                                      {intJiraStatus.email}
+                                    </span>
                                   </div>
                                 )}
                                 <p className={`text-[11px] ${text.dimmed} mt-1`}>
-                                  You can configure project key and refresh settings in the Integrations panel later.
+                                  You can configure project key and refresh settings in the
+                                  Integrations panel later.
                                 </p>
                               </div>
                             ) : (
                               <div className="flex flex-col gap-3 text-left">
                                 <div className="flex flex-col gap-1.5">
-                                  <label className={`text-[10px] font-medium ${text.muted}`}>Base URL</label>
+                                  <label className={`text-[10px] font-medium ${text.muted}`}>
+                                    Base URL
+                                  </label>
                                   <input
                                     value={jiraBaseUrl}
                                     onChange={(e) => setJiraBaseUrl(e.target.value)}
@@ -612,7 +707,9 @@ export function ProjectSetupScreen({
                                   />
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                  <label className={`text-[10px] font-medium ${text.muted}`}>Email</label>
+                                  <label className={`text-[10px] font-medium ${text.muted}`}>
+                                    Email
+                                  </label>
                                   <input
                                     value={jiraEmail}
                                     onChange={(e) => setJiraEmail(e.target.value)}
@@ -621,7 +718,9 @@ export function ProjectSetupScreen({
                                   />
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                  <label className={`text-[10px] font-medium ${text.muted}`}>API Token</label>
+                                  <label className={`text-[10px] font-medium ${text.muted}`}>
+                                    API Token
+                                  </label>
                                   <div className="relative">
                                     <input
                                       type="password"
@@ -646,13 +745,20 @@ export function ProjectSetupScreen({
                                   className={`text-xs px-3.5 py-2 rounded-lg font-medium ${button.primary} disabled:opacity-50 self-start transition-all flex items-center gap-2`}
                                 >
                                   {jiraSaving ? (
-                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Connecting...</>
-                                  ) : 'Connect'}
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      Connecting...
+                                    </>
+                                  ) : (
+                                    "Connect"
+                                  )}
                                 </button>
                               </div>
                             )}
                             {jiraFeedback && (
-                              <p className={`mt-2 text-xs ${jiraFeedback.type === 'success' ? 'text-blue-400' : text.error}`}>
+                              <p
+                                className={`mt-2 text-xs ${jiraFeedback.type === "success" ? "text-blue-400" : text.error}`}
+                              >
                                 {jiraFeedback.message}
                               </p>
                             )}
@@ -660,24 +766,29 @@ export function ProjectSetupScreen({
                         )}
 
                         {/* Linear */}
-                        {integration.id === 'linear' && (
+                        {integration.id === "linear" && (
                           <>
                             {isConnected ? (
                               <div className="flex flex-col gap-2 text-left">
                                 {intLinearStatus?.displayName && (
                                   <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-                                    <span className={`text-xs ${text.secondary}`}>{intLinearStatus.displayName}</span>
+                                    <span className={`text-xs ${text.secondary}`}>
+                                      {intLinearStatus.displayName}
+                                    </span>
                                   </div>
                                 )}
                                 <p className={`text-[11px] ${text.dimmed} mt-1`}>
-                                  You can configure team key and refresh settings in the Integrations panel later.
+                                  You can configure team key and refresh settings in the
+                                  Integrations panel later.
                                 </p>
                               </div>
                             ) : (
                               <div className="flex flex-col gap-3 text-left">
                                 <div className="flex flex-col gap-1.5">
-                                  <label className={`text-[10px] font-medium ${text.muted}`}>API Key</label>
+                                  <label className={`text-[10px] font-medium ${text.muted}`}>
+                                    API Key
+                                  </label>
                                   <div className="relative">
                                     <input
                                       type="password"
@@ -702,13 +813,20 @@ export function ProjectSetupScreen({
                                   className={`text-xs px-3.5 py-2 rounded-lg font-medium ${button.primary} disabled:opacity-50 self-start transition-all flex items-center gap-2`}
                                 >
                                   {linearSaving ? (
-                                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Connecting...</>
-                                  ) : 'Connect'}
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      Connecting...
+                                    </>
+                                  ) : (
+                                    "Connect"
+                                  )}
                                 </button>
                               </div>
                             )}
                             {linearFeedback && (
-                              <p className={`mt-2 text-xs ${linearFeedback.type === 'success' ? 'text-[#5E6AD2]' : text.error}`}>
+                              <p
+                                className={`mt-2 text-xs ${linearFeedback.type === "success" ? "text-[#5E6AD2]" : text.error}`}
+                              >
                                 {linearFeedback.message}
                               </p>
                             )}
@@ -724,13 +842,19 @@ export function ProjectSetupScreen({
 
           <div className="space-y-3">
             <button
-              onClick={() => setMode('getting-started')}
+              onClick={() => setMode("getting-started")}
               className={`w-full px-4 py-2.5 text-sm font-medium ${button.primary} rounded-xl transition-colors flex items-center justify-center gap-2`}
             >
               {connectedCount > 0 ? (
-                <>Continue<ArrowRight className="w-4 h-4" /></>
+                <>
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
+                </>
               ) : (
-                <>Continue without integrations<ArrowRight className="w-4 h-4" /></>
+                <>
+                  Continue without integrations
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
             </button>
             {connectedCount === 0 && (
@@ -744,12 +868,14 @@ export function ProjectSetupScreen({
     );
   }
 
-  if (mode === 'getting-started') {
+  if (mode === "getting-started") {
     // Build a summary of what was configured during setup
     const configuredItems: { label: string; color: string }[] = [];
-    if (intGhStatus?.authenticated) configuredItems.push({ label: 'GitHub', color: 'text-[#2dd4bf]' });
-    if (intJiraStatus?.configured) configuredItems.push({ label: 'Jira', color: 'text-blue-400' });
-    if (intLinearStatus?.configured) configuredItems.push({ label: 'Linear', color: 'text-[#5E6AD2]' });
+    if (intGhStatus?.authenticated)
+      configuredItems.push({ label: "GitHub", color: "text-[#2dd4bf]" });
+    if (intJiraStatus?.configured) configuredItems.push({ label: "Jira", color: "text-blue-400" });
+    if (intLinearStatus?.configured)
+      configuredItems.push({ label: "Linear", color: "text-[#5E6AD2]" });
 
     return (
       <div className="flex-1 flex items-center justify-center p-8">
@@ -758,9 +884,7 @@ export function ProjectSetupScreen({
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-[#2dd4bf]/20 to-[#2dd4bf]/5 mb-5">
               <Check className="w-10 h-10 text-[#2dd4bf]" />
             </div>
-            <h1 className={`text-2xl font-semibold ${text.primary} mb-2`}>
-              You're all set!
-            </h1>
+            <h1 className={`text-2xl font-semibold ${text.primary} mb-2`}>You're all set!</h1>
             <p className={`text-sm ${text.secondary} leading-relaxed`}>
               Your project is configured and ready to go.
             </p>
@@ -795,13 +919,22 @@ export function ProjectSetupScreen({
     );
   }
 
-  if (mode === 'agents') {
+  if (mode === "agents") {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-md w-full">
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-purple-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-8 h-8 text-purple-400"
+              >
                 <path d="M12 8V4H8" />
                 <rect width="16" height="12" x="4" y="8" rx="2" />
                 <path d="M2 14h2" />
@@ -810,9 +943,7 @@ export function ProjectSetupScreen({
                 <path d="M9 13v2" />
               </svg>
             </div>
-            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>
-              Connect Coding Agents
-            </h1>
+            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>Connect Coding Agents</h1>
             <p className={`text-sm ${text.secondary} leading-relaxed`}>
               Set up MCP integration so your AI coding agents can
               <br />
@@ -831,45 +962,53 @@ export function ProjectSetupScreen({
                   key={agent.id}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg ${surface.panel} border border-white/[0.08]`}
                 >
-                  <span className={`text-xs font-medium ${text.primary} flex-1 text-left`}>{agent.name}</span>
+                  <span className={`text-xs font-medium ${text.primary} flex-1 text-left`}>
+                    {agent.name}
+                  </span>
                   <button
-                    onClick={() => setAgentDesired((prev) => ({
-                      ...prev,
-                      [agent.id]: { ...prev[agent.id], global: !globalOn },
-                    }))}
+                    onClick={() =>
+                      setAgentDesired((prev) => ({
+                        ...prev,
+                        [agent.id]: { ...prev[agent.id], global: !globalOn },
+                      }))
+                    }
                     disabled={agentsApplying || !agent.global}
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                       globalOn
-                        ? 'bg-[#2dd4bf]/10 hover:bg-[#2dd4bf]/15'
-                        : 'bg-white/[0.03] hover:bg-white/[0.06]'
+                        ? "bg-[#2dd4bf]/10 hover:bg-[#2dd4bf]/15"
+                        : "bg-white/[0.03] hover:bg-white/[0.06]"
                     } disabled:opacity-40`}
                   >
-                    <div className={`w-2 h-2 rounded-full ${globalOn ? 'bg-[#2dd4bf]' : 'bg-white/[0.15]'}`} />
-                    <span className={globalOn ? 'text-[#2dd4bf]' : text.dimmed}>Global</span>
+                    <div
+                      className={`w-2 h-2 rounded-full ${globalOn ? "bg-[#2dd4bf]" : "bg-white/[0.15]"}`}
+                    />
+                    <span className={globalOn ? "text-[#2dd4bf]" : text.dimmed}>Global</span>
                   </button>
                   <button
-                    onClick={() => setAgentDesired((prev) => ({
-                      ...prev,
-                      [agent.id]: { ...prev[agent.id], project: !projectOn },
-                    }))}
+                    onClick={() =>
+                      setAgentDesired((prev) => ({
+                        ...prev,
+                        [agent.id]: { ...prev[agent.id], project: !projectOn },
+                      }))
+                    }
                     disabled={agentsApplying || !agent.project}
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                       projectOn
-                        ? 'bg-[#2dd4bf]/10 hover:bg-[#2dd4bf]/15'
-                        : 'bg-white/[0.03] hover:bg-white/[0.06]'
+                        ? "bg-[#2dd4bf]/10 hover:bg-[#2dd4bf]/15"
+                        : "bg-white/[0.03] hover:bg-white/[0.06]"
                     } disabled:opacity-40`}
                   >
-                    <div className={`w-2 h-2 rounded-full ${projectOn ? 'bg-[#2dd4bf]' : 'bg-white/[0.15]'}`} />
-                    <span className={projectOn ? 'text-[#2dd4bf]' : text.dimmed}>Project</span>
+                    <div
+                      className={`w-2 h-2 rounded-full ${projectOn ? "bg-[#2dd4bf]" : "bg-white/[0.15]"}`}
+                    />
+                    <span className={projectOn ? "text-[#2dd4bf]" : text.dimmed}>Project</span>
                   </button>
                 </div>
               );
             })}
           </div>
 
-          {agentsError && (
-            <p className={`mb-4 text-xs ${text.error}`}>{agentsError}</p>
-          )}
+          {agentsError && <p className={`mb-4 text-xs ${text.error}`}>{agentsError}</p>}
 
           <div className="space-y-3">
             <button
@@ -890,7 +1029,7 @@ export function ProjectSetupScreen({
               )}
             </button>
             <button
-              onClick={() => setMode('commit-prompt')}
+              onClick={() => setMode("commit-prompt")}
               disabled={agentsApplying}
               className={`w-full px-4 py-2 text-xs ${text.muted} hover:${text.secondary} transition-colors`}
             >
@@ -902,7 +1041,7 @@ export function ProjectSetupScreen({
     );
   }
 
-  if (mode === 'commit-prompt') {
+  if (mode === "commit-prompt") {
     const needsGhInstall = ghStatus && !ghStatus.installed;
     const needsGhAuth = ghStatus && ghStatus.installed && !ghStatus.authenticated;
     const ghReady = ghStatus?.installed && ghStatus?.authenticated;
@@ -914,9 +1053,7 @@ export function ProjectSetupScreen({
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2dd4bf]/20 to-[#2dd4bf]/5 mb-4">
               <Check className="w-8 h-8 text-[#2dd4bf]" />
             </div>
-            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>
-              Configuration Created
-            </h1>
+            <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>Configuration Created</h1>
             <p className={`text-sm ${text.secondary} leading-relaxed`}>
               Your project is now configured. Commit and push the configuration
               <br />
@@ -926,16 +1063,20 @@ export function ProjectSetupScreen({
 
           {/* GitHub CLI not installed */}
           {needsGhInstall && !ghWaitingForAuth && (
-            <div className={`${surface.panel} rounded-xl border border-white/[0.08] p-5 mb-6 text-left`}>
+            <div
+              className={`${surface.panel} rounded-xl border border-white/[0.08] p-5 mb-6 text-left`}
+            >
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-orange-400/10">
                   <Download className="w-5 h-5 text-orange-400" />
                 </div>
                 <div className="flex-1">
-                  <h3 className={`text-sm font-medium ${text.primary} mb-1`}>GitHub CLI required</h3>
+                  <h3 className={`text-sm font-medium ${text.primary} mb-1`}>
+                    GitHub CLI required
+                  </h3>
                   <p className={`text-xs ${text.muted} leading-relaxed`}>
-                    The GitHub CLI is needed to commit and push your configuration.
-                    It will be installed via Homebrew.
+                    The GitHub CLI is needed to commit and push your configuration. It will be
+                    installed via Homebrew.
                   </p>
                 </div>
               </div>
@@ -945,9 +1086,15 @@ export function ProjectSetupScreen({
                 className={`w-full mt-4 px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
               >
                 {ghLoading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />Installing...</>
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Installing...
+                  </>
                 ) : (
-                  <><Download className="w-4 h-4" />Install & Connect</>
+                  <>
+                    <Download className="w-4 h-4" />
+                    Install & Connect
+                  </>
                 )}
               </button>
             </div>
@@ -955,13 +1102,17 @@ export function ProjectSetupScreen({
 
           {/* GitHub CLI installed but not authenticated */}
           {needsGhAuth && !ghWaitingForAuth && (
-            <div className={`${surface.panel} rounded-xl border border-white/[0.08] p-5 mb-6 text-left`}>
+            <div
+              className={`${surface.panel} rounded-xl border border-white/[0.08] p-5 mb-6 text-left`}
+            >
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-orange-400/10">
                   <LogIn className="w-5 h-5 text-orange-400" />
                 </div>
                 <div className="flex-1">
-                  <h3 className={`text-sm font-medium ${text.primary} mb-1`}>GitHub authentication needed</h3>
+                  <h3 className={`text-sm font-medium ${text.primary} mb-1`}>
+                    GitHub authentication needed
+                  </h3>
                   <p className={`text-xs ${text.muted} leading-relaxed`}>
                     Authenticate with GitHub to enable commits, pushes, and pull requests.
                   </p>
@@ -973,9 +1124,15 @@ export function ProjectSetupScreen({
                 className={`w-full mt-4 px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
               >
                 {ghLoading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />Authenticating...</>
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Authenticating...
+                  </>
                 ) : (
-                  <><LogIn className="w-4 h-4" />Authenticate</>
+                  <>
+                    <LogIn className="w-4 h-4" />
+                    Authenticate
+                  </>
                 )}
               </button>
             </div>
@@ -988,16 +1145,16 @@ export function ProjectSetupScreen({
                 <Loader2 className="w-4 h-4 animate-spin text-[#2dd4bf]" />
                 <span className={`text-xs ${text.secondary}`}>Waiting for authentication...</span>
               </div>
-              {error && (
-                <p className="mt-2 text-xs text-[#2dd4bf]">{error}</p>
-              )}
+              {error && <p className="mt-2 text-xs text-[#2dd4bf]">{error}</p>}
             </div>
           )}
 
           {/* Ready to commit */}
           {ghReady && !ghWaitingForAuth && (
             <>
-              <div className={`${surface.panel} rounded-xl border border-white/[0.08] p-4 mb-4 text-left`}>
+              <div
+                className={`${surface.panel} rounded-xl border border-white/[0.08] p-4 mb-4 text-left`}
+              >
                 <div className="flex items-center gap-2 mb-3">
                   <GitCommit className="w-4 h-4 text-[#2dd4bf]" />
                   <span className={`text-xs font-medium ${text.primary}`}>Files to commit:</span>
@@ -1016,7 +1173,9 @@ export function ProjectSetupScreen({
                   type="text"
                   value={commitMessage}
                   onChange={(e) => setCommitMessage(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && commitMessage.trim()) handleCommitConfig(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && commitMessage.trim()) handleCommitConfig();
+                  }}
                   className={`w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`}
                 />
               </div>
@@ -1024,9 +1183,7 @@ export function ProjectSetupScreen({
           )}
 
           {/* Error (non-auth) */}
-          {error && !ghWaitingForAuth && (
-            <p className={`mb-4 text-xs ${text.error}`}>{error}</p>
-          )}
+          {error && !ghWaitingForAuth && <p className={`mb-4 text-xs ${text.error}`}>{error}</p>}
 
           <div className="space-y-3">
             {ghReady && !ghWaitingForAuth && (
@@ -1036,9 +1193,15 @@ export function ProjectSetupScreen({
                 className={`w-full px-4 py-2.5 text-sm font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
               >
                 {isLoading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />Pushing...</>
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Pushing...
+                  </>
                 ) : (
-                  <><GitCommit className="w-4 h-4" />Commit & Push</>
+                  <>
+                    <GitCommit className="w-4 h-4" />
+                    Commit & Push
+                  </>
                 )}
               </button>
             )}
@@ -1055,10 +1218,12 @@ export function ProjectSetupScreen({
     );
   }
 
-  if (mode === 'manual') {
+  if (mode === "manual") {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className={`w-full max-w-lg ${surface.panel} rounded-xl shadow-2xl border border-white/[0.08] overflow-hidden`}>
+        <div
+          className={`w-full max-w-lg ${surface.panel} rounded-xl shadow-2xl border border-white/[0.08] overflow-hidden`}
+        >
           {/* Header */}
           <div className="flex items-center px-6 py-4 border-b border-white/[0.06]">
             <div className="flex items-center gap-3">
@@ -1098,9 +1263,7 @@ export function ProjectSetupScreen({
                 className={`w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`}
                 placeholder="npm run dev"
               />
-              <p className={`mt-1 text-[11px] ${text.dimmed}`}>
-                Command to start the dev server
-              </p>
+              <p className={`mt-1 text-[11px] ${text.dimmed}`}>Command to start the dev server</p>
             </div>
 
             <div>
@@ -1125,8 +1288,10 @@ export function ProjectSetupScreen({
               onClick={() => setShowAll(!showAll)}
               className={`flex items-center gap-1.5 text-[11px] ${text.muted} hover:${text.secondary} transition-colors`}
             >
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${showAll ? 'rotate-180' : ''}`} />
-              {showAll ? 'Show less' : 'Show all options'}
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-150 ${showAll ? "rotate-180" : ""}`}
+              />
+              {showAll ? "Show less" : "Show all options"}
             </button>
 
             {showAll && (
@@ -1154,7 +1319,9 @@ export function ProjectSetupScreen({
                   <input
                     type="text"
                     value={extraValues.localIssuePrefix}
-                    onChange={(e) => setExtraValues({ ...extraValues, localIssuePrefix: e.target.value })}
+                    onChange={(e) =>
+                      setExtraValues({ ...extraValues, localIssuePrefix: e.target.value })
+                    }
                     className={`w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.12] transition-all text-xs`}
                     placeholder="LOCAL"
                   />
@@ -1168,25 +1335,40 @@ export function ProjectSetupScreen({
                     <input
                       type="checkbox"
                       checked={extraValues.autoInstall}
-                      onChange={(e) => setExtraValues({ ...extraValues, autoInstall: e.target.checked })}
+                      onChange={(e) =>
+                        setExtraValues({ ...extraValues, autoInstall: e.target.checked })
+                      }
                       className="sr-only"
                     />
-                    <div className={`
+                    <div
+                      className={`
                       w-4 h-4 rounded border transition-all duration-150
-                      ${extraValues.autoInstall
-                        ? 'bg-[#2dd4bf]/20 border-[#2dd4bf]/50'
-                        : 'bg-white/[0.04] border-white/[0.1] group-hover:border-white/[0.2]'
+                      ${
+                        extraValues.autoInstall
+                          ? "bg-[#2dd4bf]/20 border-[#2dd4bf]/50"
+                          : "bg-white/[0.04] border-white/[0.1] group-hover:border-white/[0.2]"
                       }
-                    `}>
+                    `}
+                    >
                       {extraValues.autoInstall && (
-                        <svg className="w-4 h-4 text-[#2dd4bf]" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg
+                          className="w-4 h-4 text-[#2dd4bf]"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
                           <path d="M4 8l3 3 5-6" />
                         </svg>
                       )}
                     </div>
                   </div>
                   <div>
-                    <span className={`text-xs font-medium ${text.muted} group-hover:${text.secondary} transition-colors`}>
+                    <span
+                      className={`text-xs font-medium ${text.muted} group-hover:${text.secondary} transition-colors`}
+                    >
                       Auto-install dependencies
                     </span>
                     <p className={`text-[11px] ${text.dimmed}`}>
@@ -1197,9 +1379,7 @@ export function ProjectSetupScreen({
               </>
             )}
 
-            {error && (
-              <p className={`text-[11px] ${text.error}`}>{error}</p>
-            )}
+            {error && <p className={`text-[11px] ${text.error}`}>{error}</p>}
           </div>
 
           {/* Footer */}
@@ -1234,7 +1414,7 @@ export function ProjectSetupScreen({
             <Settings className="w-8 h-8 text-[#2dd4bf]" />
           </div>
           <h1 className={`text-xl font-semibold ${text.primary} mb-2`}>
-            Set up {projectName ?? 'this project'}
+            Set up {projectName ?? "this project"}
           </h1>
           <p className={`text-sm ${text.secondary} leading-relaxed`}>
             This project is not configured yet.
@@ -1255,14 +1435,13 @@ export function ProjectSetupScreen({
                 <Sparkles className="w-5 h-5 text-[#2dd4bf]" />
               </div>
               <div className="flex-1">
-                <h3 className={`text-sm font-medium ${text.primary} mb-1`}>
-                  Auto-detect settings
-                </h3>
+                <h3 className={`text-sm font-medium ${text.primary} mb-1`}>Auto-detect settings</h3>
                 <p className={`text-xs ${text.muted} leading-relaxed`}>
                   Automatically detect package manager, commands, and base branch
                   {detectedConfig && (
                     <span className="block mt-1 text-[#2dd4bf]/70">
-                      Detected: {detectedConfig.startCommand}, {detectedConfig.installCommand}, {detectedConfig.baseBranch}
+                      Detected: {detectedConfig.startCommand}, {detectedConfig.installCommand},{" "}
+                      {detectedConfig.baseBranch}
                     </span>
                   )}
                 </p>
@@ -1282,9 +1461,7 @@ export function ProjectSetupScreen({
                 <Settings className="w-5 h-5 text-[#9ca3af]" />
               </div>
               <div className="flex-1">
-                <h3 className={`text-sm font-medium ${text.primary} mb-1`}>
-                  Manual setup
-                </h3>
+                <h3 className={`text-sm font-medium ${text.primary} mb-1`}>Manual setup</h3>
                 <p className={`text-xs ${text.muted} leading-relaxed`}>
                   Review and customize settings before initialization
                 </p>
@@ -1300,13 +1477,16 @@ export function ProjectSetupScreen({
             onClick={() => setRememberChoice(!rememberChoice)}
             className="mx-auto flex items-center justify-center gap-2 cursor-pointer group"
           >
-            <div className={`
+            <div
+              className={`
               w-4 h-4 rounded border transition-all duration-150
-              ${rememberChoice
-                ? 'bg-[#2dd4bf]/20 border-[#2dd4bf]/50'
-                : 'bg-white/[0.04] border-white/[0.1] group-hover:border-white/[0.2]'
+              ${
+                rememberChoice
+                  ? "bg-[#2dd4bf]/20 border-[#2dd4bf]/50"
+                  : "bg-white/[0.04] border-white/[0.1] group-hover:border-white/[0.2]"
               }
-            `}>
+            `}
+            >
               {rememberChoice && (
                 <svg
                   className="w-4 h-4 text-[#2dd4bf]"
@@ -1321,15 +1501,15 @@ export function ProjectSetupScreen({
                 </svg>
               )}
             </div>
-            <span className={`text-xs ${text.muted} group-hover:${text.secondary} transition-colors`}>
+            <span
+              className={`text-xs ${text.muted} group-hover:${text.secondary} transition-colors`}
+            >
               Remember my choice for future projects
             </span>
           </button>
         )}
 
-        {error && (
-          <p className={`mt-4 text-xs ${text.error}`}>{error}</p>
-        )}
+        {error && <p className={`mt-4 text-xs ${text.error}`}>{error}</p>}
       </div>
     </div>
   );

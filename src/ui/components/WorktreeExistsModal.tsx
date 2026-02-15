@@ -1,9 +1,9 @@
-import { GitBranch, RefreshCw, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { GitBranch, RefreshCw, Trash2 } from "lucide-react";
+import { useState } from "react";
 
-import { useApi } from '../hooks/useApi';
-import { border, surface, text } from '../theme';
-import { Spinner } from './Spinner';
+import { useApi } from "../hooks/useApi";
+import { border, surface, text } from "../theme";
+import { Spinner } from "./Spinner";
 
 interface WorktreeExistsModalProps {
   worktreeId: string;
@@ -19,30 +19,30 @@ export function WorktreeExistsModal({
   onCancel,
 }: WorktreeExistsModalProps) {
   const api = useApi();
-  const [isLoading, setIsLoading] = useState<'reuse' | 'recreate' | null>(null);
+  const [isLoading, setIsLoading] = useState<"reuse" | "recreate" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleReuse = async () => {
-    setIsLoading('reuse');
+    setIsLoading("reuse");
     setError(null);
-    const result = await api.recoverWorktree(worktreeId, 'reuse');
+    const result = await api.recoverWorktree(worktreeId, "reuse");
     setIsLoading(null);
     if (result.success) {
       onResolved();
     } else {
-      setError(result.error || 'Failed to reuse worktree');
+      setError(result.error || "Failed to reuse worktree");
     }
   };
 
   const handleRecreate = async () => {
-    setIsLoading('recreate');
+    setIsLoading("recreate");
     setError(null);
-    const result = await api.recoverWorktree(worktreeId, 'recreate', branch);
+    const result = await api.recoverWorktree(worktreeId, "recreate", branch);
     setIsLoading(null);
     if (result.success) {
       onResolved();
     } else {
-      setError(result.error || 'Failed to recreate worktree');
+      setError(result.error || "Failed to recreate worktree");
     }
   };
 
@@ -50,10 +50,7 @@ export function WorktreeExistsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-      />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
       <div
         className={`relative ${surface.modal} border ${border.modal} rounded-2xl max-w-sm w-full mx-4 shadow-2xl overflow-hidden`}
       >
@@ -66,7 +63,8 @@ export function WorktreeExistsModal({
             <div>
               <h3 className={`text-sm font-semibold ${text.primary}`}>Worktree exists</h3>
               <p className={`text-[11px] ${text.muted} mt-0.5`}>
-                <span className="font-medium text-white/80">{worktreeId}</span> already has a worktree
+                <span className="font-medium text-white/80">{worktreeId}</span> already has a
+                worktree
               </p>
             </div>
           </div>
@@ -86,7 +84,7 @@ export function WorktreeExistsModal({
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.06] hover:border-teal-400/30 bg-white/[0.02] hover:bg-teal-400/[0.04] disabled:opacity-50 transition-all duration-150 text-left group`}
           >
             <div className="w-8 h-8 rounded-lg bg-teal-400/[0.08] group-hover:bg-teal-400/[0.15] flex items-center justify-center flex-shrink-0 transition-colors">
-              {isLoading === 'reuse' ? (
+              {isLoading === "reuse" ? (
                 <Spinner size="xs" className="text-teal-400" />
               ) : (
                 <RefreshCw className="w-3.5 h-3.5 text-teal-400" />
@@ -106,7 +104,7 @@ export function WorktreeExistsModal({
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.06] hover:border-red-400/30 bg-white/[0.02] hover:bg-red-400/[0.03] disabled:opacity-50 transition-all duration-150 text-left group`}
           >
             <div className="w-8 h-8 rounded-lg bg-red-400/[0.08] group-hover:bg-red-400/[0.15] flex items-center justify-center flex-shrink-0 transition-colors">
-              {isLoading === 'recreate' ? (
+              {isLoading === "recreate" ? (
                 <Spinner size="xs" className="text-red-400" />
               ) : (
                 <Trash2 className="w-3.5 h-3.5 text-red-400" />

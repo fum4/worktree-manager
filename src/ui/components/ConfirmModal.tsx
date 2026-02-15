@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
-import { border, button, surface, text } from '../theme';
+import { border, button, surface, text } from "../theme";
 
 interface ConfirmModalProps {
   title: string;
@@ -13,7 +13,7 @@ interface ConfirmModalProps {
 export function ConfirmModal({
   title,
   message,
-  confirmLabel = 'Delete',
+  confirmLabel = "Delete",
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -22,10 +22,10 @@ export function ConfirmModal({
   useEffect(() => {
     cancelRef.current?.focus();
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === "Escape") onCancel();
     };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onCancel]);
 
   return (

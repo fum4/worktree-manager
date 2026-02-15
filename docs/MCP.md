@@ -47,59 +47,59 @@ All tools are defined in `src/actions.ts` and registered on the MCP server via `
 
 ### Issue Browsing
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `list_jira_issues` | List your assigned Jira issues (unresolved). Optionally search by text. | `query` (string, optional) -- text search to filter issues |
-| `get_jira_issue` | Get full details of a Jira issue including description and comments. Checks locally cached data first, only fetches from Jira API if not found locally. | `issueKey` (string, **required**) -- e.g. `PROJ-123` or just `123` if default project is configured |
-| `list_linear_issues` | List your assigned Linear issues (open/in progress). Optionally search by text. | `query` (string, optional) -- text search to filter issues |
-| `get_linear_issue` | Get full details of a Linear issue including description. Checks locally cached data first, only fetches from Linear API if not found locally. | `identifier` (string, **required**) -- e.g. `ENG-123` or just `123` if default team is configured |
+| Tool                 | Description                                                                                                                                             | Parameters                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `list_jira_issues`   | List your assigned Jira issues (unresolved). Optionally search by text.                                                                                 | `query` (string, optional) -- text search to filter issues                                          |
+| `get_jira_issue`     | Get full details of a Jira issue including description and comments. Checks locally cached data first, only fetches from Jira API if not found locally. | `issueKey` (string, **required**) -- e.g. `PROJ-123` or just `123` if default project is configured |
+| `list_linear_issues` | List your assigned Linear issues (open/in progress). Optionally search by text.                                                                         | `query` (string, optional) -- text search to filter issues                                          |
+| `get_linear_issue`   | Get full details of a Linear issue including description. Checks locally cached data first, only fetches from Linear API if not found locally.          | `identifier` (string, **required**) -- e.g. `ENG-123` or just `123` if default team is configured   |
 
 ### Worktree Management
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `list_worktrees` | List all worktrees with their status, branch, ports, and git/PR info. | *(none)* |
-| `create_worktree` | Create a new git worktree from a branch name. Use `create_from_jira` or `create_from_linear` instead when the user provides an issue key. | `branch` (string, **required**) -- git branch name; `name` (string, optional) -- directory name |
-| `create_from_jira` | Create a worktree from a Jira issue key. Fetches the issue, saves task data locally, creates worktree with issue key as branch name. | `issueKey` (string, **required**) -- e.g. `PROJ-123` or `123` |
-| `create_from_linear` | Create a worktree from a Linear issue identifier. Fetches the issue, saves task data locally, creates worktree with identifier as branch name. | `identifier` (string, **required**) -- e.g. `ENG-123` or `123` |
-| `start_worktree` | Start the dev server in a worktree (allocates port offset, spawns process). | `id` (string, **required**) -- worktree ID |
-| `stop_worktree` | Stop the running dev server in a worktree. | `id` (string, **required**) -- worktree ID |
-| `remove_worktree` | Remove a worktree (stops it first if running, then deletes directory and git worktree reference). | `id` (string, **required**) -- worktree ID |
-| `get_logs` | Get recent output logs from a running worktree (up to 100 lines). | `id` (string, **required**) -- worktree ID |
+| Tool                 | Description                                                                                                                                    | Parameters                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `list_worktrees`     | List all worktrees with their status, branch, ports, and git/PR info.                                                                          | _(none)_                                                                                        |
+| `create_worktree`    | Create a new git worktree from a branch name. Use `create_from_jira` or `create_from_linear` instead when the user provides an issue key.      | `branch` (string, **required**) -- git branch name; `name` (string, optional) -- directory name |
+| `create_from_jira`   | Create a worktree from a Jira issue key. Fetches the issue, saves task data locally, creates worktree with issue key as branch name.           | `issueKey` (string, **required**) -- e.g. `PROJ-123` or `123`                                   |
+| `create_from_linear` | Create a worktree from a Linear issue identifier. Fetches the issue, saves task data locally, creates worktree with identifier as branch name. | `identifier` (string, **required**) -- e.g. `ENG-123` or `123`                                  |
+| `start_worktree`     | Start the dev server in a worktree (allocates port offset, spawns process).                                                                    | `id` (string, **required**) -- worktree ID                                                      |
+| `stop_worktree`      | Stop the running dev server in a worktree.                                                                                                     | `id` (string, **required**) -- worktree ID                                                      |
+| `remove_worktree`    | Remove a worktree (stops it first if running, then deletes directory and git worktree reference).                                              | `id` (string, **required**) -- worktree ID                                                      |
+| `get_logs`           | Get recent output logs from a running worktree (up to 100 lines).                                                                              | `id` (string, **required**) -- worktree ID                                                      |
 
 ### Git Operations
 
 All git operations are subject to the agent git policy. Call `get_git_policy` first to check whether an operation is allowed.
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `commit` | Stage all changes and commit in a worktree. Requires GitHub integration. Commit message may be auto-formatted by project-configured rules. | `id` (string, **required**) -- worktree ID; `message` (string, **required**) -- commit message |
-| `push` | Push commits in a worktree to the remote. Requires GitHub integration. | `id` (string, **required**) -- worktree ID |
-| `create_pr` | Create a GitHub pull request for a worktree branch. Requires GitHub integration. Follows push policy. | `id` (string, **required**) -- worktree ID; `title` (string, **required**) -- PR title; `body` (string, optional) -- PR description |
-| `get_git_policy` | Check whether agent git operations (commit, push, create_pr) are allowed for a worktree. | `id` (string, **required**) -- worktree ID |
+| Tool             | Description                                                                                                                                | Parameters                                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `commit`         | Stage all changes and commit in a worktree. Requires GitHub integration. Commit message may be auto-formatted by project-configured rules. | `id` (string, **required**) -- worktree ID; `message` (string, **required**) -- commit message                                      |
+| `push`           | Push commits in a worktree to the remote. Requires GitHub integration.                                                                     | `id` (string, **required**) -- worktree ID                                                                                          |
+| `create_pr`      | Create a GitHub pull request for a worktree branch. Requires GitHub integration. Follows push policy.                                      | `id` (string, **required**) -- worktree ID; `title` (string, **required**) -- PR title; `body` (string, optional) -- PR description |
+| `get_git_policy` | Check whether agent git operations (commit, push, create_pr) are allowed for a worktree.                                                   | `id` (string, **required**) -- worktree ID                                                                                          |
 
 ### Task Context & Notes
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_task_context` | Get full task context for a worktree: issue details, description, comments, AI context directions, todo checklist, and worktree path. Also regenerates `TASK.md`. | `worktreeId` (string, **required**) |
-| `read_issue_notes` | Read AI context notes for a worktree or issue. Returns directions and todo checklist. | `worktreeId` (string, optional); `source` (string, optional) -- `"jira"`, `"linear"`, or `"local"`; `issueId` (string, optional). Provide either `worktreeId` or both `source` and `issueId`. |
-| `update_todo` | Add, toggle, or delete a todo checklist item on an issue. The user monitors progress through these checkboxes in real-time. | `source` (string, **required**) -- `"jira"`, `"linear"`, or `"local"`; `issueId` (string, **required**); `action` (string, **required**) -- `"add"`, `"toggle"`, or `"delete"`; `todoId` (string, optional) -- required for toggle/delete; `text` (string, optional) -- required for add |
+| Tool               | Description                                                                                                                                                       | Parameters                                                                                                                                                                                                                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_task_context` | Get full task context for a worktree: issue details, description, comments, AI context directions, todo checklist, and worktree path. Also regenerates `TASK.md`. | `worktreeId` (string, **required**)                                                                                                                                                                                                                                                      |
+| `read_issue_notes` | Read AI context notes for a worktree or issue. Returns directions and todo checklist.                                                                             | `worktreeId` (string, optional); `source` (string, optional) -- `"jira"`, `"linear"`, or `"local"`; `issueId` (string, optional). Provide either `worktreeId` or both `source` and `issueId`.                                                                                            |
+| `update_todo`      | Add, toggle, or delete a todo checklist item on an issue. The user monitors progress through these checkboxes in real-time.                                       | `source` (string, **required**) -- `"jira"`, `"linear"`, or `"local"`; `issueId` (string, **required**); `action` (string, **required**) -- `"add"`, `"toggle"`, or `"delete"`; `todoId` (string, optional) -- required for toggle/delete; `text` (string, optional) -- required for add |
 
 ### Configuration
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_config` | Get the current dawg configuration and project name. | *(none)* |
+| Tool         | Description                                          | Parameters |
+| ------------ | ---------------------------------------------------- | ---------- |
+| `get_config` | Get the current dawg configuration and project name. | _(none)_   |
 
 ### Hooks
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_hooks_config` | Get the hooks configuration, including command steps and skill references organized by trigger type. | *(none)* |
-| `run_hooks` | Run hook command steps for a worktree. Steps matching the trigger type run in parallel. | `worktreeId` (string, **required**) |
+| Tool                 | Description                                                                                                                                                           | Parameters                                                                                                                                                                                                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `get_hooks_config`   | Get the hooks configuration, including command steps and skill references organized by trigger type.                                                                  | _(none)_                                                                                                                                                                                                                                                                                         |
+| `run_hooks`          | Run hook command steps for a worktree. Steps matching the trigger type run in parallel.                                                                               | `worktreeId` (string, **required**)                                                                                                                                                                                                                                                              |
 | `report_hook_status` | Report a skill hook status. Call TWICE: once BEFORE invoking a skill (without `success`/`summary`) to show a loading state in the UI, and once AFTER with the result. | `worktreeId` (string, **required**); `skillName` (string, **required**); `success` (boolean, optional -- omit for start); `summary` (string, optional -- omit for start); `content` (string, optional) -- detailed markdown; `filePath` (string, optional) -- absolute path to an MD report file |
-| `get_hooks_status` | Get the current/last hook run status for a worktree, including step results. | `worktreeId` (string, **required**) |
+| `get_hooks_status`   | Get the current/last hook run status for a worktree, including step results.                                                                                          | `worktreeId` (string, **required**)                                                                                                                                                                                                                                                              |
 
 ## MCP Prompt: `work-on-task`
 

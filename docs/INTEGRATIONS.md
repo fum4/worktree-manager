@@ -72,6 +72,7 @@ apiToken.token
 ```
 
 Authentication headers differ by method:
+
 - **OAuth**: `Authorization: Bearer <accessToken>`
 - **API Token**: `Authorization: Basic <base64(email:token)>`
 
@@ -106,21 +107,21 @@ Fields fetched for the list: `summary`, `status`, `priority`, `issuetype`, `assi
 
 Fetches the full issue with `expand=renderedFields`, plus comments (up to 50, newest first). The response includes:
 
-| Field | Description |
-|-------|-------------|
-| `key` | Issue key (e.g., `PROJ-123`) |
-| `summary` | Issue title |
-| `description` | Converted from ADF to Markdown |
-| `status` | Current status name |
-| `priority` | Priority name |
-| `type` | Issue type name |
-| `assignee` | Display name or null |
-| `reporter` | Display name or null |
-| `labels` | Array of label strings |
-| `comments` | Array of `{ author, body, created }` |
-| `attachments` | Array of attachment metadata |
-| `url` | Direct link to the issue in Jira |
-| `fetchedAt` | ISO timestamp of when data was fetched |
+| Field         | Description                            |
+| ------------- | -------------------------------------- |
+| `key`         | Issue key (e.g., `PROJ-123`)           |
+| `summary`     | Issue title                            |
+| `description` | Converted from ADF to Markdown         |
+| `status`      | Current status name                    |
+| `priority`    | Priority name                          |
+| `type`        | Issue type name                        |
+| `assignee`    | Display name or null                   |
+| `reporter`    | Display name or null                   |
+| `labels`      | Array of label strings                 |
+| `comments`    | Array of `{ author, body, created }`   |
+| `attachments` | Array of attachment metadata           |
+| `url`         | Direct link to the issue in Jira       |
+| `fetchedAt`   | ISO timestamp of when data was fetched |
 
 **Issue key resolution:** If a user provides just a number (e.g., `123`), dawg prepends the configured `defaultProjectKey` to form the full key (e.g., `PROJ-123`). If no default is set, the user must provide the full key.
 
@@ -150,32 +151,32 @@ The data lifecycle system controls when issue data is persisted to disk and when
 
 **`saveOn`** -- Controls when issue data is written to disk:
 
-| Value | Behavior |
-|-------|----------|
-| `"view"` | Save issue data, comments, and attachments when the issue is opened in the detail panel. **(Default)** |
-| `"worktree-creation"` | Only save when a worktree is created from the issue. |
-| `"never"` | Never save issue data to disk. Disables auto-cleanup. |
+| Value                 | Behavior                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------ |
+| `"view"`              | Save issue data, comments, and attachments when the issue is opened in the detail panel. **(Default)** |
+| `"worktree-creation"` | Only save when a worktree is created from the issue.                                                   |
+| `"never"`             | Never save issue data to disk. Disables auto-cleanup.                                                  |
 
 **`autoCleanup`** -- Automatically deletes cached data when an issue transitions to certain statuses:
 
-| Field | Description |
-|-------|-------------|
-| `enabled` | Boolean toggle |
-| `statusTriggers` | Array of status names that trigger cleanup (e.g., `["Done", "Closed"]`) |
-| `actions.issueData` | Delete cached `issue.json` |
-| `actions.attachments` | Delete downloaded attachments |
-| `actions.notes` | Delete personal notes and AI context |
-| `actions.linkedWorktree` | Unlink/delete the associated worktree |
+| Field                    | Description                                                             |
+| ------------------------ | ----------------------------------------------------------------------- |
+| `enabled`                | Boolean toggle                                                          |
+| `statusTriggers`         | Array of status names that trigger cleanup (e.g., `["Done", "Closed"]`) |
+| `actions.issueData`      | Delete cached `issue.json`                                              |
+| `actions.attachments`    | Delete downloaded attachments                                           |
+| `actions.notes`          | Delete personal notes and AI context                                    |
+| `actions.linkedWorktree` | Unlink/delete the associated worktree                                   |
 
 Auto-cleanup runs as a fire-and-forget operation whenever the issue list is fetched. It compares each cached issue directory against the live status (or falls back to the cached status in `issue.json`) and cleans up issues whose status matches a trigger.
 
 ### Configuration
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `defaultProjectKey` | Project key prefix for short issue IDs (e.g., `"PROJ"`) | none |
-| `refreshIntervalMinutes` | How often to poll for issue list updates | `5` |
-| `dataLifecycle` | Data persistence and cleanup settings | `saveOn: "view"`, cleanup disabled |
+| Setting                  | Description                                             | Default                            |
+| ------------------------ | ------------------------------------------------------- | ---------------------------------- |
+| `defaultProjectKey`      | Project key prefix for short issue IDs (e.g., `"PROJ"`) | none                               |
+| `refreshIntervalMinutes` | How often to poll for issue list updates                | `5`                                |
+| `dataLifecycle`          | Data persistence and cleanup settings                   | `saveOn: "view"`, cleanup disabled |
 
 ---
 
@@ -205,7 +206,13 @@ Linear's API is GraphQL-only, accessed at `https://api.linear.app/graphql`. dawg
 **Connection test:**
 
 ```graphql
-query { viewer { id name email } }
+query {
+  viewer {
+    id
+    name
+    email
+  }
+}
 ```
 
 **Issue list** (`fetchIssues`):
@@ -232,24 +239,24 @@ Same pattern as Jira: if a user provides just a number (e.g., `123`), dawg prepe
 
 Linear issues have a `state` object with `name`, `type`, and `color` fields. The `type` field maps to one of Linear's built-in state categories:
 
-| Type | Meaning |
-|------|---------|
-| `triage` | Needs triage |
-| `backlog` | In backlog |
+| Type        | Meaning        |
+| ----------- | -------------- |
+| `triage`    | Needs triage   |
+| `backlog`   | In backlog     |
 | `unstarted` | Ready to start |
-| `started` | In progress |
-| `completed` | Done |
-| `canceled` | Canceled |
+| `started`   | In progress    |
+| `completed` | Done           |
+| `canceled`  | Canceled       |
 
 dawg uses the `type` field for auto-cleanup triggers. Issues with `completedAt` or `canceledAt` set are excluded from the default list fetch.
 
 ### Configuration
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `defaultTeamKey` | Team key prefix for short identifiers (e.g., `"ENG"`) | none |
-| `refreshIntervalMinutes` | How often to poll for issue list updates | `5` |
-| `dataLifecycle` | Data persistence and cleanup settings (same structure as Jira) | `saveOn: "view"`, cleanup disabled |
+| Setting                  | Description                                                    | Default                            |
+| ------------------------ | -------------------------------------------------------------- | ---------------------------------- |
+| `defaultTeamKey`         | Team key prefix for short identifiers (e.g., `"ENG"`)          | none                               |
+| `refreshIntervalMinutes` | How often to poll for issue list updates                       | `5`                                |
+| `dataLifecycle`          | Data persistence and cleanup settings (same structure as Jira) | `saveOn: "view"`, cleanup disabled |
 
 ---
 
@@ -293,13 +300,13 @@ The `GitHubManager` class manages all git operations and maintains two caches:
 
 **Git status cache** (polled every 10 seconds):
 
-| Field | Description |
-|-------|-------------|
+| Field            | Description                                                 |
+| ---------------- | ----------------------------------------------------------- |
 | `hasUncommitted` | Worktree has uncommitted changes (`git status --porcelain`) |
-| `ahead` | Commits ahead of upstream |
-| `behind` | Commits behind upstream |
-| `noUpstream` | No upstream branch configured |
-| `aheadOfBase` | Commits ahead of the base branch (for PR eligibility) |
+| `ahead`          | Commits ahead of upstream                                   |
+| `behind`         | Commits behind upstream                                     |
+| `noUpstream`     | No upstream branch configured                               |
+| `aheadOfBase`    | Commits ahead of the base branch (for PR eligibility)       |
 
 **PR cache** (polled every 60 seconds):
 
@@ -388,17 +395,17 @@ Stored in `.dawg/integrations.json`:
 {
   "jira": {
     "authMethod": "oauth",
-    "oauth": { "clientId": "...", "accessToken": "...", "..." : "..." },
+    "oauth": { "clientId": "...", "accessToken": "...", "...": "..." },
     "defaultProjectKey": "PROJ",
     "refreshIntervalMinutes": 5,
-    "dataLifecycle": { "..." : "..." }
+    "dataLifecycle": { "...": "..." }
   },
   "linear": {
     "apiKey": "lin_api_...",
     "displayName": "Jane Developer",
     "defaultTeamKey": "ENG",
     "refreshIntervalMinutes": 5,
-    "dataLifecycle": { "..." : "..." }
+    "dataLifecycle": { "...": "..." }
   }
 }
 ```
@@ -448,39 +455,39 @@ When creating a worktree from an issue (`POST /api/jira/task` or `POST /api/line
 
 ### Jira Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/jira/status` | Connection status, config, and data lifecycle settings |
-| `POST` | `/api/jira/setup` | Connect with API token (`{ baseUrl, email, token }`) |
-| `PATCH` | `/api/jira/config` | Update project key, refresh interval, or lifecycle config |
-| `DELETE` | `/api/jira/credentials` | Disconnect (removes jira key from integrations.json) |
-| `GET` | `/api/jira/issues` | List assigned unresolved issues (optional `?query=` for search) |
-| `GET` | `/api/jira/issues/:key` | Fetch full issue detail |
-| `GET` | `/api/jira/attachment` | Proxy an attachment URL with auth (`?url=`) |
-| `POST` | `/api/jira/task` | Create worktree from issue (`{ issueKey, branch? }`) |
+| Method   | Path                    | Description                                                     |
+| -------- | ----------------------- | --------------------------------------------------------------- |
+| `GET`    | `/api/jira/status`      | Connection status, config, and data lifecycle settings          |
+| `POST`   | `/api/jira/setup`       | Connect with API token (`{ baseUrl, email, token }`)            |
+| `PATCH`  | `/api/jira/config`      | Update project key, refresh interval, or lifecycle config       |
+| `DELETE` | `/api/jira/credentials` | Disconnect (removes jira key from integrations.json)            |
+| `GET`    | `/api/jira/issues`      | List assigned unresolved issues (optional `?query=` for search) |
+| `GET`    | `/api/jira/issues/:key` | Fetch full issue detail                                         |
+| `GET`    | `/api/jira/attachment`  | Proxy an attachment URL with auth (`?url=`)                     |
+| `POST`   | `/api/jira/task`        | Create worktree from issue (`{ issueKey, branch? }`)            |
 
 ### Linear Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/linear/status` | Connection status, config, and data lifecycle settings |
-| `POST` | `/api/linear/setup` | Connect with API key (`{ apiKey }`) |
-| `PATCH` | `/api/linear/config` | Update team key, refresh interval, or lifecycle config |
-| `DELETE` | `/api/linear/credentials` | Disconnect (removes linear key from integrations.json) |
-| `GET` | `/api/linear/issues` | List assigned active issues (optional `?query=` for search) |
-| `GET` | `/api/linear/issues/:identifier` | Fetch full issue detail |
-| `POST` | `/api/linear/task` | Create worktree from issue (`{ identifier, branch? }`) |
+| Method   | Path                             | Description                                                 |
+| -------- | -------------------------------- | ----------------------------------------------------------- |
+| `GET`    | `/api/linear/status`             | Connection status, config, and data lifecycle settings      |
+| `POST`   | `/api/linear/setup`              | Connect with API key (`{ apiKey }`)                         |
+| `PATCH`  | `/api/linear/config`             | Update team key, refresh interval, or lifecycle config      |
+| `DELETE` | `/api/linear/credentials`        | Disconnect (removes linear key from integrations.json)      |
+| `GET`    | `/api/linear/issues`             | List assigned active issues (optional `?query=` for search) |
+| `GET`    | `/api/linear/issues/:identifier` | Fetch full issue detail                                     |
+| `POST`   | `/api/linear/task`               | Create worktree from issue (`{ identifier, branch? }`)      |
 
 ### GitHub Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/github/status` | CLI installation, auth, and repo status |
-| `POST` | `/api/github/install` | Install `gh` via Homebrew and start login |
-| `POST` | `/api/github/login` | Start GitHub device flow login |
-| `POST` | `/api/github/logout` | Logout from GitHub |
-| `POST` | `/api/github/initial-commit` | Create initial git commit |
-| `POST` | `/api/github/create-repo` | Create GitHub repository (`{ private?: boolean }`) |
-| `POST` | `/api/worktrees/:id/commit` | Commit all changes (`{ message }`) |
-| `POST` | `/api/worktrees/:id/push` | Push branch to origin |
-| `POST` | `/api/worktrees/:id/create-pr` | Create pull request (`{ title, body? }`) |
+| Method | Path                           | Description                                        |
+| ------ | ------------------------------ | -------------------------------------------------- |
+| `GET`  | `/api/github/status`           | CLI installation, auth, and repo status            |
+| `POST` | `/api/github/install`          | Install `gh` via Homebrew and start login          |
+| `POST` | `/api/github/login`            | Start GitHub device flow login                     |
+| `POST` | `/api/github/logout`           | Logout from GitHub                                 |
+| `POST` | `/api/github/initial-commit`   | Create initial git commit                          |
+| `POST` | `/api/github/create-repo`      | Create GitHub repository (`{ private?: boolean }`) |
+| `POST` | `/api/worktrees/:id/commit`    | Commit all changes (`{ message }`)                 |
+| `POST` | `/api/worktrees/:id/push`      | Push branch to origin                              |
+| `POST` | `/api/worktrees/:id/create-pr` | Create pull request (`{ title, body? }`)           |

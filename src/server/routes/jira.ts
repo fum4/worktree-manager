@@ -1,22 +1,22 @@
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'fs';
-import { Hono } from 'hono';
-import path from 'path';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
+import { Hono } from "hono";
+import path from "path";
 
-import { CONFIG_DIR_NAME } from '../../constants';
+import { CONFIG_DIR_NAME } from "../../constants";
 import {
   loadJiraCredentials,
   loadJiraProjectConfig,
   saveJiraCredentials,
   saveJiraProjectConfig,
-} from '../../integrations/jira/credentials';
-import { getApiBase, getAuthHeaders, testConnection } from '../../integrations/jira/auth';
-import { downloadAttachments, fetchIssue, saveTaskData } from '../../integrations/jira/api';
-import type { DataLifecycleConfig, JiraCredentials } from '../../integrations/jira/types';
-import { log } from '../../logger';
-import type { WorktreeManager } from '../manager';
+} from "../../integrations/jira/credentials";
+import { getApiBase, getAuthHeaders, testConnection } from "../../integrations/jira/auth";
+import { downloadAttachments, fetchIssue, saveTaskData } from "../../integrations/jira/api";
+import type { DataLifecycleConfig, JiraCredentials } from "../../integrations/jira/types";
+import { log } from "../../logger";
+import type { WorktreeManager } from "../manager";
 
 export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
-  app.get('/api/jira/status', (c) => {
+  app.get("/api/jira/status", (c) => {
     const configDir = manager.getConfigDir();
     const creds = loadJiraCredentials(configDir);
     const projectConfig = loadJiraProjectConfig(configDir);
@@ -25,14 +25,14 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
     let domain: string | null = null;
 
     if (creds) {
-      if (creds.authMethod === 'api-token') {
+      if (creds.authMethod === "api-token") {
         email = creds.apiToken.email;
         try {
           domain = new URL(creds.apiToken.baseUrl).hostname;
         } catch {
           domain = creds.apiToken.baseUrl;
         }
-      } else if (creds.authMethod === 'oauth') {
+      } else if (creds.authMethod === "oauth") {
         try {
           domain = new URL(creds.oauth.siteUrl).hostname;
         } catch {
@@ -51,18 +51,18 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
     });
   });
 
-  app.post('/api/jira/setup', async (c) => {
+  app.post("/api/jira/setup", async (c) => {
     try {
       const body = await c.req.json<{ baseUrl: string; email: string; token: string }>();
       if (!body.baseUrl || !body.email || !body.token) {
-        return c.json({ success: false, error: 'baseUrl, email, and token are required' }, 400);
+        return c.json({ success: false, error: "baseUrl, email, and token are required" }, 400);
       }
 
       const configDir = manager.getConfigDir();
       const creds: JiraCredentials = {
-        authMethod: 'api-token',
+        authMethod: "api-token",
         apiToken: {
-          baseUrl: body.baseUrl.replace(/\/$/, ''),
+          baseUrl: body.baseUrl.replace(/\/$/, ""),
           email: body.email,
           token: body.token,
         },
@@ -72,10 +72,13 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
       try {
         await testConnection(creds, configDir);
       } catch (err) {
-        return c.json({
-          success: false,
-          error: `Connection failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
-        }, 400);
+        return c.json(
+          {
+            success: false,
+            error: `Connection failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+          },
+          400,
+        );
       }
 
       saveJiraCredentials(configDir, creds);
@@ -89,15 +92,19 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
       return c.json({ success: true });
     } catch (error) {
       return c.json(
-        { success: false, error: error instanceof Error ? error.message : 'Invalid request' },
+        { success: false, error: error instanceof Error ? error.message : "Invalid request" },
         400,
       );
     }
   });
 
-  app.patch('/api/jira/config', async (c) => {
+  app.patch("/api/jira/config", async (c) => {
     try {
-      const body = await c.req.json<{ defaultProjectKey?: string; refreshIntervalMinutes?: number; dataLifecycle?: DataLifecycleConfig }>();
+      const body = await c.req.json<{
+        defaultProjectKey?: string;
+        refreshIntervalMinutes?: number;
+        dataLifecycle?: DataLifecycleConfig;
+      }>();
       const configDir = manager.getConfigDir();
       const current = loadJiraProjectConfig(configDir);
       if (body.defaultProjectKey !== undefined) {
@@ -113,51 +120,51 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
       return c.json({ success: true });
     } catch (error) {
       return c.json(
-        { success: false, error: error instanceof Error ? error.message : 'Invalid request' },
+        { success: false, error: error instanceof Error ? error.message : "Invalid request" },
         400,
       );
     }
   });
 
-  app.delete('/api/jira/credentials', (c) => {
+  app.delete("/api/jira/credentials", (c) => {
     try {
       const configDir = manager.getConfigDir();
-      const intPath = path.join(configDir, CONFIG_DIR_NAME, 'integrations.json');
+      const intPath = path.join(configDir, CONFIG_DIR_NAME, "integrations.json");
       if (existsSync(intPath)) {
-        const data = JSON.parse(readFileSync(intPath, 'utf-8'));
+        const data = JSON.parse(readFileSync(intPath, "utf-8"));
         delete data.jira;
-        writeFileSync(intPath, JSON.stringify(data, null, 2) + '\n');
+        writeFileSync(intPath, JSON.stringify(data, null, 2) + "\n");
       }
       return c.json({ success: true });
     } catch (error) {
       return c.json(
-        { success: false, error: error instanceof Error ? error.message : 'Failed to disconnect' },
+        { success: false, error: error instanceof Error ? error.message : "Failed to disconnect" },
         400,
       );
     }
   });
 
-  app.get('/api/jira/issues', async (c) => {
+  app.get("/api/jira/issues", async (c) => {
     try {
       const configDir = manager.getConfigDir();
       const creds = loadJiraCredentials(configDir);
       if (!creds) {
-        return c.json({ issues: [], error: 'Jira not configured' }, 400);
+        return c.json({ issues: [], error: "Jira not configured" }, 400);
       }
 
       const apiBase = getApiBase(creds);
       const headers = await getAuthHeaders(creds, configDir);
-      const query = c.req.query('query');
+      const query = c.req.query("query");
 
-      let jql = 'assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC';
+      let jql = "assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC";
       if (query) {
         jql = `assignee = currentUser() AND resolution = Unresolved AND text ~ "${query}" ORDER BY updated DESC`;
       }
 
       const params = new URLSearchParams({
         jql,
-        fields: 'summary,status,priority,issuetype,assignee,updated,labels',
-        maxResults: '50',
+        fields: "summary,status,priority,issuetype,assignee,updated,labels",
+        maxResults: "50",
       });
 
       const resp = await fetch(`${apiBase}/search/jql?${params}`, { headers });
@@ -183,21 +190,21 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
 
       // Build site URL
       let siteUrl: string;
-      if (creds.authMethod === 'oauth') {
+      if (creds.authMethod === "oauth") {
         siteUrl = creds.oauth.siteUrl;
       } else {
         siteUrl = creds.apiToken.baseUrl;
       }
-      const baseUrl = siteUrl.replace(/\/$/, '');
+      const baseUrl = siteUrl.replace(/\/$/, "");
 
       const issues = data.issues.map((issue) => ({
         key: issue.key,
-        summary: issue.fields.summary ?? '',
-        status: issue.fields.status?.name ?? 'Unknown',
-        priority: issue.fields.priority?.name ?? 'None',
-        type: issue.fields.issuetype?.name ?? 'Unknown',
+        summary: issue.fields.summary ?? "",
+        status: issue.fields.status?.name ?? "Unknown",
+        priority: issue.fields.priority?.name ?? "None",
+        type: issue.fields.issuetype?.name ?? "Unknown",
         assignee: issue.fields.assignee?.displayName ?? null,
-        updated: issue.fields.updated ?? '',
+        updated: issue.fields.updated ?? "",
         labels: issue.fields.labels ?? [],
         url: `${baseUrl}/browse/${issue.key}`,
       }));
@@ -210,7 +217,7 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
         const liveStatusMap = new Map(issues.map((i) => [i.key, i.status]));
 
         // Scan cached issue directories
-        const jiraIssuesDir = path.join(configDir, CONFIG_DIR_NAME, 'issues', 'jira');
+        const jiraIssuesDir = path.join(configDir, CONFIG_DIR_NAME, "issues", "jira");
         if (existsSync(jiraIssuesDir)) {
           try {
             const cachedDirs = readdirSync(jiraIssuesDir, { withFileTypes: true });
@@ -220,99 +227,110 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
               // Check live status first, then fall back to cached issue.json
               let status = liveStatusMap.get(issueKey);
               if (!status) {
-                const issueFile = path.join(jiraIssuesDir, issueKey, 'issue.json');
+                const issueFile = path.join(jiraIssuesDir, issueKey, "issue.json");
                 if (existsSync(issueFile)) {
                   try {
-                    const cached = JSON.parse(readFileSync(issueFile, 'utf-8'));
+                    const cached = JSON.parse(readFileSync(issueFile, "utf-8"));
                     status = cached.status;
-                  } catch { /* ignore */ }
+                  } catch {
+                    /* ignore */
+                  }
                 }
               }
               if (status && triggers.includes(status.toLowerCase())) {
-                manager.cleanupIssueData('jira', issueKey, lifecycle.autoCleanup.actions)
+                manager
+                  .cleanupIssueData("jira", issueKey, lifecycle.autoCleanup.actions)
                   .catch((err) => log.warn(`Auto-cleanup failed for ${issueKey}: ${err}`));
               }
             }
-          } catch { /* ignore scan errors */ }
+          } catch {
+            /* ignore scan errors */
+          }
         }
       }
 
       return c.json({ issues });
     } catch (error) {
       return c.json(
-        { issues: [], error: error instanceof Error ? error.message : 'Failed to fetch issues' },
+        { issues: [], error: error instanceof Error ? error.message : "Failed to fetch issues" },
         500,
       );
     }
   });
 
-  app.get('/api/jira/issues/:key', async (c) => {
+  app.get("/api/jira/issues/:key", async (c) => {
     try {
       const configDir = manager.getConfigDir();
       const creds = loadJiraCredentials(configDir);
       if (!creds) {
-        return c.json({ error: 'Jira not configured' }, 400);
+        return c.json({ error: "Jira not configured" }, 400);
       }
 
-      const key = c.req.param('key');
+      const key = c.req.param("key");
       const issue = await fetchIssue(key, creds, configDir);
 
       // Check saveOn preference — skip persisting when set to 'worktree-creation'
       const projectConfig = loadJiraProjectConfig(configDir);
-      const saveOn = projectConfig.dataLifecycle?.saveOn ?? 'view';
+      const saveOn = projectConfig.dataLifecycle?.saveOn ?? "view";
 
-      if (saveOn === 'view') {
+      if (saveOn === "view") {
         // Save issue data to disk
-        const tasksDir = path.join(configDir, CONFIG_DIR_NAME, 'tasks');
+        const tasksDir = path.join(configDir, CONFIG_DIR_NAME, "tasks");
         saveTaskData(issue, tasksDir);
 
         // Download attachments in background (don't block the response)
         if (issue.attachments.length > 0) {
-          const issueDir = path.join(configDir, CONFIG_DIR_NAME, 'issues', 'jira', issue.key);
-          const attachDir = path.join(issueDir, 'attachments');
+          const issueDir = path.join(configDir, CONFIG_DIR_NAME, "issues", "jira", issue.key);
+          const attachDir = path.join(issueDir, "attachments");
           downloadAttachments(
-            issue.attachments.filter((a) => a.contentUrl).map((a) => ({
-              filename: a.filename,
-              content: a.contentUrl!,
-              mimeType: a.mimeType,
-              size: a.size,
-            })),
+            issue.attachments
+              .filter((a) => a.contentUrl)
+              .map((a) => ({
+                filename: a.filename,
+                content: a.contentUrl!,
+                mimeType: a.mimeType,
+                size: a.size,
+              })),
             attachDir,
             creds,
             configDir,
-          ).then((downloaded) => {
-            // Update issue.json with local paths
-            if (downloaded.length > 0) {
-              for (const dl of downloaded) {
-                const att = issue.attachments.find((a) => a.filename === dl.filename);
-                if (att) att.localPath = dl.localPath;
+          )
+            .then((downloaded) => {
+              // Update issue.json with local paths
+              if (downloaded.length > 0) {
+                for (const dl of downloaded) {
+                  const att = issue.attachments.find((a) => a.filename === dl.filename);
+                  if (att) att.localPath = dl.localPath;
+                }
+                saveTaskData(issue, path.join(configDir, CONFIG_DIR_NAME, "tasks"));
               }
-              saveTaskData(issue, path.join(configDir, CONFIG_DIR_NAME, 'tasks'));
-            }
-          }).catch(() => { /* non-critical */ });
+            })
+            .catch(() => {
+              /* non-critical */
+            });
         }
       }
 
       return c.json({ issue });
     } catch (error) {
       return c.json(
-        { error: error instanceof Error ? error.message : 'Failed to fetch issue' },
-        error instanceof Error && error.message.includes('not found') ? 404 : 500,
+        { error: error instanceof Error ? error.message : "Failed to fetch issue" },
+        error instanceof Error && error.message.includes("not found") ? 404 : 500,
       );
     }
   });
 
-  app.get('/api/jira/attachment', async (c) => {
+  app.get("/api/jira/attachment", async (c) => {
     try {
       const configDir = manager.getConfigDir();
       const creds = loadJiraCredentials(configDir);
       if (!creds) {
-        return c.json({ error: 'Jira not configured' }, 400);
+        return c.json({ error: "Jira not configured" }, 400);
       }
 
-      const url = c.req.query('url');
+      const url = c.req.query("url");
       if (!url) {
-        return c.json({ error: 'url parameter is required' }, 400);
+        return c.json({ error: "url parameter is required" }, 400);
       }
 
       const headers = await getAuthHeaders(creds, configDir);
@@ -324,28 +342,28 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
         return c.json({ error: `Failed to fetch attachment: ${resp.status}` }, resp.status as 400);
       }
 
-      const contentType = resp.headers.get('content-type') || 'application/octet-stream';
+      const contentType = resp.headers.get("content-type") || "application/octet-stream";
       const body = await resp.arrayBuffer();
 
       return new Response(body, {
         headers: {
-          'Content-Type': contentType,
-          'Cache-Control': 'private, max-age=3600',
+          "Content-Type": contentType,
+          "Cache-Control": "private, max-age=3600",
         },
       });
     } catch (error) {
       return c.json(
-        { error: error instanceof Error ? error.message : 'Failed to fetch attachment' },
+        { error: error instanceof Error ? error.message : "Failed to fetch attachment" },
         500,
       );
     }
   });
 
-  app.post('/api/jira/task', async (c) => {
+  app.post("/api/jira/task", async (c) => {
     try {
       const body = await c.req.json<{ issueKey: string; branch?: string }>();
       if (!body.issueKey) {
-        return c.json({ success: false, error: 'Issue key is required' }, 400);
+        return c.json({ success: false, error: "Issue key is required" }, 400);
       }
       const result = await manager.createWorktreeFromJira(body.issueKey, body.branch);
       return c.json(result, result.success ? 201 : 400);
@@ -353,7 +371,7 @@ export function registerJiraRoutes(app: Hono, manager: WorktreeManager) {
       return c.json(
         {
           success: false,
-          error: error instanceof Error ? error.message : 'Invalid request',
+          error: error instanceof Error ? error.message : "Invalid request",
         },
         400,
       );

@@ -1,11 +1,10 @@
-import { existsSync } from 'fs';
-import type { WebSocket } from 'ws';
-import type { IPty } from 'node-pty';
-import nodePty from 'node-pty';
+import { existsSync } from "fs";
+import type { WebSocket } from "ws";
+import type { IPty } from "node-pty";
+import nodePty from "node-pty";
 
 // Handle CJS/ESM interop: when externalized, default import may be nested
-const pty: { spawn: typeof nodePty.spawn } =
-  (nodePty as any).default ?? nodePty;
+const pty: { spawn: typeof nodePty.spawn } = (nodePty as any).default ?? nodePty;
 
 interface TerminalSession {
   id: string;
@@ -21,17 +20,12 @@ export class TerminalManager {
   private sessions = new Map<string, TerminalSession>();
   private idCounter = 0;
 
-  createSession(
-    worktreeId: string,
-    worktreePath: string,
-    cols = 80,
-    rows = 24,
-  ): string {
+  createSession(worktreeId: string, worktreePath: string, cols = 80, rows = 24): string {
     if (!existsSync(worktreePath)) {
       throw new Error(`Worktree path does not exist: ${worktreePath}`);
     }
 
-    const shell = process.env.SHELL || '/bin/zsh';
+    const shell = process.env.SHELL || "/bin/zsh";
     if (!existsSync(shell)) {
       throw new Error(`Shell not found: ${shell}`);
     }
@@ -59,19 +53,19 @@ export class TerminalManager {
 
     // Spawn PTY now that the WebSocket is ready — avoids buffering
     // shell output that causes duplicate prompts on replay
-    const shell = process.env.SHELL || '/bin/zsh';
+    const shell = process.env.SHELL || "/bin/zsh";
     let ptyProcess: IPty;
     try {
       ptyProcess = pty.spawn(shell, [], {
-        name: 'xterm-256color',
+        name: "xterm-256color",
         cols: session.cols,
         rows: session.rows,
         cwd: session.worktreePath,
         env: {
           ...process.env,
           SHELL: shell,
-          TERM: 'xterm-256color',
-          COLORTERM: 'truecolor',
+          TERM: "xterm-256color",
+          COLORTERM: "truecolor",
         } as Record<string, string>,
       });
     } catch (err) {
@@ -79,7 +73,9 @@ export class TerminalManager {
       try {
         ws.send(`\r\nFailed to start terminal: ${err}\r\n`);
         ws.close();
-      } catch { /* ws closed */ }
+      } catch {
+        /* ws closed */
+      }
       this.sessions.delete(sessionId);
       return false;
     }
@@ -99,7 +95,7 @@ export class TerminalManager {
     ptyProcess.onExit(({ exitCode }) => {
       if (session.ws) {
         try {
-          session.ws.send(JSON.stringify({ type: 'exit', exitCode }));
+          session.ws.send(JSON.stringify({ type: "exit", exitCode }));
           session.ws.close();
         } catch {
           // ws already closed
@@ -108,12 +104,11 @@ export class TerminalManager {
       this.sessions.delete(sessionId);
     });
 
-    ws.on('message', (rawData: Buffer | string) => {
-      const data =
-        typeof rawData === 'string' ? rawData : rawData.toString('utf-8');
+    ws.on("message", (rawData: Buffer | string) => {
+      const data = typeof rawData === "string" ? rawData : rawData.toString("utf-8");
       try {
         const msg = JSON.parse(data);
-        if (msg.type === 'resize' && msg.cols && msg.rows) {
+        if (msg.type === "resize" && msg.cols && msg.rows) {
           ptyProcess.resize(msg.cols, msg.rows);
           return;
         }
@@ -123,7 +118,7 @@ export class TerminalManager {
       ptyProcess.write(data);
     });
 
-    ws.on('close', () => {
+    ws.on("close", () => {
       dataHandler.dispose();
       session.ws = null;
     });
@@ -146,10 +141,14 @@ export class TerminalManager {
 
     try {
       session.ws?.close();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     try {
       session.pty?.kill();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     this.sessions.delete(sessionId);
     return true;

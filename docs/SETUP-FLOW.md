@@ -54,11 +54,11 @@ stateDiagram-v2
 
 **Purpose:** Let the user choose between automatic and manual configuration.
 
-| Element | Description |
-|---|---|
-| Auto-detect | Detects package manager, start/install commands, and base branch from the project. Creates config immediately and advances to Agents. |
-| Manual setup | Opens the manual config form. |
-| Remember choice | Optional checkbox that persists the preference for future projects (Electron only). |
+| Element         | Description                                                                                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Auto-detect     | Detects package manager, start/install commands, and base branch from the project. Creates config immediately and advances to Agents. |
+| Manual setup    | Opens the manual config form.                                                                                                         |
+| Remember choice | Optional checkbox that persists the preference for future projects (Electron only).                                                   |
 
 On mount, the component calls `api.detectConfig()` to pre-fill detected values shown under the auto-detect option.
 
@@ -67,11 +67,13 @@ On mount, the component calls `api.detectConfig()` to pre-fill detected values s
 **Purpose:** Let the user review and customize detected settings.
 
 **Core fields:**
+
 - Base branch (e.g., `origin/main`)
 - Start command (e.g., `pnpm dev`)
 - Install command (e.g., `pnpm install`)
 
 **Advanced fields** (behind "Show all options" toggle):
+
 - Project directory (subdirectory for running commands)
 - Local issue prefix (e.g., `LOCAL`)
 - Auto-install dependencies toggle
@@ -91,6 +93,7 @@ Can be skipped with "Skip for now".
 **Purpose:** Commit and push the `.dawg/config.json` and `.dawg/.gitignore` files so the config is available in all worktrees.
 
 Handles three GitHub CLI states:
+
 - **Not installed** -- offers to install via Homebrew with device-flow auth
 - **Installed but not authenticated** -- starts device-flow login
 - **Ready** -- shows files to commit and an editable commit message
@@ -119,6 +122,7 @@ flowchart TB
 ```
 
 **Card behavior:**
+
 - Each card shows name, icon, description, and connection status.
 - Clicking a card expands it to reveal the inline setup form.
 - Only one card can be expanded at a time.
@@ -166,9 +170,9 @@ All six views are rendered by `ProjectSetupScreen` based on the `mode` state var
 
 ```typescript
 interface ProjectSetupScreenProps {
-  projectName: string | null;       // displayed in the header
-  onSetupComplete: () => void;      // called when user finishes setup
-  onRememberChoice?: (choice: 'auto' | 'manual') => void;  // Electron: persist preference
+  projectName: string | null; // displayed in the header
+  onSetupComplete: () => void; // called when user finishes setup
+  onRememberChoice?: (choice: "auto" | "manual") => void; // Electron: persist preference
 }
 ```
 
@@ -176,22 +180,22 @@ interface ProjectSetupScreenProps {
 
 ## API Endpoints Used
 
-| Step | Endpoint | Purpose |
-|---|---|---|
-| Choice / Manual | `GET /api/config/detect` | Detect config values |
-| Choice / Manual | `POST /api/config/init` | Create config |
-| Agents | `GET /api/mcp/status` | Current agent MCP status |
-| Agents | `POST /api/mcp/:agent/:scope/setup` | Connect an agent |
-| Agents | `DELETE /api/mcp/:agent/:scope` | Disconnect an agent |
-| Commit | `GET /api/github/status` | GitHub CLI/auth status |
-| Commit | `POST /api/github/install` | Install gh CLI + start auth |
-| Commit | `POST /api/github/login` | Start device-flow login |
-| Commit | `POST /api/config/commit-setup` | Commit & push .dawg files |
-| Integrations | `GET /api/github/status` | GitHub status |
-| Integrations | `GET /api/jira/status` | Jira connection status |
-| Integrations | `GET /api/linear/status` | Linear connection status |
-| Integrations | `POST /api/jira/setup` | Connect Jira |
-| Integrations | `POST /api/linear/setup` | Connect Linear |
+| Step            | Endpoint                            | Purpose                     |
+| --------------- | ----------------------------------- | --------------------------- |
+| Choice / Manual | `GET /api/config/detect`            | Detect config values        |
+| Choice / Manual | `POST /api/config/init`             | Create config               |
+| Agents          | `GET /api/mcp/status`               | Current agent MCP status    |
+| Agents          | `POST /api/mcp/:agent/:scope/setup` | Connect an agent            |
+| Agents          | `DELETE /api/mcp/:agent/:scope`     | Disconnect an agent         |
+| Commit          | `GET /api/github/status`            | GitHub CLI/auth status      |
+| Commit          | `POST /api/github/install`          | Install gh CLI + start auth |
+| Commit          | `POST /api/github/login`            | Start device-flow login     |
+| Commit          | `POST /api/config/commit-setup`     | Commit & push .dawg files   |
+| Integrations    | `GET /api/github/status`            | GitHub status               |
+| Integrations    | `GET /api/jira/status`              | Jira connection status      |
+| Integrations    | `GET /api/linear/status`            | Linear connection status    |
+| Integrations    | `POST /api/jira/setup`              | Connect Jira                |
+| Integrations    | `POST /api/linear/setup`            | Connect Linear              |
 
 ---
 
@@ -199,10 +203,10 @@ interface ProjectSetupScreenProps {
 
 Every step after Choice can be skipped:
 
-| Step | Skip action | What happens |
-|---|---|---|
-| Agents | "Skip for now" | Advances to Commit |
-| Commit | "Skip for now" | Advances to Integrations |
-| Integrations | "Continue without integrations" | Advances to Complete |
+| Step         | Skip action                     | What happens             |
+| ------------ | ------------------------------- | ------------------------ |
+| Agents       | "Skip for now"                  | Advances to Commit       |
+| Commit       | "Skip for now"                  | Advances to Integrations |
+| Integrations | "Continue without integrations" | Advances to Complete     |
 
 Skipped steps can always be completed later from the corresponding panel in the main workspace (Integrations panel, Agents tab in Configuration, etc.).

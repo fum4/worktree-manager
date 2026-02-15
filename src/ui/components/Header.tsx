@@ -1,12 +1,12 @@
-import type { View } from './NavBar';
-import { badge, nav, text } from '../theme';
+import type { View } from "./NavBar";
+import { badge, nav, text } from "../theme";
 
 const tabs: { id: View; label: string }[] = [
-  { id: 'workspace', label: 'Workspace' },
-  { id: 'agents', label: 'Agents' },
-  { id: 'hooks', label: 'Hooks' },
-  { id: 'integrations', label: 'Integrations' },
-  { id: 'configuration', label: 'Settings' },
+  { id: "workspace", label: "Workspace" },
+  { id: "agents", label: "Agents" },
+  { id: "hooks", label: "Hooks" },
+  { id: "integrations", label: "Integrations" },
+  { id: "configuration", label: "Settings" },
 ];
 
 interface HeaderProps {
@@ -27,12 +27,12 @@ export function Header({
   return (
     <header
       className="h-[4.25rem] flex-shrink-0 relative bg-[#0c0e12]/60 backdrop-blur-md z-40"
-      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
     >
       {/* Center: nav tabs - using inset-x-0 + flex for pixel-perfect centering */}
       <div
         className="absolute inset-x-0 bottom-[1.375rem] flex justify-center"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
       >
         <div className="flex items-center gap-0.5">
           {tabs.map((t) => (
@@ -47,7 +47,9 @@ export function Header({
             </button>
           ))}
           {runningCount > 0 && (
-            <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-semibold ${badge.running} rounded-full`}>
+            <span
+              className={`ml-2 px-1.5 py-0.5 text-[10px] font-semibold ${badge.running} rounded-full`}
+            >
               {runningCount}
             </span>
           )}
@@ -58,7 +60,7 @@ export function Header({
       {configNeedsPush && (
         <div
           className="absolute right-4 bottom-[1.375rem] flex items-center"
-          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         >
           <div className="group relative">
             <button
@@ -68,7 +70,7 @@ export function Header({
               <span className="relative flex h-2.5 w-2.5">
                 <span
                   className="absolute inline-flex h-full w-full rounded-full bg-amber-400"
-                  style={{ animation: 'pulse-calm 2.5s ease-out infinite' }}
+                  style={{ animation: "pulse-calm 2.5s ease-out infinite" }}
                 />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400" />
               </span>

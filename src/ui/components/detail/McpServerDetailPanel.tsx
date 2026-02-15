@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Eye, EyeOff, Info, Plus, Trash2, X } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from "react";
+import { Eye, EyeOff, Info, Plus, Trash2, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import type { McpServerSummary } from '../../types';
-import { useMcpServerDetail, useMcpDeploymentStatus } from '../../hooks/useMcpServers';
-import { useApi } from '../../hooks/useApi';
-import { border, mcpServer, text } from '../../theme';
-import { ConfirmDialog } from '../ConfirmDialog';
-import { Spinner } from '../Spinner';
-
+import type { McpServerSummary } from "../../types";
+import { useMcpServerDetail, useMcpDeploymentStatus } from "../../hooks/useMcpServers";
+import { useApi } from "../../hooks/useApi";
+import { border, mcpServer, text } from "../../theme";
+import { ConfirmDialog } from "../ConfirmDialog";
+import { Spinner } from "../Spinner";
 
 interface McpServerDetailPanelProps {
   serverId: string;
@@ -17,32 +16,41 @@ interface McpServerDetailPanelProps {
 }
 
 const TOOLS = [
-  { id: 'claude', label: 'Claude Code' },
-  { id: 'cursor', label: 'Cursor' },
-  { id: 'gemini', label: 'Gemini CLI' },
-  { id: 'vscode', label: 'VS Code' },
-  { id: 'codex', label: 'Codex' },
+  { id: "claude", label: "Claude Code" },
+  { id: "cursor", label: "Cursor" },
+  { id: "gemini", label: "Gemini CLI" },
+  { id: "vscode", label: "VS Code" },
+  { id: "codex", label: "Codex" },
 ] as const;
 
-const SCOPES = ['global', 'project'] as const;
+const SCOPES = ["global", "project"] as const;
 
-export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: McpServerDetailPanelProps) {
+export function McpServerDetailPanel({
+  serverId,
+  builtInServer,
+  onDeleted,
+}: McpServerDetailPanelProps) {
   const api = useApi();
   const queryClient = useQueryClient();
   const isBuiltIn = !!builtInServer;
-  const { server: fetchedServer, isLoading, error, refetch } = useMcpServerDetail(isBuiltIn ? null : serverId);
+  const {
+    server: fetchedServer,
+    isLoading,
+    error,
+    refetch,
+  } = useMcpServerDetail(isBuiltIn ? null : serverId);
   const { status: deploymentStatus, refetch: refetchDeployment } = useMcpDeploymentStatus();
 
   const server = builtInServer ?? fetchedServer;
 
   const [editingName, setEditingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState('');
+  const [nameDraft, setNameDraft] = useState("");
   const [editingDescription, setEditingDescription] = useState(false);
-  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [descriptionDraft, setDescriptionDraft] = useState("");
   const [editingCommand, setEditingCommand] = useState(false);
-  const [commandDraft, setCommandDraft] = useState('');
+  const [commandDraft, setCommandDraft] = useState("");
   const [editingArgs, setEditingArgs] = useState(false);
-  const [argsDraft, setArgsDraft] = useState('');
+  const [argsDraft, setArgsDraft] = useState("");
   const [showEnv, setShowEnv] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteUndeploy, setDeleteUndeploy] = useState(true);
@@ -51,12 +59,12 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
   // Per-project env state
   const [projectEnv, setProjectEnv] = useState<Record<string, string>>({});
   const [editingEnvKey, setEditingEnvKey] = useState<string | null>(null);
-  const [envValueDraft, setEnvValueDraft] = useState('');
+  const [envValueDraft, setEnvValueDraft] = useState("");
   const [editingEnvName, setEditingEnvName] = useState<string | null>(null);
-  const [envNameDraft, setEnvNameDraft] = useState('');
+  const [envNameDraft, setEnvNameDraft] = useState("");
   const [addingEnvKey, setAddingEnvKey] = useState(false);
-  const [newEnvKey, setNewEnvKey] = useState('');
-  const [newEnvValue, setNewEnvValue] = useState('');
+  const [newEnvKey, setNewEnvKey] = useState("");
+  const [newEnvValue, setNewEnvValue] = useState("");
 
   // Fetch per-project env
   const fetchEnv = useCallback(async () => {
@@ -64,7 +72,9 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
     setProjectEnv(result.env);
   }, [serverId, api]);
 
-  useEffect(() => { fetchEnv(); }, [fetchEnv]);
+  useEffect(() => {
+    fetchEnv();
+  }, [fetchEnv]);
 
   const saveEnv = async (env: Record<string, string>) => {
     setProjectEnv(env);
@@ -75,7 +85,7 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
     if (isBuiltIn) return;
     await api.updateMcpServer(serverId, updates);
     refetch();
-    queryClient.invalidateQueries({ queryKey: ['mcpServers'] });
+    queryClient.invalidateQueries({ queryKey: ["mcpServers"] });
   };
 
   const handleDelete = async () => {
@@ -83,13 +93,13 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
     if (deleteUndeploy) {
       const serverStatus = deploymentStatus[serverId] ?? {};
       for (const [tool, scopes] of Object.entries(serverStatus)) {
-        if (scopes.global) await api.undeployMcpServer(serverId, tool, 'global');
-        if (scopes.project) await api.undeployMcpServer(serverId, tool, 'project');
+        if (scopes.global) await api.undeployMcpServer(serverId, tool, "global");
+        if (scopes.project) await api.undeployMcpServer(serverId, tool, "project");
       }
     }
     await api.deleteMcpServer(serverId);
-    queryClient.invalidateQueries({ queryKey: ['mcpServers'] });
-    queryClient.invalidateQueries({ queryKey: ['mcpDeploymentStatus'] });
+    queryClient.invalidateQueries({ queryKey: ["mcpServers"] });
+    queryClient.invalidateQueries({ queryKey: ["mcpDeploymentStatus"] });
     onDeleted();
   };
 
@@ -115,7 +125,7 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
     const trimmed = newName.trim();
     if (!trimmed || trimmed === oldKey) return;
     const updated = { ...projectEnv };
-    const value = updated[oldKey] ?? '';
+    const value = updated[oldKey] ?? "";
     delete updated[oldKey];
     updated[trimmed] = value;
     await saveEnv(updated);
@@ -131,8 +141,8 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
     if (!newEnvKey.trim()) return;
     await saveEnv({ ...projectEnv, [newEnvKey.trim()]: newEnvValue });
     setAddingEnvKey(false);
-    setNewEnvKey('');
-    setNewEnvValue('');
+    setNewEnvKey("");
+    setNewEnvValue("");
   };
 
   // Redirect when source is deleted / not found
@@ -169,14 +179,17 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className={`text-[11px] font-mono ${mcpServer.accent}`}>
-                {server.id}
-              </span>
-              {server.tags.filter((tag) => tag !== 'built-in').map((tag) => (
-                <span key={tag} className={`text-[11px] ${mcpServer.badge} px-2.5 py-0.5 rounded`}>
-                  {tag}
-                </span>
-              ))}
+              <span className={`text-[11px] font-mono ${mcpServer.accent}`}>{server.id}</span>
+              {server.tags
+                .filter((tag) => tag !== "built-in")
+                .map((tag) => (
+                  <span
+                    key={tag}
+                    className={`text-[11px] ${mcpServer.badge} px-2.5 py-0.5 rounded`}
+                  >
+                    {tag}
+                  </span>
+                ))}
               {isDeployedAnywhere && (
                 <span className={`text-[11px] px-2.5 py-0.5 rounded-full ${mcpServer.badge}`}>
                   Deployed
@@ -195,17 +208,24 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
                   setEditingName(false);
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                  if (e.key === 'Escape') setEditingName(false);
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  if (e.key === "Escape") setEditingName(false);
                 }}
                 className={`w-full text-[15px] font-semibold ${text.primary} bg-white/[0.04] border ${mcpServer.accentBorder} rounded-md px-2 py-1 focus:outline-none`}
                 autoFocus
               />
             ) : (
               <h2
-                className={`text-[15px] font-semibold ${text.primary} leading-snug ${!isBuiltIn ? 'cursor-pointer hover:bg-white/[0.04]' : ''} rounded-md px-2 py-1 -mx-2 -my-1 transition-colors`}
-                onClick={!isBuiltIn ? () => { setNameDraft(server.name); setEditingName(true); } : undefined}
-                title={!isBuiltIn ? 'Click to edit' : undefined}
+                className={`text-[15px] font-semibold ${text.primary} leading-snug ${!isBuiltIn ? "cursor-pointer hover:bg-white/[0.04]" : ""} rounded-md px-2 py-1 -mx-2 -my-1 transition-colors`}
+                onClick={
+                  !isBuiltIn
+                    ? () => {
+                        setNameDraft(server.name);
+                        setEditingName(true);
+                      }
+                    : undefined
+                }
+                title={!isBuiltIn ? "Click to edit" : undefined}
               >
                 {server.name}
               </h2>
@@ -246,14 +266,23 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
             />
           ) : (
             <div
-              className={`rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2 ${!isBuiltIn ? 'cursor-pointer hover:border-white/[0.08]' : ''} transition-colors min-h-[40px]`}
-              onClick={!isBuiltIn ? () => { setDescriptionDraft(server.description); setEditingDescription(true); } : undefined}
-              title={!isBuiltIn ? 'Click to edit' : undefined}
+              className={`rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2 ${!isBuiltIn ? "cursor-pointer hover:border-white/[0.08]" : ""} transition-colors min-h-[40px]`}
+              onClick={
+                !isBuiltIn
+                  ? () => {
+                      setDescriptionDraft(server.description);
+                      setEditingDescription(true);
+                    }
+                  : undefined
+              }
+              title={!isBuiltIn ? "Click to edit" : undefined}
             >
               {server.description ? (
                 <p className={`text-xs ${text.secondary}`}>{server.description}</p>
               ) : (
-                <p className={`text-xs ${text.dimmed} italic`}>{isBuiltIn ? 'No description' : 'Click to add a description...'}</p>
+                <p className={`text-xs ${text.dimmed} italic`}>
+                  {isBuiltIn ? "No description" : "Click to add a description..."}
+                </p>
               )}
             </div>
           )}
@@ -277,17 +306,24 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
                     setEditingCommand(false);
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                    if (e.key === 'Escape') setEditingCommand(false);
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                    if (e.key === "Escape") setEditingCommand(false);
                   }}
                   className={`flex-1 px-2 py-1 bg-white/[0.04] border border-white/[0.08] rounded text-xs font-mono ${text.primary} focus:outline-none`}
                   autoFocus
                 />
               ) : (
                 <span
-                  className={`text-xs font-mono ${text.primary} ${!isBuiltIn ? 'cursor-pointer hover:bg-white/[0.04]' : ''} px-2 py-1 -mx-2 rounded transition-colors`}
-                  onClick={!isBuiltIn ? () => { setCommandDraft(server.command); setEditingCommand(true); } : undefined}
-                  title={!isBuiltIn ? 'Click to edit' : undefined}
+                  className={`text-xs font-mono ${text.primary} ${!isBuiltIn ? "cursor-pointer hover:bg-white/[0.04]" : ""} px-2 py-1 -mx-2 rounded transition-colors`}
+                  onClick={
+                    !isBuiltIn
+                      ? () => {
+                          setCommandDraft(server.command);
+                          setEditingCommand(true);
+                        }
+                      : undefined
+                  }
+                  title={!isBuiltIn ? "Click to edit" : undefined}
                 >
                   {server.command}
                 </span>
@@ -308,19 +344,30 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
                     setEditingArgs(false);
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                    if (e.key === 'Escape') setEditingArgs(false);
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                    if (e.key === "Escape") setEditingArgs(false);
                   }}
                   className={`flex-1 px-2 py-1 bg-white/[0.04] border border-white/[0.08] rounded text-xs font-mono ${text.primary} focus:outline-none`}
                   autoFocus
                 />
               ) : (
                 <span
-                  className={`text-xs font-mono ${text.secondary} ${!isBuiltIn ? 'cursor-pointer hover:bg-white/[0.04]' : ''} px-2 py-1 -mx-2 rounded transition-colors`}
-                  onClick={!isBuiltIn ? () => { setArgsDraft(server.args.join(' ')); setEditingArgs(true); } : undefined}
-                  title={!isBuiltIn ? 'Click to edit' : undefined}
+                  className={`text-xs font-mono ${text.secondary} ${!isBuiltIn ? "cursor-pointer hover:bg-white/[0.04]" : ""} px-2 py-1 -mx-2 rounded transition-colors`}
+                  onClick={
+                    !isBuiltIn
+                      ? () => {
+                          setArgsDraft(server.args.join(" "));
+                          setEditingArgs(true);
+                        }
+                      : undefined
+                  }
+                  title={!isBuiltIn ? "Click to edit" : undefined}
                 >
-                  {server.args.length > 0 ? server.args.join(' ') : <span className={text.dimmed}>none</span>}
+                  {server.args.length > 0 ? (
+                    server.args.join(" ")
+                  ) : (
+                    <span className={text.dimmed}>none</span>
+                  )}
                 </span>
               )}
             </div>
@@ -328,199 +375,223 @@ export function McpServerDetailPanel({ serverId, builtInServer, onDeleted }: Mcp
         </section>
 
         {/* Environment Variables (per-project) */}
-        {!isBuiltIn && <section>
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className={`text-[11px] font-medium ${text.muted}`}>Environment Variables</h3>
-            <div className="relative group">
-              <Info className={`w-3 h-3 ${text.dimmed} cursor-help`} />
-              <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-lg bg-[#1a1d24] border border-white/[0.10] shadow-xl text-[10px] ${text.secondary} whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50`}>
-                Environment variables are saved per project
+        {!isBuiltIn && (
+          <section>
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className={`text-[11px] font-medium ${text.muted}`}>Environment Variables</h3>
+              <div className="relative group">
+                <Info className={`w-3 h-3 ${text.dimmed} cursor-help`} />
+                <div
+                  className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-lg bg-[#1a1d24] border border-white/[0.10] shadow-xl text-[10px] ${text.secondary} whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50`}
+                >
+                  Environment variables are saved per project
+                </div>
               </div>
+              {Object.keys(projectEnv).length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowEnv(!showEnv)}
+                  className={`p-0.5 rounded ${text.dimmed} hover:${text.muted} transition-colors`}
+                  title={showEnv ? "Hide values" : "Show values"}
+                >
+                  {showEnv ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              )}
             </div>
-            {Object.keys(projectEnv).length > 0 && (
+
+            {Object.keys(projectEnv).length > 0 ? (
+              <div className="space-y-1">
+                {Object.entries(projectEnv).map(([key, value]) => (
+                  <div key={key} className="flex items-center gap-2 group/env">
+                    {editingEnvName === key ? (
+                      <input
+                        type="text"
+                        value={envNameDraft}
+                        onChange={(e) => setEnvNameDraft(e.target.value)}
+                        onBlur={() => handleEnvKeyRename(key, envNameDraft)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                          if (e.key === "Escape") setEditingEnvName(null);
+                        }}
+                        className={`w-28 px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.08] rounded text-[11px] font-mono ${text.primary} focus:outline-none flex-shrink-0`}
+                        autoFocus
+                      />
+                    ) : (
+                      <span
+                        className={`text-[11px] font-mono ${text.secondary} flex-shrink-0 cursor-pointer hover:bg-white/[0.04] px-1.5 py-0.5 -mx-1.5 rounded transition-colors`}
+                        onClick={() => {
+                          setEditingEnvName(key);
+                          setEnvNameDraft(key);
+                        }}
+                      >
+                        {key}
+                      </span>
+                    )}
+                    <span className={`text-[11px] ${text.dimmed}`}>=</span>
+                    {editingEnvKey === key ? (
+                      <input
+                        type="text"
+                        value={envValueDraft}
+                        onChange={(e) => setEnvValueDraft(e.target.value)}
+                        onBlur={() => handleEnvValueUpdate(key, envValueDraft)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                          if (e.key === "Escape") setEditingEnvKey(null);
+                        }}
+                        className={`flex-1 min-w-0 px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.08] rounded text-[11px] font-mono ${text.primary} focus:outline-none`}
+                        autoFocus
+                      />
+                    ) : (
+                      <span
+                        className={`text-[11px] font-mono ${text.secondary} cursor-pointer hover:bg-white/[0.04] px-1.5 py-0.5 -mx-1.5 rounded transition-colors truncate`}
+                        onClick={() => {
+                          setEditingEnvKey(key);
+                          setEnvValueDraft(value);
+                        }}
+                      >
+                        {showEnv ? value : "••••••••"}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleEnvDelete(key)}
+                      className={`flex-shrink-0 p-0.5 rounded opacity-0 group-hover/env:opacity-100 ${text.dimmed} hover:text-red-400 transition-all`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : !addingEnvKey ? (
+              <p className={`text-[11px] ${text.dimmed} italic`}>No environment variables</p>
+            ) : null}
+
+            {addingEnvKey ? (
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="text"
+                  value={newEnvKey}
+                  onChange={(e) => setNewEnvKey(e.target.value)}
+                  placeholder="KEY"
+                  className={`w-28 px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.08] rounded text-[11px] font-mono ${text.primary} focus:outline-none placeholder:${text.dimmed}`}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setAddingEnvKey(false);
+                  }}
+                />
+                <span className={`text-[11px] ${text.dimmed}`}>=</span>
+                <input
+                  type="text"
+                  value={newEnvValue}
+                  onChange={(e) => setNewEnvValue(e.target.value)}
+                  placeholder="value"
+                  className={`flex-1 min-w-0 px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.08] rounded text-[11px] font-mono ${text.primary} focus:outline-none placeholder:${text.dimmed}`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleEnvAdd();
+                    if (e.key === "Escape") setAddingEnvKey(false);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleEnvAdd}
+                  disabled={!newEnvKey.trim()}
+                  className={`text-[10px] font-medium px-2 py-0.5 rounded ${newEnvKey.trim() ? `${mcpServer.button}` : `${text.dimmed} bg-white/[0.02]`} transition-colors`}
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddingEnvKey(false)}
+                  className={`p-0.5 rounded ${text.dimmed} hover:${text.muted} transition-colors`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
-                onClick={() => setShowEnv(!showEnv)}
-                className={`p-0.5 rounded ${text.dimmed} hover:${text.muted} transition-colors`}
-                title={showEnv ? 'Hide values' : 'Show values'}
+                onClick={() => {
+                  setAddingEnvKey(true);
+                  setNewEnvKey("");
+                  setNewEnvValue("");
+                }}
+                className={`flex items-center gap-1.5 mt-2 px-2 py-1 rounded-md text-[11px] ${text.dimmed} hover:${text.muted} hover:bg-white/[0.04] transition-colors`}
               >
-                {showEnv ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                <Plus className="w-3 h-3" />
+                Add variable
               </button>
             )}
-          </div>
-
-          {Object.keys(projectEnv).length > 0 ? (
-            <div className="space-y-1">
-              {Object.entries(projectEnv).map(([key, value]) => (
-                <div key={key} className="flex items-center gap-2 group/env">
-                  {editingEnvName === key ? (
-                    <input
-                      type="text"
-                      value={envNameDraft}
-                      onChange={(e) => setEnvNameDraft(e.target.value)}
-                      onBlur={() => handleEnvKeyRename(key, envNameDraft)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                        if (e.key === 'Escape') setEditingEnvName(null);
-                      }}
-                      className={`w-28 px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.08] rounded text-[11px] font-mono ${text.primary} focus:outline-none flex-shrink-0`}
-                      autoFocus
-                    />
-                  ) : (
-                    <span
-                      className={`text-[11px] font-mono ${text.secondary} flex-shrink-0 cursor-pointer hover:bg-white/[0.04] px-1.5 py-0.5 -mx-1.5 rounded transition-colors`}
-                      onClick={() => { setEditingEnvName(key); setEnvNameDraft(key); }}
-                    >
-                      {key}
-                    </span>
-                  )}
-                  <span className={`text-[11px] ${text.dimmed}`}>=</span>
-                  {editingEnvKey === key ? (
-                    <input
-                      type="text"
-                      value={envValueDraft}
-                      onChange={(e) => setEnvValueDraft(e.target.value)}
-                      onBlur={() => handleEnvValueUpdate(key, envValueDraft)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                        if (e.key === 'Escape') setEditingEnvKey(null);
-                      }}
-                      className={`flex-1 min-w-0 px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.08] rounded text-[11px] font-mono ${text.primary} focus:outline-none`}
-                      autoFocus
-                    />
-                  ) : (
-                    <span
-                      className={`text-[11px] font-mono ${text.secondary} cursor-pointer hover:bg-white/[0.04] px-1.5 py-0.5 -mx-1.5 rounded transition-colors truncate`}
-                      onClick={() => { setEditingEnvKey(key); setEnvValueDraft(value); }}
-                    >
-                      {showEnv ? value : '••••••••'}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleEnvDelete(key)}
-                    className={`flex-shrink-0 p-0.5 rounded opacity-0 group-hover/env:opacity-100 ${text.dimmed} hover:text-red-400 transition-all`}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : !addingEnvKey ? (
-            <p className={`text-[11px] ${text.dimmed} italic`}>No environment variables</p>
-          ) : null}
-
-          {addingEnvKey ? (
-            <div className="flex items-center gap-2 mt-2">
-              <input
-                type="text"
-                value={newEnvKey}
-                onChange={(e) => setNewEnvKey(e.target.value)}
-                placeholder="KEY"
-                className={`w-28 px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.08] rounded text-[11px] font-mono ${text.primary} focus:outline-none placeholder:${text.dimmed}`}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') setAddingEnvKey(false);
-                }}
-              />
-              <span className={`text-[11px] ${text.dimmed}`}>=</span>
-              <input
-                type="text"
-                value={newEnvValue}
-                onChange={(e) => setNewEnvValue(e.target.value)}
-                placeholder="value"
-                className={`flex-1 min-w-0 px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.08] rounded text-[11px] font-mono ${text.primary} focus:outline-none placeholder:${text.dimmed}`}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleEnvAdd();
-                  if (e.key === 'Escape') setAddingEnvKey(false);
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleEnvAdd}
-                disabled={!newEnvKey.trim()}
-                className={`text-[10px] font-medium px-2 py-0.5 rounded ${newEnvKey.trim() ? `${mcpServer.button}` : `${text.dimmed} bg-white/[0.02]`} transition-colors`}
-              >
-                Add
-              </button>
-              <button
-                type="button"
-                onClick={() => setAddingEnvKey(false)}
-                className={`p-0.5 rounded ${text.dimmed} hover:${text.muted} transition-colors`}
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => { setAddingEnvKey(true); setNewEnvKey(''); setNewEnvValue(''); }}
-              className={`flex items-center gap-1.5 mt-2 px-2 py-1 rounded-md text-[11px] ${text.dimmed} hover:${text.muted} hover:bg-white/[0.04] transition-colors`}
-            >
-              <Plus className="w-3 h-3" />
-              Add variable
-            </button>
-          )}
-        </section>}
+          </section>
+        )}
 
         {/* Deploy Matrix */}
         <section>
-            <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>Deployment</h3>
-            <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] overflow-hidden">
-              {/* Header row */}
-              <div className={`grid grid-cols-[1fr_80px_80px] px-3 py-2 border-b ${border.subtle}`}>
-                <span className={`text-[10px] font-medium ${text.dimmed}`}>Tool</span>
-                <span className={`text-[10px] font-medium ${text.dimmed} text-center`}>Global</span>
-                <span className={`text-[10px] font-medium ${text.dimmed} text-center`}>Project</span>
-              </div>
+          <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>Deployment</h3>
+          <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] overflow-hidden">
+            {/* Header row */}
+            <div className={`grid grid-cols-[1fr_80px_80px] px-3 py-2 border-b ${border.subtle}`}>
+              <span className={`text-[10px] font-medium ${text.dimmed}`}>Tool</span>
+              <span className={`text-[10px] font-medium ${text.dimmed} text-center`}>Global</span>
+              <span className={`text-[10px] font-medium ${text.dimmed} text-center`}>Project</span>
+            </div>
 
-              {/* Tool rows */}
-              {TOOLS.map((tool) => {
-                const agentStatus = serverDeployment[tool.id] ?? {};
-                return (
-                  <div key={tool.id} className={`grid grid-cols-[1fr_80px_80px] px-3 py-2 border-b last:border-b-0 ${border.subtle} hover:bg-white/[0.02]`}>
-                    <span className={`text-xs ${text.secondary}`}>{tool.label}</span>
-                    {SCOPES.map((scope) => {
-                      const isDeployed = agentStatus[scope];
-                      const isToggling = deploying === `${tool.id}-${scope}`;
-                      const isAvailable = agentStatus[scope] !== undefined;
+            {/* Tool rows */}
+            {TOOLS.map((tool) => {
+              const agentStatus = serverDeployment[tool.id] ?? {};
+              return (
+                <div
+                  key={tool.id}
+                  className={`grid grid-cols-[1fr_80px_80px] px-3 py-2 border-b last:border-b-0 ${border.subtle} hover:bg-white/[0.02]`}
+                >
+                  <span className={`text-xs ${text.secondary}`}>{tool.label}</span>
+                  {SCOPES.map((scope) => {
+                    const isDeployed = agentStatus[scope];
+                    const isToggling = deploying === `${tool.id}-${scope}`;
+                    const isAvailable = agentStatus[scope] !== undefined;
 
-                      if (!isAvailable) {
-                        return (
-                          <div key={scope} className="flex justify-center items-center">
-                            <span className={`text-[10px] ${text.dimmed}`}>-</span>
-                          </div>
-                        );
-                      }
-
+                    if (!isAvailable) {
                       return (
                         <div key={scope} className="flex justify-center items-center">
-                          {isToggling ? (
-                            <Spinner size="xs" className={text.dimmed} />
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleDeploy(tool.id, scope, !!isDeployed)}
-                              className="relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none"
-                              style={{ backgroundColor: isDeployed ? 'rgba(45,212,191,0.35)' : 'rgba(255,255,255,0.08)' }}
-                              title={isDeployed ? `Remove from ${tool.label} (${scope})` : `Deploy to ${tool.label} (${scope})`}
-                            >
-                              <span
-                                className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
-                                  isDeployed ? 'left-3.5 bg-teal-400' : 'left-0.5 bg-white/40'
-                                }`}
-                              />
-                            </button>
-                          )}
+                          <span className={`text-[10px] ${text.dimmed}`}>-</span>
                         </div>
                       );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+                    }
 
+                    return (
+                      <div key={scope} className="flex justify-center items-center">
+                        {isToggling ? (
+                          <Spinner size="xs" className={text.dimmed} />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleDeploy(tool.id, scope, !!isDeployed)}
+                            className="relative w-7 h-4 rounded-full transition-colors duration-200 focus:outline-none"
+                            style={{
+                              backgroundColor: isDeployed
+                                ? "rgba(45,212,191,0.35)"
+                                : "rgba(255,255,255,0.08)",
+                            }}
+                            title={
+                              isDeployed
+                                ? `Remove from ${tool.label} (${scope})`
+                                : `Deploy to ${tool.label} (${scope})`
+                            }
+                          >
+                            <span
+                              className={`absolute top-0.5 w-3 h-3 rounded-full transition-all duration-200 ${
+                                isDeployed ? "left-3.5 bg-teal-400" : "left-0.5 bg-white/40"
+                              }`}
+                            />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </div>
 
       {/* Delete confirmation */}

@@ -1,10 +1,10 @@
 When the user mentions an issue key (like PROJ-123, ENG-42), a ticket number, or says "work on <something>", use the dawg MCP server tools:
 
-| User says | You call |
-|---|---|
-| Issue key like "PROJ-123" or number "456" | dawg `create_from_jira` tool |
-| Linear identifier like "ENG-42" | dawg `create_from_linear` tool |
-| "show my issues" | dawg `list_jira_issues` or `list_linear_issues` tool |
+| User says                                 | You call                                             |
+| ----------------------------------------- | ---------------------------------------------------- |
+| Issue key like "PROJ-123" or number "456" | dawg `create_from_jira` tool                         |
+| Linear identifier like "ENG-42"           | dawg `create_from_linear` tool                       |
+| "show my issues"                          | dawg `list_jira_issues` or `list_linear_issues` tool |
 
 ## After Creating a Worktree
 

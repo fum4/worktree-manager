@@ -1,68 +1,96 @@
-import { AnimatePresence, motion } from 'motion/react';
-import { AlertTriangle, GitBranch, Plus, RefreshCw, Search, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from "motion/react";
+import { AlertTriangle, GitBranch, Plus, RefreshCw, Search, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { APP_NAME } from '../constants';
-import { AppSettingsModal } from './components/AppSettingsModal';
-import { ConfigurationPanel } from './components/ConfigurationPanel';
-import { CreateCustomTaskModal } from './components/CreateCustomTaskModal';
-import { CreateForm } from './components/CreateForm';
-import { LinkIssueModal } from './components/LinkIssueModal';
-import { CreateWorktreeModal } from './components/CreateWorktreeModal';
-import { CustomTaskDetailPanel } from './components/detail/CustomTaskDetailPanel';
-import { DetailPanel } from './components/detail/DetailPanel';
-import { GitHubSetupModal } from './components/GitHubSetupModal';
-import { JiraDetailPanel } from './components/detail/JiraDetailPanel';
-import { LinearDetailPanel } from './components/detail/LinearDetailPanel';
-import { Header } from './components/Header';
-import { IntegrationsPanel } from './components/IntegrationsPanel';
-import { IssueList } from './components/IssueList';
-import { AgentsView } from './components/AgentsView';
-import { ProjectSetupScreen } from './components/ProjectSetupScreen';
-import { HooksPanel } from './components/VerificationPanel';
-import { ResizableHandle } from './components/ResizableHandle';
-import { SetupCommitModal } from './components/SetupCommitModal';
-import { ToastContainer } from './components/Toast';
-import type { View } from './components/NavBar';
-import { TabBar } from './components/TabBar';
-import { WelcomeScreen } from './components/WelcomeScreen';
-import { WorktreeList } from './components/WorktreeList';
-import { useServer } from './contexts/ServerContext';
-import { useToast } from './contexts/ToastContext';
-import { useApi } from './hooks/useApi';
-import { useConfig } from './hooks/useConfig';
-import { useCustomTasks } from './hooks/useCustomTasks';
-import { useJiraIssues } from './hooks/useJiraIssues';
-import { useLinearIssues } from './hooks/useLinearIssues';
-import { useGitHubStatus, useJiraStatus, useLinearStatus, useWorktrees } from './hooks/useWorktrees';
-import { button, errorBanner, input, surface, text } from './theme';
+import { APP_NAME } from "../constants";
+import { AppSettingsModal } from "./components/AppSettingsModal";
+import { ConfigurationPanel } from "./components/ConfigurationPanel";
+import { CreateCustomTaskModal } from "./components/CreateCustomTaskModal";
+import { CreateForm } from "./components/CreateForm";
+import { LinkIssueModal } from "./components/LinkIssueModal";
+import { CreateWorktreeModal } from "./components/CreateWorktreeModal";
+import { CustomTaskDetailPanel } from "./components/detail/CustomTaskDetailPanel";
+import { DetailPanel } from "./components/detail/DetailPanel";
+import { GitHubSetupModal } from "./components/GitHubSetupModal";
+import { JiraDetailPanel } from "./components/detail/JiraDetailPanel";
+import { LinearDetailPanel } from "./components/detail/LinearDetailPanel";
+import { Header } from "./components/Header";
+import { IntegrationsPanel } from "./components/IntegrationsPanel";
+import { IssueList } from "./components/IssueList";
+import { AgentsView } from "./components/AgentsView";
+import { ProjectSetupScreen } from "./components/ProjectSetupScreen";
+import { HooksPanel } from "./components/VerificationPanel";
+import { ResizableHandle } from "./components/ResizableHandle";
+import { SetupCommitModal } from "./components/SetupCommitModal";
+import { ToastContainer } from "./components/Toast";
+import type { View } from "./components/NavBar";
+import { TabBar } from "./components/TabBar";
+import { WelcomeScreen } from "./components/WelcomeScreen";
+import { WorktreeList } from "./components/WorktreeList";
+import { useServer } from "./contexts/ServerContext";
+import { useToast } from "./contexts/ToastContext";
+import { useApi } from "./hooks/useApi";
+import { useConfig } from "./hooks/useConfig";
+import { useCustomTasks } from "./hooks/useCustomTasks";
+import { useJiraIssues } from "./hooks/useJiraIssues";
+import { useLinearIssues } from "./hooks/useLinearIssues";
+import {
+  useGitHubStatus,
+  useJiraStatus,
+  useLinearStatus,
+  useWorktrees,
+} from "./hooks/useWorktrees";
+import { button, errorBanner, input, surface, text } from "./theme";
 
 type Selection =
-  | { type: 'worktree'; id: string }
-  | { type: 'issue'; key: string }
-  | { type: 'linear-issue'; identifier: string }
-  | { type: 'custom-task'; id: string }
+  | { type: "worktree"; id: string }
+  | { type: "issue"; key: string }
+  | { type: "linear-issue"; identifier: string }
+  | { type: "custom-task"; id: string }
   | null;
 
 export default function App() {
   const api = useApi();
   const { addToast } = useToast();
-  const { projects, activeProject, isElectron, projectsLoading, selectFolder, openProject, closeProject, serverUrl } = useServer();
+  const {
+    projects,
+    activeProject,
+    isElectron,
+    projectsLoading,
+    selectFolder,
+    openProject,
+    closeProject,
+    serverUrl,
+  } = useServer();
   const [hookUpdateKey, setHookUpdateKey] = useState(0);
   const { worktrees, isConnected, error, refetch } = useWorktrees(
-    useCallback((message: string, level: 'error' | 'info') => addToast(message, level), [addToast]),
+    useCallback((message: string, level: "error" | "info") => addToast(message, level), [addToast]),
     useCallback(() => setHookUpdateKey((k) => k + 1), []),
   );
-  const { config, projectName, hasBranchNameRule, isLoading: configLoading, refetch: refetchConfig } = useConfig();
+  const {
+    config,
+    projectName,
+    hasBranchNameRule,
+    isLoading: configLoading,
+    refetch: refetchConfig,
+  } = useConfig();
   const { jiraStatus, refetchJiraStatus } = useJiraStatus();
   const { linearStatus, refetchLinearStatus } = useLinearStatus();
   const githubStatus = useGitHubStatus();
-  const { tasks: customTasks, isLoading: customTasksLoading, error: customTasksError, refetch: refetchCustomTasks } = useCustomTasks();
+  const {
+    tasks: customTasks,
+    isLoading: customTasksLoading,
+    error: customTasksError,
+    refetch: refetchCustomTasks,
+  } = useCustomTasks();
   const localIssueLinkedIds = useMemo(
-    () => new Set<string>(customTasks.filter((t) => t.linkedWorktreeId).map((t) => t.linkedWorktreeId as string)),
+    () =>
+      new Set<string>(
+        customTasks.filter((t) => t.linkedWorktreeId).map((t) => t.linkedWorktreeId as string),
+      ),
     [customTasks],
   );
-  const runningCount = worktrees.filter((w) => w.status === 'running').length;
+  const runningCount = worktrees.filter((w) => w.status === "running").length;
 
   // Track if config existed when we first connected (to detect "deleted while open")
   const [hadConfigOnConnect, setHadConfigOnConnect] = useState<boolean | null>(null);
@@ -79,7 +107,7 @@ export default function App() {
       // If no config and this is Electron, check if we should auto-init
       if (!config && isElectron) {
         window.electronAPI?.getSetupPreference().then(async (pref) => {
-          if (pref === 'auto') {
+          if (pref === "auto") {
             setIsAutoInitializing(true);
             try {
               const result = await api.initConfig({});
@@ -113,7 +141,7 @@ export default function App() {
     : !configLoading && !config;
 
   // Show error screen when active project failed to start
-  const showErrorState = isElectron && activeProject?.status === 'error';
+  const showErrorState = isElectron && activeProject?.status === "error";
 
   // Don't show main UI if we have projects but none running yet (still loading)
   const showLoadingState = isElectron && projects.length > 0 && !serverUrl && !showErrorState;
@@ -126,13 +154,13 @@ export default function App() {
       localStorage.removeItem(`dawg:view:${serverUrl}`);
     }
     setSelectionState(null);
-    setActiveCreateTabState('branch');
-    setActiveViewState('workspace');
+    setActiveCreateTabState("branch");
+    setActiveViewState("workspace");
     refetchConfig();
     setHadConfigOnConnect(true);
   };
 
-  const handleRememberChoice = (choice: 'auto' | 'manual') => {
+  const handleRememberChoice = (choice: "auto" | "manual") => {
     window.electronAPI?.setSetupPreference(choice);
   };
 
@@ -144,18 +172,24 @@ export default function App() {
       }
     } else {
       // For web mode, redirect to init
-      window.location.href = '/init';
+      window.location.href = "/init";
     }
   };
 
   const [activeView, setActiveViewState] = useState<View>(() => {
     if (serverUrl) {
       const saved = localStorage.getItem(`dawg:view:${serverUrl}`);
-      if (saved === 'workspace' || saved === 'agents' || saved === 'hooks' || saved === 'configuration' || saved === 'integrations') {
+      if (
+        saved === "workspace" ||
+        saved === "agents" ||
+        saved === "hooks" ||
+        saved === "configuration" ||
+        saved === "integrations"
+      ) {
         return saved;
       }
     }
-    return 'workspace';
+    return "workspace";
   });
 
   const setActiveView = (view: View) => {
@@ -169,10 +203,16 @@ export default function App() {
   useEffect(() => {
     if (!serverUrl) return;
     const saved = localStorage.getItem(`dawg:view:${serverUrl}`);
-    if (saved === 'workspace' || saved === 'agents' || saved === 'hooks' || saved === 'configuration' || saved === 'integrations') {
+    if (
+      saved === "workspace" ||
+      saved === "agents" ||
+      saved === "hooks" ||
+      saved === "configuration" ||
+      saved === "integrations"
+    ) {
       setActiveViewState(saved);
     } else {
-      setActiveViewState('workspace');
+      setActiveViewState("workspace");
     }
   }, [serverUrl]);
 
@@ -181,7 +221,9 @@ export default function App() {
       try {
         const saved = localStorage.getItem(`dawg:wsSel:${serverUrl}`);
         if (saved) return JSON.parse(saved);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     return null;
   });
@@ -199,17 +241,19 @@ export default function App() {
       const saved = localStorage.getItem(`dawg:wsSel:${serverUrl}`);
       if (saved) setSelectionState(JSON.parse(saved));
       else setSelectionState(null);
-    } catch { setSelectionState(null); }
+    } catch {
+      setSelectionState(null);
+    }
   }, [serverUrl]);
-  const [activeCreateTab, setActiveCreateTabState] = useState<'branch' | 'issues'>(() => {
+  const [activeCreateTab, setActiveCreateTabState] = useState<"branch" | "issues">(() => {
     if (serverUrl) {
       const saved = localStorage.getItem(`dawg:wsTab:${serverUrl}`);
-      if (saved === 'branch' || saved === 'issues') return saved;
+      if (saved === "branch" || saved === "issues") return saved;
     }
-    return 'branch';
+    return "branch";
   });
 
-  const setActiveCreateTab = (tab: 'branch' | 'issues') => {
+  const setActiveCreateTab = (tab: "branch" | "issues") => {
     setActiveCreateTabState(tab);
     if (serverUrl) {
       localStorage.setItem(`dawg:wsTab:${serverUrl}`, tab);
@@ -219,15 +263,17 @@ export default function App() {
   useEffect(() => {
     if (!serverUrl) return;
     const saved = localStorage.getItem(`dawg:wsTab:${serverUrl}`);
-    if (saved === 'branch' || saved === 'issues') {
+    if (saved === "branch" || saved === "issues") {
       setActiveCreateTabState(saved);
     } else {
-      setActiveCreateTabState('branch');
+      setActiveCreateTabState("branch");
     }
   }, [serverUrl]);
-  const [worktreeFilter, setWorktreeFilter] = useState('');
+  const [worktreeFilter, setWorktreeFilter] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createModalMode, setCreateModalMode] = useState<'branch' | 'jira' | 'linear' | 'custom'>('branch');
+  const [createModalMode, setCreateModalMode] = useState<"branch" | "jira" | "linear" | "custom">(
+    "branch",
+  );
   const [createTaskForWorktreeId, setCreateTaskForWorktreeId] = useState<string | null>(null);
   const [linkIssueForWorktreeId, setLinkIssueForWorktreeId] = useState<string | null>(null);
 
@@ -278,11 +324,11 @@ export default function App() {
 
   const WS_BANNER_KEY = `${APP_NAME}:workspaceBannerDismissed`;
   const [wsBannerDismissed, setWsBannerDismissed] = useState(
-    () => localStorage.getItem(WS_BANNER_KEY) === '1',
+    () => localStorage.getItem(WS_BANNER_KEY) === "1",
   );
   const dismissWsBanner = () => {
     setWsBannerDismissed(true);
-    localStorage.setItem(WS_BANNER_KEY, '1');
+    localStorage.setItem(WS_BANNER_KEY, "1");
   };
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -295,11 +341,14 @@ export default function App() {
   useEffect(() => {
     if (!serverUrl || configLoading) return;
 
-    api.fetchSetupStatus().then((status) => {
-      setConfigNeedsPush(status.needsPush);
-    }).catch(() => {
-      // Ignore errors - this is a nice-to-have prompt
-    });
+    api
+      .fetchSetupStatus()
+      .then((status) => {
+        setConfigNeedsPush(status.needsPush);
+      })
+      .catch(() => {
+        // Ignore errors - this is a nice-to-have prompt
+      });
   }, [serverUrl, configLoading]);
 
   const handleSetupCommit = async (message: string) => {
@@ -324,7 +373,7 @@ export default function App() {
       if (needsCommit) {
         const commitResult = await api.createInitialCommit();
         if (!commitResult.success) {
-          setSetupError(commitResult.error ?? 'Failed to create commit');
+          setSetupError(commitResult.error ?? "Failed to create commit");
           return;
         }
       }
@@ -333,7 +382,7 @@ export default function App() {
       if (needsRepo || needsCommit) {
         const repoResult = await api.createGitHubRepo(options.repoPrivate);
         if (!repoResult.success) {
-          setSetupError(repoResult.error ?? 'Failed to create repository');
+          setSetupError(repoResult.error ?? "Failed to create repository");
           return;
         }
       }
@@ -341,11 +390,11 @@ export default function App() {
       // Refresh status after setup
       window.location.reload();
     } catch {
-      setSetupError('Setup failed unexpectedly');
+      setSetupError("Setup failed unexpectedly");
     }
   };
 
-  const jiraEnabled = activeCreateTab === 'issues' && (jiraStatus?.configured ?? false);
+  const jiraEnabled = activeCreateTab === "issues" && (jiraStatus?.configured ?? false);
   const refreshIntervalMinutes = jiraStatus?.refreshIntervalMinutes ?? 5;
   const {
     issues: jiraIssues,
@@ -358,7 +407,7 @@ export default function App() {
     dataUpdatedAt: jiraIssuesUpdatedAt,
   } = useJiraIssues(jiraEnabled, refreshIntervalMinutes);
 
-  const linearEnabled = activeCreateTab === 'issues' && (linearStatus?.configured ?? false);
+  const linearEnabled = activeCreateTab === "issues" && (linearStatus?.configured ?? false);
   const linearRefreshIntervalMinutes = linearStatus?.refreshIntervalMinutes ?? 5;
   const {
     issues: linearIssues,
@@ -373,22 +422,21 @@ export default function App() {
   // Auto-select first worktree when nothing is selected, or fix stale worktree selection
   useEffect(() => {
     if (worktrees.length === 0) {
-      if (selection?.type === 'worktree') setSelection(null);
+      if (selection?.type === "worktree") setSelection(null);
       return;
     }
     if (!selection) {
-      setSelection({ type: 'worktree', id: worktrees[0].id });
+      setSelection({ type: "worktree", id: worktrees[0].id });
       return;
     }
     // Fix stale worktree selection (worktree was deleted)
-    if (selection.type === 'worktree' && !worktrees.find((w) => w.id === selection.id)) {
-      setSelection({ type: 'worktree', id: worktrees[0].id });
+    if (selection.type === "worktree" && !worktrees.find((w) => w.id === selection.id)) {
+      setSelection({ type: "worktree", id: worktrees[0].id });
     }
   }, [worktrees, selection]);
 
-  const selectedWorktree = selection?.type === 'worktree'
-    ? worktrees.find((w) => w.id === selection.id) || null
-    : null;
+  const selectedWorktree =
+    selection?.type === "worktree" ? worktrees.find((w) => w.id === selection.id) || null : null;
 
   const handleDeleted = () => {
     setSelection(null);
@@ -396,14 +444,14 @@ export default function App() {
 
   const handleCreateWorktreeFromJira = () => {
     // Switch to worktree tab so user sees the newly created worktree
-    setActiveCreateTab('branch');
+    setActiveCreateTab("branch");
     setSelection(null);
     refetch();
   };
 
   const handleViewWorktreeFromJira = (worktreeId: string) => {
-    setActiveCreateTab('branch');
-    setSelection({ type: 'worktree', id: worktreeId });
+    setActiveCreateTab("branch");
+    setSelection({ type: "worktree", id: worktreeId });
   };
 
   const findLinkedWorktree = (issueKey: string): string | null => {
@@ -413,14 +461,14 @@ export default function App() {
   };
 
   const handleCreateWorktreeFromLinear = () => {
-    setActiveCreateTab('branch');
+    setActiveCreateTab("branch");
     setSelection(null);
     refetch();
   };
 
   const handleViewWorktreeFromLinear = (worktreeId: string) => {
-    setActiveCreateTab('branch');
-    setSelection({ type: 'worktree', id: worktreeId });
+    setActiveCreateTab("branch");
+    setSelection({ type: "worktree", id: worktreeId });
   };
 
   const findLinkedLinearWorktree = (identifier: string): string | null => {
@@ -430,15 +478,15 @@ export default function App() {
   };
 
   const handleCreateWorktreeFromCustomTask = () => {
-    setActiveCreateTab('branch');
+    setActiveCreateTab("branch");
     setSelection(null);
     refetch();
     refetchCustomTasks();
   };
 
   const handleViewWorktreeFromCustomTask = (worktreeId: string) => {
-    setActiveCreateTab('branch');
-    setSelection({ type: 'worktree', id: worktreeId });
+    setActiveCreateTab("branch");
+    setSelection({ type: "worktree", id: worktreeId });
   };
 
   // Show welcome screen when no config (web mode) or no projects (Electron mode)
@@ -461,7 +509,7 @@ export default function App() {
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-[#2dd4bf] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <span className={`text-sm ${text.muted}`}>
-              Starting {activeProject?.name ?? 'project'}...
+              Starting {activeProject?.name ?? "project"}...
             </span>
           </div>
         </div>
@@ -476,7 +524,9 @@ export default function App() {
       <div className={`h-screen flex flex-col ${surface.page} ${text.body}`}>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-md px-6">
-            <div className={`w-14 h-14 rounded-2xl ${errorBanner.bg} flex items-center justify-center mx-auto mb-4`}>
+            <div
+              className={`w-14 h-14 rounded-2xl ${errorBanner.bg} flex items-center justify-center mx-auto mb-4`}
+            >
               <AlertTriangle className="w-7 h-7 text-red-400" />
             </div>
             <h2 className={`text-lg font-semibold ${text.primary} mb-2`}>
@@ -535,7 +585,7 @@ export default function App() {
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-[#2dd4bf] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <span className={`text-sm ${text.muted}`}>
-              Setting up {activeProject?.name ?? 'project'}...
+              Setting up {activeProject?.name ?? "project"}...
             </span>
           </div>
         </div>
@@ -547,13 +597,55 @@ export default function App() {
   return (
     <div className={`h-screen flex flex-col ${surface.page} ${text.body} relative overflow-hidden`}>
       {/* Animated background blobs — settings/integrations/hooks only */}
-      {(activeView === 'configuration' || activeView === 'integrations' || activeView === 'hooks') && (
+      {(activeView === "configuration" ||
+        activeView === "integrations" ||
+        activeView === "hooks") && (
         <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute w-[1400px] h-[1000px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(45,212,191,0.045) 0%, transparent 55%)', top: '40%', left: '5%', animation: 'blob-drift-1 14s ease-in-out infinite' }} />
-          <div className="absolute w-[800px] h-[700px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(139,92,246,0.045) 0%, transparent 55%)', top: '10%', left: '70%', animation: 'blob-drift-2 16s ease-in-out infinite' }} />
-          <div className="absolute w-[800px] h-[500px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(59,130,246,0.035) 0%, transparent 55%)', top: '75%', left: '35%', animation: 'blob-drift-3 15s ease-in-out infinite' }} />
-          <div className="absolute w-[900px] h-[900px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(236,72,153,0.035) 0%, transparent 55%)', top: '20%', left: '30%', animation: 'blob-drift-4 18s ease-in-out infinite' }} />
-          <div className="absolute w-[1000px] h-[800px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(251,191,36,0.025) 0%, transparent 55%)', top: '60%', left: '75%', animation: 'blob-drift-5 13s ease-in-out infinite' }} />
+          <div
+            className="absolute w-[1400px] h-[1000px] rounded-full"
+            style={{
+              background: "radial-gradient(ellipse, rgba(45,212,191,0.045) 0%, transparent 55%)",
+              top: "40%",
+              left: "5%",
+              animation: "blob-drift-1 14s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="absolute w-[800px] h-[700px] rounded-full"
+            style={{
+              background: "radial-gradient(ellipse, rgba(139,92,246,0.045) 0%, transparent 55%)",
+              top: "10%",
+              left: "70%",
+              animation: "blob-drift-2 16s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="absolute w-[800px] h-[500px] rounded-full"
+            style={{
+              background: "radial-gradient(ellipse, rgba(59,130,246,0.035) 0%, transparent 55%)",
+              top: "75%",
+              left: "35%",
+              animation: "blob-drift-3 15s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="absolute w-[900px] h-[900px] rounded-full"
+            style={{
+              background: "radial-gradient(ellipse, rgba(236,72,153,0.035) 0%, transparent 55%)",
+              top: "20%",
+              left: "30%",
+              animation: "blob-drift-4 18s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="absolute w-[1000px] h-[800px] rounded-full"
+            style={{
+              background: "radial-gradient(ellipse, rgba(251,191,36,0.025) 0%, transparent 55%)",
+              top: "60%",
+              left: "75%",
+              animation: "blob-drift-5 13s ease-in-out infinite",
+            }}
+          />
           <style>{`
             @keyframes blob-drift-1 {
               0% { transform: translate(0,0) scale(1) rotate(0deg); }
@@ -603,11 +695,7 @@ export default function App() {
           `}</style>
         </div>
       )}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.12 }}
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }}>
         <Header
           runningCount={runningCount}
           activeView={activeView}
@@ -623,12 +711,10 @@ export default function App() {
         </div>
       )}
 
-      {(activeView === 'workspace' || activeView === 'agents') && (
-      <div className="flex-1 min-h-0 relative">
-          {activeView === 'workspace' && (
-            <div
-              className="absolute inset-0 flex px-5 pb-16"
-            >
+      {(activeView === "workspace" || activeView === "agents") && (
+        <div className="flex-1 min-h-0 relative">
+          {activeView === "workspace" && (
+            <div className="absolute inset-0 flex px-5 pb-16">
               {/* Left sidebar */}
               <aside
                 style={{ width: sidebarWidth }}
@@ -641,66 +727,79 @@ export default function App() {
                   activeTab={activeCreateTab}
                   onTabChange={setActiveCreateTab}
                   onCreateWorktree={() => {
-                    setCreateModalMode('branch');
+                    setCreateModalMode("branch");
                     setShowCreateModal(true);
                   }}
                   onCreateFromJira={() => {
-                    setCreateModalMode('jira');
+                    setCreateModalMode("jira");
                     setShowCreateModal(true);
                   }}
                   onCreateFromLinear={() => {
-                    setCreateModalMode('linear');
+                    setCreateModalMode("linear");
                     setShowCreateModal(true);
                   }}
                   onCreateCustomTask={() => {
-                    setCreateModalMode('custom');
+                    setCreateModalMode("custom");
                     setShowCreateModal(true);
                   }}
-                  onNavigateToIntegrations={() => setActiveView('integrations')}
+                  onNavigateToIntegrations={() => setActiveView("integrations")}
                 />
 
                 {/* Shared search bar */}
                 <div className="px-3 pt-2 pb-3">
                   <div className="relative">
-                    <Search className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${text.dimmed}`} />
+                    <Search
+                      className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${text.dimmed}`}
+                    />
                     <input
                       type="text"
-                      value={activeCreateTab === 'branch' ? worktreeFilter : jiraSearchQuery}
+                      value={activeCreateTab === "branch" ? worktreeFilter : jiraSearchQuery}
                       onChange={(e) => {
-                        if (activeCreateTab === 'branch') {
+                        if (activeCreateTab === "branch") {
                           setWorktreeFilter(e.target.value);
                         } else {
                           setJiraSearchQuery(e.target.value);
                           setLinearSearchQuery(e.target.value);
                         }
                       }}
-                      placeholder={activeCreateTab === 'branch' ? 'Filter worktrees...' : 'Search issues...'}
+                      placeholder={
+                        activeCreateTab === "branch" ? "Filter worktrees..." : "Search issues..."
+                      }
                       className={`w-full pl-8 pr-2.5 py-1.5 bg-white/[0.04] border border-white/[0.06] rounded-md ${input.text} placeholder-[#4b5563] text-xs focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`}
                     />
                   </div>
                 </div>
 
                 <AnimatePresence mode="wait" initial={false}>
-                  {activeCreateTab === 'branch' ? (
+                  {activeCreateTab === "branch" ? (
                     <motion.div
                       key="worktree-list"
                       className="flex-1 min-h-0 flex flex-col"
                       initial={{ opacity: 0, x: -40 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -40 }}
-                      transition={{ duration: 0.075, ease: 'easeInOut' }}
+                      transition={{ duration: 0.075, ease: "easeInOut" }}
                     >
                       <WorktreeList
                         worktrees={worktrees}
-                        selectedId={selection?.type === 'worktree' ? selection.id : null}
-                        onSelect={(id) => setSelection({ type: 'worktree', id })}
+                        selectedId={selection?.type === "worktree" ? selection.id : null}
+                        onSelect={(id) => setSelection({ type: "worktree", id })}
                         filter={worktreeFilter}
                         localIssueLinkedIds={localIssueLinkedIds}
-                        onSelectJiraIssue={(key) => { setActiveCreateTab('issues'); setSelection({ type: 'issue', key }); }}
-                        onSelectLinearIssue={(identifier) => { setActiveCreateTab('issues'); setSelection({ type: 'linear-issue', identifier }); }}
+                        onSelectJiraIssue={(key) => {
+                          setActiveCreateTab("issues");
+                          setSelection({ type: "issue", key });
+                        }}
+                        onSelectLinearIssue={(identifier) => {
+                          setActiveCreateTab("issues");
+                          setSelection({ type: "linear-issue", identifier });
+                        }}
                         onSelectLocalIssue={(identifier) => {
                           const task = customTasks.find((t) => t.id === identifier);
-                          if (task) { setActiveCreateTab('issues'); setSelection({ type: 'custom-task', id: task.id }); }
+                          if (task) {
+                            setActiveCreateTab("issues");
+                            setSelection({ type: "custom-task", id: task.id });
+                          }
                         }}
                       />
                     </motion.div>
@@ -711,12 +810,12 @@ export default function App() {
                       initial={{ opacity: 0, x: 40 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 40 }}
-                      transition={{ duration: 0.075, ease: 'easeInOut' }}
+                      transition={{ duration: 0.075, ease: "easeInOut" }}
                     >
                       <IssueList
                         issues={jiraIssues}
-                        selectedKey={selection?.type === 'issue' ? selection.key : null}
-                        onSelect={(key) => setSelection({ type: 'issue', key })}
+                        selectedKey={selection?.type === "issue" ? selection.key : null}
+                        onSelect={(key) => setSelection({ type: "issue", key })}
                         isLoading={jiraIssuesLoading}
                         isFetching={jiraIssuesFetching}
                         error={jiraError}
@@ -727,15 +826,21 @@ export default function App() {
                         linearLoading={linearIssuesLoading}
                         linearFetching={linearIssuesFetching}
                         linearError={linearError}
-                        selectedLinearIdentifier={selection?.type === 'linear-issue' ? selection.identifier : null}
-                        onSelectLinear={(identifier) => setSelection({ type: 'linear-issue', identifier })}
+                        selectedLinearIdentifier={
+                          selection?.type === "linear-issue" ? selection.identifier : null
+                        }
+                        onSelectLinear={(identifier) =>
+                          setSelection({ type: "linear-issue", identifier })
+                        }
                         onRefreshLinear={() => refetchLinearIssues()}
                         linearUpdatedAt={linearIssuesUpdatedAt}
                         customTasks={customTasks}
                         customTasksLoading={customTasksLoading}
                         customTasksError={customTasksError}
-                        selectedCustomTaskId={selection?.type === 'custom-task' ? selection.id : null}
-                        onSelectCustomTask={(id) => setSelection({ type: 'custom-task', id })}
+                        selectedCustomTaskId={
+                          selection?.type === "custom-task" ? selection.id : null
+                        }
+                        onSelectCustomTask={(id) => setSelection({ type: "custom-task", id })}
                         worktrees={worktrees}
                         onViewWorktree={handleViewWorktreeFromJira}
                       />
@@ -760,11 +865,13 @@ export default function App() {
                   <div className="flex-shrink-0 h-14 flex items-center gap-3 px-4 border-b border-teal-400/20 bg-teal-400/[0.04]">
                     <GitBranch className="w-4 h-4 text-teal-400 flex-shrink-0" />
                     <p className={`text-[11px] ${text.secondary} leading-relaxed flex-1`}>
-                      Your local development workspace. Create worktrees from branches, issue trackers, or local tasks. Connect integrations to pull issues directly into your workflow.
+                      Your local development workspace. Create worktrees from branches, issue
+                      trackers, or local tasks. Connect integrations to pull issues directly into
+                      your workflow.
                     </p>
                     <button
                       type="button"
-                      onClick={() => setActiveView('integrations')}
+                      onClick={() => setActiveView("integrations")}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-teal-300 bg-teal-400/10 hover:bg-teal-400/20 border border-teal-400/20 rounded-lg transition-colors flex-shrink-0"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -779,7 +886,7 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                {selection?.type === 'issue' ? (
+                {selection?.type === "issue" ? (
                   <JiraDetailPanel
                     issueKey={selection.key}
                     linkedWorktreeId={findLinkedWorktree(selection.key)}
@@ -788,7 +895,7 @@ export default function App() {
                     refreshIntervalMinutes={refreshIntervalMinutes}
                     onSetupNeeded={handleSetupNeeded}
                   />
-                ) : selection?.type === 'linear-issue' ? (
+                ) : selection?.type === "linear-issue" ? (
                   <LinearDetailPanel
                     identifier={selection.identifier}
                     linkedWorktreeId={findLinkedLinearWorktree(selection.identifier)}
@@ -797,7 +904,7 @@ export default function App() {
                     refreshIntervalMinutes={linearRefreshIntervalMinutes}
                     onSetupNeeded={handleSetupNeeded}
                   />
-                ) : selection?.type === 'custom-task' ? (
+                ) : selection?.type === "custom-task" ? (
                   <CustomTaskDetailPanel
                     taskId={selection.id}
                     onDeleted={() => setSelection(null)}
@@ -810,17 +917,26 @@ export default function App() {
                     onUpdate={refetch}
                     onDeleted={handleDeleted}
                     hookUpdateKey={hookUpdateKey}
-                    onNavigateToIntegrations={() => setActiveView('integrations')}
-                    onNavigateToHooks={() => setActiveView('hooks')}
-                    onSelectJiraIssue={(key) => { setActiveCreateTab('issues'); setSelection({ type: 'issue', key }); }}
-                    onSelectLinearIssue={(identifier) => { setActiveCreateTab('issues'); setSelection({ type: 'linear-issue', identifier }); }}
+                    onNavigateToIntegrations={() => setActiveView("integrations")}
+                    onNavigateToHooks={() => setActiveView("hooks")}
+                    onSelectJiraIssue={(key) => {
+                      setActiveCreateTab("issues");
+                      setSelection({ type: "issue", key });
+                    }}
+                    onSelectLinearIssue={(identifier) => {
+                      setActiveCreateTab("issues");
+                      setSelection({ type: "linear-issue", identifier });
+                    }}
                     onSelectLocalIssue={(identifier) => {
                       const task = customTasks.find((t) => t.id === identifier);
-                      if (task) { setActiveCreateTab('issues'); setSelection({ type: 'custom-task', id: task.id }); }
+                      if (task) {
+                        setActiveCreateTab("issues");
+                        setSelection({ type: "custom-task", id: task.id });
+                      }
                     }}
                     onCreateTask={(worktreeId) => {
                       setCreateTaskForWorktreeId(worktreeId);
-                      setCreateModalMode('custom');
+                      setCreateModalMode("custom");
                       setShowCreateModal(true);
                     }}
                     onLinkIssue={(worktreeId) => setLinkIssueForWorktreeId(worktreeId)}
@@ -830,38 +946,41 @@ export default function App() {
             </div>
           )}
 
-          {activeView === 'agents' && (
-            <AgentsView />
-          )}
-      </div>
+          {activeView === "agents" && <AgentsView />}
+        </div>
       )}
 
-      {(activeView === 'configuration' || activeView === 'integrations' || activeView === 'hooks') && (
-      <div className="flex-1 min-h-0 overflow-y-auto -mt-12 pt-12 pb-20">
-          {activeView === 'configuration' && (
-              <ConfigurationPanel
-                config={config}
-                onSaved={refetchConfig}
-                isConnected={isConnected}
-                jiraConfigured={jiraStatus?.configured ?? false}
-                linearConfigured={linearStatus?.configured ?? false}
-                onNavigateToIntegrations={() => setActiveView('integrations')}
-              />
+      {(activeView === "configuration" ||
+        activeView === "integrations" ||
+        activeView === "hooks") && (
+        <div className="flex-1 min-h-0 overflow-y-auto -mt-12 pt-12 pb-20">
+          {activeView === "configuration" && (
+            <ConfigurationPanel
+              config={config}
+              onSaved={refetchConfig}
+              isConnected={isConnected}
+              jiraConfigured={jiraStatus?.configured ?? false}
+              linearConfigured={linearStatus?.configured ?? false}
+              onNavigateToIntegrations={() => setActiveView("integrations")}
+            />
           )}
 
-          {activeView === 'integrations' && (
-              <IntegrationsPanel onJiraStatusChange={refetchJiraStatus} onLinearStatusChange={refetchLinearStatus} />
+          {activeView === "integrations" && (
+            <IntegrationsPanel
+              onJiraStatusChange={refetchJiraStatus}
+              onLinearStatusChange={refetchLinearStatus}
+            />
           )}
 
-          {activeView === 'hooks' && (
-              <HooksPanel />
-          )}
-      </div>
+          {activeView === "hooks" && <HooksPanel />}
+        </div>
       )}
 
       {/* Setup error banner */}
       {setupError && (
-        <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 ${errorBanner.bg} ${text.errorBanner} text-xs rounded-lg shadow-lg`}>
+        <div
+          className={`fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 ${errorBanner.bg} ${text.errorBanner} text-xs rounded-lg shadow-lg`}
+        >
           {setupError}
         </div>
       )}
@@ -885,9 +1004,9 @@ export default function App() {
       )}
 
       {/* Create worktree modal */}
-      {showCreateModal && createModalMode !== 'custom' && (
+      {showCreateModal && createModalMode !== "custom" && (
         <CreateWorktreeModal
-          mode={createModalMode as 'branch' | 'jira' | 'linear'}
+          mode={createModalMode as "branch" | "jira" | "linear"}
           hasBranchNameRule={hasBranchNameRule}
           onCreated={refetch}
           onClose={() => setShowCreateModal(false)}
@@ -896,7 +1015,7 @@ export default function App() {
       )}
 
       {/* Create custom task modal */}
-      {showCreateModal && createModalMode === 'custom' && (
+      {showCreateModal && createModalMode === "custom" && (
         <CreateCustomTaskModal
           onCreate={(data) => api.createCustomTask(data)}
           onUploadAttachment={(taskId, file) => api.uploadTaskAttachment(taskId, file)}
@@ -904,10 +1023,13 @@ export default function App() {
           onCreated={(taskId) => {
             refetchCustomTasks();
             refetch();
-            setActiveCreateTab('issues');
-            if (taskId) setSelection({ type: 'custom-task', id: taskId });
+            setActiveCreateTab("issues");
+            if (taskId) setSelection({ type: "custom-task", id: taskId });
           }}
-          onClose={() => { setShowCreateModal(false); setCreateTaskForWorktreeId(null); }}
+          onClose={() => {
+            setShowCreateModal(false);
+            setCreateTaskForWorktreeId(null);
+          }}
         />
       )}
 
@@ -929,9 +1051,7 @@ export default function App() {
       )}
 
       {/* App settings modal (Electron only) */}
-      {showSettingsModal && (
-        <AppSettingsModal onClose={() => setShowSettingsModal(false)} />
-      )}
+      {showSettingsModal && <AppSettingsModal onClose={() => setShowSettingsModal(false)} />}
 
       {/* Tab bar for multi-project (Electron only) */}
       <div className="absolute bottom-0 left-0 right-0 z-40">

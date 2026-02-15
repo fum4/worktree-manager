@@ -1,21 +1,19 @@
-import type { Hono } from 'hono';
+import type { Hono } from "hono";
 
-import type { WorktreeManager } from '../manager';
+import type { WorktreeManager } from "../manager";
 
 export function registerEventRoutes(app: Hono, manager: WorktreeManager) {
-  app.get('/api/events', (c) => {
+  app.get("/api/events", (c) => {
     const stream = new ReadableStream({
       start(controller) {
         const worktrees = manager.getWorktrees();
-        controller.enqueue(
-          `data: ${JSON.stringify({ type: 'worktrees', worktrees })}\n\n`,
-        );
+        controller.enqueue(`data: ${JSON.stringify({ type: "worktrees", worktrees })}\n\n`);
 
         const unsubscribeWorktrees = manager.subscribe((updatedWorktrees) => {
           try {
             controller.enqueue(
               `data: ${JSON.stringify({
-                type: 'worktrees',
+                type: "worktrees",
                 worktrees: updatedWorktrees,
               })}\n\n`,
             );
@@ -28,7 +26,7 @@ export function registerEventRoutes(app: Hono, manager: WorktreeManager) {
           try {
             controller.enqueue(
               `data: ${JSON.stringify({
-                type: 'notification',
+                type: "notification",
                 ...notification,
               })}\n\n`,
             );
@@ -41,7 +39,7 @@ export function registerEventRoutes(app: Hono, manager: WorktreeManager) {
           try {
             controller.enqueue(
               `data: ${JSON.stringify({
-                type: 'hook-update',
+                type: "hook-update",
                 worktreeId,
               })}\n\n`,
             );
@@ -50,7 +48,7 @@ export function registerEventRoutes(app: Hono, manager: WorktreeManager) {
           }
         });
 
-        c.req.raw.signal.addEventListener('abort', () => {
+        c.req.raw.signal.addEventListener("abort", () => {
           unsubscribeWorktrees();
           unsubscribeNotifications();
           unsubscribeHookUpdates();
@@ -61,9 +59,9 @@ export function registerEventRoutes(app: Hono, manager: WorktreeManager) {
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
       },
     });
   });

@@ -1,26 +1,26 @@
-import { existsSync, readFileSync } from 'fs';
-import path from 'path';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { existsSync, readFileSync } from "fs";
+import path from "path";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
-import type { ActionContext } from './actions';
-import { CONFIG_DIR_NAME } from './constants';
-import { WorktreeManager } from './server/manager';
-import { createMcpServer } from './server/mcp-server-factory';
-import { NotesManager } from './server/notes-manager';
-import { HooksManager } from './server/verification-manager';
-import type { WorktreeConfig } from './server/types';
+import type { ActionContext } from "./actions";
+import { CONFIG_DIR_NAME } from "./constants";
+import { WorktreeManager } from "./server/manager";
+import { createMcpServer } from "./server/mcp-server-factory";
+import { NotesManager } from "./server/notes-manager";
+import { HooksManager } from "./server/verification-manager";
+import type { WorktreeConfig } from "./server/types";
 
 /**
  * Read server.json to find a running dawg server.
  * Returns the server URL if found and the process is alive, null otherwise.
  */
 function findRunningServer(configDir: string): string | null {
-  const serverJsonPath = path.join(configDir, CONFIG_DIR_NAME, 'server.json');
+  const serverJsonPath = path.join(configDir, CONFIG_DIR_NAME, "server.json");
   if (!existsSync(serverJsonPath)) return null;
 
   try {
-    const data = JSON.parse(readFileSync(serverJsonPath, 'utf-8'));
+    const data = JSON.parse(readFileSync(serverJsonPath, "utf-8"));
     if (!data.url || !data.pid) return null;
 
     // Check if the process is still running
@@ -37,9 +37,7 @@ function findRunningServer(configDir: string): string | null {
  */
 async function startProxyMode(serverUrl: string) {
   const stdioTransport = new StdioServerTransport();
-  const httpTransport = new StreamableHTTPClientTransport(
-    new URL(`${serverUrl}/mcp`),
-  );
+  const httpTransport = new StreamableHTTPClientTransport(new URL(`${serverUrl}/mcp`));
 
   // Relay: Claude Code (stdio) → HTTP server
   stdioTransport.onmessage = (message) => {
@@ -78,8 +76,8 @@ async function startProxyMode(serverUrl: string) {
     process.exit(0);
   };
 
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
 }
 
 /**
@@ -103,8 +101,8 @@ async function startStandaloneMode(config: WorktreeConfig, configFilePath: strin
     process.exit(0);
   };
 
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
 }
 
 export async function startMcpServer(config: WorktreeConfig, configFilePath: string | null) {
@@ -115,7 +113,7 @@ export async function startMcpServer(config: WorktreeConfig, configFilePath: str
     process.stderr.write(`dawg mcp: connecting to running server at ${serverUrl}\n`);
     await startProxyMode(serverUrl);
   } else {
-    process.stderr.write('dawg mcp: no running server found, starting standalone\n');
+    process.stderr.write("dawg mcp: no running server found, starting standalone\n");
     await startStandaloneMode(config, configFilePath);
   }
 }

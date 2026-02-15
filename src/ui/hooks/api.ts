@@ -1,11 +1,35 @@
-import type { DataLifecycleConfig, JiraIssueDetail, JiraIssueSummary, JiraStatus, GitHubStatus, LinearStatus, LinearIssueSummary, LinearIssueDetail, CustomTaskSummary, CustomTaskDetail, McpServerSummary, McpServerDetail, McpDeploymentStatus, McpScanResult, SkillSummary, SkillDetail, SkillDeploymentStatus, SkillInstallRequest, PluginSummary, PluginDetail, AvailablePlugin, MarketplaceSummary, SkillScanResult } from '../types';
+import type {
+  DataLifecycleConfig,
+  JiraIssueDetail,
+  JiraIssueSummary,
+  JiraStatus,
+  GitHubStatus,
+  LinearStatus,
+  LinearIssueSummary,
+  LinearIssueDetail,
+  CustomTaskSummary,
+  CustomTaskDetail,
+  McpServerSummary,
+  McpServerDetail,
+  McpDeploymentStatus,
+  McpScanResult,
+  SkillSummary,
+  SkillDetail,
+  SkillDeploymentStatus,
+  SkillInstallRequest,
+  PluginSummary,
+  PluginDetail,
+  AvailablePlugin,
+  MarketplaceSummary,
+  SkillScanResult,
+} from "../types";
 
 // API functions now accept an optional serverUrl parameter
 // When null/undefined, they use relative URLs (for single-project web mode)
 // When provided, they use the full URL (for multi-project Electron mode)
 
 function getBaseUrl(serverUrl: string | null): string {
-  return serverUrl ?? '';
+  return serverUrl ?? "";
 }
 
 export async function createWorktree(
@@ -17,57 +41,63 @@ export async function createWorktree(
     const body: { branch: string; name?: string } = { branch };
     if (name) body.name = name;
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create worktree',
+      error: err instanceof Error ? err.message : "Failed to create worktree",
     };
   }
 }
 
 export async function recoverWorktree(
   id: string,
-  action: 'reuse' | 'recreate',
+  action: "reuse" | "recreate",
   branch?: string,
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/recover`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, branch }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/recover`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, branch }),
+      },
+    );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to recover worktree',
+      error: err instanceof Error ? err.message : "Failed to recover worktree",
     };
   }
 }
 
 export async function linkWorktree(
   id: string,
-  source: 'jira' | 'linear' | 'local',
+  source: "jira" | "linear" | "local",
   issueId: string,
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/link`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source, issueId }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/link`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source, issueId }),
+      },
+    );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to link worktree',
+      error: err instanceof Error ? err.message : "Failed to link worktree",
     };
   }
 }
@@ -78,19 +108,16 @@ export async function renameWorktree(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(
-      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-      },
-    );
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to rename worktree',
+      error: err instanceof Error ? err.message : "Failed to rename worktree",
     };
   }
 }
@@ -103,14 +130,14 @@ export async function startWorktree(
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/start`,
       {
-        method: 'POST',
+        method: "POST",
       },
     );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to start worktree',
+      error: err instanceof Error ? err.message : "Failed to start worktree",
     };
   }
 }
@@ -123,14 +150,14 @@ export async function stopWorktree(
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/stop`,
       {
-        method: 'POST',
+        method: "POST",
       },
     );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to stop worktree',
+      error: err instanceof Error ? err.message : "Failed to stop worktree",
     };
   }
 }
@@ -140,17 +167,14 @@ export async function removeWorktree(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(
-      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}`,
-      {
-        method: 'DELETE',
-      },
-    );
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to remove worktree',
+      error: err instanceof Error ? err.message : "Failed to remove worktree",
     };
   }
 }
@@ -168,15 +192,15 @@ export async function createFromJira(
 }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/task`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ issueKey, branch: branch || undefined }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create from Jira',
+      error: err instanceof Error ? err.message : "Failed to create from Jira",
     };
   }
 }
@@ -190,8 +214,8 @@ export async function commitChanges(
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/commit`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
       },
     );
@@ -199,7 +223,7 @@ export async function commitChanges(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to commit',
+      error: err instanceof Error ? err.message : "Failed to commit",
     };
   }
 }
@@ -212,14 +236,14 @@ export async function pushChanges(
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/push`,
       {
-        method: 'POST',
+        method: "POST",
       },
     );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to push',
+      error: err instanceof Error ? err.message : "Failed to push",
     };
   }
 }
@@ -234,8 +258,8 @@ export async function createPullRequest(
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(id)}/create-pr`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, body }),
       },
     );
@@ -243,7 +267,7 @@ export async function createPullRequest(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create PR',
+      error: err instanceof Error ? err.message : "Failed to create PR",
     };
   }
 }
@@ -252,12 +276,12 @@ export async function installGitHubCli(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; code?: string; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/install`, { method: 'POST' });
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/install`, { method: "POST" });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to install gh CLI',
+      error: err instanceof Error ? err.message : "Failed to install gh CLI",
     };
   }
 }
@@ -266,12 +290,12 @@ export async function loginGitHub(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; code?: string; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/login`, { method: 'POST' });
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/login`, { method: "POST" });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to authenticate with GitHub',
+      error: err instanceof Error ? err.message : "Failed to authenticate with GitHub",
     };
   }
 }
@@ -280,17 +304,20 @@ export async function logoutGitHub(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/logout`, { method: 'POST' });
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/logout`, { method: "POST" });
     const text = await res.text();
     try {
       return JSON.parse(text);
     } catch {
-      return { success: false, error: `Something went wrong (${res.status}: ${text.slice(0, 50)})` };
+      return {
+        success: false,
+        error: `Something went wrong (${res.status}: ${text.slice(0, 50)})`,
+      };
     }
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to logout from GitHub',
+      error: err instanceof Error ? err.message : "Failed to logout from GitHub",
     };
   }
 }
@@ -299,17 +326,22 @@ export async function createInitialCommit(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/initial-commit`, { method: 'POST' });
+    const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/initial-commit`, {
+      method: "POST",
+    });
     const text = await res.text();
     try {
       return JSON.parse(text);
     } catch {
-      return { success: false, error: `Something went wrong (${res.status}: ${text.slice(0, 50)})` };
+      return {
+        success: false,
+        error: `Something went wrong (${res.status}: ${text.slice(0, 50)})`,
+      };
     }
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create initial commit',
+      error: err instanceof Error ? err.message : "Failed to create initial commit",
     };
   }
 }
@@ -320,15 +352,15 @@ export async function createGitHubRepo(
 ): Promise<{ success: boolean; repo?: string; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/create-repo`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ private: isPrivate }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create GitHub repository',
+      error: err instanceof Error ? err.message : "Failed to create GitHub repository",
     };
   }
 }
@@ -338,13 +370,13 @@ export async function fetchJiraIssues(
   serverUrl: string | null = null,
 ): Promise<{ issues: JiraIssueSummary[]; error?: string }> {
   try {
-    const params = query ? `?query=${encodeURIComponent(query)}` : '';
+    const params = query ? `?query=${encodeURIComponent(query)}` : "";
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/issues${params}`);
     return await res.json();
   } catch (err) {
     return {
       issues: [],
-      error: err instanceof Error ? err.message : 'Failed to fetch Jira issues',
+      error: err instanceof Error ? err.message : "Failed to fetch Jira issues",
     };
   }
 }
@@ -358,7 +390,7 @@ export async function fetchJiraIssueDetail(
     return await res.json();
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : 'Failed to fetch issue detail',
+      error: err instanceof Error ? err.message : "Failed to fetch issue detail",
     };
   }
 }
@@ -373,8 +405,8 @@ export async function createTerminalSession(
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/terminals`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cols, rows }),
       },
     );
@@ -390,7 +422,7 @@ export async function createTerminalSession(
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create terminal',
+      error: err instanceof Error ? err.message : "Failed to create terminal",
     };
   }
 }
@@ -402,13 +434,13 @@ export async function destroyTerminalSession(
   try {
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/terminals/${encodeURIComponent(sessionId)}`,
-      { method: 'DELETE' },
+      { method: "DELETE" },
     );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to destroy terminal',
+      error: err instanceof Error ? err.message : "Failed to destroy terminal",
     };
   }
 }
@@ -416,17 +448,15 @@ export async function destroyTerminalSession(
 export function getTerminalWsUrl(sessionId: string, serverUrl: string | null = null): string {
   if (serverUrl) {
     // Convert http://localhost:6970 to ws://localhost:6970
-    const wsUrl = serverUrl.replace(/^http/, 'ws');
+    const wsUrl = serverUrl.replace(/^http/, "ws");
     return `${wsUrl}/api/terminals/${encodeURIComponent(sessionId)}/ws`;
   }
   // Relative URL mode - use current window location
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${protocol}//${window.location.host}/api/terminals/${encodeURIComponent(sessionId)}/ws`;
 }
 
-export async function discoverPorts(
-  serverUrl: string | null = null,
-): Promise<{
+export async function discoverPorts(serverUrl: string | null = null): Promise<{
   success: boolean;
   ports: number[];
   logs: string[];
@@ -434,7 +464,7 @@ export async function discoverPorts(
 }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/discover`, {
-      method: 'POST',
+      method: "POST",
     });
     return await res.json();
   } catch (err) {
@@ -442,7 +472,7 @@ export async function discoverPorts(
       success: false,
       ports: [],
       logs: [],
-      error: err instanceof Error ? err.message : 'Failed to discover ports',
+      error: err instanceof Error ? err.message : "Failed to discover ports",
     };
   }
 }
@@ -464,11 +494,11 @@ export async function fetchConfig(serverUrl: string | null = null): Promise<{
 }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/config`);
-    if (!res.ok) throw new Error('Failed to fetch config');
+    if (!res.ok) throw new Error("Failed to fetch config");
     return await res.json();
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : 'Failed to fetch config',
+      error: err instanceof Error ? err.message : "Failed to fetch config",
     };
   }
 }
@@ -479,15 +509,15 @@ export async function saveConfig(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/config`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to save config',
+      error: err instanceof Error ? err.message : "Failed to save config",
     };
   }
 }
@@ -500,15 +530,15 @@ export async function setupJira(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/setup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ baseUrl, email, token }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to setup Jira',
+      error: err instanceof Error ? err.message : "Failed to setup Jira",
     };
   }
 }
@@ -520,19 +550,23 @@ export async function updateJiraConfig(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const body: { defaultProjectKey: string; refreshIntervalMinutes?: number; dataLifecycle?: DataLifecycleConfig } = { defaultProjectKey };
+    const body: {
+      defaultProjectKey: string;
+      refreshIntervalMinutes?: number;
+      dataLifecycle?: DataLifecycleConfig;
+    } = { defaultProjectKey };
     if (refreshIntervalMinutes !== undefined) body.refreshIntervalMinutes = refreshIntervalMinutes;
     if (dataLifecycle !== undefined) body.dataLifecycle = dataLifecycle;
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/config`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to update Jira config',
+      error: err instanceof Error ? err.message : "Failed to update Jira config",
     };
   }
 }
@@ -542,20 +576,22 @@ export async function disconnectJira(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/jira/credentials`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to disconnect Jira',
+      error: err instanceof Error ? err.message : "Failed to disconnect Jira",
     };
   }
 }
 
 // -- Linear API functions --
 
-export async function fetchLinearStatus(serverUrl: string | null = null): Promise<LinearStatus | null> {
+export async function fetchLinearStatus(
+  serverUrl: string | null = null,
+): Promise<LinearStatus | null> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/status`);
     return await res.json();
@@ -569,13 +605,13 @@ export async function fetchLinearIssues(
   serverUrl: string | null = null,
 ): Promise<{ issues: LinearIssueSummary[]; error?: string }> {
   try {
-    const params = query ? `?query=${encodeURIComponent(query)}` : '';
+    const params = query ? `?query=${encodeURIComponent(query)}` : "";
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/issues${params}`);
     return await res.json();
   } catch (err) {
     return {
       issues: [],
-      error: err instanceof Error ? err.message : 'Failed to fetch Linear issues',
+      error: err instanceof Error ? err.message : "Failed to fetch Linear issues",
     };
   }
 }
@@ -585,11 +621,13 @@ export async function fetchLinearIssueDetail(
   serverUrl: string | null = null,
 ): Promise<{ issue?: LinearIssueDetail; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/issues/${encodeURIComponent(identifier)}`);
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/linear/issues/${encodeURIComponent(identifier)}`,
+    );
     return await res.json();
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : 'Failed to fetch issue detail',
+      error: err instanceof Error ? err.message : "Failed to fetch issue detail",
     };
   }
 }
@@ -607,15 +645,15 @@ export async function createFromLinear(
 }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/task`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier, branch: branch || undefined }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create from Linear',
+      error: err instanceof Error ? err.message : "Failed to create from Linear",
     };
   }
 }
@@ -626,15 +664,15 @@ export async function setupLinear(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/setup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ apiKey }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to setup Linear',
+      error: err instanceof Error ? err.message : "Failed to setup Linear",
     };
   }
 }
@@ -646,19 +684,23 @@ export async function updateLinearConfig(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const body: { defaultTeamKey: string; refreshIntervalMinutes?: number; dataLifecycle?: DataLifecycleConfig } = { defaultTeamKey };
+    const body: {
+      defaultTeamKey: string;
+      refreshIntervalMinutes?: number;
+      dataLifecycle?: DataLifecycleConfig;
+    } = { defaultTeamKey };
     if (refreshIntervalMinutes !== undefined) body.refreshIntervalMinutes = refreshIntervalMinutes;
     if (dataLifecycle !== undefined) body.dataLifecycle = dataLifecycle;
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/config`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to update Linear config',
+      error: err instanceof Error ? err.message : "Failed to update Linear config",
     };
   }
 }
@@ -668,13 +710,13 @@ export async function disconnectLinear(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/linear/credentials`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to disconnect Linear',
+      error: err instanceof Error ? err.message : "Failed to disconnect Linear",
     };
   }
 }
@@ -686,13 +728,13 @@ export async function fetchWorktrees(serverUrl: string | null = null): Promise<{
 }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees`);
-    if (!res.ok) throw new Error('Failed to fetch worktrees');
+    if (!res.ok) throw new Error("Failed to fetch worktrees");
     const data = await res.json();
     return { worktrees: data.worktrees || [] };
   } catch (err) {
     return {
       worktrees: [],
-      error: err instanceof Error ? err.message : 'Failed to fetch worktrees',
+      error: err instanceof Error ? err.message : "Failed to fetch worktrees",
     };
   }
 }
@@ -709,7 +751,7 @@ export async function fetchPorts(serverUrl: string | null = null): Promise<{
 }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/ports`);
-    if (!res.ok) throw new Error('Failed to fetch ports');
+    if (!res.ok) throw new Error("Failed to fetch ports");
     return await res.json();
   } catch {
     return { discovered: [], offsetStep: 1 };
@@ -727,7 +769,9 @@ export async function fetchJiraStatus(serverUrl: string | null = null): Promise<
 }
 
 // Fetch GitHub status
-export async function fetchGitHubStatus(serverUrl: string | null = null): Promise<GitHubStatus | null> {
+export async function fetchGitHubStatus(
+  serverUrl: string | null = null,
+): Promise<GitHubStatus | null> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/github/status`);
     return await res.json();
@@ -743,7 +787,9 @@ export interface IntegrationsVerifyResult {
   linear: { ok: boolean } | null;
 }
 
-export async function verifyIntegrations(serverUrl: string | null = null): Promise<IntegrationsVerifyResult | null> {
+export async function verifyIntegrations(
+  serverUrl: string | null = null,
+): Promise<IntegrationsVerifyResult | null> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/integrations/verify`);
     return await res.json();
@@ -771,13 +817,13 @@ export async function commitSetup(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/commit-setup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message }),
     });
     return await res.json();
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to commit' };
+    return { success: false, error: error instanceof Error ? error.message : "Failed to commit" };
   }
 }
 
@@ -795,40 +841,40 @@ export async function fetchMcpStatus(
 
 export async function setupMcpAgent(
   agent: string,
-  scope: 'global' | 'project',
+  scope: "global" | "project",
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp/setup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ agent, scope }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to setup MCP',
+      error: err instanceof Error ? err.message : "Failed to setup MCP",
     };
   }
 }
 
 export async function removeMcpAgent(
   agent: string,
-  scope: 'global' | 'project',
+  scope: "global" | "project",
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp/remove`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ agent, scope }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to remove MCP config',
+      error: err instanceof Error ? err.message : "Failed to remove MCP config",
     };
   }
 }
@@ -847,7 +893,10 @@ export async function detectConfig(
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/detect`);
     return await res.json();
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to detect config' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to detect config",
+    };
   }
 }
 
@@ -858,13 +907,16 @@ export async function initConfig(
 ): Promise<{ success: boolean; config?: DetectedConfig; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/init`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(config),
     });
     return await res.json();
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to initialize config' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to initialize config",
+    };
   }
 }
 
@@ -875,11 +927,11 @@ export async function fetchBranchNameRule(
   serverUrl: string | null = null,
 ): Promise<{ content: string; hasOverride?: boolean }> {
   try {
-    const params = source ? `?source=${encodeURIComponent(source)}` : '';
+    const params = source ? `?source=${encodeURIComponent(source)}` : "";
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/branch-name-rule${params}`);
     return await res.json();
   } catch {
-    return { content: '' };
+    return { content: "" };
   }
 }
 
@@ -890,15 +942,15 @@ export async function saveBranchNameRule(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/branch-name-rule`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, source: source || undefined }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to save branch name rule',
+      error: err instanceof Error ? err.message : "Failed to save branch name rule",
     };
   }
 }
@@ -921,11 +973,11 @@ export async function fetchCommitMessageRule(
   serverUrl: string | null = null,
 ): Promise<{ content: string; hasOverride?: boolean }> {
   try {
-    const params = source ? `?source=${encodeURIComponent(source)}` : '';
+    const params = source ? `?source=${encodeURIComponent(source)}` : "";
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/commit-message-rule${params}`);
     return await res.json();
   } catch {
-    return { content: '' };
+    return { content: "" };
   }
 }
 
@@ -936,15 +988,15 @@ export async function saveCommitMessageRule(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/config/commit-message-rule`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, source: source || undefined }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to save commit message rule',
+      error: err instanceof Error ? err.message : "Failed to save commit message rule",
     };
   }
 }
@@ -962,20 +1014,27 @@ export async function fetchCommitRuleStatus(
 
 // -- Git Policy API --
 
-export type GitPolicyOverride = 'inherit' | 'allow' | 'deny';
+export type GitPolicyOverride = "inherit" | "allow" | "deny";
 
 export async function updateGitPolicy(
   source: string,
   id: string,
-  policy: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride; agentPRs?: GitPolicyOverride },
+  policy: {
+    agentCommits?: GitPolicyOverride;
+    agentPushes?: GitPolicyOverride;
+    agentPRs?: GitPolicyOverride;
+  },
   serverUrl: string | null = null,
 ): Promise<IssueNotes> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/git-policy`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(policy),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/git-policy`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(policy),
+      },
+    );
     return await res.json();
   } catch {
     return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
@@ -991,11 +1050,14 @@ export async function updateHookSkills(
   serverUrl: string | null = null,
 ): Promise<IssueNotes> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/hook-skills`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(overrides),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/hook-skills`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(overrides),
+      },
+    );
     return await res.json();
   } catch {
     return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
@@ -1013,7 +1075,7 @@ export async function fetchCustomTasks(
   } catch (err) {
     return {
       tasks: [],
-      error: err instanceof Error ? err.message : 'Failed to fetch tasks',
+      error: err instanceof Error ? err.message : "Failed to fetch tasks",
     };
   }
 }
@@ -1027,26 +1089,32 @@ export async function fetchCustomTaskDetail(
     return await res.json();
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : 'Failed to fetch task detail',
+      error: err instanceof Error ? err.message : "Failed to fetch task detail",
     };
   }
 }
 
 export async function createCustomTask(
-  data: { title: string; description?: string; priority?: string; labels?: string[]; linkedWorktreeId?: string },
+  data: {
+    title: string;
+    description?: string;
+    priority?: string;
+    labels?: string[];
+    linkedWorktreeId?: string;
+  },
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; task?: CustomTaskDetail; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create task',
+      error: err instanceof Error ? err.message : "Failed to create task",
     };
   }
 }
@@ -1058,15 +1126,15 @@ export async function updateCustomTask(
 ): Promise<{ success: boolean; task?: CustomTaskDetail; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to update task',
+      error: err instanceof Error ? err.message : "Failed to update task",
     };
   }
 }
@@ -1077,13 +1145,13 @@ export async function deleteCustomTask(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to delete task',
+      error: err instanceof Error ? err.message : "Failed to delete task",
     };
   }
 }
@@ -1094,16 +1162,19 @@ export async function createWorktreeFromCustomTask(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; worktreeId?: string; error?: string; code?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(id)}/create-worktree`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ branch }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(id)}/create-worktree`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ branch }),
+      },
+    );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create worktree from task',
+      error: err instanceof Error ? err.message : "Failed to create worktree from task",
     };
   }
 }
@@ -1114,17 +1185,27 @@ export async function uploadTaskAttachment(
   taskId: string,
   file: File,
   serverUrl: string | null = null,
-): Promise<{ success: boolean; attachment?: { filename: string; mimeType: string; size: number }; error?: string }> {
+): Promise<{
+  success: boolean;
+  attachment?: { filename: string; mimeType: string; size: number };
+  error?: string;
+}> {
   try {
     const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(taskId)}/attachments`, {
-      method: 'POST',
-      body: formData,
-    });
+    formData.append("file", file);
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(taskId)}/attachments`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to upload attachment' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to upload attachment",
+    };
   }
 }
 
@@ -1136,11 +1217,14 @@ export async function deleteTaskAttachment(
   try {
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/tasks/${encodeURIComponent(taskId)}/attachments/${encodeURIComponent(filename)}`,
-      { method: 'DELETE' },
+      { method: "DELETE" },
     );
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to delete attachment' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to delete attachment",
+    };
   }
 }
 
@@ -1161,7 +1245,7 @@ export interface TodoItem {
   createdAt: string;
 }
 
-export type HookSkillOverride = 'inherit' | 'enable' | 'disable';
+export type HookSkillOverride = "inherit" | "enable" | "disable";
 
 export interface IssueNotes {
   linkedWorktreeId: string | null;
@@ -1182,7 +1266,9 @@ export async function fetchNotes(
   serverUrl: string | null = null,
 ): Promise<IssueNotes> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}`);
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}`,
+    );
     return await res.json();
   } catch {
     return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
@@ -1192,16 +1278,19 @@ export async function fetchNotes(
 export async function updateNotes(
   source: string,
   id: string,
-  section: 'personal' | 'aiContext',
+  section: "personal" | "aiContext",
   content: string,
   serverUrl: string | null = null,
 ): Promise<IssueNotes> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ section, content }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section, content }),
+      },
+    );
     return await res.json();
   } catch {
     return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
@@ -1217,11 +1306,14 @@ export async function addTodo(
   serverUrl: string | null = null,
 ): Promise<IssueNotes> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/todos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/todos`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      },
+    );
     return await res.json();
   } catch {
     return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
@@ -1236,11 +1328,14 @@ export async function updateTodo(
   serverUrl: string | null = null,
 ): Promise<IssueNotes> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/todos/${encodeURIComponent(todoId)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/todos/${encodeURIComponent(todoId)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      },
+    );
     return await res.json();
   } catch {
     return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
@@ -1254,9 +1349,12 @@ export async function deleteTodo(
   serverUrl: string | null = null,
 ): Promise<IssueNotes> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/todos/${encodeURIComponent(todoId)}`, {
-      method: 'DELETE',
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/notes/${encodeURIComponent(source)}/${encodeURIComponent(id)}/todos/${encodeURIComponent(todoId)}`,
+      {
+        method: "DELETE",
+      },
+    );
     return await res.json();
   } catch {
     return { linkedWorktreeId: null, personal: null, aiContext: null, todos: [] };
@@ -1270,7 +1368,7 @@ export async function fetchMcpServers(
   serverUrl: string | null = null,
 ): Promise<{ servers: McpServerSummary[]; error?: string }> {
   try {
-    const params = query ? `?q=${encodeURIComponent(query)}` : '';
+    const params = query ? `?q=${encodeURIComponent(query)}` : "";
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers${params}`);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -1280,7 +1378,7 @@ export async function fetchMcpServers(
   } catch (err) {
     return {
       servers: [],
-      error: err instanceof Error ? err.message : 'Failed to fetch MCP servers',
+      error: err instanceof Error ? err.message : "Failed to fetch MCP servers",
     };
   }
 }
@@ -1298,26 +1396,34 @@ export async function fetchMcpServer(
     return await res.json();
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : 'Failed to fetch MCP server',
+      error: err instanceof Error ? err.message : "Failed to fetch MCP server",
     };
   }
 }
 
 export async function createMcpServer(
-  data: { id?: string; name: string; description?: string; tags?: string[]; command: string; args?: string[]; env?: Record<string, string> },
+  data: {
+    id?: string;
+    name: string;
+    description?: string;
+    tags?: string[];
+    command: string;
+    args?: string[];
+    env?: Record<string, string>;
+  },
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; server?: McpServerDetail; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create MCP server',
+      error: err instanceof Error ? err.message : "Failed to create MCP server",
     };
   }
 }
@@ -1329,15 +1435,15 @@ export async function updateMcpServer(
 ): Promise<{ success: boolean; server?: McpServerDetail; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to update MCP server',
+      error: err instanceof Error ? err.message : "Failed to update MCP server",
     };
   }
 }
@@ -1348,55 +1454,67 @@ export async function deleteMcpServer(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to delete MCP server',
+      error: err instanceof Error ? err.message : "Failed to delete MCP server",
     };
   }
 }
 
 export async function scanMcpServers(
-  options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string },
+  options?: { mode?: "project" | "folder" | "device"; scanPath?: string },
   serverUrl: string | null = null,
 ): Promise<{ discovered: McpScanResult[]; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/scan`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(options ?? {}),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      return { discovered: [], error: (body as { error?: string }).error ?? `Scan failed (${res.status})` };
+      return {
+        discovered: [],
+        error: (body as { error?: string }).error ?? `Scan failed (${res.status})`,
+      };
     }
     return await res.json();
   } catch (err) {
     return {
       discovered: [],
-      error: err instanceof Error ? err.message : 'Failed to scan MCP servers',
+      error: err instanceof Error ? err.message : "Failed to scan MCP servers",
     };
   }
 }
 
 export async function importMcpServers(
-  servers: Array<{ key: string; name?: string; description?: string; tags?: string[]; command: string; args: string[]; env?: Record<string, string>; source?: string }>,
+  servers: Array<{
+    key: string;
+    name?: string;
+    description?: string;
+    tags?: string[];
+    command: string;
+    args: string[];
+    env?: Record<string, string>;
+    source?: string;
+  }>,
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; imported?: string[]; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/import`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ servers }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to import MCP servers',
+      error: err instanceof Error ? err.message : "Failed to import MCP servers",
     };
   }
 }
@@ -1420,17 +1538,20 @@ export async function updateMcpServerEnv(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; env: Record<string, string>; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-env/${encodeURIComponent(serverId)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ env }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/mcp-env/${encodeURIComponent(serverId)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ env }),
+      },
+    );
     return await res.json();
   } catch (err) {
     return {
       success: false,
       env: {},
-      error: err instanceof Error ? err.message : 'Failed to update env',
+      error: err instanceof Error ? err.message : "Failed to update env",
     };
   }
 }
@@ -1454,16 +1575,19 @@ export async function deployMcpServer(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}/deploy`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tool, scope }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}/deploy`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool, scope }),
+      },
+    );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to deploy MCP server',
+      error: err instanceof Error ? err.message : "Failed to deploy MCP server",
     };
   }
 }
@@ -1475,16 +1599,19 @@ export async function undeployMcpServer(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}/undeploy`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tool, scope }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/mcp-servers/${encodeURIComponent(id)}/undeploy`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool, scope }),
+      },
+    );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to undeploy MCP server',
+      error: err instanceof Error ? err.message : "Failed to undeploy MCP server",
     };
   }
 }
@@ -1500,7 +1627,7 @@ export async function fetchSkills(
   } catch (err) {
     return {
       skills: [],
-      error: err instanceof Error ? err.message : 'Failed to fetch skills',
+      error: err instanceof Error ? err.message : "Failed to fetch skills",
     };
   }
 }
@@ -1518,46 +1645,63 @@ export async function fetchSkill(
     return await res.json();
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : 'Failed to fetch skill',
+      error: err instanceof Error ? err.message : "Failed to fetch skill",
     };
   }
 }
 
 export async function createSkill(
-  data: { name: string; description?: string; allowedTools?: string; context?: string; agent?: string; model?: string; argumentHint?: string; disableModelInvocation?: boolean; userInvocable?: boolean; mode?: boolean; instructions?: string },
+  data: {
+    name: string;
+    description?: string;
+    allowedTools?: string;
+    context?: string;
+    agent?: string;
+    model?: string;
+    argumentHint?: string;
+    disableModelInvocation?: boolean;
+    userInvocable?: boolean;
+    mode?: boolean;
+    instructions?: string;
+  },
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; skill?: SkillSummary; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to create skill',
+      error: err instanceof Error ? err.message : "Failed to create skill",
     };
   }
 }
 
 export async function updateSkill(
   name: string,
-  updates: { skillMd?: string; referenceMd?: string; examplesMd?: string; frontmatter?: Record<string, unknown> },
+  updates: {
+    skillMd?: string;
+    referenceMd?: string;
+    examplesMd?: string;
+    frontmatter?: Record<string, unknown>;
+  },
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to update skill',
+      error: err instanceof Error ? err.message : "Failed to update skill",
     };
   }
 }
@@ -1568,13 +1712,13 @@ export async function deleteSkill(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to delete skill',
+      error: err instanceof Error ? err.message : "Failed to delete skill",
     };
   }
 }
@@ -1594,20 +1738,23 @@ export async function fetchSkillDeploymentStatus(
 export async function deploySkill(
   name: string,
   agent: string,
-  scope: 'global' | 'project',
+  scope: "global" | "project",
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}/deploy`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agent, scope }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}/deploy`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent, scope }),
+      },
+    );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to deploy skill',
+      error: err instanceof Error ? err.message : "Failed to deploy skill",
     };
   }
 }
@@ -1615,20 +1762,23 @@ export async function deploySkill(
 export async function undeploySkill(
   name: string,
   agent: string,
-  scope: 'global' | 'project',
+  scope: "global" | "project",
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}/undeploy`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agent, scope }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/skills/${encodeURIComponent(name)}/undeploy`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent, scope }),
+      },
+    );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to undeploy skill',
+      error: err instanceof Error ? err.message : "Failed to undeploy skill",
     };
   }
 }
@@ -1639,15 +1789,15 @@ export async function importSkills(
 ): Promise<{ success: boolean; imported?: string[]; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/import`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ skills }),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to import skills',
+      error: err instanceof Error ? err.message : "Failed to import skills",
     };
   }
 }
@@ -1658,15 +1808,15 @@ export async function installSkill(
 ): Promise<{ success: boolean; installed?: string[]; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/install`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to install skill',
+      error: err instanceof Error ? err.message : "Failed to install skill",
     };
   }
 }
@@ -1698,14 +1848,16 @@ export async function fetchClaudePluginDetail(
   serverUrl: string | null = null,
 ): Promise<{ plugin?: PluginDetail; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}`);
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}`,
+    );
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       return { error: (body as { error?: string }).error ?? `Failed (${res.status})` };
     }
     return await res.json();
   } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Failed to fetch plugin detail' };
+    return { error: err instanceof Error ? err.message : "Failed to fetch plugin detail" };
   }
 }
 
@@ -1716,13 +1868,16 @@ export async function installClaudePlugin(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/install`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ref, scope }),
     });
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to install plugin' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to install plugin",
+    };
   }
 }
 
@@ -1732,14 +1887,20 @@ export async function uninstallClaudePlugin(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/uninstall`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/uninstall`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope }),
+      },
+    );
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to uninstall plugin' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to uninstall plugin",
+    };
   }
 }
 
@@ -1749,14 +1910,20 @@ export async function enableClaudePlugin(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/enable`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/enable`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope }),
+      },
+    );
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to enable plugin' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to enable plugin",
+    };
   }
 }
 
@@ -1766,14 +1933,20 @@ export async function disableClaudePlugin(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/disable`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/disable`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope }),
+      },
+    );
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to disable plugin' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to disable plugin",
+    };
   }
 }
 
@@ -1782,12 +1955,18 @@ export async function updateClaudePlugin(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/update`, {
-      method: 'POST',
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/claude/plugins/${encodeURIComponent(id)}/update`,
+      {
+        method: "POST",
+      },
+    );
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to update plugin' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to update plugin",
+    };
   }
 }
 
@@ -1798,7 +1977,10 @@ export async function fetchAvailablePlugins(
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/available`);
     return await res.json();
   } catch (err) {
-    return { available: [], error: err instanceof Error ? err.message : 'Failed to fetch available plugins' };
+    return {
+      available: [],
+      error: err instanceof Error ? err.message : "Failed to fetch available plugins",
+    };
   }
 }
 
@@ -1809,7 +1991,10 @@ export async function fetchPluginMarketplaces(
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/marketplaces`);
     return await res.json();
   } catch (err) {
-    return { marketplaces: [], error: err instanceof Error ? err.message : 'Failed to fetch marketplaces' };
+    return {
+      marketplaces: [],
+      error: err instanceof Error ? err.message : "Failed to fetch marketplaces",
+    };
   }
 }
 
@@ -1819,13 +2004,16 @@ export async function addPluginMarketplace(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/marketplaces`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ source }),
     });
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to add marketplace' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to add marketplace",
+    };
   }
 }
 
@@ -1834,12 +2022,18 @@ export async function removePluginMarketplace(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/marketplaces/${encodeURIComponent(name)}`, {
-      method: 'DELETE',
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/claude/plugins/marketplaces/${encodeURIComponent(name)}`,
+      {
+        method: "DELETE",
+      },
+    );
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to remove marketplace' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to remove marketplace",
+    };
   }
 }
 
@@ -1848,37 +2042,43 @@ export async function updatePluginMarketplace(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/claude/plugins/marketplaces/${encodeURIComponent(name)}/update`, {
-      method: 'POST',
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/claude/plugins/marketplaces/${encodeURIComponent(name)}/update`,
+      {
+        method: "POST",
+      },
+    );
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to update marketplace' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to update marketplace",
+    };
   }
 }
 
 export async function scanSkills(
-  options?: { mode?: 'project' | 'folder' | 'device'; scanPath?: string },
+  options?: { mode?: "project" | "folder" | "device"; scanPath?: string },
   serverUrl: string | null = null,
 ): Promise<{ discovered: SkillScanResult[]; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/skills/scan`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(options ?? {}),
     });
     return await res.json();
   } catch (err) {
     return {
       discovered: [],
-      error: err instanceof Error ? err.message : 'Failed to scan skills',
+      error: err instanceof Error ? err.message : "Failed to scan skills",
     };
   }
 }
 
 // -- Hooks API --
 
-export type HookTrigger = 'pre-implementation' | 'post-implementation' | 'on-demand' | 'custom';
+export type HookTrigger = "pre-implementation" | "post-implementation" | "on-demand" | "custom";
 
 export interface HookStep {
   id: string;
@@ -1905,7 +2105,7 @@ export interface HooksConfig {
 
 export interface SkillHookResult {
   skillName: string;
-  status: 'running' | 'passed' | 'failed';
+  status: "running" | "passed" | "failed";
   success?: boolean;
   summary?: string;
   content?: string;
@@ -1917,7 +2117,7 @@ export interface StepResult {
   stepId: string;
   stepName: string;
   command: string;
-  status: 'pending' | 'running' | 'passed' | 'failed';
+  status: "pending" | "running" | "passed" | "failed";
   output?: string;
   startedAt?: string;
   completedAt?: string;
@@ -1927,15 +2127,13 @@ export interface StepResult {
 export interface PipelineRun {
   id: string;
   worktreeId: string;
-  status: 'running' | 'completed' | 'failed';
+  status: "running" | "completed" | "failed";
   startedAt: string;
   completedAt?: string;
   steps: StepResult[];
 }
 
-export async function fetchHooksConfig(
-  serverUrl: string | null = null,
-): Promise<HooksConfig> {
+export async function fetchHooksConfig(serverUrl: string | null = null): Promise<HooksConfig> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/config`);
     const data = await res.json();
@@ -1951,7 +2149,9 @@ export async function fetchEffectiveHooksConfig(
   serverUrl: string | null = null,
 ): Promise<HooksConfig> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/effective-config`);
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/effective-config`,
+    );
     const data = await res.json();
     data.skills ??= [];
     return data;
@@ -1966,15 +2166,15 @@ export async function saveHooksConfig(
 ): Promise<{ success: boolean; config?: HooksConfig; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/config`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(config),
     });
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to save hooks config',
+      error: err instanceof Error ? err.message : "Failed to save hooks config",
     };
   }
 }
@@ -1986,14 +2186,14 @@ export async function runHooks(
   try {
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/run`,
-      { method: 'POST' },
+      { method: "POST" },
     );
     return await res.json();
   } catch {
     return {
-      id: '',
+      id: "",
       worktreeId,
-      status: 'failed',
+      status: "failed",
       startedAt: new Date().toISOString(),
       steps: [],
     };
@@ -2008,16 +2208,16 @@ export async function runHookStep(
   try {
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/run/${encodeURIComponent(stepId)}`,
-      { method: 'POST' },
+      { method: "POST" },
     );
     return await res.json();
   } catch {
     return {
       stepId,
-      stepName: 'Unknown',
-      command: '',
-      status: 'failed',
-      output: 'Request failed',
+      stepName: "Unknown",
+      command: "",
+      status: "failed",
+      output: "Request failed",
     };
   }
 }
@@ -2043,10 +2243,12 @@ export async function fetchAgentRule(
   serverUrl: string | null = null,
 ): Promise<{ exists: boolean; content: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/agent-rules/${encodeURIComponent(fileId)}`);
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/agent-rules/${encodeURIComponent(fileId)}`,
+    );
     return await res.json();
   } catch {
-    return { exists: false, content: '' };
+    return { exists: false, content: "" };
   }
 }
 
@@ -2056,16 +2258,19 @@ export async function saveAgentRule(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/agent-rules/${encodeURIComponent(fileId)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/agent-rules/${encodeURIComponent(fileId)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      },
+    );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to save agent rule',
+      error: err instanceof Error ? err.message : "Failed to save agent rule",
     };
   }
 }
@@ -2075,14 +2280,17 @@ export async function deleteAgentRule(
   serverUrl: string | null = null,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/agent-rules/${encodeURIComponent(fileId)}`, {
-      method: 'DELETE',
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/agent-rules/${encodeURIComponent(fileId)}`,
+      {
+        method: "DELETE",
+      },
+    );
     return await res.json();
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to delete agent rule',
+      error: err instanceof Error ? err.message : "Failed to delete agent rule",
     };
   }
 }
@@ -2098,13 +2306,13 @@ export async function importHookSkill(
 ): Promise<{ success: boolean; config?: HooksConfig; error?: string }> {
   try {
     const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/skills/import`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ skillName, trigger, condition, conditionTitle }),
     });
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to import skill' };
+    return { success: false, error: err instanceof Error ? err.message : "Failed to import skill" };
   }
 }
 
@@ -2114,11 +2322,11 @@ export async function removeHookSkill(
   trigger?: HookTrigger,
 ): Promise<{ success: boolean; config?: HooksConfig; error?: string }> {
   try {
-    const url = `${getBaseUrl(serverUrl)}/api/hooks/skills/${encodeURIComponent(skillName)}${trigger ? `?trigger=${encodeURIComponent(trigger)}` : ''}`;
-    const res = await fetch(url, { method: 'DELETE' });
+    const url = `${getBaseUrl(serverUrl)}/api/hooks/skills/${encodeURIComponent(skillName)}${trigger ? `?trigger=${encodeURIComponent(trigger)}` : ""}`;
+    const res = await fetch(url, { method: "DELETE" });
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to remove skill' };
+    return { success: false, error: err instanceof Error ? err.message : "Failed to remove skill" };
   }
 }
 
@@ -2129,14 +2337,17 @@ export async function toggleHookSkill(
   trigger?: HookTrigger,
 ): Promise<{ success: boolean; config?: HooksConfig; error?: string }> {
   try {
-    const res = await fetch(`${getBaseUrl(serverUrl)}/api/hooks/skills/${encodeURIComponent(skillName)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled, trigger }),
-    });
+    const res = await fetch(
+      `${getBaseUrl(serverUrl)}/api/hooks/skills/${encodeURIComponent(skillName)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled, trigger }),
+      },
+    );
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to toggle skill' };
+    return { success: false, error: err instanceof Error ? err.message : "Failed to toggle skill" };
   }
 }
 
@@ -2160,14 +2371,17 @@ export async function reportHookSkillResult(
     const res = await fetch(
       `${getBaseUrl(serverUrl)}/api/worktrees/${encodeURIComponent(worktreeId)}/hooks/report`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       },
     );
     return await res.json();
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Failed to report result' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to report result",
+    };
   }
 }
 
@@ -2195,6 +2409,6 @@ export async function fetchFileContent(
     );
     return await res.json();
   } catch {
-    return { error: 'Failed to fetch file' };
+    return { error: "Failed to fetch file" };
   }
 }

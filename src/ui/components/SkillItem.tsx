@@ -1,7 +1,7 @@
-import { Sparkles, Trash2 } from 'lucide-react';
+import { Sparkles, Trash2 } from "lucide-react";
 
-import type { SkillSummary } from '../types';
-import { skill as skillTheme, surface, text } from '../theme';
+import type { SkillSummary } from "../types";
+import { skill as skillTheme, surface, text } from "../theme";
 
 interface SkillItemProps {
   skill: SkillSummary;
@@ -12,7 +12,14 @@ interface SkillItemProps {
   onRemove: () => void;
 }
 
-export function SkillItem({ skill, isSelected, onSelect, isDeployed, onDeploy, onRemove }: SkillItemProps) {
+export function SkillItem({
+  skill,
+  isSelected,
+  onSelect,
+  isDeployed,
+  onDeploy,
+  onRemove,
+}: SkillItemProps) {
   const handleDeploy = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDeploy();
@@ -34,17 +41,19 @@ export function SkillItem({ skill, isSelected, onSelect, isDeployed, onDeploy, o
       }`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <Sparkles className={`w-3.5 h-3.5 flex-shrink-0 transition-colors duration-150 ${isSelected ? 'text-pink-400' : `${text.muted} group-hover:text-pink-400`}`} />
+        <Sparkles
+          className={`w-3.5 h-3.5 flex-shrink-0 transition-colors duration-150 ${isSelected ? "text-pink-400" : `${text.muted} group-hover:text-pink-400`}`}
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-medium truncate ${isSelected ? text.primary : text.secondary}`}>
+            <span
+              className={`text-xs font-medium truncate ${isSelected ? text.primary : text.secondary}`}
+            >
               {skill.displayName}
             </span>
           </div>
           {skill.description && (
-            <div className={`text-[10px] ${text.dimmed} truncate mt-0.5`}>
-              {skill.description}
-            </div>
+            <div className={`text-[10px] ${text.dimmed} truncate mt-0.5`}>{skill.description}</div>
           )}
         </div>
 
@@ -67,12 +76,12 @@ export function SkillItem({ skill, isSelected, onSelect, isDeployed, onDeploy, o
               role="button"
               onClick={handleDeploy}
               className={`relative w-6 h-3.5 rounded-full transition-colors duration-200 cursor-pointer block ${
-                isDeployed ? 'bg-teal-400/35' : 'bg-white/[0.08]'
+                isDeployed ? "bg-teal-400/35" : "bg-white/[0.08]"
               }`}
             >
               <span
                 className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all duration-200 ${
-                  isDeployed ? 'left-[11px] bg-teal-400' : 'left-0.5 bg-white/40'
+                  isDeployed ? "left-[11px] bg-teal-400" : "left-0.5 bg-white/40"
                 }`}
               />
             </span>

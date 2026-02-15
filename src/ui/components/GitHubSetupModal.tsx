@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
-import { border, button, input, surface, text } from '../theme';
+import { border, button, input, surface, text } from "../theme";
 
 interface GitHubSetupModalProps {
   needsCommit: boolean;
@@ -16,33 +16,33 @@ export function GitHubSetupModal({
   onManual,
 }: GitHubSetupModalProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const [commitMessage, setCommitMessage] = useState('Initial commit');
+  const [commitMessage, setCommitMessage] = useState("Initial commit");
   const [repoPrivate, setRepoPrivate] = useState(true);
 
   useEffect(() => {
     cancelRef.current?.focus();
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onManual();
+      if (e.key === "Escape") onManual();
     };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onManual]);
 
   const steps: { label: string; detail: string }[] = [];
   if (needsCommit) {
     steps.push({
-      label: 'Create initial commit',
+      label: "Create initial commit",
       detail: `All files will be staged and committed with message: "${commitMessage}"`,
     });
   }
   if (needsRepo) {
     steps.push({
-      label: 'Create GitHub repository',
-      detail: `A new ${repoPrivate ? 'private' : 'public'} repository will be created and linked`,
+      label: "Create GitHub repository",
+      detail: `A new ${repoPrivate ? "private" : "public"} repository will be created and linked`,
     });
     steps.push({
-      label: 'Push to remote',
-      detail: 'Your code will be pushed to the new repository',
+      label: "Push to remote",
+      detail: "Your code will be pushed to the new repository",
     });
   }
 

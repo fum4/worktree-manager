@@ -1,34 +1,55 @@
-import { useMemo, useRef, useState } from 'react';
-import { ListTodo, Paperclip, X } from 'lucide-react';
+import { useMemo, useRef, useState } from "react";
+import { ListTodo, Paperclip, X } from "lucide-react";
 
-import { customTask, getLabelColor, text } from '../theme';
-import { Modal } from './Modal';
-import { ImageModal } from './ImageModal';
-import { AttachmentThumbnail } from './AttachmentThumbnail';
+import { customTask, getLabelColor, text } from "../theme";
+import { Modal } from "./Modal";
+import { ImageModal } from "./ImageModal";
+import { AttachmentThumbnail } from "./AttachmentThumbnail";
 
 interface CreateCustomTaskModalProps {
   onCreated: (taskId?: string) => void;
   onClose: () => void;
-  onCreate: (data: { title: string; description?: string; priority?: string; labels?: string[]; linkedWorktreeId?: string }) => Promise<{ success: boolean; task?: { id: string }; error?: string }>;
+  onCreate: (data: {
+    title: string;
+    description?: string;
+    priority?: string;
+    labels?: string[];
+    linkedWorktreeId?: string;
+  }) => Promise<{ success: boolean; task?: { id: string }; error?: string }>;
   onUploadAttachment?: (taskId: string, file: File) => Promise<unknown>;
   linkedWorktreeId?: string;
 }
 
-export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAttachment, linkedWorktreeId }: CreateCustomTaskModalProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium');
+export function CreateCustomTaskModal({
+  onCreated,
+  onClose,
+  onCreate,
+  onUploadAttachment,
+  linkedWorktreeId,
+}: CreateCustomTaskModalProps) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
   const [labels, setLabels] = useState<string[]>([]);
-  const [labelInput, setLabelInput] = useState('');
+  const [labelInput, setLabelInput] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<{ src: string; filename: string; type: 'image' | 'pdf' } | null>(null);
+  const [previewImage, setPreviewImage] = useState<{
+    src: string;
+    filename: string;
+    type: "image" | "pdf";
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Stable object URLs for file previews
   const fileUrls = useMemo(
-    () => files.map((f) => (f.type.startsWith('image/') || f.type === 'application/pdf') ? URL.createObjectURL(f) : undefined),
+    () =>
+      files.map((f) =>
+        f.type.startsWith("image/") || f.type === "application/pdf"
+          ? URL.createObjectURL(f)
+          : undefined,
+      ),
     [files],
   );
 
@@ -59,7 +80,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
       onCreated(result.task?.id);
       onClose();
     } else {
-      setError(result.error ?? 'Failed to create task');
+      setError(result.error ?? "Failed to create task");
     }
   };
 
@@ -68,14 +89,14 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
     if (trimmed && !labels.includes(trimmed)) {
       setLabels([...labels, trimmed]);
     }
-    setLabelInput('');
+    setLabelInput("");
   };
 
   const removeLabel = (label: string) => {
     setLabels(labels.filter((l) => l !== label));
   };
 
-  const priorities = ['low', 'medium', 'high'] as const;
+  const priorities = ["low", "medium", "high"] as const;
 
   return (
     <Modal
@@ -98,7 +119,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
             disabled={!title.trim() || isCreating}
             className={`px-4 py-1.5 text-xs font-medium rounded-lg ${customTask.button} disabled:opacity-50 transition-colors`}
           >
-            {isCreating ? 'Creating...' : 'Create Task'}
+            {isCreating ? "Creating..." : "Create Task"}
           </button>
         </>
       }
@@ -121,7 +142,9 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
         <div className="flex gap-3 items-start">
           {/* Priority */}
           <div className="shrink-0">
-            <label className={`block text-[11px] font-medium ${text.secondary} mb-1.5`}>Priority</label>
+            <label className={`block text-[11px] font-medium ${text.secondary} mb-1.5`}>
+              Priority
+            </label>
             <div className="flex gap-1">
               {priorities.map((p) => (
                 <button
@@ -142,14 +165,16 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
 
           {/* Labels */}
           <div className="flex-1 min-w-0">
-            <label className={`block text-[11px] font-medium ${text.secondary} mb-1.5`}>Labels</label>
+            <label className={`block text-[11px] font-medium ${text.secondary} mb-1.5`}>
+              Labels
+            </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={labelInput}
                 onChange={(e) => setLabelInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     e.preventDefault();
                     e.stopPropagation();
                     addLabel();
@@ -195,7 +220,9 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
 
         {/* Description */}
         <div>
-          <label className={`block text-[11px] font-medium ${text.secondary} mb-1.5`}>Description</label>
+          <label className={`block text-[11px] font-medium ${text.secondary} mb-1.5`}>
+            Description
+          </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -225,7 +252,7 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
               onChange={(e) => {
                 if (e.target.files?.length) {
                   setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
-                  e.target.value = '';
+                  e.target.value = "";
                 }
               }}
             />
@@ -249,13 +276,16 @@ export function CreateCustomTaskModal({ onCreated, onClose, onCreate, onUploadAt
           )}
         </div>
 
-        {error && (
-          <p className={`${text.error} text-[11px]`}>{error}</p>
-        )}
+        {error && <p className={`${text.error} text-[11px]`}>{error}</p>}
       </div>
 
       {previewImage && (
-        <ImageModal src={previewImage.src} filename={previewImage.filename} type={previewImage.type} onClose={() => setPreviewImage(null)} />
+        <ImageModal
+          src={previewImage.src}
+          filename={previewImage.filename}
+          type={previewImage.type}
+          onClose={() => setPreviewImage(null)}
+        />
       )}
     </Modal>
   );

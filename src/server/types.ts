@@ -1,4 +1,4 @@
-import type { ChildProcess } from 'child_process';
+import type { ChildProcess } from "child_process";
 
 export interface PortConfig {
   /** Ports discovered by running the dev command and monitoring with lsof */
@@ -40,7 +40,7 @@ export interface WorktreeInfo {
   /** Git branch name */
   branch: string;
   /** Current status */
-  status: 'running' | 'stopped' | 'starting' | 'creating';
+  status: "running" | "stopped" | "starting" | "creating";
   /** Status message for in-progress operations like creation */
   statusMessage?: string;
   /** All offset ports if running */
@@ -109,7 +109,7 @@ export interface WorktreeListResponse {
 
 // ─── Hooks Pipeline ─────────────────────────────────────────────
 
-export type HookTrigger = 'pre-implementation' | 'post-implementation' | 'on-demand' | 'custom';
+export type HookTrigger = "pre-implementation" | "post-implementation" | "on-demand" | "custom";
 
 export interface HookStep {
   id: string;
@@ -136,7 +136,7 @@ export interface HooksConfig {
 
 export interface SkillHookResult {
   skillName: string;
-  status: 'running' | 'passed' | 'failed';
+  status: "running" | "passed" | "failed";
   success?: boolean;
   summary?: string;
   content?: string;
@@ -148,7 +148,7 @@ export interface StepResult {
   stepId: string;
   stepName: string;
   command: string;
-  status: 'pending' | 'running' | 'passed' | 'failed';
+  status: "pending" | "running" | "passed" | "failed";
   output?: string;
   startedAt?: string;
   completedAt?: string;
@@ -158,7 +158,7 @@ export interface StepResult {
 export interface PipelineRun {
   id: string;
   worktreeId: string;
-  status: 'running' | 'completed' | 'failed';
+  status: "running" | "completed" | "failed";
   startedAt: string;
   completedAt?: string;
   steps: StepResult[];

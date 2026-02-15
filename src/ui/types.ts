@@ -2,7 +2,7 @@ export interface WorktreeInfo {
   id: string;
   path: string;
   branch: string;
-  status: 'running' | 'stopped' | 'starting' | 'creating';
+  status: "running" | "stopped" | "starting" | "creating";
   statusMessage?: string;
   ports: number[];
   offset: number | null;
@@ -29,7 +29,7 @@ export interface PortsInfo {
 }
 
 export interface DataLifecycleConfig {
-  saveOn: 'view' | 'worktree-creation' | 'never';
+  saveOn: "view" | "worktree-creation" | "never";
   autoCleanup: {
     enabled: boolean;
     statusTriggers: string[];
@@ -106,7 +106,12 @@ export interface LinearIssueDetail extends LinearIssueSummary {
   description: string | null;
   createdAt: string;
   comments: Array<{ author: string; body: string; createdAt: string }>;
-  attachments: Array<{ title: string; subtitle: string | null; url: string; sourceType: string | null }>;
+  attachments: Array<{
+    title: string;
+    subtitle: string | null;
+    url: string;
+    sourceType: string | null;
+  }>;
 }
 
 export interface CustomTaskAttachment {
@@ -120,8 +125,8 @@ export interface CustomTaskAttachment {
 export interface CustomTaskSummary {
   id: string;
   title: string;
-  status: 'todo' | 'in-progress' | 'done';
-  priority: 'high' | 'medium' | 'low';
+  status: "todo" | "in-progress" | "done";
+  priority: "high" | "medium" | "low";
   labels: string[];
   linkedWorktreeId: string | null;
   attachmentCount?: number;
@@ -153,12 +158,18 @@ export interface McpServerDetail extends McpServerSummary {}
 
 export interface McpDeploymentStatus {
   /** serverId -> agentId -> { global?, project?, globalPath?, projectPath? } */
-  status: Record<string, Record<string, {
-    global?: boolean;
-    project?: boolean;
-    globalPath?: string;
-    projectPath?: string;
-  }>>;
+  status: Record<
+    string,
+    Record<
+      string,
+      {
+        global?: boolean;
+        project?: boolean;
+        globalPath?: string;
+        projectPath?: string;
+      }
+    >
+  >;
 }
 
 export interface McpScanResult {
@@ -212,7 +223,7 @@ export interface SkillInstallRequest {
   repo: string;
   skill?: string;
   agents: string[];
-  scope: 'global' | 'project';
+  scope: "global" | "project";
 }
 
 export interface PluginSummary {
@@ -220,7 +231,7 @@ export interface PluginSummary {
   name: string;
   description: string;
   version: string;
-  scope: 'user' | 'project' | 'local';
+  scope: "user" | "project" | "local";
   enabled: boolean;
   marketplace: string;
   author: string;
@@ -292,7 +303,13 @@ export interface JiraIssueDetail {
   created: string;
   updated: string;
   comments: Array<{ author: string; body: string; created: string }>;
-  attachments: Array<{ filename: string; mimeType: string; size: number; contentUrl?: string; thumbnail?: string | null }>;
+  attachments: Array<{
+    filename: string;
+    mimeType: string;
+    size: number;
+    contentUrl?: string;
+    thumbnail?: string | null;
+  }>;
   linkedWorktree: string | null;
   fetchedAt: string;
   url: string;

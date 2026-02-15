@@ -1,16 +1,16 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import path from 'path';
-import os from 'os';
-import type { ChildProcess } from 'child_process';
-import { spawnServer, stopServer, waitForServerReady } from './server-spawner.js';
-import { preferencesManager } from './preferences-manager.js';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
+import os from "os";
+import type { ChildProcess } from "child_process";
+import { spawnServer, stopServer, waitForServerReady } from "./server-spawner.js";
+import { preferencesManager } from "./preferences-manager.js";
 
 export interface Project {
   id: string;
   projectDir: string;
   port: number;
   name: string;
-  status: 'starting' | 'running' | 'stopped' | 'error';
+  status: "starting" | "running" | "stopped" | "error";
   error?: string;
 }
 
@@ -26,9 +26,9 @@ interface AppState {
   lastActiveProjectDir: string | null;
 }
 
-const STATE_DIR = path.join(os.homedir(), '.dawg');
-const STATE_FILE = path.join(STATE_DIR, 'app-state.json');
-const LOCK_FILE = path.join(STATE_DIR, 'electron.lock');
+const STATE_DIR = path.join(os.homedir(), ".dawg");
+const STATE_FILE = path.join(STATE_DIR, "app-state.json");
+const LOCK_FILE = path.join(STATE_DIR, "electron.lock");
 
 export class ProjectManager {
   private projects = new Map<string, ProjectInternal>();
@@ -53,7 +53,7 @@ export class ProjectManager {
   removeLockFile() {
     try {
       if (existsSync(LOCK_FILE)) {
-        const fs = require('fs');
+        const fs = require("fs");
         fs.unlinkSync(LOCK_FILE);
       }
     } catch {
@@ -66,7 +66,7 @@ export class ProjectManager {
     let hash = 0;
     for (let i = 0; i < projectDir.length; i++) {
       const char = projectDir.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return Math.abs(hash).toString(36);
@@ -74,10 +74,10 @@ export class ProjectManager {
 
   private getProjectName(projectDir: string): string {
     // Try to get name from package.json
-    const pkgPath = path.join(projectDir, 'package.json');
+    const pkgPath = path.join(projectDir, "package.json");
     if (existsSync(pkgPath)) {
       try {
-        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+        const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
         if (pkg.name) return pkg.name;
       } catch {
         // Fall through
@@ -110,7 +110,9 @@ export class ProjectManager {
     };
   }
 
-  async openProject(projectDir: string): Promise<{ success: boolean; project?: Project; error?: string }> {
+  async openProject(
+    projectDir: string,
+  ): Promise<{ success: boolean; project?: Project; error?: string }> {
     // Normalize path
     const normalizedDir = path.resolve(projectDir);
 
@@ -124,9 +126,9 @@ export class ProjectManager {
     }
 
     // Check if it's at least a git repository
-    const gitDir = path.join(normalizedDir, '.git');
+    const gitDir = path.join(normalizedDir, ".git");
     if (!existsSync(gitDir)) {
-      return { success: false, error: 'Not a git repository' };
+      return { success: false, error: "Not a git repository" };
     }
 
     const id = this.generateId(normalizedDir);
@@ -138,7 +140,7 @@ export class ProjectManager {
       projectDir: normalizedDir,
       port,
       name,
-      status: 'starting',
+      status: "starting",
       serverProcess: null,
     };
 
@@ -151,15 +153,15 @@ export class ProjectManager {
       const serverProcess = spawnServer(normalizedDir, port);
       project.serverProcess = serverProcess;
 
-      serverProcess.on('error', (err: Error) => {
-        project.status = 'error';
+      serverProcess.on("error", (err: Error) => {
+        project.status = "error";
         project.error = err.message;
         this.notifyChange();
       });
 
-      serverProcess.on('exit', (code: number | null) => {
-        if (project.status !== 'stopped') {
-          project.status = code === 0 ? 'stopped' : 'error';
+      serverProcess.on("exit", (code: number | null) => {
+        if (project.status !== "stopped") {
+          project.status = code === 0 ? "stopped" : "error";
           if (code !== 0) {
             project.error = `Server exited with code ${code}`;
           }
@@ -170,18 +172,18 @@ export class ProjectManager {
       // Wait for server to be ready
       const ready = await waitForServerReady(port);
       if (ready) {
-        project.status = 'running';
+        project.status = "running";
       } else {
-        project.status = 'error';
-        project.error = 'Server failed to start';
+        project.status = "error";
+        project.error = "Server failed to start";
       }
       this.notifyChange();
 
       this.saveState();
       return { success: true, project: this.toPublicProject(project) };
     } catch (err) {
-      project.status = 'error';
-      project.error = err instanceof Error ? err.message : 'Failed to start server';
+      project.status = "error";
+      project.error = err instanceof Error ? err.message : "Failed to start server";
       this.notifyChange();
       return { success: false, error: project.error };
     }
@@ -191,7 +193,7 @@ export class ProjectManager {
     const project = this.projects.get(id);
     if (!project) return;
 
-    project.status = 'stopped';
+    project.status = "stopped";
 
     if (project.serverProcess) {
       await stopServer(project.serverProcess);
@@ -224,7 +226,7 @@ export class ProjectManager {
     const project = this.projects.get(id);
     if (!project) return;
 
-    project.status = 'stopped';
+    project.status = "stopped";
 
     if (project.serverProcess) {
       await stopServer(project.serverProcess);
@@ -285,7 +287,7 @@ export class ProjectManager {
         lastOpened: new Date().toISOString(),
       })),
       lastActiveProjectDir: this.activeProjectId
-        ? this.projects.get(this.activeProjectId)?.projectDir ?? null
+        ? (this.projects.get(this.activeProjectId)?.projectDir ?? null)
         : null,
     };
 
@@ -299,7 +301,7 @@ export class ProjectManager {
   loadState(): AppState | null {
     try {
       if (existsSync(STATE_FILE)) {
-        return JSON.parse(readFileSync(STATE_FILE, 'utf-8'));
+        return JSON.parse(readFileSync(STATE_FILE, "utf-8"));
       }
     } catch {
       // Ignore
@@ -314,7 +316,7 @@ export class ProjectManager {
     await Promise.all(
       state.openProjects
         .filter(({ projectDir }) => existsSync(projectDir))
-        .map(({ projectDir }) => this.openProject(projectDir))
+        .map(({ projectDir }) => this.openProject(projectDir)),
     );
 
     // Restore active project

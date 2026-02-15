@@ -43,23 +43,27 @@ The dawg server must be running for MCP tools to work. Start it with `dawg` or v
 ## Available MCP Tools
 
 **Issue browsing:**
+
 - `mcp__dawg__create_from_jira` — create worktree from Jira issue
 - `mcp__dawg__create_from_linear` — create worktree from Linear issue
 - `mcp__dawg__create_worktree` — create worktree from a branch name
 - `mcp__dawg__list_worktrees` — list all worktrees and their status
 
 **Worktree operations:**
+
 - `mcp__dawg__start_worktree` — start the dev server in a worktree
 - `mcp__dawg__stop_worktree` — stop the dev server
 - `mcp__dawg__get_task_context` — refresh full task details
 - `mcp__dawg__get_logs` — get recent output logs
 
 **Git operations:**
+
 - `mcp__dawg__commit` — stage all changes and commit
 - `mcp__dawg__push` — push commits to remote
 - `mcp__dawg__create_pr` — create a pull request
 
 **Notes and hooks:**
+
 - `mcp__dawg__read_issue_notes` — read AI context notes for a worktree
 - `mcp__dawg__get_hooks_config` — discover all configured hooks and trigger types
 - `mcp__dawg__run_hooks` — run hook command steps for a worktree

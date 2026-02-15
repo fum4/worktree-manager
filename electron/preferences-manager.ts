@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import path from 'path';
-import os from 'os';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
+import os from "os";
 
-export type SetupPreference = 'auto' | 'manual' | 'ask';
+export type SetupPreference = "auto" | "manual" | "ask";
 
 export interface AppPreferences {
   basePort: number;
@@ -16,14 +16,14 @@ export interface AppPreferences {
   } | null;
 }
 
-const STATE_DIR = path.join(os.homedir(), '.dawg');
-const PREFERENCES_FILE = path.join(STATE_DIR, 'app-preferences.json');
+const STATE_DIR = path.join(os.homedir(), ".dawg");
+const PREFERENCES_FILE = path.join(STATE_DIR, "app-preferences.json");
 
 const DEFAULT_PORT = 6969;
 
 const DEFAULT_PREFERENCES: AppPreferences = {
   basePort: DEFAULT_PORT,
-  setupPreference: 'ask',
+  setupPreference: "ask",
   sidebarWidth: 300,
   windowBounds: null,
 };
@@ -45,7 +45,7 @@ class PreferencesManager {
   private load(): AppPreferences {
     try {
       if (existsSync(PREFERENCES_FILE)) {
-        const data = JSON.parse(readFileSync(PREFERENCES_FILE, 'utf-8'));
+        const data = JSON.parse(readFileSync(PREFERENCES_FILE, "utf-8"));
         return { ...DEFAULT_PREFERENCES, ...data };
       }
     } catch {
@@ -93,11 +93,11 @@ class PreferencesManager {
     this.save();
   }
 
-  getWindowBounds(): AppPreferences['windowBounds'] {
+  getWindowBounds(): AppPreferences["windowBounds"] {
     return this.preferences.windowBounds;
   }
 
-  setWindowBounds(bounds: AppPreferences['windowBounds']) {
+  setWindowBounds(bounds: AppPreferences["windowBounds"]) {
     this.preferences.windowBounds = bounds;
     this.save();
   }

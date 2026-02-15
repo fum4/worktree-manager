@@ -1,7 +1,7 @@
-import { GitBranch } from 'lucide-react';
-import type { JiraIssueSummary } from '../types';
-import { jiraPriority, jiraStatus, surface, text } from '../theme';
-import { Tooltip } from './Tooltip';
+import { GitBranch } from "lucide-react";
+import type { JiraIssueSummary } from "../types";
+import { jiraPriority, jiraStatus, surface, text } from "../theme";
+import { Tooltip } from "./Tooltip";
 
 interface JiraIssueItemProps {
   issue: JiraIssueSummary;
@@ -13,7 +13,15 @@ interface JiraIssueItemProps {
   showStatus?: boolean;
 }
 
-export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, onViewWorktree, showPriority = true, showStatus = true }: JiraIssueItemProps) {
+export function JiraIssueItem({
+  issue,
+  isSelected,
+  onSelect,
+  linkedWorktreeId,
+  onViewWorktree,
+  showPriority = true,
+  showStatus = true,
+}: JiraIssueItemProps) {
   const statusLower = issue.status.toLowerCase();
   const statusClasses = jiraStatus[statusLower] ?? `${text.secondary} bg-white/[0.06]`;
 
@@ -34,19 +42,21 @@ export function JiraIssueItem({ issue, isSelected, onSelect, linkedWorktreeId, o
               {issue.key}
             </span>
             {showStatus && (
-              <span className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>
+              <span
+                className={`ml-1 text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}
+              >
                 {issue.status}
               </span>
             )}
             {showPriority && (
-              <span className={`text-[10px] ${jiraPriority[issue.priority.toLowerCase()] ?? text.muted}`}>
+              <span
+                className={`text-[10px] ${jiraPriority[issue.priority.toLowerCase()] ?? text.muted}`}
+              >
                 {issue.priority}
               </span>
             )}
           </div>
-          <div className={`text-xs ${text.primary} truncate mt-0.5`}>
-            {issue.summary}
-          </div>
+          <div className={`text-xs ${text.primary} truncate mt-0.5`}>{issue.summary}</div>
         </div>
         {linkedWorktreeId && (
           <Tooltip position="right" text="View worktree">

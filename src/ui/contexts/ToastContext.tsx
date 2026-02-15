@@ -1,15 +1,15 @@
-import { createContext, useCallback, useContext, useState } from 'react';
-import type { ReactNode } from 'react';
+import { createContext, useCallback, useContext, useState } from "react";
+import type { ReactNode } from "react";
 
 export interface Toast {
   id: string;
   message: string;
-  level: 'error' | 'info';
+  level: "error" | "info";
 }
 
 interface ToastContextValue {
   toasts: Toast[];
-  addToast: (message: string, level?: 'error' | 'info') => void;
+  addToast: (message: string, level?: "error" | "info") => void;
   removeToast: (id: string) => void;
 }
 
@@ -24,14 +24,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const addToast = useCallback((message: string, level: 'error' | 'info' = 'error') => {
-    const id = String(++nextId);
-    setToasts((prev) => [...prev, { id, message, level }]);
+  const addToast = useCallback(
+    (message: string, level: "error" | "info" = "error") => {
+      const id = String(++nextId);
+      setToasts((prev) => [...prev, { id, message, level }]);
 
-    // Auto-dismiss info toasts after 5s, error toasts after 10s
-    const timeout = level === 'error' ? 10000 : 5000;
-    setTimeout(() => removeToast(id), timeout);
-  }, [removeToast]);
+      // Auto-dismiss info toasts after 5s, error toasts after 10s
+      const timeout = level === "error" ? 10000 : 5000;
+      setTimeout(() => removeToast(id), timeout);
+    },
+    [removeToast],
+  );
 
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
@@ -42,6 +45,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within ToastProvider');
+  if (!ctx) throw new Error("useToast must be used within ToastProvider");
   return ctx;
 }

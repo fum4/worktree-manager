@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ResizableHandleProps {
   onResize: (delta: number) => void;
@@ -29,18 +29,18 @@ export function ResizableHandle({ onResize, onResizeEnd }: ResizableHandleProps)
       onResizeEnd?.();
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     // Add cursor style to body during drag
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     };
   }, [isDragging, onResize, onResizeEnd]);
 
@@ -51,9 +51,9 @@ export function ResizableHandle({ onResize, onResizeEnd }: ResizableHandleProps)
         w-1 flex-shrink-0 cursor-col-resize
         hover:bg-[#2dd4bf]/30 active:bg-[#2dd4bf]/50
         transition-colors duration-150
-        ${isDragging ? 'bg-[#2dd4bf]/50' : 'bg-transparent'}
+        ${isDragging ? "bg-[#2dd4bf]/50" : "bg-transparent"}
       `}
-      style={{ marginLeft: '-2px', marginRight: '-2px' }}
+      style={{ marginLeft: "-2px", marginRight: "-2px" }}
     />
   );
 }

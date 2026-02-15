@@ -1,15 +1,23 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'fs';
-import os from 'os';
-import path from 'path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "fs";
+import os from "os";
+import path from "path";
 
 // ─── Types ──────────────────────────────────────────────────────
 
-export type AgentId = 'claude' | 'gemini' | 'codex' | 'cursor' | 'vscode';
-export type Scope = 'global' | 'project';
+export type AgentId = "claude" | "gemini" | "codex" | "cursor" | "vscode";
+export type Scope = "global" | "project";
 
 export interface ScopeSpec {
   configPath: string;
-  format: 'json' | 'toml';
+  format: "json" | "toml";
   jsonPath?: string[];
 }
 
@@ -19,7 +27,7 @@ export interface AgentSpec {
 }
 
 export interface McpServerEntry {
-  type?: 'http' | 'sse';
+  type?: "http" | "sse";
   command?: string;
   args?: string[];
   url?: string;
@@ -31,60 +39,60 @@ export interface McpServerEntry {
 export const AGENT_SPECS: Record<AgentId, AgentSpec> = {
   claude: {
     global: {
-      configPath: '~/.claude/settings.json',
-      format: 'json',
-      jsonPath: ['mcpServers'],
+      configPath: "~/.claude/settings.json",
+      format: "json",
+      jsonPath: ["mcpServers"],
     },
     project: {
-      configPath: '.mcp.json',
-      format: 'json',
-      jsonPath: ['mcpServers'],
+      configPath: ".mcp.json",
+      format: "json",
+      jsonPath: ["mcpServers"],
     },
   },
   gemini: {
     global: {
-      configPath: '~/.gemini/settings.json',
-      format: 'json',
-      jsonPath: ['mcpServers'],
+      configPath: "~/.gemini/settings.json",
+      format: "json",
+      jsonPath: ["mcpServers"],
     },
     project: {
-      configPath: '.gemini/settings.json',
-      format: 'json',
-      jsonPath: ['mcpServers'],
+      configPath: ".gemini/settings.json",
+      format: "json",
+      jsonPath: ["mcpServers"],
     },
   },
   codex: {
     global: {
-      configPath: '~/.codex/config.toml',
-      format: 'toml',
+      configPath: "~/.codex/config.toml",
+      format: "toml",
     },
     project: {
-      configPath: '.codex/config.toml',
-      format: 'toml',
+      configPath: ".codex/config.toml",
+      format: "toml",
     },
   },
   cursor: {
     global: {
-      configPath: '~/.cursor/mcp.json',
-      format: 'json',
-      jsonPath: ['mcpServers'],
+      configPath: "~/.cursor/mcp.json",
+      format: "json",
+      jsonPath: ["mcpServers"],
     },
     project: {
-      configPath: '.cursor/mcp.json',
-      format: 'json',
-      jsonPath: ['mcpServers'],
+      configPath: ".cursor/mcp.json",
+      format: "json",
+      jsonPath: ["mcpServers"],
     },
   },
   vscode: {
     global: {
-      configPath: '~/Library/Application Support/Code/User/settings.json',
-      format: 'json',
-      jsonPath: ['mcp', 'servers'],
+      configPath: "~/Library/Application Support/Code/User/settings.json",
+      format: "json",
+      jsonPath: ["mcp", "servers"],
     },
     project: {
-      configPath: '.vscode/settings.json',
-      format: 'json',
-      jsonPath: ['mcp', 'servers'],
+      configPath: ".vscode/settings.json",
+      format: "json",
+      jsonPath: ["mcp", "servers"],
     },
   },
 };
@@ -94,24 +102,28 @@ export const VALID_AGENTS = new Set(Object.keys(AGENT_SPECS));
 // ─── Skill deployment specs ─────────────────────────────────
 
 export interface SkillDirSpec {
-  global?: string;   // Absolute path template (~ = home)
-  project?: string;  // Relative to project root
+  global?: string; // Absolute path template (~ = home)
+  project?: string; // Relative to project root
 }
 
 export const SKILL_AGENT_SPECS: Record<AgentId, SkillDirSpec> = {
-  claude:  { global: '~/.claude/skills',  project: '.claude/skills' },
-  cursor:  { global: '~/.cursor/skills',  project: '.cursor/skills' },
-  gemini:  { global: '~/.gemini/skills',  project: '.gemini/skills' },
-  codex:   { global: '~/.codex/skills',   project: '.codex/skills' },
-  vscode:  { global: '~/.vscode/skills',  project: '.vscode/skills' },
+  claude: { global: "~/.claude/skills", project: ".claude/skills" },
+  cursor: { global: "~/.cursor/skills", project: ".cursor/skills" },
+  gemini: { global: "~/.gemini/skills", project: ".gemini/skills" },
+  codex: { global: "~/.codex/skills", project: ".codex/skills" },
+  vscode: { global: "~/.vscode/skills", project: ".vscode/skills" },
 };
 
-export function resolveSkillDeployDir(agent: AgentId, scope: Scope, projectDir: string): string | null {
+export function resolveSkillDeployDir(
+  agent: AgentId,
+  scope: Scope,
+  projectDir: string,
+): string | null {
   const spec = SKILL_AGENT_SPECS[agent];
   if (!spec) return null;
-  const template = scope === 'global' ? spec.global : spec.project;
+  const template = scope === "global" ? spec.global : spec.project;
   if (!template) return null;
-  if (template.startsWith('~')) {
+  if (template.startsWith("~")) {
     return path.join(os.homedir(), template.slice(2));
   }
   return path.join(projectDir, template);
@@ -120,22 +132,28 @@ export function resolveSkillDeployDir(agent: AgentId, scope: Scope, projectDir: 
 // ─── Utility functions ──────────────────────────────────────────
 
 export function stripJsonComments(text: string): string {
-  let result = '';
+  let result = "";
   let i = 0;
   while (i < text.length) {
     if (text[i] === '"') {
       result += '"';
       i++;
       while (i < text.length && text[i] !== '"') {
-        if (text[i] === '\\') { result += text[i++]; }
-        if (i < text.length) { result += text[i++]; }
+        if (text[i] === "\\") {
+          result += text[i++];
+        }
+        if (i < text.length) {
+          result += text[i++];
+        }
       }
-      if (i < text.length) { result += text[i++]; }
-    } else if (text[i] === '/' && text[i + 1] === '/') {
-      while (i < text.length && text[i] !== '\n') i++;
-    } else if (text[i] === '/' && text[i + 1] === '*') {
+      if (i < text.length) {
+        result += text[i++];
+      }
+    } else if (text[i] === "/" && text[i + 1] === "/") {
+      while (i < text.length && text[i] !== "\n") i++;
+    } else if (text[i] === "/" && text[i + 1] === "*") {
       i += 2;
-      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) i++;
+      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i++;
       i += 2;
     } else {
       result += text[i++];
@@ -144,18 +162,20 @@ export function stripJsonComments(text: string): string {
   return result;
 }
 
-export function parseJsonFile(filePath: string): { data: Record<string, unknown>; error?: string } | null {
+export function parseJsonFile(
+  filePath: string,
+): { data: Record<string, unknown>; error?: string } | null {
   if (!existsSync(filePath)) return null;
   try {
-    const raw = readFileSync(filePath, 'utf-8');
+    const raw = readFileSync(filePath, "utf-8");
     return { data: JSON.parse(stripJsonComments(raw)) };
   } catch {
-    return { data: {}, error: 'Failed to parse config file' };
+    return { data: {}, error: "Failed to parse config file" };
   }
 }
 
 export function resolveConfigPath(configPath: string, projectDir: string): string {
-  if (configPath.startsWith('~')) {
+  if (configPath.startsWith("~")) {
     return path.join(os.homedir(), configPath.slice(2));
   }
   return path.join(projectDir, configPath);
@@ -171,8 +191,8 @@ export function getScopeSpec(agent: AgentId, scope: Scope): ScopeSpec | null {
 export function isServerConfigured(filePath: string, spec: ScopeSpec, serverKey: string): boolean {
   if (!existsSync(filePath)) return false;
   try {
-    if (spec.format === 'toml') {
-      return readFileSync(filePath, 'utf-8').includes(`[mcp_servers.${serverKey}]`);
+    if (spec.format === "toml") {
+      return readFileSync(filePath, "utf-8").includes(`[mcp_servers.${serverKey}]`);
     }
     const parsed = parseJsonFile(filePath);
     if (!parsed || parsed.error) return false;
@@ -191,8 +211,8 @@ export function readAllServers(filePath: string, spec: ScopeSpec): Record<string
   if (!existsSync(filePath)) return {};
 
   try {
-    if (spec.format === 'toml') {
-      return parseTomlServers(readFileSync(filePath, 'utf-8'));
+    if (spec.format === "toml") {
+      return parseTomlServers(readFileSync(filePath, "utf-8"));
     }
 
     const parsed = parseJsonFile(filePath);
@@ -203,22 +223,25 @@ export function readAllServers(filePath: string, spec: ScopeSpec): Record<string
       obj = (obj as Record<string, unknown>)?.[key];
     }
 
-    if (!obj || typeof obj !== 'object') return {};
+    if (!obj || typeof obj !== "object") return {};
 
     const result: Record<string, McpServerEntry> = {};
     for (const [key, val] of Object.entries(obj as Record<string, unknown>)) {
-      if (val && typeof val === 'object') {
+      if (val && typeof val === "object") {
         const entry = val as Record<string, unknown>;
-        if ('url' in entry && typeof entry.url === 'string') {
+        if ("url" in entry && typeof entry.url === "string") {
           result[key] = {
-            type: (entry.type as 'http' | 'sse') ?? 'http',
+            type: (entry.type as "http" | "sse") ?? "http",
             url: entry.url,
           };
-        } else if ('command' in entry) {
+        } else if ("command" in entry) {
           result[key] = {
-            command: String(entry.command ?? ''),
+            command: String(entry.command ?? ""),
             args: Array.isArray(entry.args) ? entry.args.map(String) : [],
-            env: entry.env && typeof entry.env === 'object' ? entry.env as Record<string, string> : undefined,
+            env:
+              entry.env && typeof entry.env === "object"
+                ? (entry.env as Record<string, string>)
+                : undefined,
           };
         }
       }
@@ -236,7 +259,7 @@ export function writeServerToConfig(
   serverKey: string,
   entry: McpServerEntry,
 ): { success: boolean; error?: string } {
-  if (spec.format === 'toml') {
+  if (spec.format === "toml") {
     return writeTomlServer(filePath, serverKey, entry);
   }
   return writeJsonServer(filePath, spec.jsonPath!, serverKey, entry);
@@ -248,7 +271,7 @@ export function removeServerFromConfig(
   spec: ScopeSpec,
   serverKey: string,
 ): { success: boolean; error?: string } {
-  if (spec.format === 'toml') {
+  if (spec.format === "toml") {
     return removeTomlServer(filePath, serverKey);
   }
   return removeJsonServer(filePath, spec.jsonPath!, serverKey);
@@ -272,14 +295,14 @@ function writeJsonServer(
 
   let obj: Record<string, unknown> = json;
   for (const key of jsonPath) {
-    if (obj[key] == null || typeof obj[key] !== 'object') {
+    if (obj[key] == null || typeof obj[key] !== "object") {
       obj[key] = {};
     }
     obj = obj[key] as Record<string, unknown>;
   }
 
   const serverObj: Record<string, unknown> = entry.url
-    ? { type: entry.type ?? 'http', url: entry.url }
+    ? { type: entry.type ?? "http", url: entry.url }
     : { command: entry.command, args: entry.args ?? [] };
   if (entry.env && Object.keys(entry.env).length > 0) {
     serverObj.env = entry.env;
@@ -291,7 +314,7 @@ function writeJsonServer(
     mkdirSync(dir, { recursive: true });
   }
 
-  writeFileSync(filePath, JSON.stringify(json, null, 2) + '\n');
+  writeFileSync(filePath, JSON.stringify(json, null, 2) + "\n");
   return { success: true };
 }
 
@@ -307,14 +330,14 @@ function removeJsonServer(
   const json = parsed.data;
   let obj: Record<string, unknown> = json;
   for (const key of jsonPath) {
-    if (obj[key] == null || typeof obj[key] !== 'object') {
+    if (obj[key] == null || typeof obj[key] !== "object") {
       return { success: true };
     }
     obj = obj[key] as Record<string, unknown>;
   }
 
   delete obj[serverKey];
-  writeFileSync(filePath, JSON.stringify(json, null, 2) + '\n');
+  writeFileSync(filePath, JSON.stringify(json, null, 2) + "\n");
   return { success: true };
 }
 
@@ -331,37 +354,46 @@ function parseTomlServers(content: string): Record<string, McpServerEntry> {
     const startIdx = match.index + match[0].length;
 
     // Find the end of this section (next [...] or end of file)
-    const nextSection = content.indexOf('\n[', startIdx);
+    const nextSection = content.indexOf("\n[", startIdx);
     const block = content.slice(startIdx, nextSection === -1 ? undefined : nextSection);
 
-    let command = '';
-    let url = '';
+    let command = "";
+    let url = "";
     let args: string[] = [];
     const env: Record<string, string> = {};
 
-    for (const line of block.split('\n')) {
+    for (const line of block.split("\n")) {
       const trimmed = line.trim();
       const cmdMatch = trimmed.match(/^command\s*=\s*"([^"]*)"$/);
-      if (cmdMatch) { command = cmdMatch[1]; continue; }
+      if (cmdMatch) {
+        command = cmdMatch[1];
+        continue;
+      }
 
       const urlMatch = trimmed.match(/^url\s*=\s*"([^"]*)"$/);
-      if (urlMatch) { url = urlMatch[1]; continue; }
+      if (urlMatch) {
+        url = urlMatch[1];
+        continue;
+      }
 
       const argsMatch = trimmed.match(/^args\s*=\s*\[(.*)?\]$/);
       if (argsMatch && argsMatch[1]) {
-        args = argsMatch[1].split(',').map((s) => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
+        args = argsMatch[1]
+          .split(",")
+          .map((s) => s.trim().replace(/^"|"$/g, ""))
+          .filter(Boolean);
         continue;
       }
 
       const envMatch = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*"([^"]*)"$/);
-      if (envMatch && !['command', 'args', 'url', 'type'].includes(envMatch[1])) {
+      if (envMatch && !["command", "args", "url", "type"].includes(envMatch[1])) {
         env[envMatch[1]] = envMatch[2];
       }
     }
 
     const envObj = Object.keys(env).length > 0 ? { env } : {};
     if (url) {
-      result[serverKey] = { type: 'http', url, ...envObj };
+      result[serverKey] = { type: "http", url, ...envObj };
     } else if (command) {
       result[serverKey] = { command, args, ...envObj };
     }
@@ -375,18 +407,18 @@ function writeTomlServer(
   serverKey: string,
   entry: McpServerEntry,
 ): { success: boolean; error?: string } {
-  let content = '';
+  let content = "";
 
   if (existsSync(filePath)) {
-    content = readFileSync(filePath, 'utf-8');
+    content = readFileSync(filePath, "utf-8");
     content = removeTomlSection(content, serverKey);
   }
 
   let tomlBlock: string;
   if (entry.url) {
-    tomlBlock = `\n[mcp_servers.${serverKey}]\ntype = "${entry.type ?? 'http'}"\nurl = "${entry.url}"\n`;
+    tomlBlock = `\n[mcp_servers.${serverKey}]\ntype = "${entry.type ?? "http"}"\nurl = "${entry.url}"\n`;
   } else {
-    const argsStr = (entry.args ?? []).map((a) => `"${a}"`).join(', ');
+    const argsStr = (entry.args ?? []).map((a) => `"${a}"`).join(", ");
     tomlBlock = `\n[mcp_servers.${serverKey}]\ncommand = "${entry.command}"\nargs = [${argsStr}]\n`;
   }
 
@@ -412,7 +444,7 @@ function removeTomlServer(
 ): { success: boolean; error?: string } {
   if (!existsSync(filePath)) return { success: true };
 
-  let content = readFileSync(filePath, 'utf-8');
+  let content = readFileSync(filePath, "utf-8");
   if (!content.includes(`[mcp_servers.${serverKey}]`)) return { success: true };
 
   content = removeTomlSection(content, serverKey);
@@ -422,27 +454,38 @@ function removeTomlServer(
 
 /** Remove a [mcp_servers.KEY] section and its sub-sections from TOML content */
 function removeTomlSection(content: string, serverKey: string): string {
-  const escaped = serverKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(`\\n?\\[mcp_servers\\.${escaped}(?:\\.[^\\]]*)?\\][^\\[]*`, 'g');
-  return content.replace(re, '');
+  const escaped = serverKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`\\n?\\[mcp_servers\\.${escaped}(?:\\.[^\\]]*)?\\][^\\[]*`, "g");
+  return content.replace(re, "");
 }
 
 // ─── Filesystem scanner ─────────────────────────────────────────
 
 /** File names/patterns that may contain MCP server definitions */
-const MCP_FILE_CANDIDATES = new Set([
-  '.mcp.json',
-  'mcp.json',
-  'settings.json',
-  'config.toml',
-]);
+const MCP_FILE_CANDIDATES = new Set([".mcp.json", "mcp.json", "settings.json", "config.toml"]);
 
 /** Directories to skip during recursive scan */
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', '.hg', 'dist', 'build', '.next', '.nuxt',
-  '__pycache__', '.venv', 'venv', '.tox', 'target',
-  'Library', 'Applications', 'Pictures', 'Music', 'Movies',
-  'Downloads', 'Public', '.Trash',
+  "node_modules",
+  ".git",
+  ".hg",
+  "dist",
+  "build",
+  ".next",
+  ".nuxt",
+  "__pycache__",
+  ".venv",
+  "venv",
+  ".tox",
+  "target",
+  "Library",
+  "Applications",
+  "Pictures",
+  "Music",
+  "Movies",
+  "Downloads",
+  "Public",
+  ".Trash",
 ]);
 
 export interface FilesystemScanResult {
@@ -482,7 +525,7 @@ export function scanFilesystemForServers(rootDir: string, maxDepth = 5): Filesys
 
       if (st.isDirectory()) {
         if (SKIP_DIRS.has(name)) continue;
-        if (name.startsWith('.') && depth > 1 && !isKnownDotDir(name)) continue;
+        if (name.startsWith(".") && depth > 1 && !isKnownDotDir(name)) continue;
         walk(fullPath, depth + 1);
         continue;
       }
@@ -518,7 +561,7 @@ export function scanFilesystemForServers(rootDir: string, maxDepth = 5): Filesys
 
 /** Known dot-directories that may contain tool configs */
 function isKnownDotDir(name: string): boolean {
-  return ['.claude', '.cursor', '.gemini', '.codex', '.vscode', '.dawg', '.config'].includes(name);
+  return [".claude", ".cursor", ".gemini", ".codex", ".vscode", ".dawg", ".config"].includes(name);
 }
 
 /**
@@ -527,9 +570,9 @@ function isKnownDotDir(name: string): boolean {
  */
 function extractServersFromFile(filePath: string): Record<string, McpServerEntry> {
   try {
-    const raw = readFileSync(filePath, 'utf-8');
+    const raw = readFileSync(filePath, "utf-8");
 
-    if (filePath.endsWith('.toml')) {
+    if (filePath.endsWith(".toml")) {
       return parseTomlServers(raw);
     }
 
@@ -542,18 +585,14 @@ function extractServersFromFile(filePath: string): Record<string, McpServerEntry
     }
 
     // Try each known JSON path where MCP servers might live
-    const jsonPaths = [
-      ['mcpServers'],
-      ['mcp', 'servers'],
-      ['servers'],
-    ];
+    const jsonPaths = [["mcpServers"], ["mcp", "servers"], ["servers"]];
 
     for (const jsonPath of jsonPaths) {
       let obj: unknown = data;
       for (const key of jsonPath) {
         obj = (obj as Record<string, unknown>)?.[key];
       }
-      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      if (obj && typeof obj === "object" && !Array.isArray(obj)) {
         const entries = extractServerEntries(obj as Record<string, unknown>);
         if (Object.keys(entries).length > 0) return entries;
       }
@@ -568,18 +607,21 @@ function extractServersFromFile(filePath: string): Record<string, McpServerEntry
 function extractServerEntries(obj: Record<string, unknown>): Record<string, McpServerEntry> {
   const result: Record<string, McpServerEntry> = {};
   for (const [key, val] of Object.entries(obj)) {
-    if (val && typeof val === 'object') {
+    if (val && typeof val === "object") {
       const entry = val as Record<string, unknown>;
-      if ('url' in entry && typeof entry.url === 'string') {
+      if ("url" in entry && typeof entry.url === "string") {
         result[key] = {
-          type: (entry.type as 'http' | 'sse') ?? 'http',
+          type: (entry.type as "http" | "sse") ?? "http",
           url: entry.url,
         };
-      } else if ('command' in entry) {
+      } else if ("command" in entry) {
         result[key] = {
-          command: String(entry.command ?? ''),
+          command: String(entry.command ?? ""),
           args: Array.isArray(entry.args) ? entry.args.map(String) : [],
-          env: entry.env && typeof entry.env === 'object' ? entry.env as Record<string, string> : undefined,
+          env:
+            entry.env && typeof entry.env === "object"
+              ? (entry.env as Record<string, string>)
+              : undefined,
         };
       }
     }

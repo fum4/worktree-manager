@@ -1,18 +1,18 @@
-import { execFileSync } from 'child_process';
-import { createInterface } from 'readline';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import path from 'path';
+import { execFileSync } from "child_process";
+import { createInterface } from "readline";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
+import path from "path";
 
-import { APP_NAME } from '../constants';
-import { log } from '../logger';
-import { PortManager } from '../server/port-manager';
-import type { PortConfig, WorktreeConfig } from '../server/types';
+import { APP_NAME } from "../constants";
+import { log } from "../logger";
+import { PortManager } from "../server/port-manager";
+import type { PortConfig, WorktreeConfig } from "../server/types";
 import {
   detectDefaultBranch,
   detectInstallCommand,
   detectStartCommand,
-} from '../shared/detect-config';
-import { findConfigFile, CONFIG_DIR_NAME, CONFIG_FILE_NAME, type ConfigFile } from './config';
+} from "../shared/detect-config";
+import { findConfigFile, CONFIG_DIR_NAME, CONFIG_FILE_NAME, type ConfigFile } from "./config";
 
 function prompt(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
   return new Promise((resolve) => {
@@ -28,18 +28,18 @@ export async function autoInitConfig(projectDir: string): Promise<void> {
 
   // Check we're in a git repo
   try {
-    execFileSync('git', ['rev-parse', '--show-toplevel'], {
-      encoding: 'utf-8',
+    execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      encoding: "utf-8",
       cwd: resolvedProjectDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ["pipe", "pipe", "pipe"],
     });
   } catch {
-    throw new Error('Not inside a git repository');
+    throw new Error("Not inside a git repository");
   }
 
   const baseBranch = detectDefaultBranch(resolvedProjectDir);
-  const startCommand = detectStartCommand(resolvedProjectDir) || 'npm run dev';
-  const installCommand = detectInstallCommand(resolvedProjectDir) || 'npm install';
+  const startCommand = detectStartCommand(resolvedProjectDir) || "npm run dev";
+  const installCommand = detectInstallCommand(resolvedProjectDir) || "npm install";
 
   const config: ConfigFile = {
     startCommand,
@@ -56,61 +56,64 @@ export async function autoInitConfig(projectDir: string): Promise<void> {
     mkdirSync(configDirPath, { recursive: true });
   }
   const configPath = path.join(configDirPath, CONFIG_FILE_NAME);
-  writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+  writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
 
   // Create .gitignore
-  const gitignorePath = path.join(configDirPath, '.gitignore');
+  const gitignorePath = path.join(configDirPath, ".gitignore");
   if (!existsSync(gitignorePath)) {
-    writeFileSync(gitignorePath, `# Ignore everything in ${CONFIG_DIR_NAME} by default
+    writeFileSync(
+      gitignorePath,
+      `# Ignore everything in ${CONFIG_DIR_NAME} by default
 *
 
 # Except these files (tracked/shared)
 !.gitignore
 !config.json
-`);
+`,
+    );
   }
 
   // Stage the files so they're ready to commit (and will be in worktrees once committed)
   try {
-    execFileSync('git', ['add', gitignorePath, configPath], {
+    execFileSync("git", ["add", gitignorePath, configPath], {
       cwd: resolvedProjectDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ["pipe", "pipe", "pipe"],
     });
   } catch {
     // Ignore - user can commit manually
   }
 
   log.success(`Config auto-initialized at ${configPath}`);
-  log.info(`Note: Commit ${CONFIG_DIR_NAME}/config.json and ${CONFIG_DIR_NAME}/.gitignore so they're available in worktrees.`);
+  log.info(
+    `Note: Commit ${CONFIG_DIR_NAME}/config.json and ${CONFIG_DIR_NAME}/.gitignore so they're available in worktrees.`,
+  );
 }
 
 export async function runInit() {
   const existingConfig = findConfigFile();
   if (existingConfig) {
     log.warn(`Config already exists at ${existingConfig}`);
-    log.plain('Delete it first if you want to re-initialize.');
+    log.plain("Delete it first if you want to re-initialize.");
     process.exit(1);
   }
 
   // Check we're in a git repo
   try {
-    execFileSync('git', ['rev-parse', '--show-toplevel'], {
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
+    execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
     });
   } catch {
-    log.error('Not inside a git repository.');
+    log.error("Not inside a git repository.");
     process.exit(1);
   }
 
-  log.info('Initializing configuration...\n');
+  log.info("Initializing configuration...\n");
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
-  const projectDir = (await prompt(
-    rl,
-    `Project directory (absolute or relative to cwd) [.]: `,
-  )) || '.';
+  const projectDir =
+    (await prompt(rl, `Project directory (absolute or relative to cwd) [.]: `)) || ".";
 
   const resolvedProjectDir = path.resolve(process.cwd(), projectDir);
 
@@ -121,33 +124,37 @@ export async function runInit() {
   }
 
   const detectedBranch = detectDefaultBranch(resolvedProjectDir);
-  const baseBranch = (await prompt(
-    rl,
-    `Base branch for new worktrees [${detectedBranch}]: `,
-  )) || detectedBranch;
+  const baseBranch =
+    (await prompt(rl, `Base branch for new worktrees [${detectedBranch}]: `)) || detectedBranch;
 
   const detectedStartCommand = detectStartCommand(resolvedProjectDir);
-  let startCommand = '';
+  let startCommand = "";
   while (!startCommand) {
-    startCommand = (await prompt(
-      rl,
-      detectedStartCommand
-        ? `Dev start command [${detectedStartCommand}]: `
-        : 'Dev start command: ',
-    )) || detectedStartCommand || '';
-    if (!startCommand) console.log('  Start command is required.');
+    startCommand =
+      (await prompt(
+        rl,
+        detectedStartCommand
+          ? `Dev start command [${detectedStartCommand}]: `
+          : "Dev start command: ",
+      )) ||
+      detectedStartCommand ||
+      "";
+    if (!startCommand) console.log("  Start command is required.");
   }
 
   const detectedInstallCommand = detectInstallCommand(resolvedProjectDir);
-  let installCommand = '';
+  let installCommand = "";
   while (!installCommand) {
-    installCommand = (await prompt(
-      rl,
-      detectedInstallCommand
-        ? `Install dependencies command [${detectedInstallCommand}]: `
-        : 'Install dependencies command: ',
-    )) || detectedInstallCommand || '';
-    if (!installCommand) console.log('  Install command is required.');
+    installCommand =
+      (await prompt(
+        rl,
+        detectedInstallCommand
+          ? `Install dependencies command [${detectedInstallCommand}]: `
+          : "Install dependencies command: ",
+      )) ||
+      detectedInstallCommand ||
+      "";
+    if (!installCommand) console.log("  Install command is required.");
   }
 
   rl.close();
@@ -167,22 +174,28 @@ export async function runInit() {
     mkdirSync(configDirPath, { recursive: true });
   }
   const configPath = path.join(configDirPath, CONFIG_FILE_NAME);
-  writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+  writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
 
   // Create .gitignore to protect local/sensitive files
   // Use whitelist approach: ignore everything except config.json and .gitignore
-  const gitignorePath = path.join(configDirPath, '.gitignore');
+  const gitignorePath = path.join(configDirPath, ".gitignore");
   if (!existsSync(gitignorePath)) {
-    writeFileSync(gitignorePath, `# Ignore everything in ${CONFIG_DIR_NAME} by default
+    writeFileSync(
+      gitignorePath,
+      `# Ignore everything in ${CONFIG_DIR_NAME} by default
 *
 
 # Except these files (tracked/shared)
 !.gitignore
 !config.json
-`);
+`,
+    );
     // Stage the files so they're ready to commit
     try {
-      execFileSync('git', ['add', gitignorePath, configPath], { cwd: resolvedProjectDir, stdio: 'pipe' });
+      execFileSync("git", ["add", gitignorePath, configPath], {
+        cwd: resolvedProjectDir,
+        stdio: "pipe",
+      });
     } catch {
       // Ignore - user can commit manually
     }
@@ -203,20 +216,22 @@ export async function runInit() {
     const envMapping = pm.detectEnvMapping(resolvedProjectDir);
     if (Object.keys(envMapping).length > 0) {
       pm.persistEnvMapping(envMapping);
-      console.log('\nFound env var mappings:');
+      console.log("\nFound env var mappings:");
       for (const [key, template] of Object.entries(envMapping)) {
         const original = template.replace(/\$\{(\d+)\}/g, (_, p) => p);
         console.log(`  ${key}=${original} → ${template}`);
       }
-      console.log('Saved to config.');
+      console.log("Saved to config.");
     }
   }
 
-  log.plain('');
-  log.plain('Next steps:');
-  log.plain(`  1. Commit ${CONFIG_DIR_NAME}/config.json and ${CONFIG_DIR_NAME}/.gitignore (staged and ready)`);
+  log.plain("");
+  log.plain("Next steps:");
+  log.plain(
+    `  1. Commit ${CONFIG_DIR_NAME}/config.json and ${CONFIG_DIR_NAME}/.gitignore (staged and ready)`,
+  );
   log.plain(`  2. Run \`${APP_NAME}\` to start the manager UI`);
   log.plain('  3. Click "Discover Ports" in the UI to auto-detect all ports');
-  log.plain('  4. Create worktrees and start them — ports are offset automatically');
-  log.plain('');
+  log.plain("  4. Create worktrees and start them — ports are offset automatically");
+  log.plain("");
 }

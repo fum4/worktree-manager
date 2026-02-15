@@ -1,11 +1,11 @@
-import { execFile as execFileCb } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import path from 'path';
-import { promisify } from 'util';
+import { execFile as execFileCb } from "child_process";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
+import { promisify } from "util";
 
-import { CONFIG_DIR_NAME } from '../constants';
-import type { WorktreeManager } from './manager';
-import type { NotesManager } from './notes-manager';
+import { CONFIG_DIR_NAME } from "../constants";
+import type { WorktreeManager } from "./manager";
+import type { NotesManager } from "./notes-manager";
 import type {
   HookStep,
   HookSkillRef,
@@ -13,7 +13,7 @@ import type {
   PipelineRun,
   SkillHookResult,
   StepResult,
-} from './types';
+} from "./types";
 
 const execFile = promisify(execFileCb);
 
@@ -29,14 +29,14 @@ export class HooksManager {
   // ─── Config ─────────────────────────────────────────────────────
 
   private configPath(): string {
-    return path.join(this.manager.getConfigDir(), CONFIG_DIR_NAME, 'hooks.json');
+    return path.join(this.manager.getConfigDir(), CONFIG_DIR_NAME, "hooks.json");
   }
 
   getConfig(): HooksConfig {
     const p = this.configPath();
     if (!existsSync(p)) return defaultConfig();
     try {
-      const raw = JSON.parse(readFileSync(p, 'utf-8'));
+      const raw = JSON.parse(readFileSync(p, "utf-8"));
       raw.skills ??= [];
       return raw;
     } catch {
@@ -47,7 +47,7 @@ export class HooksManager {
   saveConfig(config: HooksConfig): HooksConfig {
     const dir = path.dirname(this.configPath());
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(this.configPath(), JSON.stringify(config, null, 2) + '\n');
+    writeFileSync(this.configPath(), JSON.stringify(config, null, 2) + "\n");
     return config;
   }
 
@@ -64,7 +64,10 @@ export class HooksManager {
     return this.saveConfig(config);
   }
 
-  updateStep(stepId: string, updates: Partial<Pick<HookStep, 'name' | 'command' | 'enabled' | 'trigger'>>): HooksConfig {
+  updateStep(
+    stepId: string,
+    updates: Partial<Pick<HookStep, "name" | "command" | "enabled" | "trigger">>,
+  ): HooksConfig {
     const config = this.getConfig();
     const step = config.steps.find((s) => s.id === stepId);
     if (step) {
@@ -78,15 +81,25 @@ export class HooksManager {
 
   // ─── Skill management ───────────────────────────────────────
 
-  importSkill(skillName: string, trigger?: string, condition?: string, conditionTitle?: string): HooksConfig {
+  importSkill(
+    skillName: string,
+    trigger?: string,
+    condition?: string,
+    conditionTitle?: string,
+  ): HooksConfig {
     const config = this.getConfig();
-    const effectiveTrigger = trigger ?? 'post-implementation';
+    const effectiveTrigger = trigger ?? "post-implementation";
     // Allow same skill in different triggers
-    if (config.skills.some((s) => s.skillName === skillName && (s.trigger ?? 'post-implementation') === effectiveTrigger)) {
+    if (
+      config.skills.some(
+        (s) =>
+          s.skillName === skillName && (s.trigger ?? "post-implementation") === effectiveTrigger,
+      )
+    ) {
       return config;
     }
     const entry: HookSkillRef = { skillName, enabled: true };
-    if (trigger) entry.trigger = trigger as HookSkillRef['trigger'];
+    if (trigger) entry.trigger = trigger as HookSkillRef["trigger"];
     if (condition) entry.condition = condition;
     if (conditionTitle) entry.conditionTitle = conditionTitle;
     config.skills.push(entry);
@@ -95,18 +108,19 @@ export class HooksManager {
 
   removeSkill(skillName: string, trigger?: string): HooksConfig {
     const config = this.getConfig();
-    const effectiveTrigger = trigger ?? 'post-implementation';
+    const effectiveTrigger = trigger ?? "post-implementation";
     config.skills = config.skills.filter(
-      (s) => !(s.skillName === skillName && (s.trigger ?? 'post-implementation') === effectiveTrigger),
+      (s) =>
+        !(s.skillName === skillName && (s.trigger ?? "post-implementation") === effectiveTrigger),
     );
     return this.saveConfig(config);
   }
 
   toggleSkill(skillName: string, enabled: boolean, trigger?: string): HooksConfig {
     const config = this.getConfig();
-    const effectiveTrigger = trigger ?? 'post-implementation';
+    const effectiveTrigger = trigger ?? "post-implementation";
     const skill = config.skills.find(
-      (s) => s.skillName === skillName && (s.trigger ?? 'post-implementation') === effectiveTrigger,
+      (s) => s.skillName === skillName && (s.trigger ?? "post-implementation") === effectiveTrigger,
     );
     if (skill) skill.enabled = enabled;
     return this.saveConfig(config);
@@ -131,14 +145,14 @@ export class HooksManager {
     const linkMap = notesManager.buildWorktreeLinkMap();
     const linked = linkMap.get(worktreeId);
     const overrides = linked
-      ? notesManager.loadNotes(linked.source, linked.issueId).hookSkills ?? {}
+      ? (notesManager.loadNotes(linked.source, linked.issueId).hookSkills ?? {})
       : {};
 
     return config.skills.map((skill) => {
-      const trigger = skill.trigger ?? 'post-implementation';
+      const trigger = skill.trigger ?? "post-implementation";
       const override = overrides[`${trigger}:${skill.skillName}`];
-      if (override === 'enable') return { ...skill, enabled: true };
-      if (override === 'disable') return { ...skill, enabled: false };
+      if (override === "enable") return { ...skill, enabled: true };
+      if (override === "disable") return { ...skill, enabled: false };
       return skill; // 'inherit' or not set
     });
   }
@@ -149,10 +163,10 @@ export class HooksManager {
     return path.join(
       this.manager.getConfigDir(),
       CONFIG_DIR_NAME,
-      'worktrees',
+      "worktrees",
       worktreeId,
-      'hooks',
-      'skill-results.json',
+      "hooks",
+      "skill-results.json",
     );
   }
 
@@ -168,7 +182,7 @@ export class HooksManager {
     } else {
       existing.push(result);
     }
-    writeFileSync(resultsPath, JSON.stringify(existing, null, 2) + '\n');
+    writeFileSync(resultsPath, JSON.stringify(existing, null, 2) + "\n");
 
     // Notify the frontend via SSE
     this.manager.emitHookUpdate(worktreeId);
@@ -178,7 +192,7 @@ export class HooksManager {
     const resultsPath = this.skillResultsPath(worktreeId);
     if (!existsSync(resultsPath)) return [];
     try {
-      return JSON.parse(readFileSync(resultsPath, 'utf-8'));
+      return JSON.parse(readFileSync(resultsPath, "utf-8"));
     } catch {
       return [];
     }
@@ -190,10 +204,10 @@ export class HooksManager {
     return path.join(
       this.manager.getConfigDir(),
       CONFIG_DIR_NAME,
-      'worktrees',
+      "worktrees",
       worktreeId,
-      'hooks',
-      'latest-run.json',
+      "hooks",
+      "latest-run.json",
     );
   }
 
@@ -205,35 +219,39 @@ export class HooksManager {
 
   async runAll(worktreeId: string): Promise<PipelineRun> {
     const config = this.getConfig();
-    const enabledSteps = config.steps.filter((s) => s.enabled !== false && (s.trigger === 'post-implementation' || !s.trigger));
+    const enabledSteps = config.steps.filter(
+      (s) => s.enabled !== false && (s.trigger === "post-implementation" || !s.trigger),
+    );
     if (enabledSteps.length === 0) {
-      return this.makeRun(worktreeId, 'failed', [{
-        stepId: '_none',
-        stepName: 'No steps',
-        command: '',
-        status: 'failed',
-        output: 'No enabled hook steps configured. Add or enable steps in the Hooks view.',
-      }]);
+      return this.makeRun(worktreeId, "failed", [
+        {
+          stepId: "_none",
+          stepName: "No steps",
+          command: "",
+          status: "failed",
+          output: "No enabled hook steps configured. Add or enable steps in the Hooks view.",
+        },
+      ]);
     }
 
     const wt = this.manager.getWorktrees().find((w) => w.id === worktreeId);
     if (!wt) {
-      return this.makeRun(worktreeId, 'failed', [{
-        stepId: '_error',
-        stepName: 'Error',
-        command: '',
-        status: 'failed',
-        output: `Worktree "${worktreeId}" not found`,
-      }]);
+      return this.makeRun(worktreeId, "failed", [
+        {
+          stepId: "_error",
+          stepName: "Error",
+          command: "",
+          status: "failed",
+          output: `Worktree "${worktreeId}" not found`,
+        },
+      ]);
     }
 
     // Run all enabled steps in parallel
-    const results = await Promise.all(
-      enabledSteps.map((step) => this.executeStep(step, wt.path)),
-    );
+    const results = await Promise.all(enabledSteps.map((step) => this.executeStep(step, wt.path)));
 
-    const hasFailed = results.some((r) => r.status === 'failed');
-    const run = this.makeRun(worktreeId, hasFailed ? 'failed' : 'completed', results);
+    const hasFailed = results.some((r) => r.status === "failed");
+    const run = this.makeRun(worktreeId, hasFailed ? "failed" : "completed", results);
     this.persistRun(worktreeId, run);
     return run;
   }
@@ -244,9 +262,9 @@ export class HooksManager {
     if (!step) {
       return {
         stepId,
-        stepName: 'Unknown',
-        command: '',
-        status: 'failed',
+        stepName: "Unknown",
+        command: "",
+        status: "failed",
         output: `Step "${stepId}" not found`,
       };
     }
@@ -257,7 +275,7 @@ export class HooksManager {
         stepId,
         stepName: step.name,
         command: step.command,
-        status: 'failed',
+        status: "failed",
         output: `Worktree "${worktreeId}" not found`,
       };
     }
@@ -277,27 +295,30 @@ export class HooksManager {
       const { stdout, stderr } = await execFile(bin, args, {
         cwd: worktreePath,
         timeout: 120_000,
-        env: { ...process.env, FORCE_COLOR: '0' },
+        env: { ...process.env, FORCE_COLOR: "0" },
       });
-      const output = [stdout, stderr].filter(Boolean).join('\n').trim();
+      const output = [stdout, stderr].filter(Boolean).join("\n").trim();
       return {
         stepId: step.id,
         stepName: step.name,
         command: step.command,
-        status: 'passed',
-        output: output || '(no output)',
+        status: "passed",
+        output: output || "(no output)",
         startedAt,
         completedAt: new Date().toISOString(),
         durationMs: Date.now() - start,
       };
     } catch (err) {
       const execErr = err as { stdout?: string; stderr?: string; message?: string };
-      const output = [execErr.stdout, execErr.stderr].filter(Boolean).join('\n').trim() || execErr.message || 'Unknown error';
+      const output =
+        [execErr.stdout, execErr.stderr].filter(Boolean).join("\n").trim() ||
+        execErr.message ||
+        "Unknown error";
       return {
         stepId: step.id,
         stepName: step.name,
         command: step.command,
-        status: 'failed',
+        status: "failed",
         output,
         startedAt,
         completedAt: new Date().toISOString(),
@@ -312,7 +333,7 @@ export class HooksManager {
     const runPath = this.runFilePath(worktreeId);
     if (!existsSync(runPath)) return null;
     try {
-      return JSON.parse(readFileSync(runPath, 'utf-8'));
+      return JSON.parse(readFileSync(runPath, "utf-8"));
     } catch {
       return null;
     }
@@ -320,13 +341,17 @@ export class HooksManager {
 
   // ─── Helpers ──────────────────────────────────────────────────
 
-  private makeRun(worktreeId: string, status: PipelineRun['status'], steps: StepResult[]): PipelineRun {
+  private makeRun(
+    worktreeId: string,
+    status: PipelineRun["status"],
+    steps: StepResult[],
+  ): PipelineRun {
     return {
       id: `run-${Date.now()}`,
       worktreeId,
       status,
       startedAt: new Date().toISOString(),
-      completedAt: status !== 'running' ? new Date().toISOString() : undefined,
+      completedAt: status !== "running" ? new Date().toISOString() : undefined,
       steps,
     };
   }
@@ -334,6 +359,6 @@ export class HooksManager {
   private persistRun(worktreeId: string, run: PipelineRun): void {
     const runPath = this.runFilePath(worktreeId);
     this.ensureDir(path.dirname(runPath));
-    writeFileSync(runPath, JSON.stringify(run, null, 2) + '\n');
+    writeFileSync(runPath, JSON.stringify(run, null, 2) + "\n");
   }
 }

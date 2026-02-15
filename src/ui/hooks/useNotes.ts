@@ -1,13 +1,21 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { fetchNotes, updateNotes, addTodo, updateTodo, deleteTodo, updateGitPolicy, updateHookSkills } from './api';
-import type { GitPolicyOverride, IssueNotes, HookSkillOverride } from './api';
-import { useServerUrlOptional } from '../contexts/ServerContext';
+import {
+  fetchNotes,
+  updateNotes,
+  addTodo,
+  updateTodo,
+  deleteTodo,
+  updateGitPolicy,
+  updateHookSkills,
+} from "./api";
+import type { GitPolicyOverride, IssueNotes, HookSkillOverride } from "./api";
+import { useServerUrlOptional } from "../contexts/ServerContext";
 
 export function useNotes(source: string, id: string | null) {
   const serverUrl = useServerUrlOptional();
   const queryClient = useQueryClient();
-  const queryKey = ['notes', source, id, serverUrl];
+  const queryKey = ["notes", source, id, serverUrl];
 
   const { data, isLoading, error, refetch } = useQuery<IssueNotes>({
     queryKey,
@@ -17,7 +25,7 @@ export function useNotes(source: string, id: string | null) {
     refetchInterval: 3_000,
   });
 
-  const updateSection = async (section: 'personal' | 'aiContext', content: string) => {
+  const updateSection = async (section: "personal" | "aiContext", content: string) => {
     if (!id) return;
     const result = await updateNotes(source, id, section, content, serverUrl);
     queryClient.setQueryData(queryKey, result);
@@ -54,7 +62,11 @@ export function useNotes(source: string, id: string | null) {
     return result;
   };
 
-  const updateGitPolicyMutation = async (policy: { agentCommits?: GitPolicyOverride; agentPushes?: GitPolicyOverride; agentPRs?: GitPolicyOverride }) => {
+  const updateGitPolicyMutation = async (policy: {
+    agentCommits?: GitPolicyOverride;
+    agentPushes?: GitPolicyOverride;
+    agentPRs?: GitPolicyOverride;
+  }) => {
     if (!id) return;
     const result = await updateGitPolicy(source, id, policy, serverUrl);
     queryClient.setQueryData(queryKey, result);

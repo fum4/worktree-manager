@@ -1,7 +1,7 @@
-import { Paperclip, X } from 'lucide-react';
+import { Paperclip, X } from "lucide-react";
 
-import { text } from '../theme';
-import { TruncatedTooltip } from './TruncatedTooltip';
+import { text } from "../theme";
+import { TruncatedTooltip } from "./TruncatedTooltip";
 
 interface AttachmentThumbnailProps {
   filename: string;
@@ -12,7 +12,7 @@ interface AttachmentThumbnailProps {
   /** Extra info shown after size (e.g. date) */
   extra?: string;
   /** Called when clicking an image/PDF — opens preview modal */
-  onPreview?: (preview: { src: string; filename: string; type: 'image' | 'pdf' }) => void;
+  onPreview?: (preview: { src: string; filename: string; type: "image" | "pdf" }) => void;
   /** Called when clicking the remove button */
   onRemove?: () => void;
 }
@@ -23,9 +23,17 @@ function formatSize(size: number): string {
   return `${(size / 1048576).toFixed(1)}MB`;
 }
 
-export function AttachmentThumbnail({ filename, mimeType, size, src, extra, onPreview, onRemove }: AttachmentThumbnailProps) {
-  const isImage = mimeType.startsWith('image/');
-  const isPdf = mimeType === 'application/pdf';
+export function AttachmentThumbnail({
+  filename,
+  mimeType,
+  size,
+  src,
+  extra,
+  onPreview,
+  onRemove,
+}: AttachmentThumbnailProps) {
+  const isImage = mimeType.startsWith("image/");
+  const isPdf = mimeType === "application/pdf";
 
   return (
     <div className="group flex flex-col w-36">
@@ -33,7 +41,7 @@ export function AttachmentThumbnail({ filename, mimeType, size, src, extra, onPr
         {isImage && src ? (
           <button
             type="button"
-            onClick={() => onPreview?.({ src, filename, type: 'image' })}
+            onClick={() => onPreview?.({ src, filename, type: "image" })}
             className="rounded overflow-hidden block"
           >
             <img
@@ -45,14 +53,23 @@ export function AttachmentThumbnail({ filename, mimeType, size, src, extra, onPr
         ) : isPdf && src ? (
           <button
             type="button"
-            onClick={() => onPreview?.({ src, filename, type: 'pdf' })}
+            onClick={() => onPreview?.({ src, filename, type: "pdf" })}
             className="w-36 h-28 rounded bg-white/[0.03] flex flex-col items-center justify-center gap-1 hover:gap-1.5 hover:bg-white/[0.06] transition-all group/pdf"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-red-400/70 transition-transform group-hover/pdf:scale-110">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-8 h-8 text-red-400/70 transition-transform group-hover/pdf:scale-110"
+            >
               <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625Z" />
               <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
             </svg>
-            <span className={`text-[10px] font-semibold ${text.secondary} transition-transform group-hover/pdf:scale-110`}>PDF</span>
+            <span
+              className={`text-[10px] font-semibold ${text.secondary} transition-transform group-hover/pdf:scale-110`}
+            >
+              PDF
+            </span>
           </button>
         ) : (
           <div className="w-36 h-28 rounded bg-white/[0.03] flex items-center justify-center">
@@ -71,7 +88,8 @@ export function AttachmentThumbnail({ filename, mimeType, size, src, extra, onPr
       </div>
       <TruncatedTooltip text={filename} className={`text-[10px] ${text.muted} mt-1.5`} />
       <span className={`text-[9px] ${text.dimmed}`}>
-        {formatSize(size)}{extra ? ` · ${extra}` : ''}
+        {formatSize(size)}
+        {extra ? ` · ${extra}` : ""}
       </span>
     </div>
   );

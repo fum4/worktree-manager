@@ -1,14 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
-import { fetchCustomTaskDetail } from './api';
-import type { CustomTaskDetail } from '../types';
-import { useServerUrlOptional } from '../contexts/ServerContext';
+import { fetchCustomTaskDetail } from "./api";
+import type { CustomTaskDetail } from "../types";
+import { useServerUrlOptional } from "../contexts/ServerContext";
 
 export function useCustomTaskDetail(id: string | null) {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<CustomTaskDetail | null>({
-    queryKey: ['customTask', id, serverUrl],
+    queryKey: ["customTask", id, serverUrl],
     queryFn: async () => {
       const result = await fetchCustomTaskDetail(id!, serverUrl);
       if (result.error) throw new Error(result.error);

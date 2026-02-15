@@ -1,11 +1,22 @@
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'fs';
-import { execFileSync } from 'child_process';
-import os from 'os';
-import path from 'path';
-import type { Hono } from 'hono';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "fs";
+import { execFileSync } from "child_process";
+import os from "os";
+import path from "path";
+import type { Hono } from "hono";
 
-import type { WorktreeManager } from '../manager';
-import { type AgentId, SKILL_AGENT_SPECS, resolveSkillDeployDir } from '../lib/tool-configs';
+import type { WorktreeManager } from "../manager";
+import { type AgentId, SKILL_AGENT_SPECS, resolveSkillDeployDir } from "../lib/tool-configs";
 
 // ─── SKILL.md parsing ───────────────────────────────────────────
 
@@ -23,15 +34,22 @@ interface SkillFrontmatter {
 }
 
 const EMPTY_FRONTMATTER: SkillFrontmatter = {
-  name: '', description: '', allowedTools: '', context: '',
-  agent: '', model: '', argumentHint: '',
-  disableModelInvocation: false, userInvocable: true, mode: false,
+  name: "",
+  description: "",
+  allowedTools: "",
+  context: "",
+  agent: "",
+  model: "",
+  argumentHint: "",
+  disableModelInvocation: false,
+  userInvocable: true,
+  mode: false,
 };
 
 function parseBool(value: string, defaultValue: boolean): boolean {
   const v = value.toLowerCase();
-  if (v === 'true') return true;
-  if (v === 'false') return false;
+  if (v === "true") return true;
+  if (v === "false") return false;
   return defaultValue;
 }
 
@@ -46,23 +64,43 @@ function parseSkillMd(content: string): { frontmatter: SkillFrontmatter; body: s
   const yamlBlock = match[1];
   const body = match[2];
 
-  for (const line of yamlBlock.split('\n')) {
-    const colonIdx = line.indexOf(':');
+  for (const line of yamlBlock.split("\n")) {
+    const colonIdx = line.indexOf(":");
     if (colonIdx <= 0) continue;
     const key = line.slice(0, colonIdx).trim();
     const value = line.slice(colonIdx + 1).trim();
 
     switch (key) {
-      case 'name': fm.name = value; break;
-      case 'description': fm.description = value; break;
-      case 'allowed-tools': fm.allowedTools = value; break;
-      case 'context': fm.context = value; break;
-      case 'agent': fm.agent = value; break;
-      case 'model': fm.model = value; break;
-      case 'argument-hint': fm.argumentHint = value; break;
-      case 'disable-model-invocation': fm.disableModelInvocation = parseBool(value, false); break;
-      case 'user-invocable': fm.userInvocable = parseBool(value, true); break;
-      case 'mode': fm.mode = parseBool(value, false); break;
+      case "name":
+        fm.name = value;
+        break;
+      case "description":
+        fm.description = value;
+        break;
+      case "allowed-tools":
+        fm.allowedTools = value;
+        break;
+      case "context":
+        fm.context = value;
+        break;
+      case "agent":
+        fm.agent = value;
+        break;
+      case "model":
+        fm.model = value;
+        break;
+      case "argument-hint":
+        fm.argumentHint = value;
+        break;
+      case "disable-model-invocation":
+        fm.disableModelInvocation = parseBool(value, false);
+        break;
+      case "user-invocable":
+        fm.userInvocable = parseBool(value, true);
+        break;
+      case "mode":
+        fm.mode = parseBool(value, false);
+        break;
     }
   }
 
@@ -70,7 +108,7 @@ function parseSkillMd(content: string): { frontmatter: SkillFrontmatter; body: s
 }
 
 function buildSkillMd(frontmatter: SkillFrontmatter, body: string): string {
-  const lines = ['---'];
+  const lines = ["---"];
   if (frontmatter.name) lines.push(`name: ${frontmatter.name}`);
   if (frontmatter.description) lines.push(`description: ${frontmatter.description}`);
   if (frontmatter.allowedTools) lines.push(`allowed-tools: ${frontmatter.allowedTools}`);
@@ -81,15 +119,15 @@ function buildSkillMd(frontmatter: SkillFrontmatter, body: string): string {
   if (frontmatter.disableModelInvocation) lines.push(`disable-model-invocation: true`);
   if (!frontmatter.userInvocable) lines.push(`user-invocable: false`);
   if (frontmatter.mode) lines.push(`mode: true`);
-  lines.push('---');
-  if (body) lines.push('', body);
-  return lines.join('\n') + '\n';
+  lines.push("---");
+  if (body) lines.push("", body);
+  return lines.join("\n") + "\n";
 }
 
 // ─── Registry ───────────────────────────────────────────────────
 
 function getRegistryDir(): string {
-  return path.join(os.homedir(), '.dawg', 'skills');
+  return path.join(os.homedir(), ".dawg", "skills");
 }
 
 interface SkillInfo {
@@ -107,16 +145,16 @@ function listRegistrySkills(): SkillInfo[] {
   try {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
-      const skillMdPath = path.join(dir, entry.name, 'SKILL.md');
+      const skillMdPath = path.join(dir, entry.name, "SKILL.md");
       if (!existsSync(skillMdPath)) continue;
 
       try {
-        const content = readFileSync(skillMdPath, 'utf-8');
+        const content = readFileSync(skillMdPath, "utf-8");
         const { frontmatter } = parseSkillMd(content);
         skills.push({
           name: entry.name,
           displayName: frontmatter.name || entry.name,
-          description: frontmatter.description || '',
+          description: frontmatter.description || "",
           path: path.join(dir, entry.name),
         });
       } catch {
@@ -150,7 +188,7 @@ function createDeploy(deployDir: string, skillName: string): { success: boolean;
   const targetPath = path.join(getRegistryDir(), skillName);
 
   if (!existsSync(targetPath)) {
-    return { success: false, error: 'Skill not found in registry' };
+    return { success: false, error: "Skill not found in registry" };
   }
 
   try {
@@ -162,7 +200,10 @@ function createDeploy(deployDir: string, skillName: string): { success: boolean;
       if (stat.isSymbolicLink()) {
         unlinkSync(linkPath);
       } else if (stat.isDirectory()) {
-        return { success: false, error: 'A non-symlink directory already exists at the deploy path' };
+        return {
+          success: false,
+          error: "A non-symlink directory already exists at the deploy path",
+        };
       }
     } catch {
       // ENOENT — nothing there, fine
@@ -171,7 +212,7 @@ function createDeploy(deployDir: string, skillName: string): { success: boolean;
     symlinkSync(targetPath, linkPath);
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Failed to create symlink' };
+    return { success: false, error: e instanceof Error ? e.message : "Failed to create symlink" };
   }
 }
 
@@ -184,13 +225,13 @@ function removeDeploy(deployDir: string, skillName: string): { success: boolean;
     } else if (stat.isDirectory()) {
       rmSync(linkPath, { recursive: true });
     } else {
-      return { success: false, error: 'Target is not a skill deployment managed by dawg' };
+      return { success: false, error: "Target is not a skill deployment managed by dawg" };
     }
     return { success: true };
   } catch (e: unknown) {
     const err = e as NodeJS.ErrnoException;
-    if (err.code === 'ENOENT') return { success: true };
-    return { success: false, error: err.message ?? 'Failed to remove deployment' };
+    if (err.code === "ENOENT") return { success: true };
+    return { success: false, error: err.message ?? "Failed to remove deployment" };
   }
 }
 
@@ -209,7 +250,6 @@ function copyDir(src: string, dest: string): void {
   }
 }
 
-
 // ─── Scan for skills in filesystem ──────────────────────────────
 
 interface SkillScanResult {
@@ -224,13 +264,17 @@ const SKILL_DIR_NAMES = new Set(
   Object.values(SKILL_AGENT_SPECS).flatMap((spec) =>
     [spec.global, spec.project].filter(Boolean).map((p) => {
       // Extract the parent dir name (e.g. '.claude' from '.claude/skills')
-      const parts = p!.replace(/^~\//, '').split('/');
+      const parts = p!.replace(/^~\//, "").split("/");
       return parts[0];
     }),
   ),
 );
 
-function scanForSkills(roots: string[], maxDepth: number, knownSkills: Set<string>): SkillScanResult[] {
+function scanForSkills(
+  roots: string[],
+  maxDepth: number,
+  knownSkills: Set<string>,
+): SkillScanResult[] {
   const results: SkillScanResult[] = [];
   const seen = new Set<string>();
   const registryDir = getRegistryDir();
@@ -241,13 +285,20 @@ function scanForSkills(roots: string[], maxDepth: number, knownSkills: Set<strin
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
         if (!entry.isDirectory()) continue;
         const name = entry.name;
-        if (name === 'node_modules' || name === '.git' || name === 'dist' || name === 'build' || name === '.dawg') continue;
+        if (
+          name === "node_modules" ||
+          name === ".git" ||
+          name === "dist" ||
+          name === "build" ||
+          name === ".dawg"
+        )
+          continue;
 
         const fullPath = path.join(dir, name);
 
         // Check all known skill directory parents (e.g. .claude, .cursor, .gemini, etc.)
         if (SKILL_DIR_NAMES.has(name)) {
-          const skillsDir = path.join(fullPath, 'skills');
+          const skillsDir = path.join(fullPath, "skills");
           if (existsSync(skillsDir)) {
             try {
               for (const skillEntry of readdirSync(skillsDir, { withFileTypes: true })) {
@@ -262,21 +313,23 @@ function scanForSkills(roots: string[], maxDepth: number, knownSkills: Set<strin
                     const resolved = path.resolve(skillsDir, target);
                     if (resolved.startsWith(registryDir)) continue;
                   }
-                } catch { /* not a symlink */ }
+                } catch {
+                  /* not a symlink */
+                }
 
-                const skillMdPath = path.join(skillsDir, skillEntry.name, 'SKILL.md');
+                const skillMdPath = path.join(skillsDir, skillEntry.name, "SKILL.md");
                 if (!existsSync(skillMdPath)) continue;
 
                 if (seen.has(skillEntry.name)) continue;
                 seen.add(skillEntry.name);
 
                 try {
-                  const content = readFileSync(skillMdPath, 'utf-8');
+                  const content = readFileSync(skillMdPath, "utf-8");
                   const { frontmatter } = parseSkillMd(content);
                   results.push({
                     name: skillEntry.name,
                     displayName: frontmatter.name || skillEntry.name,
-                    description: frontmatter.description || '',
+                    description: frontmatter.description || "",
                     skillPath: path.join(skillsDir, skillEntry.name),
                     alreadyInRegistry: knownSkills.has(skillEntry.name),
                   });
@@ -284,14 +337,18 @@ function scanForSkills(roots: string[], maxDepth: number, knownSkills: Set<strin
                   // Skip unreadable
                 }
               }
-            } catch { /* skills dir not readable */ }
+            } catch {
+              /* skills dir not readable */
+            }
           }
           continue;
         }
 
         walk(fullPath, depth + 1);
       }
-    } catch { /* dir not readable */ }
+    } catch {
+      /* dir not readable */
+    }
   }
 
   for (const root of roots) {
@@ -311,21 +368,25 @@ function getSkillAgentDeployment(skillName: string, projectDir: string): AgentDe
     const agentResult: { global?: boolean; project?: boolean } = {};
 
     if (spec.global) {
-      const dir = resolveSkillDeployDir(agent, 'global', projectDir);
+      const dir = resolveSkillDeployDir(agent, "global", projectDir);
       if (dir) agentResult.global = isSymlinkToRegistry(dir, skillName);
     }
 
     if (spec.project) {
-      const dir = resolveSkillDeployDir(agent, 'project', projectDir);
+      const dir = resolveSkillDeployDir(agent, "project", projectDir);
       if (dir) {
         const linkPath = path.join(dir, skillName);
         // Check both symlink and direct copy
-        agentResult.project = isSymlinkToRegistry(dir, skillName) || (() => {
-          try {
-            const stat = lstatSync(linkPath);
-            return stat.isDirectory() && !stat.isSymbolicLink();
-          } catch { return false; }
-        })();
+        agentResult.project =
+          isSymlinkToRegistry(dir, skillName) ||
+          (() => {
+            try {
+              const stat = lstatSync(linkPath);
+              return stat.isDirectory() && !stat.isSymbolicLink();
+            } catch {
+              return false;
+            }
+          })();
       }
     }
 
@@ -342,13 +403,13 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
   // ── Static GET routes (before parameterized :name) ────────────
 
   // List all skills (registry)
-  app.get('/api/skills', (c) => {
+  app.get("/api/skills", (c) => {
     const registrySkills = listRegistrySkills();
     return c.json({ skills: registrySkills });
   });
 
   // Deployment status for all skills (per-agent matrix)
-  app.get('/api/skills/deployment-status', (c) => {
+  app.get("/api/skills/deployment-status", (c) => {
     const skills = listRegistrySkills();
     const status: Record<string, { inRegistry: boolean; agents: AgentDeploymentMap }> = {};
 
@@ -363,20 +424,20 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
   });
 
   // Get skill detail
-  app.get('/api/skills/:name', (c) => {
-    const name = c.req.param('name');
+  app.get("/api/skills/:name", (c) => {
+    const name = c.req.param("name");
     const skillDir = path.join(getRegistryDir(), name);
-    const skillMdPath = path.join(skillDir, 'SKILL.md');
+    const skillMdPath = path.join(skillDir, "SKILL.md");
 
     if (!existsSync(skillMdPath)) {
-      return c.json({ error: 'Skill not found' }, 404);
+      return c.json({ error: "Skill not found" }, 404);
     }
 
-    const skillMd = readFileSync(skillMdPath, 'utf-8');
+    const skillMd = readFileSync(skillMdPath, "utf-8");
     const { frontmatter } = parseSkillMd(skillMd);
 
-    const refPath = path.join(skillDir, 'reference.md');
-    const examplesPath = path.join(skillDir, 'examples.md');
+    const refPath = path.join(skillDir, "reference.md");
+    const examplesPath = path.join(skillDir, "examples.md");
     const hasReference = existsSync(refPath);
     const hasExamples = existsSync(examplesPath);
 
@@ -384,14 +445,14 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
       skill: {
         name,
         displayName: frontmatter.name || name,
-        description: frontmatter.description || '',
+        description: frontmatter.description || "",
         path: skillDir,
         skillMd,
         frontmatter,
         hasReference,
-        referenceMd: hasReference ? readFileSync(refPath, 'utf-8') : undefined,
+        referenceMd: hasReference ? readFileSync(refPath, "utf-8") : undefined,
         hasExamples,
-        examplesMd: hasExamples ? readFileSync(examplesPath, 'utf-8') : undefined,
+        examplesMd: hasExamples ? readFileSync(examplesPath, "utf-8") : undefined,
       },
     });
   });
@@ -399,7 +460,7 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
   // ── Static POST routes (before parameterized :name) ───────────
 
   // Create skill in registry
-  app.post('/api/skills', async (c) => {
+  app.post("/api/skills", async (c) => {
     const body = await c.req.json<{
       name: string;
       description?: string;
@@ -415,10 +476,14 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
     }>();
 
     if (!body.name?.trim()) {
-      return c.json({ success: false, error: 'Name is required' }, 400);
+      return c.json({ success: false, error: "Name is required" }, 400);
     }
 
-    const dirName = body.name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+    const dirName = body.name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/-+/g, "-");
     const skillDir = path.join(getRegistryDir(), dirName);
 
     if (existsSync(skillDir)) {
@@ -429,19 +494,19 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
 
     const frontmatter: SkillFrontmatter = {
       name: body.name.trim(),
-      description: body.description?.trim() ?? '',
-      allowedTools: body.allowedTools?.trim() ?? '',
-      context: body.context?.trim() ?? '',
-      agent: body.agent?.trim() ?? '',
-      model: body.model?.trim() ?? '',
-      argumentHint: body.argumentHint?.trim() ?? '',
+      description: body.description?.trim() ?? "",
+      allowedTools: body.allowedTools?.trim() ?? "",
+      context: body.context?.trim() ?? "",
+      agent: body.agent?.trim() ?? "",
+      model: body.model?.trim() ?? "",
+      argumentHint: body.argumentHint?.trim() ?? "",
       disableModelInvocation: body.disableModelInvocation ?? false,
       userInvocable: body.userInvocable ?? true,
       mode: body.mode ?? false,
     };
 
-    const content = buildSkillMd(frontmatter, body.instructions?.trim() ?? '');
-    writeFileSync(path.join(skillDir, 'SKILL.md'), content);
+    const content = buildSkillMd(frontmatter, body.instructions?.trim() ?? "");
+    writeFileSync(path.join(skillDir, "SKILL.md"), content);
 
     return c.json({
       success: true,
@@ -455,24 +520,27 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
   });
 
   // Scan for skills
-  app.post('/api/skills/scan', async (c) => {
-    const body: { mode?: 'project' | 'folder' | 'device'; scanPath?: string } =
-      await c.req.json().catch(() => ({}));
+  app.post("/api/skills/scan", async (c) => {
+    const body: { mode?: "project" | "folder" | "device"; scanPath?: string } = await c.req
+      .json()
+      .catch(() => ({}));
 
-    const mode = body.mode ?? 'project';
+    const mode = body.mode ?? "project";
 
     // Collect all already-known skill names
     const knownSkills = new Set(listRegistrySkills().map((s) => s.name));
     // Also check all agent deploy dirs
     for (const [agentId] of Object.entries(SKILL_AGENT_SPECS)) {
-      for (const scope of ['global', 'project'] as const) {
+      for (const scope of ["global", "project"] as const) {
         const dir = resolveSkillDeployDir(agentId as AgentId, scope, projectDir);
         if (dir && existsSync(dir)) {
           try {
             for (const entry of readdirSync(dir, { withFileTypes: true })) {
               if (entry.isDirectory() || entry.isSymbolicLink()) knownSkills.add(entry.name);
             }
-          } catch { /* dir not readable */ }
+          } catch {
+            /* dir not readable */
+          }
         }
       }
     }
@@ -480,10 +548,10 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
     let scanRoots: string[];
     let maxDepth: number;
 
-    if (mode === 'project') {
+    if (mode === "project") {
       scanRoots = [projectDir];
       maxDepth = 4;
-    } else if (mode === 'folder' && body.scanPath) {
+    } else if (mode === "folder" && body.scanPath) {
       scanRoots = [body.scanPath];
       maxDepth = 8;
     } else {
@@ -496,13 +564,13 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
   });
 
   // Import scanned skills into registry
-  app.post('/api/skills/import', async (c) => {
+  app.post("/api/skills/import", async (c) => {
     const body = await c.req.json<{
       skills: Array<{ name: string; skillPath: string }>;
     }>();
 
     if (!Array.isArray(body.skills)) {
-      return c.json({ success: false, error: 'skills array is required' }, 400);
+      return c.json({ success: false, error: "skills array is required" }, 400);
     }
 
     const registryDir = getRegistryDir();
@@ -527,28 +595,28 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
   });
 
   // Install skill from GitHub via `npx skills add`
-  app.post('/api/skills/install', async (c) => {
+  app.post("/api/skills/install", async (c) => {
     const body = await c.req.json<{
       repo: string;
       skill?: string;
       agents: AgentId[];
-      scope: 'global' | 'project';
+      scope: "global" | "project";
     }>();
 
     if (!body.repo?.trim()) {
-      return c.json({ success: false, error: 'repo is required' }, 400);
+      return c.json({ success: false, error: "repo is required" }, 400);
     }
 
-    const args = ['skills', 'add', body.repo.trim()];
-    if (body.skill) args.push('-s', body.skill);
+    const args = ["skills", "add", body.repo.trim()];
+    if (body.skill) args.push("-s", body.skill);
     for (const agent of body.agents ?? []) {
-      args.push('-a', agent);
+      args.push("-a", agent);
     }
-    if (body.scope === 'global') args.push('--global');
+    if (body.scope === "global") args.push("--global");
 
     try {
-      execFileSync('npx', args, {
-        encoding: 'utf-8',
+      execFileSync("npx", args, {
+        encoding: "utf-8",
         timeout: 60_000,
         cwd: projectDir,
       });
@@ -564,7 +632,7 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
         try {
           for (const entry of readdirSync(dir, { withFileTypes: true })) {
             if (!entry.isDirectory()) continue;
-            const skillMdPath = path.join(dir, entry.name, 'SKILL.md');
+            const skillMdPath = path.join(dir, entry.name, "SKILL.md");
             if (!existsSync(skillMdPath)) continue;
             const registryTarget = path.join(registryDir, entry.name);
             if (!existsSync(registryTarget)) {
@@ -572,22 +640,28 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
               installed.push(entry.name);
             }
           }
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
 
       return c.json({ success: true, installed });
     } catch (e) {
       return c.json({
         success: false,
-        error: e instanceof Error ? e.message : 'Failed to install skill',
+        error: e instanceof Error ? e.message : "Failed to install skill",
       });
     }
   });
 
   // Check if `npx skills` is available
-  app.get('/api/skills/npx-available', (c) => {
+  app.get("/api/skills/npx-available", (c) => {
     try {
-      execFileSync('npx', ['skills', '--version'], { encoding: 'utf-8', timeout: 10_000, stdio: 'pipe' });
+      execFileSync("npx", ["skills", "--version"], {
+        encoding: "utf-8",
+        timeout: 10_000,
+        stdio: "pipe",
+      });
       return c.json({ available: true });
     } catch {
       return c.json({ available: false });
@@ -597,8 +671,8 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
   // ── Parameterized routes ──────────────────────────────────────
 
   // Update skill
-  app.patch('/api/skills/:name', async (c) => {
-    const name = c.req.param('name');
+  app.patch("/api/skills/:name", async (c) => {
+    const name = c.req.param("name");
     const body = await c.req.json<{
       skillMd?: string;
       referenceMd?: string;
@@ -607,15 +681,15 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
     }>();
 
     const skillDir = path.join(getRegistryDir(), name);
-    const skillMdPath = path.join(skillDir, 'SKILL.md');
+    const skillMdPath = path.join(skillDir, "SKILL.md");
 
     if (!existsSync(skillMdPath)) {
-      return c.json({ success: false, error: 'Skill not found' }, 404);
+      return c.json({ success: false, error: "Skill not found" }, 404);
     }
 
     // Handle frontmatter-only updates: merge into existing SKILL.md
     if (body.frontmatter && body.skillMd === undefined) {
-      const current = readFileSync(skillMdPath, 'utf-8');
+      const current = readFileSync(skillMdPath, "utf-8");
       const parsed = parseSkillMd(current);
       const merged = { ...parsed.frontmatter, ...body.frontmatter };
       writeFileSync(skillMdPath, buildSkillMd(merged, parsed.body));
@@ -624,7 +698,7 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
     }
 
     if (body.referenceMd !== undefined) {
-      const refPath = path.join(skillDir, 'reference.md');
+      const refPath = path.join(skillDir, "reference.md");
       if (body.referenceMd) {
         writeFileSync(refPath, body.referenceMd);
       } else if (existsSync(refPath)) {
@@ -633,7 +707,7 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
     }
 
     if (body.examplesMd !== undefined) {
-      const examplesPath = path.join(skillDir, 'examples.md');
+      const examplesPath = path.join(skillDir, "examples.md");
       if (body.examplesMd) {
         writeFileSync(examplesPath, body.examplesMd);
       } else if (existsSync(examplesPath)) {
@@ -645,18 +719,18 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
   });
 
   // Delete skill from registry + cleanup symlinks across ALL agents
-  app.delete('/api/skills/:name', (c) => {
-    const name = c.req.param('name');
+  app.delete("/api/skills/:name", (c) => {
+    const name = c.req.param("name");
     const registryDir = getRegistryDir();
     const skillDir = path.join(registryDir, name);
 
     if (!existsSync(skillDir)) {
-      return c.json({ success: false, error: 'Skill not found' }, 404);
+      return c.json({ success: false, error: "Skill not found" }, 404);
     }
 
     // Cleanup symlinks across all agents
     for (const [agentId] of Object.entries(SKILL_AGENT_SPECS)) {
-      for (const scope of ['global', 'project'] as const) {
+      for (const scope of ["global", "project"] as const) {
         const dir = resolveSkillDeployDir(agentId as AgentId, scope, projectDir);
         if (dir && isSymlinkToRegistry(dir, name)) {
           removeDeploy(dir, name);
@@ -669,13 +743,16 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
   });
 
   // Deploy skill (create symlink) — accepts agent + scope
-  app.post('/api/skills/:name/deploy', async (c) => {
-    const name = c.req.param('name');
-    const body = await c.req.json<{ agent: AgentId; scope: 'global' | 'project' }>();
+  app.post("/api/skills/:name/deploy", async (c) => {
+    const name = c.req.param("name");
+    const body = await c.req.json<{ agent: AgentId; scope: "global" | "project" }>();
 
     const deployDir = resolveSkillDeployDir(body.agent, body.scope, projectDir);
     if (!deployDir) {
-      return c.json({ success: false, error: `No deploy path for ${body.agent} ${body.scope}` }, 400);
+      return c.json(
+        { success: false, error: `No deploy path for ${body.agent} ${body.scope}` },
+        400,
+      );
     }
 
     const result = createDeploy(deployDir, name);
@@ -683,13 +760,16 @@ export function registerSkillRoutes(app: Hono, manager: WorktreeManager) {
   });
 
   // Undeploy skill (remove symlink) — accepts agent + scope
-  app.post('/api/skills/:name/undeploy', async (c) => {
-    const name = c.req.param('name');
-    const body = await c.req.json<{ agent: AgentId; scope: 'global' | 'project' }>();
+  app.post("/api/skills/:name/undeploy", async (c) => {
+    const name = c.req.param("name");
+    const body = await c.req.json<{ agent: AgentId; scope: "global" | "project" }>();
 
     const deployDir = resolveSkillDeployDir(body.agent, body.scope, projectDir);
     if (!deployDir) {
-      return c.json({ success: false, error: `No deploy path for ${body.agent} ${body.scope}` }, 400);
+      return c.json(
+        { success: false, error: `No deploy path for ${body.agent} ${body.scope}` },
+        400,
+      );
     }
 
     const result = removeDeploy(deployDir, name);

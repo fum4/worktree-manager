@@ -1,8 +1,8 @@
-import { GitBranch } from 'lucide-react';
+import { GitBranch } from "lucide-react";
 
-import type { CustomTaskSummary } from '../types';
-import { customTask, surface, text } from '../theme';
-import { Tooltip } from './Tooltip';
+import type { CustomTaskSummary } from "../types";
+import { customTask, surface, text } from "../theme";
+import { Tooltip } from "./Tooltip";
 
 interface CustomTaskItemProps {
   task: CustomTaskSummary;
@@ -13,10 +13,18 @@ interface CustomTaskItemProps {
   showStatus?: boolean;
 }
 
-export function CustomTaskItem({ task, isSelected, onSelect, onViewWorktree, showPriority = true, showStatus = true }: CustomTaskItemProps) {
+export function CustomTaskItem({
+  task,
+  isSelected,
+  onSelect,
+  onViewWorktree,
+  showPriority = true,
+  showStatus = true,
+}: CustomTaskItemProps) {
   const statusClasses = customTask.status[task.status] ?? customTask.status.todo;
 
-  const statusLabel = task.status === 'in-progress' ? 'In Progress' : task.status === 'todo' ? 'Todo' : 'Done';
+  const statusLabel =
+    task.status === "in-progress" ? "In Progress" : task.status === "todo" ? "Todo" : "Done";
 
   return (
     <button
@@ -35,7 +43,9 @@ export function CustomTaskItem({ task, isSelected, onSelect, onViewWorktree, sho
               {task.id}
             </span>
             {showStatus && (
-              <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}>
+              <span
+                className={`text-[9px] font-medium px-1.5 py-0.5 rounded flex-shrink-0 ${statusClasses}`}
+              >
                 {statusLabel}
               </span>
             )}
@@ -45,9 +55,7 @@ export function CustomTaskItem({ task, isSelected, onSelect, onViewWorktree, sho
               </span>
             )}
           </div>
-          <div className={`text-xs ${text.primary} truncate mt-0.5`}>
-            {task.title}
-          </div>
+          <div className={`text-xs ${text.primary} truncate mt-0.5`}>{task.title}</div>
         </div>
         {task.linkedWorktreeId && (
           <Tooltip position="right" text="View worktree">

@@ -1,7 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
-import { GitBranch, Layers, ListTodo, Bot, Rocket } from 'lucide-react';
+import { useState, useCallback, useRef } from "react";
+import { GitBranch, Layers, ListTodo, Bot, Rocket } from "lucide-react";
 
-import { APP_NAME } from '../../constants';
+import { APP_NAME } from "../../constants";
 
 interface WelcomeScreenProps {
   onImportProject: () => void;
@@ -23,7 +23,7 @@ function BranchVisualization() {
           strokeWidth="3"
           fill="none"
           className="animate-draw-line"
-          style={{ animationDelay: '0s' }}
+          style={{ animationDelay: "0s" }}
         />
         {/* Branch left 1 */}
         <path
@@ -32,7 +32,7 @@ function BranchVisualization() {
           strokeWidth="2"
           fill="none"
           className="animate-draw-line"
-          style={{ animationDelay: '0.3s' }}
+          style={{ animationDelay: "0.3s" }}
         />
         {/* Branch right 1 */}
         <path
@@ -41,7 +41,7 @@ function BranchVisualization() {
           strokeWidth="2"
           fill="none"
           className="animate-draw-line"
-          style={{ animationDelay: '0.5s' }}
+          style={{ animationDelay: "0.5s" }}
         />
         {/* Branch left 2 */}
         <path
@@ -50,7 +50,7 @@ function BranchVisualization() {
           strokeWidth="1.5"
           fill="none"
           className="animate-draw-line"
-          style={{ animationDelay: '0.7s' }}
+          style={{ animationDelay: "0.7s" }}
         />
         {/* Branch right 2 */}
         <path
@@ -59,7 +59,7 @@ function BranchVisualization() {
           strokeWidth="1.5"
           fill="none"
           className="animate-draw-line"
-          style={{ animationDelay: '0.9s' }}
+          style={{ animationDelay: "0.9s" }}
         />
         {/* Additional decorative branches */}
         <path
@@ -68,7 +68,7 @@ function BranchVisualization() {
           strokeWidth="2"
           fill="none"
           className="animate-draw-line"
-          style={{ animationDelay: '1.1s' }}
+          style={{ animationDelay: "1.1s" }}
         />
         <path
           d="M 280 380 Q 260 340 240 280"
@@ -76,18 +76,74 @@ function BranchVisualization() {
           strokeWidth="1"
           fill="none"
           className="animate-draw-line"
-          style={{ animationDelay: '1.3s' }}
+          style={{ animationDelay: "1.3s" }}
         />
 
         {/* Commit dots */}
-        <circle cx="400" cy="450" r="6" fill="#2dd4bf" className="animate-pulse-dot" style={{ animationDelay: '0.4s' }} />
-        <circle cx="400" cy="400" r="5" fill="#2dd4bf" className="animate-pulse-dot" style={{ animationDelay: '0.6s' }} />
-        <circle cx="280" cy="380" r="5" fill="#2dd4bf" className="animate-pulse-dot" style={{ animationDelay: '0.8s' }} />
-        <circle cx="550" cy="340" r="5" fill="#2dd4bf" className="animate-pulse-dot" style={{ animationDelay: '1s' }} />
-        <circle cx="400" cy="350" r="6" fill="#2dd4bf" className="animate-pulse-dot" style={{ animationDelay: '1.2s' }} />
-        <circle cx="220" cy="320" r="4" fill="#2dd4bf" className="animate-pulse-dot" style={{ animationDelay: '1.4s' }} />
-        <circle cx="620" cy="250" r="4" fill="#2dd4bf" className="animate-pulse-dot" style={{ animationDelay: '1.5s' }} />
-        <circle cx="450" cy="260" r="4" fill="#2dd4bf" className="animate-pulse-dot" style={{ animationDelay: '1.6s' }} />
+        <circle
+          cx="400"
+          cy="450"
+          r="6"
+          fill="#2dd4bf"
+          className="animate-pulse-dot"
+          style={{ animationDelay: "0.4s" }}
+        />
+        <circle
+          cx="400"
+          cy="400"
+          r="5"
+          fill="#2dd4bf"
+          className="animate-pulse-dot"
+          style={{ animationDelay: "0.6s" }}
+        />
+        <circle
+          cx="280"
+          cy="380"
+          r="5"
+          fill="#2dd4bf"
+          className="animate-pulse-dot"
+          style={{ animationDelay: "0.8s" }}
+        />
+        <circle
+          cx="550"
+          cy="340"
+          r="5"
+          fill="#2dd4bf"
+          className="animate-pulse-dot"
+          style={{ animationDelay: "1s" }}
+        />
+        <circle
+          cx="400"
+          cy="350"
+          r="6"
+          fill="#2dd4bf"
+          className="animate-pulse-dot"
+          style={{ animationDelay: "1.2s" }}
+        />
+        <circle
+          cx="220"
+          cy="320"
+          r="4"
+          fill="#2dd4bf"
+          className="animate-pulse-dot"
+          style={{ animationDelay: "1.4s" }}
+        />
+        <circle
+          cx="620"
+          cy="250"
+          r="4"
+          fill="#2dd4bf"
+          className="animate-pulse-dot"
+          style={{ animationDelay: "1.5s" }}
+        />
+        <circle
+          cx="450"
+          cy="260"
+          r="4"
+          fill="#2dd4bf"
+          className="animate-pulse-dot"
+          style={{ animationDelay: "1.6s" }}
+        />
 
         <defs>
           <linearGradient id="branchGradient" x1="0%" y1="100%" x2="0%" y2="0%">
@@ -104,8 +160,8 @@ function BranchVisualization() {
             key={i}
             className="absolute w-1 h-1 rounded-full bg-accent/30 animate-float-particle"
             style={{
-              left: `${15 + (i * 7) % 70}%`,
-              top: `${20 + (i * 11) % 60}%`,
+              left: `${15 + ((i * 7) % 70)}%`,
+              top: `${20 + ((i * 11) % 60)}%`,
               animationDelay: `${i * 0.4}s`,
               animationDuration: `${4 + (i % 3)}s`,
             }}
@@ -121,7 +177,7 @@ function FeatureCard({
   title,
   description,
   color,
-  delay
+  delay,
 }: {
   icon: typeof GitBranch;
   title: string;
@@ -136,8 +192,10 @@ function FeatureCard({
       className="relative p-4 rounded-xl bg-white/[0.02] border transition-all duration-300 animate-fade-slide-up"
       style={{
         animationDelay: `${delay}ms`,
-        borderColor: hovered ? `color-mix(in srgb, ${color} 35%, transparent)` : 'rgba(255,255,255,0.06)',
-        backgroundColor: hovered ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
+        borderColor: hovered
+          ? `color-mix(in srgb, ${color} 35%, transparent)`
+          : "rgba(255,255,255,0.06)",
+        backgroundColor: hovered ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -154,7 +212,9 @@ function FeatureCard({
         </div>
         <div className="min-w-0">
           <h3 className="text-[13px] font-medium text-[#f0f2f5] mb-1">{title}</h3>
-          <p className="text-[11px] text-[#6b7280] leading-relaxed whitespace-pre-line">{description}</p>
+          <p className="text-[11px] text-[#6b7280] leading-relaxed whitespace-pre-line">
+            {description}
+          </p>
         </div>
       </div>
     </div>
@@ -169,21 +229,23 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
   const features = [
     {
       icon: GitBranch,
-      title: 'Worktrees',
-      description: 'Manage multiple worktrees side by side with automatic port isolation',
-      color: '#2dd4bf', // teal-400
+      title: "Worktrees",
+      description: "Manage multiple worktrees side by side with automatic port isolation",
+      color: "#2dd4bf", // teal-400
     },
     {
       icon: ListTodo,
-      title: 'Tasks',
-      description: 'Track work from Jira, Linear, or local tasks and link them directly to worktrees',
-      color: '#fbbf24', // amber-400
+      title: "Tasks",
+      description:
+        "Track work from Jira, Linear, or local tasks and link them directly to worktrees",
+      color: "#fbbf24", // amber-400
     },
     {
       icon: Bot,
-      title: 'Agent Management',
-      description: 'Connect any AI agent to collaborate on worktrees and issues.\nManage all agent tooling — skills, plugins, hooks, and rules — in one place',
-      color: '#a78bfa', // purple-400
+      title: "Agent Management",
+      description:
+        "Connect any AI agent to collaborate on worktrees and issues.\nManage all agent tooling — skills, plugins, hooks, and rules — in one place",
+      color: "#a78bfa", // purple-400
     },
   ];
 
@@ -233,10 +295,7 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
         </div>
 
         {/* Import Button */}
-        <div
-          className="animate-fade-slide-up"
-          style={{ animationDelay: '600ms' }}
-        >
+        <div className="animate-fade-slide-up" style={{ animationDelay: "600ms" }}>
           <button
             onClick={handleLaunch}
             onMouseEnter={() => {
@@ -259,15 +318,15 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
           >
             {/* Shimmer effect on hover */}
             <div
-              className={`absolute inset-0 bg-gradient-to-r from-transparent via-accent/10 to-transparent transition-transform duration-700 ${isHovering ? 'translate-x-full' : '-translate-x-full'}`}
+              className={`absolute inset-0 bg-gradient-to-r from-transparent via-accent/10 to-transparent transition-transform duration-700 ${isHovering ? "translate-x-full" : "-translate-x-full"}`}
             />
 
             <div className="relative flex items-center justify-center">
               <span
                 className="relative text-sm font-medium text-accent transition-transform duration-300"
                 style={{
-                  transform: isHovering && !isLaunching ? 'translateX(-6px)' : 'translateX(0)',
-                  transitionDuration: skipTransition.current ? '0ms' : '300ms',
+                  transform: isHovering && !isLaunching ? "translateX(-6px)" : "translateX(0)",
+                  transitionDuration: skipTransition.current ? "0ms" : "300ms",
                 }}
               >
                 Ready to launch
@@ -275,12 +334,16 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
                   className="absolute -right-8 top-0 w-4 h-4 text-accent/70 transition-all duration-300"
                   style={{
                     transform: isLaunching
-                      ? 'translate(16px, -16px)'
+                      ? "translate(16px, -16px)"
                       : isHovering
-                        ? 'translate(-3px, 3px)'
-                        : 'translate(-16px, 16px)',
+                        ? "translate(-3px, 3px)"
+                        : "translate(-16px, 16px)",
                     opacity: isLaunching || !isHovering ? 0 : 1,
-                    transitionDuration: skipTransition.current ? '0ms' : isLaunching ? '400ms' : '300ms',
+                    transitionDuration: skipTransition.current
+                      ? "0ms"
+                      : isLaunching
+                        ? "400ms"
+                        : "300ms",
                   }}
                 />
               </span>
@@ -293,10 +356,17 @@ export function WelcomeScreen({ onImportProject }: WelcomeScreenProps) {
         </div>
 
         {/* Keyboard hint */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 text-[10px] text-[#4b5563] animate-fade-in" style={{ animationDelay: '1s' }}>
-          <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] font-mono">⌘</kbd>
+        <div
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 text-[10px] text-[#4b5563] animate-fade-in"
+          style={{ animationDelay: "1s" }}
+        >
+          <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] font-mono">
+            ⌘
+          </kbd>
           <span>+</span>
-          <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] font-mono">O</kbd>
+          <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.08] font-mono">
+            O
+          </kbd>
           <span className="ml-1">to open project</span>
         </div>
       </div>

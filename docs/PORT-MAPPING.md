@@ -24,11 +24,11 @@ The sequence:
 
 ### API endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/ports` | Returns current `discovered` ports and `offsetStep` |
-| `POST` | `/api/discover` | Triggers a full port discovery run. Returns discovered ports and logs. |
-| `POST` | `/api/detect-env` | Re-scans `.env*` files for port references and updates `envMapping` |
+| Method | Path              | Description                                                            |
+| ------ | ----------------- | ---------------------------------------------------------------------- |
+| `GET`  | `/api/ports`      | Returns current `discovered` ports and `offsetStep`                    |
+| `POST` | `/api/discover`   | Triggers a full port discovery run. Returns discovered ports and logs. |
+| `POST` | `/api/detect-env` | Re-scans `.env*` files for port references and updates `envMapping`    |
 
 ### What gets stored
 
@@ -63,22 +63,22 @@ When a worktree process exits (or is stopped), `PortManager.releaseOffset()` ret
 
 If the application's base ports are `[3000, 3001]`:
 
-| Worktree | Offset | Mapped Ports |
-|----------|--------|--------------|
-| main repo | 0 | 3000, 3001 (unmodified) |
-| feature-a | 10 | 3010, 3011 |
-| feature-b | 20 | 3020, 3021 |
-| feature-c | 30 | 3030, 3031 |
+| Worktree  | Offset | Mapped Ports            |
+| --------- | ------ | ----------------------- |
+| main repo | 0      | 3000, 3001 (unmodified) |
+| feature-a | 10     | 3010, 3011              |
+| feature-b | 20     | 3020, 3021              |
+| feature-c | 30     | 3030, 3031              |
 
 If `feature-a` is stopped, offset 10 becomes available. The next worktree started will reuse offset 10.
 
 ### Example with `offsetStep: 1` (default)
 
-| Worktree | Offset | Mapped Ports |
-|----------|--------|--------------|
-| main repo | 0 | 3000, 3001 |
-| feature-a | 1 | 3001, 3002 |
-| feature-b | 2 | 3002, 3003 |
+| Worktree  | Offset | Mapped Ports |
+| --------- | ------ | ------------ |
+| main repo | 0      | 3000, 3001   |
+| feature-a | 1      | 3001, 3002   |
+| feature-b | 2      | 3002, 3003   |
 
 Note: with `offsetStep: 1` and multiple base ports, the offset ranges can overlap (3001 appears in both the base ports and feature-a's ports). Use a larger `offsetStep` if your application listens on multiple ports. A safe rule of thumb: set `offsetStep` to at least the number of discovered ports.
 
@@ -98,11 +98,11 @@ This causes Node.js to execute `port-hook.cjs` before the application's entry po
 
 The spawned process also receives these environment variables:
 
-| Variable | Type | Description |
-|----------|------|-------------|
-| `__WM_PORT_OFFSET__` | integer | The offset for this worktree (e.g. `10`) |
-| `__WM_KNOWN_PORTS__` | JSON array | Base ports to intercept (e.g. `[3000,3001]`) |
-| `__WM_DEBUG__` | any | If set, logs every intercepted `listen` call to stdout |
+| Variable             | Type       | Description                                            |
+| -------------------- | ---------- | ------------------------------------------------------ |
+| `__WM_PORT_OFFSET__` | integer    | The offset for this worktree (e.g. `10`)               |
+| `__WM_KNOWN_PORTS__` | JSON array | Base ports to intercept (e.g. `[3000,3001]`)           |
+| `__WM_DEBUG__`       | any        | If set, logs every intercepted `listen` call to stdout |
 
 ### What it patches
 
@@ -113,6 +113,7 @@ The hook only activates if both `__WM_PORT_OFFSET__` is greater than 0 and `__WM
 Intercepts all incoming port bindings. When the application calls `server.listen(port)` and `port` is in the known ports set, the hook rewrites the call to `server.listen(port + offset)`.
 
 Handles two calling conventions:
+
 - **Positional:** `listen(port, [host], [backlog], [cb])` -- `args[0]` is a number
 - **Options object:** `listen({ port, host, ... }, [cb])` -- `args[0].port` is read and replaced
 
@@ -121,6 +122,7 @@ Handles two calling conventions:
 Intercepts all outgoing connections. This is critical for cases where one part of your application connects to another (e.g. a frontend dev server proxying to an API server). Without this patch, inter-service connections within the same worktree would still target the base ports.
 
 Handles three calling conventions:
+
 - **Positional:** `connect(port, [host], [cb])` -- port is a number as `args[0]`
 - **Array form:** `connect([{ port, host }, cb])` -- used internally by Node.js HTTP agent
 - **Options object:** `connect({ port, host }, [cb])` -- plain options
@@ -163,6 +165,7 @@ __WM_KNOWN_PORTS__=[3000,4000]
 ```
 
 At runtime:
+
 - `express().listen(3000)` is rewritten to `listen(3010)`
 - `express().listen(4000)` is rewritten to `listen(4010)`
 - `fetch("http://localhost:3000/api")` (which internally calls `net.Socket.connect({ port: 3000 })`) is rewritten to connect to port `3010`

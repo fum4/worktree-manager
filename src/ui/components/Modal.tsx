@@ -1,6 +1,6 @@
-import { X } from 'lucide-react';
+import { X } from "lucide-react";
 
-import { surface, text } from '../theme';
+import { surface, text } from "../theme";
 
 interface ModalProps {
   title: string;
@@ -9,12 +9,20 @@ interface ModalProps {
   footer?: React.ReactNode;
   onClose: () => void;
   onSubmit?: (e: React.FormEvent) => void;
-  width?: 'sm' | 'md' | 'lg';
+  width?: "sm" | "md" | "lg";
 }
 
-const widthMap = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' } as const;
+const widthMap = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-2xl" } as const;
 
-export function Modal({ title, icon, children, footer, onClose, onSubmit, width = 'md' }: ModalProps) {
+export function Modal({
+  title,
+  icon,
+  children,
+  footer,
+  onClose,
+  onSubmit,
+  width = "md",
+}: ModalProps) {
   const widthClass = widthMap[width];
 
   const content = (
@@ -22,14 +30,8 @@ export function Modal({ title, icon, children, footer, onClose, onSubmit, width 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
-          {icon && (
-            <div className="p-2 rounded-lg bg-white/[0.06]">
-              {icon}
-            </div>
-          )}
-          <h2 className={`text-sm font-medium ${text.primary}`}>
-            {title}
-          </h2>
+          {icon && <div className="p-2 rounded-lg bg-white/[0.06]">{icon}</div>}
+          <h2 className={`text-sm font-medium ${text.primary}`}>{title}</h2>
         </div>
         <button
           type="button"
@@ -41,9 +43,7 @@ export function Modal({ title, icon, children, footer, onClose, onSubmit, width 
       </div>
 
       {/* Content */}
-      <div className="px-5 py-4">
-        {children}
-      </div>
+      <div className="px-5 py-4">{children}</div>
 
       {/* Footer */}
       {footer && (
@@ -57,10 +57,7 @@ export function Modal({ title, icon, children, footer, onClose, onSubmit, width 
   return (
     <>
       {/* Backdrop */}
-      <div
-        className={`fixed inset-0 ${surface.overlay} z-50`}
-        onClick={onClose}
-      />
+      <div className={`fixed inset-0 ${surface.overlay} z-50`} onClick={onClose} />
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -84,4 +81,3 @@ export function Modal({ title, icon, children, footer, onClose, onSubmit, width 
     </>
   );
 }
-

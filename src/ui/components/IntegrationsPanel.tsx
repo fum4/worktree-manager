@@ -1,21 +1,26 @@
-import { Check, ChevronDown, Copy, ExternalLink, Plus, Unplug, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Check, ChevronDown, Copy, ExternalLink, Plus, Unplug, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-import { APP_NAME } from '../../constants';
-import { useApi } from '../hooks/useApi';
-import { fetchGitHubStatus, fetchJiraStatus, fetchLinearStatus, verifyIntegrations } from '../hooks/api';
-import { useGitHubStatus, useJiraStatus, useLinearStatus } from '../hooks/useWorktrees';
-import { useServerUrlOptional } from '../contexts/ServerContext';
-import type { DataLifecycleConfig, GitHubStatus, JiraStatus, LinearStatus } from '../types';
-import { button, infoBanner, input, settings, surface, text } from '../theme';
-import { GitHubSetupModal } from './GitHubSetupModal';
-import { GitHubIcon, JiraIcon, LinearIcon } from './icons';
-import { Spinner } from './Spinner';
+import { APP_NAME } from "../../constants";
+import { useApi } from "../hooks/useApi";
+import {
+  fetchGitHubStatus,
+  fetchJiraStatus,
+  fetchLinearStatus,
+  verifyIntegrations,
+} from "../hooks/api";
+import { useGitHubStatus, useJiraStatus, useLinearStatus } from "../hooks/useWorktrees";
+import { useServerUrlOptional } from "../contexts/ServerContext";
+import type { DataLifecycleConfig, GitHubStatus, JiraStatus, LinearStatus } from "../types";
+import { button, infoBanner, input, settings, surface, text } from "../theme";
+import { GitHubSetupModal } from "./GitHubSetupModal";
+import { GitHubIcon, JiraIcon, LinearIcon } from "./icons";
+import { Spinner } from "./Spinner";
 
 const integrationInput = `px-2.5 py-1.5 rounded-md text-xs bg-white/[0.04] border border-white/[0.06] ${input.text} placeholder-[#4b5563] focus:outline-none focus:bg-white/[0.06] focus:border-white/[0.15] transition-all duration-150`;
 
 const DEFAULT_LIFECYCLE: DataLifecycleConfig = {
-  saveOn: 'view',
+  saveOn: "view",
   autoCleanup: {
     enabled: false,
     statusTriggers: [],
@@ -32,7 +37,7 @@ function DataLifecycleSection({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [addingTrigger, setAddingTrigger] = useState(false);
-  const [triggerInput, setTriggerInput] = useState('');
+  const [triggerInput, setTriggerInput] = useState("");
   const triggerInputRef = useRef<HTMLInputElement>(null);
 
   const { saveOn, autoCleanup } = dataLifecycle;
@@ -46,7 +51,7 @@ function DataLifecycleSection({
         autoCleanup: { ...autoCleanup, statusTriggers: [...statusTriggers, trimmed] },
       });
     }
-    setTriggerInput('');
+    setTriggerInput("");
     setAddingTrigger(false);
   };
 
@@ -65,9 +70,9 @@ function DataLifecycleSection({
   };
 
   const saveOnOptions = [
-    { value: 'view' as const, label: 'When viewing' },
-    { value: 'worktree-creation' as const, label: 'On worktree creation' },
-    { value: 'never' as const, label: 'Never' },
+    { value: "view" as const, label: "When viewing" },
+    { value: "worktree-creation" as const, label: "On worktree creation" },
+    { value: "never" as const, label: "Never" },
   ];
 
   return (
@@ -76,7 +81,9 @@ function DataLifecycleSection({
         onClick={() => setExpanded(!expanded)}
         className={`flex items-center gap-1.5 text-[11px] font-medium ${text.secondary} hover:text-white transition-colors duration-150 w-full`}
       >
-        <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${expanded ? '' : '-rotate-90'}`} />
+        <ChevronDown
+          className={`w-3 h-3 transition-transform duration-150 ${expanded ? "" : "-rotate-90"}`}
+        />
         Local Storage
       </button>
 
@@ -92,7 +99,7 @@ function DataLifecycleSection({
                   onClick={() => onChange({ ...dataLifecycle, saveOn: value })}
                   className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors duration-150 ${
                     saveOn === value
-                      ? 'text-white bg-white/[0.10]'
+                      ? "text-white bg-white/[0.10]"
                       : `${text.muted} hover:text-[#9ca3af]`
                   }`}
                 >
@@ -101,34 +108,42 @@ function DataLifecycleSection({
               ))}
             </div>
             <span className={`text-[10px] ${text.dimmed} leading-relaxed`}>
-              {saveOn === 'view'
-                ? 'Issue details, comments, and attachments are saved locally when you open an issue.'
-                : saveOn === 'worktree-creation'
-                  ? 'Nothing is saved until you create a worktree from the issue.'
-                  : 'Issue data is never saved to disk. Disables auto-deletion.'}
+              {saveOn === "view"
+                ? "Issue details, comments, and attachments are saved locally when you open an issue."
+                : saveOn === "worktree-creation"
+                  ? "Nothing is saved until you create a worktree from the issue."
+                  : "Issue data is never saved to disk. Disables auto-deletion."}
             </span>
           </div>
 
-          {saveOn !== 'never' && (
+          {saveOn !== "never" && (
             <>
               {/* Auto-delete toggle */}
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => onChange({
-                    ...dataLifecycle,
-                    autoCleanup: { ...autoCleanup, enabled: !enabled },
-                  })}
+                  onClick={() =>
+                    onChange({
+                      ...dataLifecycle,
+                      autoCleanup: { ...autoCleanup, enabled: !enabled },
+                    })
+                  }
                   className={`relative w-7 h-4 rounded-full transition-colors duration-200 flex-shrink-0 ${
-                    enabled ? 'bg-accent' : 'bg-white/[0.12]'
+                    enabled ? "bg-accent" : "bg-white/[0.12]"
                   }`}
                 >
-                  <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                    enabled ? 'left-[14px]' : 'left-0.5'
-                  }`} />
+                  <span
+                    className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                      enabled ? "left-[14px]" : "left-0.5"
+                    }`}
+                  />
                 </button>
                 <div className="flex flex-col gap-0.5">
-                  <label className={`text-[10px] ${settings.label}`}>Delete local data on status change</label>
-                  <span className={`text-[10px] ${text.dimmed}`}>Remove cached files when an issue is closed or done</span>
+                  <label className={`text-[10px] ${settings.label}`}>
+                    Delete local data on status change
+                  </label>
+                  <span className={`text-[10px] ${text.dimmed}`}>
+                    Remove cached files when an issue is closed or done
+                  </span>
                 </div>
               </div>
 
@@ -159,8 +174,11 @@ function DataLifecycleSection({
                           value={triggerInput}
                           onChange={(e) => setTriggerInput(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') commitTrigger();
-                            if (e.key === 'Escape') { setTriggerInput(''); setAddingTrigger(false); }
+                            if (e.key === "Enter") commitTrigger();
+                            if (e.key === "Escape") {
+                              setTriggerInput("");
+                              setAddingTrigger(false);
+                            }
                           }}
                           onBlur={commitTrigger}
                           placeholder="e.g. Done"
@@ -182,13 +200,18 @@ function DataLifecycleSection({
                   <div className="flex flex-col gap-2.5">
                     <label className={`text-[10px] ${settings.label}`}>What to delete</label>
                     <div className="flex flex-wrap gap-x-6 gap-y-1.5">
-                      {([
-                        ['issueData', 'Cached issue data'],
-                        ['attachments', 'Downloaded attachments'],
-                        ['notes', 'Notes & todos'],
-                        ['linkedWorktree', 'Linked worktree'],
-                      ] as const).map(([key, label]) => (
-                        <label key={key} className={`flex items-center gap-1.5 text-[10px] ${text.secondary} cursor-pointer`}>
+                      {(
+                        [
+                          ["issueData", "Cached issue data"],
+                          ["attachments", "Downloaded attachments"],
+                          ["notes", "Notes & todos"],
+                          ["linkedWorktree", "Linked worktree"],
+                        ] as const
+                      ).map(([key, label]) => (
+                        <label
+                          key={key}
+                          className={`flex items-center gap-1.5 text-[10px] ${text.secondary} cursor-pointer`}
+                        >
                           <input
                             type="checkbox"
                             checked={actions[key]}
@@ -212,7 +235,9 @@ function DataLifecycleSection({
 
 function StatusDot({ active }: { active: boolean }) {
   return (
-    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]' : 'bg-[#4b5563]'}`} />
+    <span
+      className={`w-2 h-2 rounded-full flex-shrink-0 ${active ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" : "bg-[#4b5563]"}`}
+    />
   );
 }
 
@@ -226,18 +251,27 @@ function StatusRow({ label, ok, value }: { label: string; ok: boolean; value: st
   );
 }
 
-function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; onStatusChange: () => void }) {
+function GitHubCard({
+  status,
+  onStatusChange,
+}: {
+  status: GitHubStatus | null;
+  onStatusChange: () => void;
+}) {
   const api = useApi();
   const serverUrl = useServerUrlOptional();
   const isReady = status?.installed && status?.authenticated && status?.repo;
-  const needsRepo = status?.installed && status?.authenticated && !status?.repo && status?.hasCommits;
+  const needsRepo =
+    status?.installed && status?.authenticated && !status?.repo && status?.hasCommits;
   const needsCommit = status?.hasCommits === false;
   const needsSetup = needsCommit || needsRepo;
   const [loading, setLoading] = useState(false);
   const [settingUp, setSettingUp] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [waitingForAuth, setWaitingForAuth] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
+    null,
+  );
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleAutoSetup = async (options: { commitMessage: string; repoPrivate: boolean }) => {
@@ -248,10 +282,10 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
     try {
       // Step 1: Create initial commit if needed
       if (needsCommit) {
-        setFeedback({ type: 'success', message: 'Creating initial commit...' });
+        setFeedback({ type: "success", message: "Creating initial commit..." });
         const commitResult = await api.createInitialCommit();
         if (!commitResult.success) {
-          setFeedback({ type: 'error', message: commitResult.error ?? 'Failed to create commit' });
+          setFeedback({ type: "error", message: commitResult.error ?? "Failed to create commit" });
           setSettingUp(false);
           return;
         }
@@ -259,21 +293,24 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
 
       // Step 2: Create repo if needed
       if (needsRepo || needsCommit) {
-        setFeedback({ type: 'success', message: 'Creating GitHub repository...' });
+        setFeedback({ type: "success", message: "Creating GitHub repository..." });
         const repoResult = await api.createGitHubRepo(options.repoPrivate);
         if (!repoResult.success) {
-          setFeedback({ type: 'error', message: repoResult.error ?? 'Failed to create repository' });
+          setFeedback({
+            type: "error",
+            message: repoResult.error ?? "Failed to create repository",
+          });
           setSettingUp(false);
           onStatusChange();
           return;
         }
-        setFeedback({ type: 'success', message: `Created ${repoResult.repo}` });
+        setFeedback({ type: "success", message: `Created ${repoResult.repo}` });
       }
 
       onStatusChange();
       setTimeout(() => setFeedback(null), 4000);
     } catch {
-      setFeedback({ type: 'error', message: 'Setup failed unexpectedly' });
+      setFeedback({ type: "error", message: "Setup failed unexpectedly" });
     }
     setSettingUp(false);
   };
@@ -320,14 +357,17 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
     if (result.success) {
       if (result.code) {
         await copyToClipboard(result.code);
-        setFeedback({ type: 'success', message: `Code ${result.code} copied! Paste it in your browser.` });
+        setFeedback({
+          type: "success",
+          message: `Code ${result.code} copied! Paste it in your browser.`,
+        });
         setWaitingForAuth(true);
       } else {
-        setFeedback({ type: 'success', message: 'gh CLI installed' });
+        setFeedback({ type: "success", message: "gh CLI installed" });
       }
       onStatusChange();
     } else {
-      setFeedback({ type: 'error', message: result.error ?? 'Failed to install gh' });
+      setFeedback({ type: "error", message: result.error ?? "Failed to install gh" });
       setTimeout(() => setFeedback(null), 4000);
     }
   };
@@ -337,10 +377,13 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
     const result = await api.loginGitHub();
     if (result.success && result.code) {
       await copyToClipboard(result.code);
-      setFeedback({ type: 'success', message: `Code ${result.code} copied! Paste it in your browser.` });
+      setFeedback({
+        type: "success",
+        message: `Code ${result.code} copied! Paste it in your browser.`,
+      });
       setWaitingForAuth(true);
     } else if (!result.success) {
-      setFeedback({ type: 'error', message: result.error ?? 'Failed to start login' });
+      setFeedback({ type: "error", message: result.error ?? "Failed to start login" });
       setTimeout(() => setFeedback(null), 4000);
     }
   };
@@ -349,13 +392,15 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
     <div className="flex flex-col gap-4">
       {/* Card header with icon */}
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isReady ? 'bg-accent/10' : 'bg-white/[0.04]'}`}>
-          <GitHubIcon className={`w-4 h-4 ${isReady ? 'text-accent' : text.muted}`} />
+        <div
+          className={`w-8 h-8 rounded-lg flex items-center justify-center ${isReady ? "bg-accent/10" : "bg-white/[0.04]"}`}
+        >
+          <GitHubIcon className={`w-4 h-4 ${isReady ? "text-accent" : text.muted}`} />
         </div>
         <div>
           <h3 className={`text-xs font-semibold ${text.primary}`}>GitHub</h3>
-          <span className={`text-[10px] ${isReady ? 'text-accent' : text.dimmed}`}>
-            {isReady ? 'Connected' : 'Not connected'}
+          <span className={`text-[10px] ${isReady ? "text-accent" : text.dimmed}`}>
+            {isReady ? "Connected" : "Not connected"}
           </span>
         </div>
       </div>
@@ -368,12 +413,22 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
         </span>
       ) : (
         <div className="flex flex-col gap-1.5">
-          <StatusRow label="CLI" ok={status.installed} value={status.installed ? 'Installed' : 'Not installed'} />
-          <StatusRow label="Auth" ok={status.authenticated} value={status.authenticated ? (status.username ?? 'Authenticated') : 'Not authenticated'} />
+          <StatusRow
+            label="CLI"
+            ok={status.installed}
+            value={status.installed ? "Installed" : "Not installed"}
+          />
+          <StatusRow
+            label="Auth"
+            ok={status.authenticated}
+            value={
+              status.authenticated ? (status.username ?? "Authenticated") : "Not authenticated"
+            }
+          />
           <StatusRow
             label="Repo"
             ok={!!status.repo}
-            value={status.repo ?? (status.authenticated ? 'Not linked' : '—')}
+            value={status.repo ?? (status.authenticated ? "Not linked" : "—")}
           />
         </div>
       )}
@@ -382,8 +437,8 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
       {status && !isReady && !needsSetup && (
         <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
           {!status.installed
-            ? 'Install the GitHub CLI to enable commits, pushes, and pull requests.'
-            : 'Authenticate with GitHub to enable git operations.'}
+            ? "Install the GitHub CLI to enable commits, pushes, and pull requests."
+            : "Authenticate with GitHub to enable git operations."}
         </p>
       )}
 
@@ -392,10 +447,10 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
         <div className="flex flex-col gap-2">
           <p className={`text-[11px] text-orange-400 leading-relaxed`}>
             {needsCommit && needsRepo
-              ? 'This project needs an initial commit and GitHub repository to enable worktrees.'
+              ? "This project needs an initial commit and GitHub repository to enable worktrees."
               : needsCommit
-                ? 'This repository has no commits yet. Create an initial commit to enable worktrees.'
-                : 'This project is not linked to a GitHub repository.'}
+                ? "This repository has no commits yet. Create an initial commit to enable worktrees."
+                : "This project is not linked to a GitHub repository."}
           </p>
           {!settingUp && (
             <button
@@ -415,7 +470,7 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
       )}
 
       {feedback && (
-        <span className={`text-[11px] ${feedback.type === 'success' ? 'text-accent' : text.error}`}>
+        <span className={`text-[11px] ${feedback.type === "success" ? "text-accent" : text.error}`}>
           {feedback.message}
         </span>
       )}
@@ -432,7 +487,9 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
               <Spinner size="xs" />
               Installing...
             </span>
-          ) : 'Install & Connect'}
+          ) : (
+            "Install & Connect"
+          )}
         </button>
       )}
 
@@ -446,7 +503,6 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
         </button>
       )}
 
-
       {/* Logout option */}
       {status?.authenticated && !waitingForAuth && !settingUp && (
         <button
@@ -458,7 +514,7 @@ function GitHubCard({ status, onStatusChange }: { status: GitHubStatus | null; o
             if (result.success) {
               onStatusChange();
             } else {
-              setFeedback({ type: 'error', message: result.error ?? 'Failed to logout' });
+              setFeedback({ type: "error", message: result.error ?? "Failed to logout" });
               setTimeout(() => setFeedback(null), 4000);
             }
           }}
@@ -492,14 +548,16 @@ function JiraCard({
 }) {
   const api = useApi();
   const [showSetup, setShowSetup] = useState(false);
-  const [baseUrl, setBaseUrl] = useState('');
-  const [email, setEmail] = useState('');
-  const [token, setToken] = useState('');
-  const [projectKey, setProjectKey] = useState('');
+  const [baseUrl, setBaseUrl] = useState("");
+  const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
+  const [projectKey, setProjectKey] = useState("");
   const [refreshInterval, setRefreshInterval] = useState(5);
   const [lifecycle, setLifecycle] = useState<DataLifecycleConfig>(DEFAULT_LIFECYCLE);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
+    null,
+  );
   const configReadyRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -514,10 +572,17 @@ function JiraCard({
       setLifecycle(status.dataLifecycle);
     }
     if (status?.configured) {
-      const t = setTimeout(() => { configReadyRef.current = true; }, 50);
+      const t = setTimeout(() => {
+        configReadyRef.current = true;
+      }, 50);
       return () => clearTimeout(t);
     }
-  }, [status?.defaultProjectKey, status?.refreshIntervalMinutes, status?.dataLifecycle, status?.configured]);
+  }, [
+    status?.defaultProjectKey,
+    status?.refreshIntervalMinutes,
+    status?.dataLifecycle,
+    status?.configured,
+  ]);
 
   // Auto-save config on change
   useEffect(() => {
@@ -538,12 +603,12 @@ function JiraCard({
     setSaving(false);
     if (result.success) {
       setShowSetup(false);
-      setBaseUrl('');
-      setEmail('');
-      setToken('');
+      setBaseUrl("");
+      setEmail("");
+      setToken("");
       onStatusChange();
     } else {
-      setFeedback({ type: 'error', message: result.error ?? 'Failed to connect' });
+      setFeedback({ type: "error", message: result.error ?? "Failed to connect" });
     }
     setTimeout(() => setFeedback(null), 4000);
   };
@@ -563,13 +628,15 @@ function JiraCard({
     <div className="flex flex-col gap-4">
       {/* Card header with icon */}
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isConfigured ? 'bg-blue-500/10' : 'bg-white/[0.04]'}`}>
-          <JiraIcon className={`w-4 h-4 ${isConfigured ? 'text-blue-400' : text.muted}`} />
+        <div
+          className={`w-8 h-8 rounded-lg flex items-center justify-center ${isConfigured ? "bg-blue-500/10" : "bg-white/[0.04]"}`}
+        >
+          <JiraIcon className={`w-4 h-4 ${isConfigured ? "text-blue-400" : text.muted}`} />
         </div>
         <div>
           <h3 className={`text-xs font-semibold ${text.primary}`}>Jira</h3>
-          <span className={`text-[10px] ${isConfigured ? 'text-blue-400' : text.dimmed}`}>
-            {isConfigured ? 'Connected' : 'Not connected'}
+          <span className={`text-[10px] ${isConfigured ? "text-blue-400" : text.dimmed}`}>
+            {isConfigured ? "Connected" : "Not connected"}
           </span>
         </div>
       </div>
@@ -601,7 +668,9 @@ function JiraCard({
                 min={1}
                 max={60}
                 value={refreshInterval}
-                onChange={(e) => setRefreshInterval(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+                onChange={(e) =>
+                  setRefreshInterval(Math.max(1, Math.min(60, Number(e.target.value) || 1)))
+                }
                 className={integrationInput}
               />
             </div>
@@ -665,11 +734,13 @@ function JiraCard({
               className={`text-[11px] px-3 py-1.5 rounded-md font-medium ${button.primary} disabled:opacity-50 transition-all duration-150 active:scale-[0.98]`}
             >
               {saving ? (
-              <span className="flex items-center gap-1.5">
-                <Spinner size="xs" />
-                Connecting...
-              </span>
-            ) : 'Connect'}
+                <span className="flex items-center gap-1.5">
+                  <Spinner size="xs" />
+                  Connecting...
+                </span>
+              ) : (
+                "Connect"
+              )}
             </button>
             <button
               onClick={() => setShowSetup(false)}
@@ -694,11 +765,7 @@ function JiraCard({
       )}
 
       {feedback && (
-        <span
-          className={`text-[11px] ${
-            feedback.type === 'success' ? 'text-accent' : text.error
-          }`}
-        >
+        <span className={`text-[11px] ${feedback.type === "success" ? "text-accent" : text.error}`}>
           {feedback.message}
         </span>
       )}
@@ -715,12 +782,14 @@ function LinearCard({
 }) {
   const api = useApi();
   const [showSetup, setShowSetup] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [teamKey, setTeamKey] = useState('');
+  const [apiKey, setApiKey] = useState("");
+  const [teamKey, setTeamKey] = useState("");
   const [refreshInterval, setRefreshInterval] = useState(5);
   const [lifecycle, setLifecycle] = useState<DataLifecycleConfig>(DEFAULT_LIFECYCLE);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
+    null,
+  );
   const configReadyRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -735,10 +804,17 @@ function LinearCard({
       setLifecycle(status.dataLifecycle);
     }
     if (status?.configured) {
-      const t = setTimeout(() => { configReadyRef.current = true; }, 50);
+      const t = setTimeout(() => {
+        configReadyRef.current = true;
+      }, 50);
       return () => clearTimeout(t);
     }
-  }, [status?.defaultTeamKey, status?.refreshIntervalMinutes, status?.dataLifecycle, status?.configured]);
+  }, [
+    status?.defaultTeamKey,
+    status?.refreshIntervalMinutes,
+    status?.dataLifecycle,
+    status?.configured,
+  ]);
 
   // Auto-save config on change
   useEffect(() => {
@@ -759,10 +835,10 @@ function LinearCard({
     setSaving(false);
     if (result.success) {
       setShowSetup(false);
-      setApiKey('');
+      setApiKey("");
       onStatusChange();
     } else {
-      setFeedback({ type: 'error', message: result.error ?? 'Failed to connect' });
+      setFeedback({ type: "error", message: result.error ?? "Failed to connect" });
     }
     setTimeout(() => setFeedback(null), 4000);
   };
@@ -781,13 +857,15 @@ function LinearCard({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isConfigured ? 'bg-[#5E6AD2]/10' : 'bg-white/[0.04]'}`}>
-          <LinearIcon className={`w-4 h-4 ${isConfigured ? 'text-[#5E6AD2]' : text.muted}`} />
+        <div
+          className={`w-8 h-8 rounded-lg flex items-center justify-center ${isConfigured ? "bg-[#5E6AD2]/10" : "bg-white/[0.04]"}`}
+        >
+          <LinearIcon className={`w-4 h-4 ${isConfigured ? "text-[#5E6AD2]" : text.muted}`} />
         </div>
         <div>
           <h3 className={`text-xs font-semibold ${text.primary}`}>Linear</h3>
-          <span className={`text-[10px] ${isConfigured ? 'text-[#5E6AD2]' : text.dimmed}`}>
-            {isConfigured ? 'Connected' : 'Not connected'}
+          <span className={`text-[10px] ${isConfigured ? "text-[#5E6AD2]" : text.dimmed}`}>
+            {isConfigured ? "Connected" : "Not connected"}
           </span>
         </div>
       </div>
@@ -818,7 +896,9 @@ function LinearCard({
                 min={1}
                 max={60}
                 value={refreshInterval}
-                onChange={(e) => setRefreshInterval(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+                onChange={(e) =>
+                  setRefreshInterval(Math.max(1, Math.min(60, Number(e.target.value) || 1)))
+                }
                 className={integrationInput}
               />
             </div>
@@ -868,7 +948,9 @@ function LinearCard({
                   <Spinner size="xs" />
                   Connecting...
                 </span>
-              ) : 'Connect'}
+              ) : (
+                "Connect"
+              )}
             </button>
             <button
               onClick={() => setShowSetup(false)}
@@ -893,11 +975,7 @@ function LinearCard({
       )}
 
       {feedback && (
-        <span
-          className={`text-[11px] ${
-            feedback.type === 'success' ? 'text-accent' : text.error
-          }`}
-        >
+        <span className={`text-[11px] ${feedback.type === "success" ? "text-accent" : text.error}`}>
           {feedback.message}
         </span>
       )}
@@ -905,16 +983,20 @@ function LinearCard({
   );
 }
 
-import { AGENT_CONFIGS, type AgentId, type McpScope } from '../agent-configs';
+import { AGENT_CONFIGS, type AgentId, type McpScope } from "../agent-configs";
 
 function CodingAgentsCard() {
   const api = useApi();
-  const [selectedAgent, setSelectedAgent] = useState<AgentId>('claude');
-  const [scope, setScope] = useState<McpScope>('global');
+  const [selectedAgent, setSelectedAgent] = useState<AgentId>("claude");
+  const [scope, setScope] = useState<McpScope>("global");
   const [copied, setCopied] = useState(false);
-  const [statuses, setStatuses] = useState<Record<string, { global?: boolean; project?: boolean }>>({});
+  const [statuses, setStatuses] = useState<Record<string, { global?: boolean; project?: boolean }>>(
+    {},
+  );
   const [settingUp, setSettingUp] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
+    null,
+  );
 
   const agent = AGENT_CONFIGS.find((a) => a.id === selectedAgent)!;
   const scopeConfig = agent[scope];
@@ -926,7 +1008,7 @@ function CodingAgentsCard() {
   useEffect(() => {
     const a = AGENT_CONFIGS.find((c) => c.id === selectedAgent)!;
     if (!a[scope]) {
-      setScope(a.global ? 'global' : 'project');
+      setScope(a.global ? "global" : "project");
     }
   }, [selectedAgent, scope]);
 
@@ -957,10 +1039,10 @@ function CodingAgentsCard() {
         ...prev,
         [selectedAgent]: { ...prev[selectedAgent], [scope]: true },
       }));
-      setFeedback({ type: 'success', message: `Added to ${scopeConfig!.configPath}` });
+      setFeedback({ type: "success", message: `Added to ${scopeConfig!.configPath}` });
       setTimeout(() => setFeedback(null), 4000);
     } else {
-      setFeedback({ type: 'error', message: result.error ?? 'Setup failed' });
+      setFeedback({ type: "error", message: result.error ?? "Setup failed" });
     }
   };
 
@@ -974,10 +1056,10 @@ function CodingAgentsCard() {
         ...prev,
         [selectedAgent]: { ...prev[selectedAgent], [scope]: false },
       }));
-      setFeedback({ type: 'success', message: `Removed from ${scopeConfig!.configPath}` });
+      setFeedback({ type: "success", message: `Removed from ${scopeConfig!.configPath}` });
       setTimeout(() => setFeedback(null), 4000);
     } else {
-      setFeedback({ type: 'error', message: result.error ?? 'Remove failed' });
+      setFeedback({ type: "error", message: result.error ?? "Remove failed" });
     }
   };
 
@@ -986,7 +1068,16 @@ function CodingAgentsCard() {
       {/* Card header with icon */}
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-500/10">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-purple-400">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-4 h-4 text-purple-400"
+          >
             <path d="M12 8V4H8" />
             <rect width="16" height="12" x="4" y="8" rx="2" />
             <path d="M2 14h2" />
@@ -1002,7 +1093,8 @@ function CodingAgentsCard() {
       </div>
 
       <p className={`text-[11px] ${text.dimmed} leading-relaxed`}>
-        Connect your AI coding agents to manage issues & worktrees, start/stop dev servers, and more.
+        Connect your AI coding agents to manage issues & worktrees, start/stop dev servers, and
+        more.
       </p>
 
       {/* Agent tabs */}
@@ -1018,7 +1110,7 @@ function CodingAgentsCard() {
               }}
               className={`relative px-2.5 py-1 rounded text-[10px] font-medium transition-colors duration-150 ${
                 selectedAgent === a.id
-                  ? 'text-white bg-white/[0.08]'
+                  ? "text-white bg-white/[0.08]"
                   : `${text.muted} hover:text-[#9ca3af]`
               }`}
             >
@@ -1034,17 +1126,19 @@ function CodingAgentsCard() {
         {hasGlobal && hasProject && <div className="border-t border-white/[0.06]" />}
         {hasGlobal && hasProject && (
           <div className="flex gap-1">
-            {(['global', 'project'] as const).map((s) => (
+            {(["global", "project"] as const).map((s) => (
               <button
                 key={s}
-                onClick={() => { setScope(s); setCopied(false); setFeedback(null); }}
+                onClick={() => {
+                  setScope(s);
+                  setCopied(false);
+                  setFeedback(null);
+                }}
                 className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors duration-150 ${
-                  scope === s
-                    ? 'text-white bg-white/[0.08]'
-                    : `${text.muted} hover:text-[#9ca3af]`
+                  scope === s ? "text-white bg-white/[0.08]" : `${text.muted} hover:text-[#9ca3af]`
                 }`}
               >
-                {s === 'global' ? 'Global' : 'This project'}
+                {s === "global" ? "Global" : "This project"}
                 {statuses[selectedAgent]?.[s] && (
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 ml-1.5 align-middle" />
                 )}
@@ -1057,9 +1151,7 @@ function CodingAgentsCard() {
           <>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] ${text.dimmed}`}>
-                  {scopeConfig.configPath}
-                </span>
+                <span className={`text-[10px] ${text.dimmed}`}>{scopeConfig.configPath}</span>
                 {isConfigured && (
                   <span className="flex items-center gap-1 text-[10px] text-emerald-400">
                     <Check className="w-3 h-3" />
@@ -1069,20 +1161,24 @@ function CodingAgentsCard() {
               </div>
               <button
                 onClick={handleCopy}
-                className={`flex items-center gap-1 text-[10px] ${copied ? 'text-accent' : `${text.muted} hover:text-[#9ca3af]`} transition-colors duration-150`}
+                className={`flex items-center gap-1 text-[10px] ${copied ? "text-accent" : `${text.muted} hover:text-[#9ca3af]`} transition-colors duration-150`}
               >
                 {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                {copied ? 'Copied' : 'Copy'}
+                {copied ? "Copied" : "Copy"}
               </button>
             </div>
 
-            <pre className={`text-[10px] font-mono ${text.secondary} bg-white/[0.04] border border-white/[0.06] rounded-md p-3 overflow-x-auto`}>
+            <pre
+              className={`text-[10px] font-mono ${text.secondary} bg-white/[0.04] border border-white/[0.06] rounded-md p-3 overflow-x-auto`}
+            >
               {scopeConfig.config}
             </pre>
 
             <div className="flex items-center gap-4">
               {feedback && (
-                <span className={`text-[11px] ${feedback.type === 'success' ? 'text-accent' : text.error}`}>
+                <span
+                  className={`text-[11px] ${feedback.type === "success" ? "text-accent" : text.error}`}
+                >
                   {feedback.message}
                 </span>
               )}
@@ -1109,7 +1205,9 @@ function CodingAgentsCard() {
                         <Spinner size="xs" />
                         Setting up...
                       </span>
-                    ) : `Setup ${agent.name}`}
+                    ) : (
+                      `Setup ${agent.name}`
+                    )}
                   </button>
                 ) : (
                   <button
@@ -1130,8 +1228,20 @@ function CodingAgentsCard() {
       <div className="flex flex-col gap-1.5 pt-1">
         <span className={`text-[10px] font-medium ${settings.label}`}>Available Tools</span>
         <div className="flex flex-wrap gap-1.5">
-          {['list_worktrees', 'create_worktree', 'start', 'stop', 'commit', 'push', 'create_pr', 'get_logs'].map((tool) => (
-            <span key={tool} className={`text-[9px] px-1.5 py-0.5 rounded ${text.secondary} bg-white/[0.06]`}>
+          {[
+            "list_worktrees",
+            "create_worktree",
+            "start",
+            "stop",
+            "commit",
+            "push",
+            "create_pr",
+            "get_logs",
+          ].map((tool) => (
+            <span
+              key={tool}
+              className={`text-[9px] px-1.5 py-0.5 rounded ${text.secondary} bg-white/[0.06]`}
+            >
               {tool}
             </span>
           ))}
@@ -1148,7 +1258,10 @@ interface IntegrationsPanelProps {
 
 const BANNER_DISMISSED_KEY = `${APP_NAME}-integrations-banner-dismissed`;
 
-export function IntegrationsPanel({ onJiraStatusChange, onLinearStatusChange }: IntegrationsPanelProps) {
+export function IntegrationsPanel({
+  onJiraStatusChange,
+  onLinearStatusChange,
+}: IntegrationsPanelProps) {
   const serverUrl = useServerUrlOptional();
   const githubStatus = useGitHubStatus();
   const { jiraStatus } = useJiraStatus();
@@ -1157,7 +1270,7 @@ export function IntegrationsPanel({ onJiraStatusChange, onLinearStatusChange }: 
   const [jiraRefreshKey, setJiraRefreshKey] = useState(0);
   const [linearRefreshKey, setLinearRefreshKey] = useState(0);
   const [showBanner, setShowBanner] = useState(() => {
-    return localStorage.getItem(BANNER_DISMISSED_KEY) !== 'true';
+    return localStorage.getItem(BANNER_DISMISSED_KEY) !== "true";
   });
 
   const [currentGithubStatus, setCurrentGithubStatus] = useState<GitHubStatus | null>(null);
@@ -1166,7 +1279,7 @@ export function IntegrationsPanel({ onJiraStatusChange, onLinearStatusChange }: 
 
   const dismissBanner = () => {
     setShowBanner(false);
-    localStorage.setItem(BANNER_DISMISSED_KEY, 'true');
+    localStorage.setItem(BANNER_DISMISSED_KEY, "true");
   };
 
   useEffect(() => {
@@ -1187,13 +1300,13 @@ export function IntegrationsPanel({ onJiraStatusChange, onLinearStatusChange }: 
     verifyIntegrations(serverUrl).then((result) => {
       if (!result) return;
       if (result.github?.ok === false) {
-        setCurrentGithubStatus((prev) => prev ? { ...prev, authenticated: false } : prev);
+        setCurrentGithubStatus((prev) => (prev ? { ...prev, authenticated: false } : prev));
       }
       if (result.jira?.ok === false) {
-        setCurrentJiraStatus((prev) => prev ? { ...prev, configured: false } : prev);
+        setCurrentJiraStatus((prev) => (prev ? { ...prev, configured: false } : prev));
       }
       if (result.linear?.ok === false) {
-        setCurrentLinearStatus((prev) => prev ? { ...prev, configured: false } : prev);
+        setCurrentLinearStatus((prev) => (prev ? { ...prev, configured: false } : prev));
       }
     });
   }, [serverUrl]);
@@ -1229,7 +1342,9 @@ export function IntegrationsPanel({ onJiraStatusChange, onLinearStatusChange }: 
     <div>
       <div className="max-w-2xl mx-auto p-6 flex flex-col gap-8">
         {showBanner && (
-          <div className={`relative p-4 pl-5 pr-10 rounded-xl ${infoBanner.bg} border ${infoBanner.border}`}>
+          <div
+            className={`relative p-4 pl-5 pr-10 rounded-xl ${infoBanner.bg} border ${infoBanner.border}`}
+          >
             <button
               onClick={dismissBanner}
               className={`absolute top-1/2 -translate-y-1/2 right-4 p-1 rounded-md ${infoBanner.textMuted} hover:${infoBanner.text} ${infoBanner.hoverBg} transition-colors`}

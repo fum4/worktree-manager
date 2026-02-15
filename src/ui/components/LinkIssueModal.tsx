@@ -1,13 +1,13 @@
-import { Link, ListTodo, Loader2, Search, Ticket } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Link, ListTodo, Loader2, Search, Ticket } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import type { CustomTaskSummary, JiraIssueSummary, LinearIssueSummary } from '../types';
-import { useApi } from '../hooks/useApi';
-import { integration, tab, text } from '../theme';
-import { LinearIcon } from './icons';
-import { Modal } from './Modal';
+import type { CustomTaskSummary, JiraIssueSummary, LinearIssueSummary } from "../types";
+import { useApi } from "../hooks/useApi";
+import { integration, tab, text } from "../theme";
+import { LinearIcon } from "./icons";
+import { Modal } from "./Modal";
 
-type IssueSource = 'local' | 'jira' | 'linear';
+type IssueSource = "local" | "jira" | "linear";
 
 interface LinkIssueModalProps {
   onClose: () => void;
@@ -16,9 +16,14 @@ interface LinkIssueModalProps {
   linearConfigured: boolean;
 }
 
-export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigured }: LinkIssueModalProps) {
+export function LinkIssueModal({
+  onClose,
+  onLink,
+  jiraConfigured,
+  linearConfigured,
+}: LinkIssueModalProps) {
   const api = useApi();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [isLinking, setIsLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,11 +33,11 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
   const [linearIssues, setLinearIssues] = useState<LinearIssueSummary[]>([]);
 
   // Determine available tabs
-  const availableTabs: IssueSource[] = ['local'];
-  if (jiraConfigured) availableTabs.push('jira');
-  if (linearConfigured) availableTabs.push('linear');
+  const availableTabs: IssueSource[] = ["local"];
+  if (jiraConfigured) availableTabs.push("jira");
+  if (linearConfigured) availableTabs.push("linear");
 
-  const [activeTab, setActiveTab] = useState<IssueSource>('local');
+  const [activeTab, setActiveTab] = useState<IssueSource>("local");
 
   // Fetch all issues on mount
   useEffect(() => {
@@ -50,7 +55,9 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
       setLinearIssues(results[2].issues ?? []);
       setLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [api, jiraConfigured, linearConfigured]);
 
   const lowerSearch = search.toLowerCase();
@@ -58,13 +65,26 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
   // Filter unlinked local tasks only
   const filteredLocal = localTasks
     .filter((t) => !t.linkedWorktreeId)
-    .filter((t) => !search || t.title.toLowerCase().includes(lowerSearch) || t.id.toLowerCase().includes(lowerSearch));
+    .filter(
+      (t) =>
+        !search ||
+        t.title.toLowerCase().includes(lowerSearch) ||
+        t.id.toLowerCase().includes(lowerSearch),
+    );
 
-  const filteredJira = jiraIssues
-    .filter((i) => !search || i.summary.toLowerCase().includes(lowerSearch) || i.key.toLowerCase().includes(lowerSearch));
+  const filteredJira = jiraIssues.filter(
+    (i) =>
+      !search ||
+      i.summary.toLowerCase().includes(lowerSearch) ||
+      i.key.toLowerCase().includes(lowerSearch),
+  );
 
-  const filteredLinear = linearIssues
-    .filter((i) => !search || i.title.toLowerCase().includes(lowerSearch) || i.identifier.toLowerCase().includes(lowerSearch));
+  const filteredLinear = linearIssues.filter(
+    (i) =>
+      !search ||
+      i.title.toLowerCase().includes(lowerSearch) ||
+      i.identifier.toLowerCase().includes(lowerSearch),
+  );
 
   const handleLink = async (source: IssueSource, issueId: string) => {
     setIsLinking(true);
@@ -74,7 +94,7 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
     if (result.success) {
       onClose();
     } else {
-      setError(result.error ?? 'Failed to link issue');
+      setError(result.error ?? "Failed to link issue");
     }
   };
 
@@ -100,7 +120,7 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
                   activeTab === t ? tab.active : tab.inactive
                 }`}
               >
-                {t === 'local' ? 'Local Tasks' : t === 'jira' ? 'Jira' : 'Linear'}
+                {t === "local" ? "Local Tasks" : t === "jira" ? "Jira" : "Linear"}
               </button>
             ))}
           </div>
@@ -108,7 +128,9 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
 
         {/* Search */}
         <div className="relative">
-          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${text.dimmed}`} />
+          <Search
+            className={`absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${text.dimmed}`}
+          />
           <input
             type="text"
             value={search}
@@ -127,10 +149,10 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
             </div>
           ) : (
             <>
-              {activeTab === 'local' && (
-                filteredLocal.length === 0 ? (
+              {activeTab === "local" &&
+                (filteredLocal.length === 0 ? (
                   <p className={`text-xs ${text.muted} text-center py-6`}>
-                    {search ? 'No matching tasks' : 'No unlinked tasks available'}
+                    {search ? "No matching tasks" : "No unlinked tasks available"}
                   </p>
                 ) : (
                   filteredLocal.map((task) => (
@@ -138,7 +160,7 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
                       key={task.id}
                       type="button"
                       disabled={isLinking}
-                      onClick={() => handleLink('local', task.id)}
+                      onClick={() => handleLink("local", task.id)}
                       className={itemClass}
                     >
                       <ListTodo className={`w-4 h-4 flex-shrink-0 ${integration.localIssue}`} />
@@ -148,16 +170,17 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
                           <span className={`text-xs ${text.primary} truncate`}>{task.title}</span>
                         </div>
                       </div>
-                      <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>{task.status}</span>
+                      <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>
+                        {task.status}
+                      </span>
                     </button>
                   ))
-                )
-              )}
+                ))}
 
-              {activeTab === 'jira' && (
-                filteredJira.length === 0 ? (
+              {activeTab === "jira" &&
+                (filteredJira.length === 0 ? (
                   <p className={`text-xs ${text.muted} text-center py-6`}>
-                    {search ? 'No matching issues' : 'No Jira issues available'}
+                    {search ? "No matching issues" : "No Jira issues available"}
                   </p>
                 ) : (
                   filteredJira.map((issue) => (
@@ -165,26 +188,29 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
                       key={issue.key}
                       type="button"
                       disabled={isLinking}
-                      onClick={() => handleLink('jira', issue.key)}
+                      onClick={() => handleLink("jira", issue.key)}
                       className={itemClass}
                     >
                       <Ticket className={`w-4 h-4 flex-shrink-0 ${integration.jira}`} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] font-mono ${text.muted}`}>{issue.key}</span>
-                          <span className={`text-xs ${text.primary} truncate`}>{issue.summary}</span>
+                          <span className={`text-xs ${text.primary} truncate`}>
+                            {issue.summary}
+                          </span>
                         </div>
                       </div>
-                      <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>{issue.status}</span>
+                      <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>
+                        {issue.status}
+                      </span>
                     </button>
                   ))
-                )
-              )}
+                ))}
 
-              {activeTab === 'linear' && (
-                filteredLinear.length === 0 ? (
+              {activeTab === "linear" &&
+                (filteredLinear.length === 0 ? (
                   <p className={`text-xs ${text.muted} text-center py-6`}>
-                    {search ? 'No matching issues' : 'No Linear issues available'}
+                    {search ? "No matching issues" : "No Linear issues available"}
                   </p>
                 ) : (
                   filteredLinear.map((issue) => (
@@ -192,28 +218,29 @@ export function LinkIssueModal({ onClose, onLink, jiraConfigured, linearConfigur
                       key={issue.identifier}
                       type="button"
                       disabled={isLinking}
-                      onClick={() => handleLink('linear', issue.identifier)}
+                      onClick={() => handleLink("linear", issue.identifier)}
                       className={itemClass}
                     >
                       <LinearIcon className={`w-4 h-4 flex-shrink-0 ${integration.linear}`} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-mono ${text.muted}`}>{issue.identifier}</span>
+                          <span className={`text-[10px] font-mono ${text.muted}`}>
+                            {issue.identifier}
+                          </span>
                           <span className={`text-xs ${text.primary} truncate`}>{issue.title}</span>
                         </div>
                       </div>
-                      <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>{issue.state.name}</span>
+                      <span className={`text-[10px] ${text.dimmed} flex-shrink-0`}>
+                        {issue.state.name}
+                      </span>
                     </button>
                   ))
-                )
-              )}
+                ))}
             </>
           )}
         </div>
 
-        {error && (
-          <p className={`${text.error} text-[11px]`}>{error}</p>
-        )}
+        {error && <p className={`${text.error} text-[11px]`}>{error}</p>}
       </div>
     </Modal>
   );

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-import { useServerUrlOptional } from '../contexts/ServerContext';
-import { fetchConfig as apiFetchConfig } from './api';
+import { useServerUrlOptional } from "../contexts/ServerContext";
+import { fetchConfig as apiFetchConfig } from "./api";
 
 export interface WorktreeConfig {
   projectDir: string;
@@ -57,4 +57,4 @@ export function useConfig() {
 }
 
 // Re-export API functions that components use directly
-export { saveConfig, setupJira, updateJiraConfig, disconnectJira } from './api';
+export { saveConfig, setupJira, updateJiraConfig, disconnectJira } from "./api";

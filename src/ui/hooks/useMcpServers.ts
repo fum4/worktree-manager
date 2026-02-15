@@ -1,13 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
-import { fetchMcpServers, fetchMcpDeploymentStatus, fetchMcpServer } from './api';
-import { useServerUrlOptional } from '../contexts/ServerContext';
+import { fetchMcpServers, fetchMcpDeploymentStatus, fetchMcpServer } from "./api";
+import { useServerUrlOptional } from "../contexts/ServerContext";
 
 export function useMcpServers(search?: string) {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['mcpServers', serverUrl, search],
+    queryKey: ["mcpServers", serverUrl, search],
     queryFn: async () => {
       const result = await fetchMcpServers(search, serverUrl);
       if (result.error) throw new Error(result.error);
@@ -30,7 +30,7 @@ export function useMcpDeploymentStatus() {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['mcpDeploymentStatus', serverUrl],
+    queryKey: ["mcpDeploymentStatus", serverUrl],
     queryFn: () => fetchMcpDeploymentStatus(serverUrl),
     enabled: serverUrl !== null,
     staleTime: 5_000,
@@ -47,7 +47,7 @@ export function useMcpServerDetail(id: string | null) {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['mcpServer', serverUrl, id],
+    queryKey: ["mcpServer", serverUrl, id],
     queryFn: async () => {
       if (!id) return null;
       const result = await fetchMcpServer(id, serverUrl);

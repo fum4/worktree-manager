@@ -7,12 +7,12 @@ Do NOT read `.dawg/` files or make HTTP requests to the dawg server — all comm
 
 ## Quick Start
 
-| User says | You call |
-|---|---|
-| Issue key like "PROJ-123" or number "456" | `create_from_jira` with `issueKey` param |
+| User says                                   | You call                                     |
+| ------------------------------------------- | -------------------------------------------- |
+| Issue key like "PROJ-123" or number "456"   | `create_from_jira` with `issueKey` param     |
 | Linear identifier like "ENG-42" or "NOM-10" | `create_from_linear` with `identifier` param |
-| Branch name | `create_worktree` with `branch` param |
-| "show my issues" | `list_jira_issues` or `list_linear_issues` |
+| Branch name                                 | `create_worktree` with `branch` param        |
+| "show my issues"                            | `list_jira_issues` or `list_linear_issues`   |
 
 ---
 
@@ -31,12 +31,12 @@ Do NOT read `.dawg/` files or make HTTP requests to the dawg server — all comm
 
 ## While Working in a Worktree
 
-| Tool | Purpose |
-|---|---|
-| `get_task_context` | Refresh full task details, AI context, and todo checklist |
-| `update_todo` | Mark todo items as done (toggle) as you complete them — the user tracks your progress through these checkboxes in real-time |
-| `start_worktree` | Launch the dev server |
-| `commit`, `push`, `create_pr` | Git operations |
+| Tool                          | Purpose                                                                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `get_task_context`            | Refresh full task details, AI context, and todo checklist                                                                   |
+| `update_todo`                 | Mark todo items as done (toggle) as you complete them — the user tracks your progress through these checkboxes in real-time |
+| `start_worktree`              | Launch the dev server                                                                                                       |
+| `commit`, `push`, `create_pr` | Git operations                                                                                                              |
 
 ---
 
@@ -74,18 +74,19 @@ Hooks run at different points in the workflow. Call `get_hooks_config` EARLY (ri
 
 ### Trigger Types
 
-| Trigger | When to run |
-|---|---|
-| **pre-implementation** | BEFORE you start coding — sets up context, scaffolding, prerequisites |
-| **post-implementation** | AFTER you finish implementing — validates changes (type checks, linting, tests, code review) |
-| **custom** | When a natural-language condition is met (e.g. "when changes touch database models") — check conditions as you work |
-| **on-demand** | Only when explicitly requested by the user — do NOT run these automatically |
+| Trigger                 | When to run                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **pre-implementation**  | BEFORE you start coding — sets up context, scaffolding, prerequisites                                               |
+| **post-implementation** | AFTER you finish implementing — validates changes (type checks, linting, tests, code review)                        |
+| **custom**              | When a natural-language condition is met (e.g. "when changes touch database models") — check conditions as you work |
+| **on-demand**           | Only when explicitly requested by the user — do NOT run these automatically                                         |
 
 ### Hooks Workflow
 
 1. Call `get_hooks_config` immediately after entering a worktree to see all hooks
 
 2. **Before running** any hook, skill, or command — inform the user what you are about to run and why
+
    > e.g. "Running pre-implementation hooks: typecheck, lint" or "Invoking /code-review skill as a post-implementation hook"
 
 3. **After running** — summarize results to the user AND report them back through MCP tools so the UI stays updated:
@@ -116,12 +117,12 @@ For skills that produce detailed output (code review, changes summary, test inst
 
 ## Skill-Specific Guidelines
 
-| Skill | Expectations |
-|---|---|
-| **Code review** | Thorough investigation — read actual code files, trace logic, check for bugs, edge cases, security issues, correctness. Don't just summarize the diff. |
-| **Changes summary** | Technical, well-structured, bullet points grouped by area (backend, frontend, types). Not overly verbose, but cover all meaningful changes. |
+| Skill                                | Expectations                                                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Code review**                      | Thorough investigation — read actual code files, trace logic, check for bugs, edge cases, security issues, correctness. Don't just summarize the diff.      |
+| **Changes summary**                  | Technical, well-structured, bullet points grouped by area (backend, frontend, types). Not overly verbose, but cover all meaningful changes.                 |
 | **Test instructions / test writing** | Check if the project has a testing framework configured. If not, ask the user whether to integrate one and which framework. Ask about scope and priorities. |
-| **Explain like I'm 5** | Simple language and analogies. Accessible to non-technical readers. |
+| **Explain like I'm 5**               | Simple language and analogies. Accessible to non-technical readers.                                                                                         |
 
 ---
 

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { Plus, Puzzle, ScanSearch, Search, Server, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from "react";
+import { Plus, Puzzle, ScanSearch, Search, Server, Sparkles } from "lucide-react";
 
-import { skill, input, integration, surface, text } from '../theme';
+import { skill, input, integration, surface, text } from "../theme";
 
 interface AgentsToolbarProps {
   search: string;
@@ -13,7 +13,14 @@ interface AgentsToolbarProps {
   hasItems: boolean;
 }
 
-export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill, onAddPlugin, onScanImport }: AgentsToolbarProps) {
+export function AgentsToolbar({
+  search,
+  onSearchChange,
+  onAddServer,
+  onAddSkill,
+  onAddPlugin,
+  onScanImport,
+}: AgentsToolbarProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
@@ -31,8 +38,8 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
         setShowAddMenu(false);
       }
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [showAddMenu]);
 
   const handleToggleMenu = () => {
@@ -67,7 +74,10 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
         >
           <button
             type="button"
-            onClick={() => { setShowAddMenu(false); onAddServer(); }}
+            onClick={() => {
+              setShowAddMenu(false);
+              onAddServer();
+            }}
             className={menuItemClass}
           >
             <Server className={`w-4 h-4 ${integration.mcp}`} />
@@ -75,7 +85,10 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
           </button>
           <button
             type="button"
-            onClick={() => { setShowAddMenu(false); onAddSkill(); }}
+            onClick={() => {
+              setShowAddMenu(false);
+              onAddSkill();
+            }}
             className={menuItemClass}
           >
             <Sparkles className={`w-4 h-4 ${skill.accent}`} />
@@ -83,7 +96,10 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
           </button>
           <button
             type="button"
-            onClick={() => { setShowAddMenu(false); onAddPlugin(); }}
+            onClick={() => {
+              setShowAddMenu(false);
+              onAddPlugin();
+            }}
             className={menuItemClass}
           >
             <Puzzle className="w-4 h-4 text-[#D4A574]" />
@@ -92,7 +108,10 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
           <div className="border-t border-white/[0.06]" />
           <button
             type="button"
-            onClick={() => { setShowAddMenu(false); onScanImport(); }}
+            onClick={() => {
+              setShowAddMenu(false);
+              onScanImport();
+            }}
             className={menuItemClass}
           >
             <ScanSearch className="w-4 h-4 text-[#9ca3af]" />
@@ -103,7 +122,9 @@ export function AgentsToolbar({ search, onSearchChange, onAddServer, onAddSkill,
 
       <div className="px-3 pt-2 pb-3">
         <div className="relative">
-          <Search className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${text.dimmed}`} />
+          <Search
+            className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${text.dimmed}`}
+          />
           <input
             type="text"
             value={search}

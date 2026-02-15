@@ -1,7 +1,7 @@
-import type { CustomTaskSummary } from '../types';
-import { text } from '../theme';
-import { CustomTaskItem } from './CustomTaskItem';
-import { Spinner } from './Spinner';
+import type { CustomTaskSummary } from "../types";
+import { text } from "../theme";
+import { CustomTaskItem } from "./CustomTaskItem";
+import { Spinner } from "./Spinner";
 
 interface CustomTaskListProps {
   tasks: CustomTaskSummary[];

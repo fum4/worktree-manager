@@ -1,6 +1,6 @@
-import type { WorktreeInfo } from '../types';
-import { text } from '../theme';
-import { WorktreeItem } from './WorktreeItem';
+import type { WorktreeInfo } from "../types";
+import { text } from "../theme";
+import { WorktreeItem } from "./WorktreeItem";
 
 interface WorktreeListProps {
   worktrees: WorktreeInfo[];
@@ -13,8 +13,16 @@ interface WorktreeListProps {
   onSelectLocalIssue?: (identifier: string) => void;
 }
 
-export function WorktreeList({ worktrees, selectedId, onSelect, filter = '', localIssueLinkedIds, onSelectJiraIssue, onSelectLinearIssue, onSelectLocalIssue }: WorktreeListProps) {
-
+export function WorktreeList({
+  worktrees,
+  selectedId,
+  onSelect,
+  filter = "",
+  localIssueLinkedIds,
+  onSelectJiraIssue,
+  onSelectLinearIssue,
+  onSelectLocalIssue,
+}: WorktreeListProps) {
   const filtered = filter
     ? worktrees.filter((w) => {
         const q = filter.toLowerCase();
@@ -42,18 +50,18 @@ export function WorktreeList({ worktrees, selectedId, onSelect, filter = '', loc
           </div>
         ) : (
           <div className="space-y-px">
-          {filtered.map((worktree) => (
-            <WorktreeItem
-              key={worktree.id}
-              worktree={worktree}
-              isSelected={worktree.id === selectedId}
-              onSelect={() => onSelect(worktree.id)}
-              hasLocalIssue={localIssueLinkedIds?.has(worktree.id)}
-              onSelectJiraIssue={onSelectJiraIssue}
-              onSelectLinearIssue={onSelectLinearIssue}
-              onSelectLocalIssue={onSelectLocalIssue}
-            />
-          ))}
+            {filtered.map((worktree) => (
+              <WorktreeItem
+                key={worktree.id}
+                worktree={worktree}
+                isSelected={worktree.id === selectedId}
+                onSelect={() => onSelect(worktree.id)}
+                hasLocalIssue={localIssueLinkedIds?.has(worktree.id)}
+                onSelectJiraIssue={onSelectJiraIssue}
+                onSelectLinearIssue={onSelectLinearIssue}
+                onSelectLocalIssue={onSelectLocalIssue}
+              />
+            ))}
           </div>
         )}
       </div>

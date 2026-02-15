@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { Check, Plus, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { Check, Plus, X } from "lucide-react";
 
-import type { TodoItem } from '../../hooks/api';
-import { notes as notesTheme, text } from '../../theme';
+import type { TodoItem } from "../../hooks/api";
+import { notes as notesTheme, text } from "../../theme";
 
 interface TodoListProps {
   todos: TodoItem[];
@@ -34,7 +34,13 @@ export function TodoList({ todos, onAdd, onToggle, onDelete, onUpdate }: TodoLis
   return (
     <div>
       {todos.map((todo) => (
-        <TodoRow key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} />
+        <TodoRow
+          key={todo.id}
+          todo={todo}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          onUpdate={onUpdate}
+        />
       ))}
 
       {drafts.map((draftId) => (
@@ -67,27 +73,35 @@ function NewTodoRow({
   onCommit: (value: string) => void;
   onCancel: () => void;
 }) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const committed = useRef(false);
 
   useEffect(() => {
     inputRef.current?.focus();
-    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
   }, []);
 
-  const commit = useCallback((v: string) => {
-    if (committed.current) return;
-    committed.current = true;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    onCommit(v);
-  }, [onCommit]);
+  const commit = useCallback(
+    (v: string) => {
+      if (committed.current) return;
+      committed.current = true;
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      onCommit(v);
+    },
+    [onCommit],
+  );
 
-  const scheduleCommit = useCallback((v: string) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => commit(v), 600);
-  }, [commit]);
+  const scheduleCommit = useCallback(
+    (v: string) => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => commit(v), 600);
+    },
+    [commit],
+  );
 
   const handleChange = (newValue: string) => {
     setValue(newValue);
@@ -112,7 +126,9 @@ function NewTodoRow({
   return (
     <div className="flex items-start gap-2.5 py-1.5 px-1 -mx-1 rounded-md">
       {/* Unchecked checkbox (static) */}
-      <div className={`flex-shrink-0 w-4 h-4 mt-[1px] rounded-full border ${notesTheme.todoCheckbox}`} />
+      <div
+        className={`flex-shrink-0 w-4 h-4 mt-[1px] rounded-full border ${notesTheme.todoCheckbox}`}
+      />
 
       {/* Editable input */}
       <input
@@ -122,12 +138,12 @@ function NewTodoRow({
         onChange={(e) => handleChange(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') {
+          if (e.key === "Enter") {
             const trimmed = value.trim();
             if (trimmed) commit(trimmed);
             else onCancel();
           }
-          if (e.key === 'Escape') onCancel();
+          if (e.key === "Escape") onCancel();
         }}
         placeholder="What needs to be done?"
         className={`flex-1 bg-transparent text-xs leading-relaxed ${text.primary} outline-none placeholder-[#3b4049]`}
@@ -150,7 +166,7 @@ function TodoRow({
   onUpdate: (id: string, text: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
 
   const startEdit = () => {
     setDraft(todo.text);
@@ -167,7 +183,6 @@ function TodoRow({
 
   return (
     <div className="flex items-start gap-2.5 py-1.5 px-1 -mx-1 rounded-md group hover:bg-white/[0.02] transition-colors">
-
       {/* Circular checkbox */}
       <button
         type="button"
@@ -184,7 +199,7 @@ function TodoRow({
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
-              transition={{ duration: 0.12, ease: 'easeOut' }}
+              transition={{ duration: 0.12, ease: "easeOut" }}
             >
               <Check className={`w-2.5 h-2.5 ${notesTheme.todoCheckIcon}`} strokeWidth={3} />
             </motion.div>
@@ -200,8 +215,8 @@ function TodoRow({
           onChange={(e) => setDraft(e.target.value)}
           onBlur={finishEdit}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') finishEdit();
-            if (e.key === 'Escape') setEditing(false);
+            if (e.key === "Enter") finishEdit();
+            if (e.key === "Escape") setEditing(false);
           }}
           autoFocus
           className={`flex-1 bg-transparent text-xs leading-relaxed ${text.primary} outline-none`}
@@ -210,9 +225,7 @@ function TodoRow({
         <span
           onClick={startEdit}
           className={`flex-1 text-xs leading-relaxed transition-all duration-200 ${
-            todo.checked
-              ? `line-through ${text.dimmed}`
-              : `${text.primary} cursor-text`
+            todo.checked ? `line-through ${text.dimmed}` : `${text.primary} cursor-text`
           }`}
         >
           {todo.text}

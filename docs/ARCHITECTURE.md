@@ -66,6 +66,7 @@ flowchart TB
 `src/server/manager.ts` -- The central orchestrator. Manages the lifecycle of git worktrees: creation (with async status updates via SSE), starting/stopping dev processes, removal, and renaming. It owns instances of `PortManager` and `NotesManager`, and optionally initializes `GitHubManager` for PR tracking and git operations.
 
 Key responsibilities:
+
 - **Worktree CRUD**: `createWorktree()`, `removeWorktree()`, `renameWorktree()`, `recoverWorktree()`
 - **Process management**: `startWorktree()` spawns the dev command with port-offset env vars; `stopWorktree()` sends SIGTERM
 - **SSE notification**: Maintains a set of event listeners and calls `notifyListeners()` on every state change
@@ -78,6 +79,7 @@ Key responsibilities:
 `src/server/port-manager.ts` -- Handles port discovery, offset allocation, and environment variable generation.
 
 Key responsibilities:
+
 - **Port discovery**: `discoverPorts()` spawns the project's start command, waits for stabilization (15 seconds), walks the process tree via `pgrep`, and scans for listening ports via `lsof`
 - **Offset allocation**: `allocateOffset()` hands out sequential multiples of `offsetStep` (e.g., 1, 2, 3...); `releaseOffset()` frees them
 - **Env var generation**: `getEnvForOffset()` builds the environment variables that activate the port hook: `NODE_OPTIONS` (with `--require port-hook.cjs`), `__WM_PORT_OFFSET__`, `__WM_KNOWN_PORTS__`, plus any user-defined `envMapping` templates
@@ -89,6 +91,7 @@ Key responsibilities:
 `src/server/terminal-manager.ts` -- Manages interactive PTY (pseudo-terminal) sessions that connect to the web UI via WebSockets.
 
 Key responsibilities:
+
 - **Session lifecycle**: `createSession()` registers a session; `attachWebSocket()` spawns the PTY process (using `node-pty`) and wires bidirectional data flow between the WebSocket and the PTY
 - **Resize handling**: JSON messages with `{ type: "resize", cols, rows }` are intercepted and forwarded to `pty.resize()`
 - **Cleanup**: `destroySession()`, `destroyAllForWorktree()`, `destroyAll()` handle teardown of PTY processes and WebSocket connections
@@ -98,6 +101,7 @@ Key responsibilities:
 `src/server/notes-manager.ts` -- Manages per-issue metadata stored as JSON files under `.dawg/issues/{source}/{issueId}/notes.json`.
 
 Stored data per issue:
+
 - **linkedWorktreeId**: Which worktree is associated with this issue
 - **personal**: Free-text notes (private to the user, not exposed to agents)
 - **aiContext**: Directions for AI agents working on this issue
@@ -196,16 +200,17 @@ Configuration lives in `tsup.config.ts` at the project root:
 
 ```typescript
 export default defineConfig({
-  entry: ['src/cli/index.ts', 'src/electron-entry.ts'],
-  format: 'esm',
-  external: ['node-pty', 'electron'],
+  entry: ["src/cli/index.ts", "src/electron-entry.ts"],
+  format: "esm",
+  external: ["node-pty", "electron"],
   esbuildOptions(options) {
-    options.loader = { ...options.loader, '.md': 'text' };
+    options.loader = { ...options.loader, ".md": "text" };
   },
 });
 ```
 
 This bundles two entry points:
+
 - `src/cli/index.ts` -- The CLI entry point (produces `dist/cli/index.js`)
 - `src/electron-entry.ts` -- The Electron IPC bridge entry point
 
@@ -236,6 +241,7 @@ pnpm build
 ```
 
 This runs sequentially:
+
 1. tsup -- bundle backend ESM entries
 2. tsc -- compile Electron main process
 3. cp -- copy preload.cjs and port-hook.cjs
@@ -383,23 +389,23 @@ Agent instruction text (MCP instructions, IDE skill/rule files, hook skill defin
 
 ### Placeholders
 
-| Placeholder | Resolved | Value |
-|---|---|---|
-| `{{APP_NAME}}` | At module load time in `index.ts` | `APP_NAME` constant ("dawg") |
+| Placeholder    | Resolved                          | Value                                  |
+| -------------- | --------------------------------- | -------------------------------------- |
+| `{{APP_NAME}}` | At module load time in `index.ts` | `APP_NAME` constant ("dawg")           |
 | `{{WORKFLOW}}` | At module load time in `index.ts` | Content of `agents/shared-workflow.md` |
-| `{{ISSUE_ID}}` | At runtime by the caller | Function argument (e.g. "PROJ-123") |
+| `{{ISSUE_ID}}` | At runtime by the caller          | Function argument (e.g. "PROJ-123")    |
 
 ### File map
 
-| File | Export | Used by |
-|---|---|---|
-| `mcp-server.md` | `MCP_INSTRUCTIONS` | `mcp-server-factory.ts` (server instructions) |
-| `mcp-work-on-task.md` | `MCP_WORK_ON_TASK_PROMPT` | `mcp-server-factory.ts` (prompt template) |
-| `agents/claude-skill.md` | `CLAUDE_SKILL` | `builtin-instructions.ts` (deployed to `~/.claude/skills/`) |
-| `agents/cursor-rule.md` | `CURSOR_RULE` | `builtin-instructions.ts` (deployed to `.cursor/rules/`) |
-| `agents/vscode-prompt.md` | `VSCODE_PROMPT` | `builtin-instructions.ts` (deployed to `.github/prompts/`) |
-| `agents/shared-workflow.md` | *(internal)* | Interpolated into cursor-rule and vscode-prompt via `{{WORKFLOW}}` |
-| `skills/*.md` | `PREDEFINED_SKILLS` | `verification-skills.ts` (deployed to `~/.dawg/skills/`) |
+| File                        | Export                    | Used by                                                            |
+| --------------------------- | ------------------------- | ------------------------------------------------------------------ |
+| `mcp-server.md`             | `MCP_INSTRUCTIONS`        | `mcp-server-factory.ts` (server instructions)                      |
+| `mcp-work-on-task.md`       | `MCP_WORK_ON_TASK_PROMPT` | `mcp-server-factory.ts` (prompt template)                          |
+| `agents/claude-skill.md`    | `CLAUDE_SKILL`            | `builtin-instructions.ts` (deployed to `~/.claude/skills/`)        |
+| `agents/cursor-rule.md`     | `CURSOR_RULE`             | `builtin-instructions.ts` (deployed to `.cursor/rules/`)           |
+| `agents/vscode-prompt.md`   | `VSCODE_PROMPT`           | `builtin-instructions.ts` (deployed to `.github/prompts/`)         |
+| `agents/shared-workflow.md` | _(internal)_              | Interpolated into cursor-rule and vscode-prompt via `{{WORKFLOW}}` |
+| `skills/*.md`               | `PREDEFINED_SKILLS`       | `verification-skills.ts` (deployed to `~/.dawg/skills/`)           |
 
 ## Server-as-Hub Pattern
 

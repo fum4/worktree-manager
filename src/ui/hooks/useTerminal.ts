@@ -1,11 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  createTerminalSession,
-  destroyTerminalSession,
-  getTerminalWsUrl,
-} from './api';
-import { useServerUrlOptional } from '../contexts/ServerContext';
+import { createTerminalSession, destroyTerminalSession, getTerminalWsUrl } from "./api";
+import { useServerUrlOptional } from "../contexts/ServerContext";
 
 interface UseTerminalOptions {
   worktreeId: string;
@@ -63,7 +59,7 @@ export function useTerminal({
 
   const connect = useCallback(async () => {
     if (serverUrl === null) {
-      setError('No active project');
+      setError("No active project");
       return;
     }
 
@@ -85,7 +81,7 @@ export function useTerminal({
     }
 
     if (!result.success || !result.sessionId) {
-      setError(result.error || 'Failed to create terminal session');
+      setError(result.error || "Failed to create terminal session");
       return;
     }
 
@@ -101,10 +97,10 @@ export function useTerminal({
     };
 
     ws.onmessage = (event) => {
-      if (typeof event.data === 'string') {
+      if (typeof event.data === "string") {
         try {
           const msg = JSON.parse(event.data);
-          if (msg.type === 'exit') {
+          if (msg.type === "exit") {
             onExitRef.current?.(msg.exitCode);
             setIsConnected(false);
             return;
@@ -121,7 +117,7 @@ export function useTerminal({
     };
 
     ws.onerror = () => {
-      setError('WebSocket connection failed');
+      setError("WebSocket connection failed");
       setIsConnected(false);
     };
   }, [worktreeId, disconnect, serverUrl]);
@@ -137,7 +133,7 @@ export function useTerminal({
       const last = lastSizeRef.current;
       if (last && last.cols === cols && last.rows === rows) return;
       lastSizeRef.current = { cols, rows };
-      wsRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
+      wsRef.current.send(JSON.stringify({ type: "resize", cols, rows }));
     }
   }, []);
 

@@ -77,12 +77,14 @@ When deploying agent instructions for Claude, dawg also merges `mcp__dawg__*` in
 The MCP server exposes the following tools (defined in `src/actions.ts`):
 
 **Issue browsing:**
+
 - `list_jira_issues` -- List assigned Jira issues, optionally filtered by text search
 - `get_jira_issue` -- Get full Jira issue details (checks local cache first)
 - `list_linear_issues` -- List assigned Linear issues
 - `get_linear_issue` -- Get full Linear issue details (checks local cache first)
 
 **Worktree management:**
+
 - `list_worktrees` -- List all worktrees with status, ports, and git info
 - `create_worktree` -- Create a worktree from a branch name
 - `create_from_jira` -- Create a worktree from a Jira issue key
@@ -93,20 +95,24 @@ The MCP server exposes the following tools (defined in `src/actions.ts`):
 - `get_logs` -- Get recent output logs from a running worktree
 
 **Git operations (subject to [git policy](#agent-git-policy)):**
+
 - `commit` -- Stage all changes and commit
 - `push` -- Push commits to remote
 - `create_pr` -- Create a GitHub pull request
 
 **Task context:**
+
 - `get_task_context` -- Get full task context (issue details, AI directions, todo checklist) and regenerate TASK.md
 - `read_issue_notes` -- Read AI context notes for a worktree or issue
 - `update_todo` -- Add, toggle, or delete todo checklist items
 - `get_config` -- Get the current dawg configuration
 
 **Git policy:**
+
 - `get_git_policy` -- Check whether commit/push/PR operations are allowed for a worktree
 
 **Hooks:**
+
 - `get_hooks_config` -- Get hooks configuration (steps and skills by trigger type)
 - `run_hooks` -- Run hook steps for a worktree
 - `report_hook_status` -- Report a skill hook result (call twice: once before invoking to show loading, once after with the result)
@@ -130,14 +136,14 @@ The registry is stored at `~/.dawg/mcp-servers.json` and persists across project
 
 ```typescript
 interface McpServerDefinition {
-  id: string;           // Unique slug (auto-generated from name)
-  name: string;         // Human-readable name
-  description: string;  // What this server does
-  tags: string[];       // Categorization tags
-  command: string;      // Executable command
-  args: string[];       // Command arguments
-  env: Record<string, string>;  // Environment variables
-  source?: string;      // Where this was discovered/imported from
+  id: string; // Unique slug (auto-generated from name)
+  name: string; // Human-readable name
+  description: string; // What this server does
+  tags: string[]; // Categorization tags
+  command: string; // Executable command
+  args: string[]; // Command arguments
+  env: Record<string, string>; // Environment variables
+  source?: string; // Where this was discovered/imported from
   createdAt: string;
   updatedAt: string;
 }
@@ -151,13 +157,13 @@ MCP servers often need different API keys or configuration per project. dawg sup
 
 dawg can deploy MCP server configurations to the following agents, at both global and project scope:
 
-| Agent       | Global Config Path                                   | Project Config Path     | Format |
-|-------------|------------------------------------------------------|-------------------------|--------|
-| Claude Code | `~/.claude/settings.json`                            | `.mcp.json`             | JSON   |
-| Gemini CLI  | `~/.gemini/settings.json`                            | `.gemini/settings.json` | JSON   |
-| OpenAI Codex| `~/.codex/config.toml`                               | `.codex/config.toml`    | TOML   |
-| Cursor      | `~/.cursor/mcp.json`                                 | `.cursor/mcp.json`      | JSON   |
-| VS Code     | `~/Library/Application Support/Code/User/settings.json` | `.vscode/settings.json` | JSON   |
+| Agent        | Global Config Path                                      | Project Config Path     | Format |
+| ------------ | ------------------------------------------------------- | ----------------------- | ------ |
+| Claude Code  | `~/.claude/settings.json`                               | `.mcp.json`             | JSON   |
+| Gemini CLI   | `~/.gemini/settings.json`                               | `.gemini/settings.json` | JSON   |
+| OpenAI Codex | `~/.codex/config.toml`                                  | `.codex/config.toml`    | TOML   |
+| Cursor       | `~/.cursor/mcp.json`                                    | `.cursor/mcp.json`      | JSON   |
+| VS Code      | `~/Library/Application Support/Code/User/settings.json` | `.vscode/settings.json` | JSON   |
 
 Deployment writes the server entry into the target config file's MCP section (e.g., `mcpServers` for JSON, `[mcp_servers.*]` for TOML). Undeployment removes it.
 
@@ -208,7 +214,7 @@ that the agent receives when the skill is invoked.
 **Frontmatter fields:**
 
 | Field                      | Description                                                                 |
-|----------------------------|-----------------------------------------------------------------------------|
+| -------------------------- | --------------------------------------------------------------------------- |
 | `name`                     | Display name for the skill                                                  |
 | `description`              | Brief description shown in skill listings                                   |
 | `allowed-tools`            | Comma-separated list of tools the skill is allowed to use                   |
@@ -221,6 +227,7 @@ that the agent receives when the skill is invoked.
 | `mode`                     | If `true`, this skill acts as a persistent mode (default: `false`)          |
 
 A skill directory may also contain optional companion files:
+
 - `reference.md` -- Reference documentation included as context
 - `examples.md` -- Example invocations and outputs
 
@@ -242,13 +249,13 @@ Skills are stored in `~/.dawg/skills/`, with each skill in its own subdirectory:
 
 Skills are deployed to agents via symlinks. Each supported agent has a skills directory:
 
-| Agent       | Global Path         | Project Path       |
-|-------------|---------------------|--------------------|
-| Claude Code | `~/.claude/skills`  | `.claude/skills`   |
-| Cursor      | `~/.cursor/skills`  | `.cursor/skills`   |
-| Gemini CLI  | `~/.gemini/skills`  | `.gemini/skills`   |
-| OpenAI Codex| `~/.codex/skills`   | `.codex/skills`    |
-| VS Code     | `~/.vscode/skills`  | `.vscode/skills`   |
+| Agent        | Global Path        | Project Path     |
+| ------------ | ------------------ | ---------------- |
+| Claude Code  | `~/.claude/skills` | `.claude/skills` |
+| Cursor       | `~/.cursor/skills` | `.cursor/skills` |
+| Gemini CLI   | `~/.gemini/skills` | `.gemini/skills` |
+| OpenAI Codex | `~/.codex/skills`  | `.codex/skills`  |
+| VS Code      | `~/.vscode/skills` | `.vscode/skills` |
 
 Deploying a skill creates a symlink from the agent's skills directory to the registry:
 
@@ -329,11 +336,11 @@ dawg provides a policy system that controls whether AI agents can perform git op
 
 Three operations are governed by git policy:
 
-| Operation    | Config Key          | Description                        |
-|--------------|---------------------|------------------------------------|
-| `commit`     | `allowAgentCommits` | Stage and commit changes           |
-| `push`       | `allowAgentPushes`  | Push commits to remote             |
-| `create_pr`  | `allowAgentPRs`     | Create a GitHub pull request       |
+| Operation   | Config Key          | Description                  |
+| ----------- | ------------------- | ---------------------------- |
+| `commit`    | `allowAgentCommits` | Stage and commit changes     |
+| `push`      | `allowAgentPushes`  | Push commits to remote       |
+| `create_pr` | `allowAgentPRs`     | Create a GitHub pull request |
 
 ### Global Settings
 
@@ -354,10 +361,10 @@ All three default to `false` -- agents cannot perform git operations unless expl
 Each worktree (linked to an issue) can override the global policy. Overrides are stored in the issue's notes and can be one of three values:
 
 | Override Value | Behavior                                          |
-|----------------|---------------------------------------------------|
+| -------------- | ------------------------------------------------- |
 | `inherit`      | Falls through to the global config (default)      |
-| `allow`        | Permits the operation regardless of global config  |
-| `deny`         | Blocks the operation regardless of global config   |
+| `allow`        | Permits the operation regardless of global config |
+| `deny`         | Blocks the operation regardless of global config  |
 
 ### Resolution Logic
 
@@ -371,7 +378,7 @@ The result is a `GitPolicyResult`:
 ```typescript
 interface GitPolicyResult {
   allowed: boolean;
-  reason?: string;  // Explanation when denied
+  reason?: string; // Explanation when denied
 }
 ```
 
@@ -402,7 +409,7 @@ A rule receives `{ message, issueId, source }` and returns a formatted string. T
     return `[${issueId}] ${message}`;
   }
   return message;
-}
+};
 ```
 
 ---
@@ -413,19 +420,19 @@ dawg includes a hooks system that agents can use to run automated checks at defi
 
 ### Trigger Types
 
-| Trigger | When it fires |
-|---------|---------------|
-| `pre-implementation` | Before agents start working on a task |
-| `post-implementation` | After agents finish implementing a task (default) |
-| `custom` | Agent decides based on a natural-language condition |
-| `on-demand` | Manually triggered from the UI |
+| Trigger               | When it fires                                       |
+| --------------------- | --------------------------------------------------- |
+| `pre-implementation`  | Before agents start working on a task               |
+| `post-implementation` | After agents finish implementing a task (default)   |
+| `custom`              | Agent decides based on a natural-language condition |
+| `on-demand`           | Manually triggered from the UI                      |
 
 ### Item Types
 
-| Type | Execution |
-|------|-----------|
-| Command steps | dawg runs shell commands in the worktree directory and returns stdout/stderr with pass/fail |
-| Skill references | Agent is told which skills to invoke; results are reported back |
+| Type             | Execution                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| Command steps    | dawg runs shell commands in the worktree directory and returns stdout/stderr with pass/fail |
+| Skill references | Agent is told which skills to invoke; results are reported back                             |
 
 The same skill can be used in multiple trigger types (e.g., code-review in both `post-implementation` and `on-demand`). Skills are identified by the composite key `skillName + trigger`.
 
@@ -496,12 +503,14 @@ The view uses a sidebar + detail panel layout:
 ### Detail Panels
 
 **MCP Server Detail** (`McpServerDetailPanel`):
+
 - Server metadata (name, description, command, args, tags)
 - Per-project environment variable overrides
 - Deployment grid: toggle deployment to each agent at global or project scope
 - Delete server from registry
 
 **Skill Detail** (`SkillDetailPanel`):
+
 - Skill metadata from SKILL.md frontmatter
 - SKILL.md editor (frontmatter + instructions body)
 - Optional reference.md and examples.md editors
@@ -509,6 +518,7 @@ The view uses a sidebar + detail panel layout:
 - Delete skill from registry
 
 **Agent Rule Detail** (`AgentRuleDetailPanel`):
+
 - File name and path header with delete button
 - Markdown preview (click to switch to edit mode)
 - Textarea editor with debounced auto-save (600ms)
@@ -516,6 +526,7 @@ The view uses a sidebar + detail panel layout:
 - Delete confirmation dialog
 
 **Plugin Detail** (`PluginDetailPanel`):
+
 - Plugin metadata (name, version, marketplace, scope)
 - README content
 - Component breakdown (commands, agents, skills, MCP servers, hooks, LSP)
@@ -542,68 +553,68 @@ On first visit, the Agents view automatically runs a device-wide scan for MCP se
 
 ### Agent Rules
 
-| Method   | Endpoint                          | Description                              |
-|----------|-----------------------------------|------------------------------------------|
-| `GET`    | `/api/agent-rules/:fileId`        | Get file content (`{ exists, content }`) |
-| `PUT`    | `/api/agent-rules/:fileId`        | Save file content (`{ content }`)        |
-| `DELETE` | `/api/agent-rules/:fileId`        | Delete the file from disk                |
+| Method   | Endpoint                   | Description                              |
+| -------- | -------------------------- | ---------------------------------------- |
+| `GET`    | `/api/agent-rules/:fileId` | Get file content (`{ exists, content }`) |
+| `PUT`    | `/api/agent-rules/:fileId` | Save file content (`{ content }`)        |
+| `DELETE` | `/api/agent-rules/:fileId` | Delete the file from disk                |
 
 Valid `fileId` values: `claude-md` (CLAUDE.md), `agents-md` (AGENTS.md).
 
 ### MCP Servers
 
-| Method   | Endpoint                               | Description                                    |
-|----------|----------------------------------------|------------------------------------------------|
-| `GET`    | `/api/mcp-servers`                     | List servers (query params: `q`, `tag`)        |
-| `GET`    | `/api/mcp-servers/:id`                 | Get single server                              |
-| `POST`   | `/api/mcp-servers`                     | Create server                                  |
-| `PATCH`  | `/api/mcp-servers/:id`                 | Update server                                  |
-| `DELETE` | `/api/mcp-servers/:id`                 | Delete server                                  |
-| `POST`   | `/api/mcp-servers/:id/deploy`          | Deploy to agent (`{ tool, scope }`)            |
-| `POST`   | `/api/mcp-servers/:id/undeploy`        | Undeploy from agent (`{ tool, scope }`)        |
-| `GET`    | `/api/mcp-servers/deployment-status`   | Bulk deployment status matrix                  |
-| `POST`   | `/api/mcp-servers/scan`                | Scan filesystem (`{ mode, scanPath }`)         |
-| `POST`   | `/api/mcp-servers/import`              | Bulk import scanned servers                    |
-| `GET`    | `/api/mcp-env/:serverId`              | Get per-project env for a server               |
-| `PUT`    | `/api/mcp-env/:serverId`              | Set per-project env for a server               |
+| Method   | Endpoint                             | Description                             |
+| -------- | ------------------------------------ | --------------------------------------- |
+| `GET`    | `/api/mcp-servers`                   | List servers (query params: `q`, `tag`) |
+| `GET`    | `/api/mcp-servers/:id`               | Get single server                       |
+| `POST`   | `/api/mcp-servers`                   | Create server                           |
+| `PATCH`  | `/api/mcp-servers/:id`               | Update server                           |
+| `DELETE` | `/api/mcp-servers/:id`               | Delete server                           |
+| `POST`   | `/api/mcp-servers/:id/deploy`        | Deploy to agent (`{ tool, scope }`)     |
+| `POST`   | `/api/mcp-servers/:id/undeploy`      | Undeploy from agent (`{ tool, scope }`) |
+| `GET`    | `/api/mcp-servers/deployment-status` | Bulk deployment status matrix           |
+| `POST`   | `/api/mcp-servers/scan`              | Scan filesystem (`{ mode, scanPath }`)  |
+| `POST`   | `/api/mcp-servers/import`            | Bulk import scanned servers             |
+| `GET`    | `/api/mcp-env/:serverId`             | Get per-project env for a server        |
+| `PUT`    | `/api/mcp-env/:serverId`             | Set per-project env for a server        |
 
 ### Skills
 
-| Method   | Endpoint                               | Description                                    |
-|----------|----------------------------------------|------------------------------------------------|
-| `GET`    | `/api/skills`                          | List all skills                                |
-| `GET`    | `/api/skills/:name`                    | Get skill detail (frontmatter + content)       |
-| `POST`   | `/api/skills`                          | Create skill in registry                       |
-| `PATCH`  | `/api/skills/:name`                    | Update skill (SKILL.md, reference, examples)   |
-| `DELETE` | `/api/skills/:name`                    | Delete skill (cleans up all symlinks)          |
-| `POST`   | `/api/skills/:name/deploy`             | Deploy to agent (`{ agent, scope }`)           |
-| `POST`   | `/api/skills/:name/undeploy`           | Undeploy from agent (`{ agent, scope }`)       |
-| `GET`    | `/api/skills/deployment-status`        | Deployment status matrix per agent             |
-| `POST`   | `/api/skills/scan`                     | Scan filesystem for skills                     |
-| `POST`   | `/api/skills/import`                   | Import scanned skills into registry            |
-| `POST`   | `/api/skills/install`                  | Install from GitHub via `npx skills add`       |
-| `GET`    | `/api/skills/npx-available`            | Check if `npx skills` CLI is available         |
+| Method   | Endpoint                        | Description                                  |
+| -------- | ------------------------------- | -------------------------------------------- |
+| `GET`    | `/api/skills`                   | List all skills                              |
+| `GET`    | `/api/skills/:name`             | Get skill detail (frontmatter + content)     |
+| `POST`   | `/api/skills`                   | Create skill in registry                     |
+| `PATCH`  | `/api/skills/:name`             | Update skill (SKILL.md, reference, examples) |
+| `DELETE` | `/api/skills/:name`             | Delete skill (cleans up all symlinks)        |
+| `POST`   | `/api/skills/:name/deploy`      | Deploy to agent (`{ agent, scope }`)         |
+| `POST`   | `/api/skills/:name/undeploy`    | Undeploy from agent (`{ agent, scope }`)     |
+| `GET`    | `/api/skills/deployment-status` | Deployment status matrix per agent           |
+| `POST`   | `/api/skills/scan`              | Scan filesystem for skills                   |
+| `POST`   | `/api/skills/import`            | Import scanned skills into registry          |
+| `POST`   | `/api/skills/install`           | Install from GitHub via `npx skills add`     |
+| `GET`    | `/api/skills/npx-available`     | Check if `npx skills` CLI is available       |
 
 ### Claude Plugins
 
-| Method   | Endpoint                                       | Description                              |
-|----------|-------------------------------------------------|------------------------------------------|
-| `GET`    | `/api/claude/plugins`                           | List installed plugins                   |
-| `GET`    | `/api/claude/plugins/:id`                       | Get plugin detail                        |
-| `GET`    | `/api/claude/plugins/available`                 | List marketplace plugins                 |
-| `GET`    | `/api/claude/plugins/debug`                     | Raw CLI output for debugging             |
-| `POST`   | `/api/claude/plugins/install`                   | Install plugin (`{ ref, scope }`)        |
-| `POST`   | `/api/claude/plugins/:id/uninstall`             | Uninstall plugin                         |
-| `POST`   | `/api/claude/plugins/:id/enable`                | Enable plugin                            |
-| `POST`   | `/api/claude/plugins/:id/disable`               | Disable plugin                           |
-| `POST`   | `/api/claude/plugins/:id/update`                | Update plugin                            |
-| `GET`    | `/api/claude/plugins/marketplaces`              | List configured marketplaces             |
-| `POST`   | `/api/claude/plugins/marketplaces`              | Add marketplace (`{ source }`)           |
-| `DELETE` | `/api/claude/plugins/marketplaces/:name`        | Remove marketplace                       |
-| `POST`   | `/api/claude/plugins/marketplaces/:name/update` | Update marketplace index                 |
+| Method   | Endpoint                                        | Description                       |
+| -------- | ----------------------------------------------- | --------------------------------- |
+| `GET`    | `/api/claude/plugins`                           | List installed plugins            |
+| `GET`    | `/api/claude/plugins/:id`                       | Get plugin detail                 |
+| `GET`    | `/api/claude/plugins/available`                 | List marketplace plugins          |
+| `GET`    | `/api/claude/plugins/debug`                     | Raw CLI output for debugging      |
+| `POST`   | `/api/claude/plugins/install`                   | Install plugin (`{ ref, scope }`) |
+| `POST`   | `/api/claude/plugins/:id/uninstall`             | Uninstall plugin                  |
+| `POST`   | `/api/claude/plugins/:id/enable`                | Enable plugin                     |
+| `POST`   | `/api/claude/plugins/:id/disable`               | Disable plugin                    |
+| `POST`   | `/api/claude/plugins/:id/update`                | Update plugin                     |
+| `GET`    | `/api/claude/plugins/marketplaces`              | List configured marketplaces      |
+| `POST`   | `/api/claude/plugins/marketplaces`              | Add marketplace (`{ source }`)    |
+| `DELETE` | `/api/claude/plugins/marketplaces/:name`        | Remove marketplace                |
+| `POST`   | `/api/claude/plugins/marketplaces/:name/update` | Update marketplace index          |
 
 ### MCP Transport
 
-| Method | Endpoint | Description                        |
-|--------|----------|------------------------------------|
+| Method | Endpoint | Description                            |
+| ------ | -------- | -------------------------------------- |
 | `ALL`  | `/mcp`   | Streamable HTTP MCP transport endpoint |

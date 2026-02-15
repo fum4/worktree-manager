@@ -1,18 +1,18 @@
-import { useNotes } from '../../hooks/useNotes';
-import { text } from '../../theme';
-import type { GitPolicyOverride } from '../../hooks/api';
+import { useNotes } from "../../hooks/useNotes";
+import { text } from "../../theme";
+import type { GitPolicyOverride } from "../../hooks/api";
 
 const OPTIONS: { value: GitPolicyOverride; label: string }[] = [
-  { value: 'inherit', label: 'Inherit' },
-  { value: 'allow', label: 'Allow' },
-  { value: 'deny', label: 'Deny' },
+  { value: "inherit", label: "Inherit" },
+  { value: "allow", label: "Allow" },
+  { value: "deny", label: "Deny" },
 ];
 
 function getSelectedStyle(value: GitPolicyOverride, opt: GitPolicyOverride): string {
-  if (value !== opt) return 'text-[#4b5563] hover:text-[#6b7280]';
-  if (opt === 'allow') return 'bg-teal-500/[0.15] text-teal-300';
-  if (opt === 'deny') return 'bg-red-500/[0.15] text-red-300';
-  return 'bg-white/[0.10] text-[#f0f2f5]';
+  if (value !== opt) return "text-[#4b5563] hover:text-[#6b7280]";
+  if (opt === "allow") return "bg-teal-500/[0.15] text-teal-300";
+  if (opt === "deny") return "bg-red-500/[0.15] text-red-300";
+  return "bg-white/[0.10] text-[#f0f2f5]";
 }
 
 function ThreeStateToggle({
@@ -39,16 +39,16 @@ function ThreeStateToggle({
 }
 
 interface AgentPolicySectionProps {
-  source: 'jira' | 'linear' | 'local';
+  source: "jira" | "linear" | "local";
   issueId: string;
 }
 
 export function AgentPolicySection({ source, issueId }: AgentPolicySectionProps) {
   const { notes, updateGitPolicy } = useNotes(source, issueId);
 
-  const commitValue: GitPolicyOverride = notes?.gitPolicy?.agentCommits ?? 'inherit';
-  const pushValue: GitPolicyOverride = notes?.gitPolicy?.agentPushes ?? 'inherit';
-  const prValue: GitPolicyOverride = notes?.gitPolicy?.agentPRs ?? 'inherit';
+  const commitValue: GitPolicyOverride = notes?.gitPolicy?.agentCommits ?? "inherit";
+  const pushValue: GitPolicyOverride = notes?.gitPolicy?.agentPushes ?? "inherit";
+  const prValue: GitPolicyOverride = notes?.gitPolicy?.agentPRs ?? "inherit";
 
   return (
     <section>
@@ -70,10 +70,7 @@ export function AgentPolicySection({ source, issueId }: AgentPolicySectionProps)
         </div>
         <div className="flex items-center justify-between">
           <span className={`text-[11px] ${text.secondary}`}>Pull Requests</span>
-          <ThreeStateToggle
-            value={prValue}
-            onChange={(v) => updateGitPolicy({ agentPRs: v })}
-          />
+          <ThreeStateToggle value={prValue} onChange={(v) => updateGitPolicy({ agentPRs: v })} />
         </div>
       </div>
     </section>

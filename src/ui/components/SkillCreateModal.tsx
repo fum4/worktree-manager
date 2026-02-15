@@ -1,25 +1,35 @@
-import { useState } from 'react';
-import { Download, Sparkles } from 'lucide-react';
+import { useState } from "react";
+import { Download, Sparkles } from "lucide-react";
 
-import { useApi } from '../hooks/useApi';
-import { Modal } from './Modal';
-import { Spinner } from './Spinner';
-import { skill as skillTheme, input, text } from '../theme';
+import { useApi } from "../hooks/useApi";
+import { Modal } from "./Modal";
+import { Spinner } from "./Spinner";
+import { skill as skillTheme, input, text } from "../theme";
 
 const AGENTS = [
-  { id: 'claude', label: 'Claude Code' },
-  { id: 'cursor', label: 'Cursor' },
-  { id: 'gemini', label: 'Gemini CLI' },
-  { id: 'vscode', label: 'VS Code' },
-  { id: 'codex', label: 'Codex' },
+  { id: "claude", label: "Claude Code" },
+  { id: "cursor", label: "Cursor" },
+  { id: "gemini", label: "Gemini CLI" },
+  { id: "vscode", label: "VS Code" },
+  { id: "codex", label: "Codex" },
 ] as const;
 
-type SkillMode = 'create' | 'install';
-type Step = 'choose' | 'form';
+type SkillMode = "create" | "install";
+type Step = "choose" | "form";
 
 const MODES: { id: SkillMode; label: string; description: string; icon: typeof Sparkles }[] = [
-  { id: 'create', label: 'Create Skill', description: 'Write a new skill from scratch', icon: Sparkles },
-  { id: 'install', label: 'Install Skill', description: 'Install from a GitHub repo or local path', icon: Download },
+  {
+    id: "create",
+    label: "Create Skill",
+    description: "Write a new skill from scratch",
+    icon: Sparkles,
+  },
+  {
+    id: "install",
+    label: "Install Skill",
+    description: "Install from a GitHub repo or local path",
+    icon: Download,
+  },
 ];
 
 interface SkillCreateModalProps {
@@ -30,29 +40,29 @@ interface SkillCreateModalProps {
 
 export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreateModalProps) {
   const api = useApi();
-  const [skillMode, setSkillMode] = useState<SkillMode>('create');
-  const [step, setStep] = useState<Step>('choose');
+  const [skillMode, setSkillMode] = useState<SkillMode>("create");
+  const [step, setStep] = useState<Step>("choose");
 
   // ── Create form state ──
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [allowedTools, setAllowedTools] = useState('');
-  const [context, setContext] = useState('');
-  const [agent, setAgent] = useState('');
-  const [model, setModel] = useState('');
-  const [argumentHint, setArgumentHint] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [allowedTools, setAllowedTools] = useState("");
+  const [context, setContext] = useState("");
+  const [agent, setAgent] = useState("");
+  const [model, setModel] = useState("");
+  const [argumentHint, setArgumentHint] = useState("");
   const [disableModelInvocation, setDisableModelInvocation] = useState(false);
   const [userInvocable, setUserInvocable] = useState(true);
   const [mode, setMode] = useState(false);
-  const [instructions, setInstructions] = useState('');
-  const [deployAgents, setDeployAgents] = useState<string[]>(['claude']);
-  const [deployScope, setDeployScope] = useState<'global' | 'project'>('global');
+  const [instructions, setInstructions] = useState("");
+  const [deployAgents, setDeployAgents] = useState<string[]>(["claude"]);
+  const [deployScope, setDeployScope] = useState<"global" | "project">("global");
 
   // ── Install form state ──
-  const [repo, setRepo] = useState('');
-  const [skillName, setSkillName] = useState('');
-  const [installAgents, setInstallAgents] = useState<string[]>(['claude']);
-  const [installScope, setInstallScope] = useState<'global' | 'project'>('global');
+  const [repo, setRepo] = useState("");
+  const [skillName, setSkillName] = useState("");
+  const [installAgents, setInstallAgents] = useState<string[]>(["claude"]);
+  const [installScope, setInstallScope] = useState<"global" | "project">("global");
   const [installed, setInstalled] = useState<string[] | null>(null);
 
   // ── Shared state ──
@@ -92,11 +102,17 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
       onClose();
     } else if (result.success) {
       setSubmitting(false);
-      onCreated(name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'));
+      onCreated(
+        name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, "-")
+          .replace(/-+/g, "-"),
+      );
       onClose();
     } else {
       setSubmitting(false);
-      setError(result.error ?? 'Failed to create skill');
+      setError(result.error ?? "Failed to create skill");
     }
   };
 
@@ -119,13 +135,13 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
       setInstalled(result.installed ?? []);
       onInstalled(result.installed ?? []);
     } else {
-      setError(result.error ?? 'Failed to install skill');
+      setError(result.error ?? "Failed to install skill");
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (skillMode === 'create') handleCreate();
+    if (skillMode === "create") handleCreate();
     else handleInstall();
   };
 
@@ -174,55 +190,65 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
   }
 
   // ── Footer ──
-  const footer = step === 'choose' ? (
-    <>
-      <button
-        type="button"
-        onClick={onClose}
-        className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
-      >
-        Cancel
-      </button>
-      <button
-        type="button"
-        onClick={() => setStep('form')}
-        className={`px-4 py-1.5 text-xs ${skillTheme.button} rounded-lg transition-colors duration-150`}
-      >
-        Next
-      </button>
-    </>
-  ) : (
-    <>
-      <button
-        type="button"
-        onClick={() => { setStep('choose'); setError(null); }}
-        className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
-      >
-        Back
-      </button>
-      <button
-        type="submit"
-        disabled={submitting || (skillMode === 'create' ? !canSubmitCreate : !canSubmitInstall)}
-        className={`px-4 py-1.5 text-xs ${skillTheme.button} rounded-lg disabled:opacity-50 transition-colors duration-150 flex items-center gap-2`}
-      >
-        {submitting && <Spinner size="xs" />}
-        {submitting
-          ? (skillMode === 'create' ? 'Creating...' : 'Installing...')
-          : (skillMode === 'create' ? 'Create Skill' : 'Install')}
-      </button>
-    </>
-  );
+  const footer =
+    step === "choose" ? (
+      <>
+        <button
+          type="button"
+          onClick={onClose}
+          className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => setStep("form")}
+          className={`px-4 py-1.5 text-xs ${skillTheme.button} rounded-lg transition-colors duration-150`}
+        >
+          Next
+        </button>
+      </>
+    ) : (
+      <>
+        <button
+          type="button"
+          onClick={() => {
+            setStep("choose");
+            setError(null);
+          }}
+          className={`px-3 py-1.5 text-xs rounded-lg ${text.muted} hover:${text.secondary} transition-colors`}
+        >
+          Back
+        </button>
+        <button
+          type="submit"
+          disabled={submitting || (skillMode === "create" ? !canSubmitCreate : !canSubmitInstall)}
+          className={`px-4 py-1.5 text-xs ${skillTheme.button} rounded-lg disabled:opacity-50 transition-colors duration-150 flex items-center gap-2`}
+        >
+          {submitting && <Spinner size="xs" />}
+          {submitting
+            ? skillMode === "create"
+              ? "Creating..."
+              : "Installing..."
+            : skillMode === "create"
+              ? "Create Skill"
+              : "Install"}
+        </button>
+      </>
+    );
 
   return (
     <Modal
-      title={step === 'choose' ? 'Add Skill' : (skillMode === 'create' ? 'Create Skill' : 'Install Skill')}
+      title={
+        step === "choose" ? "Add Skill" : skillMode === "create" ? "Create Skill" : "Install Skill"
+      }
       icon={<Sparkles className="w-4 h-4 text-pink-400" />}
       onClose={onClose}
-      onSubmit={step === 'form' ? handleSubmit : undefined}
+      onSubmit={step === "form" ? handleSubmit : undefined}
       width="md"
       footer={footer}
     >
-      {step === 'choose' ? (
+      {step === "choose" ? (
         /* ── Mode selection ── */
         <div className="space-y-2">
           {MODES.map((m) => {
@@ -232,16 +258,23 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
               <button
                 key={m.id}
                 type="button"
-                onClick={() => { setSkillMode(m.id); setStep('form'); }}
+                onClick={() => {
+                  setSkillMode(m.id);
+                  setStep("form");
+                }}
                 className={`w-full text-left flex items-center gap-3 px-3 py-3 rounded-lg border transition-colors ${
                   isActive
-                    ? 'bg-white/[0.04] border-white/[0.15]'
-                    : 'bg-transparent border-white/[0.06] hover:border-white/[0.10] hover:bg-white/[0.02]'
+                    ? "bg-white/[0.04] border-white/[0.15]"
+                    : "bg-transparent border-white/[0.06] hover:border-white/[0.10] hover:bg-white/[0.02]"
                 }`}
               >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-pink-400' : text.muted}`} />
+                <Icon
+                  className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-pink-400" : text.muted}`}
+                />
                 <div>
-                  <div className={`text-xs font-medium ${isActive ? text.primary : text.secondary}`}>
+                  <div
+                    className={`text-xs font-medium ${isActive ? text.primary : text.secondary}`}
+                  >
                     {m.label}
                   </div>
                   <div className={`text-[10px] ${text.dimmed}`}>{m.description}</div>
@@ -250,7 +283,7 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
             );
           })}
         </div>
-      ) : skillMode === 'create' ? (
+      ) : skillMode === "create" ? (
         /* ── Create form ── */
         <div className="space-y-3">
           <div>
@@ -276,32 +309,36 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
                     onChange={() => toggleAgent(a.id, deployAgents, setDeployAgents)}
                     className="accent-teal-400"
                   />
-                  <span className={`text-[11px] ${deployAgents.includes(a.id) ? text.secondary : text.dimmed} group-hover:${text.secondary} transition-colors`}>
+                  <span
+                    className={`text-[11px] ${deployAgents.includes(a.id) ? text.secondary : text.dimmed} group-hover:${text.secondary} transition-colors`}
+                  >
                     {a.label}
                   </span>
                 </label>
               ))}
             </div>
             <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5 w-fit">
-              {(['global', 'project'] as const).map((s) => (
+              {(["global", "project"] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setDeployScope(s)}
                   className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-colors ${
                     deployScope === s
-                      ? 'text-[#d1d5db] bg-white/[0.06]'
+                      ? "text-[#d1d5db] bg-white/[0.06]"
                       : `${text.dimmed} hover:${text.muted}`
                   }`}
                 >
-                  {s === 'global' ? 'Global' : 'Project'}
+                  {s === "global" ? "Global" : "Project"}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Description</label>
+            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>
+              Description
+            </label>
             <input
               type="text"
               value={description}
@@ -312,7 +349,9 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
           </div>
 
           <div>
-            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Allowed Tools</label>
+            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>
+              Allowed Tools
+            </label>
             <input
               type="text"
               value={allowedTools}
@@ -320,7 +359,9 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
               placeholder="e.g. Read, Grep, Glob, Bash(git:*)"
               className={inputClass}
             />
-            <p className={`text-[10px] ${text.dimmed} mt-0.5`}>Comma-separated, supports wildcards</p>
+            <p className={`text-[10px] ${text.dimmed} mt-0.5`}>
+              Comma-separated, supports wildcards
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -343,7 +384,7 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
                 onChange={(e) => setAgent(e.target.value)}
                 placeholder="e.g. Explore, Plan"
                 className={inputClass}
-                disabled={context !== 'fork'}
+                disabled={context !== "fork"}
               />
               <p className={`text-[10px] ${text.dimmed} mt-0.5`}>Subagent type (when fork)</p>
             </div>
@@ -364,7 +405,9 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
               </select>
             </div>
             <div>
-              <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Argument Hint</label>
+              <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>
+                Argument Hint
+              </label>
               <input
                 type="text"
                 value={argumentHint}
@@ -385,7 +428,9 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
                 onChange={(e) => setUserInvocable(e.target.checked)}
                 className="accent-teal-400"
               />
-              <span className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}>
+              <span
+                className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}
+              >
                 User-invocable
               </span>
               <span className={`text-[10px] ${text.dimmed}`}>Show in /slash menu</span>
@@ -397,7 +442,9 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
                 onChange={(e) => setDisableModelInvocation(e.target.checked)}
                 className="accent-teal-400"
               />
-              <span className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}>
+              <span
+                className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}
+              >
                 Disable model invocation
               </span>
               <span className={`text-[10px] ${text.dimmed}`}>Only user can trigger</span>
@@ -409,7 +456,9 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
                 onChange={(e) => setMode(e.target.checked)}
                 className="accent-teal-400"
               />
-              <span className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}>
+              <span
+                className={`text-xs ${text.secondary} group-hover:${text.primary} transition-colors`}
+              >
                 Mode command
               </span>
               <span className={`text-[10px] ${text.dimmed}`}>Modifies Claude's behavior</span>
@@ -417,7 +466,9 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
           </div>
 
           <div>
-            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Instructions</label>
+            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>
+              Instructions
+            </label>
             <textarea
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
@@ -427,15 +478,15 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
             />
           </div>
 
-          {error && (
-            <p className={`${text.error} text-[11px]`}>{error}</p>
-          )}
+          {error && <p className={`${text.error} text-[11px]`}>{error}</p>}
         </div>
       ) : (
         /* ── Install form ── */
         <div className="space-y-3">
           <div>
-            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Repository *</label>
+            <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>
+              Repository *
+            </label>
             <input
               type="text"
               value={repo}
@@ -444,7 +495,9 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
               className={inputClass}
               autoFocus
             />
-            <p className={`text-[10px] ${text.dimmed} mt-0.5`}>GitHub repo, full URL, or local path</p>
+            <p className={`text-[10px] ${text.dimmed} mt-0.5`}>
+              GitHub repo, full URL, or local path
+            </p>
           </div>
 
           <div>
@@ -456,7 +509,9 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
               placeholder="all skills if empty"
               className={inputClass}
             />
-            <p className={`text-[10px] ${text.dimmed} mt-0.5`}>Target a specific skill with -s flag</p>
+            <p className={`text-[10px] ${text.dimmed} mt-0.5`}>
+              Target a specific skill with -s flag
+            </p>
           </div>
 
           <div>
@@ -470,33 +525,33 @@ export function SkillCreateModal({ onCreated, onInstalled, onClose }: SkillCreat
                     onChange={() => toggleAgent(a.id, installAgents, setInstallAgents)}
                     className="accent-teal-400"
                   />
-                  <span className={`text-[11px] ${installAgents.includes(a.id) ? text.secondary : text.dimmed} group-hover:${text.secondary} transition-colors`}>
+                  <span
+                    className={`text-[11px] ${installAgents.includes(a.id) ? text.secondary : text.dimmed} group-hover:${text.secondary} transition-colors`}
+                  >
                     {a.label}
                   </span>
                 </label>
               ))}
             </div>
             <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5 w-fit">
-              {(['global', 'project'] as const).map((s) => (
+              {(["global", "project"] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setInstallScope(s)}
                   className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-colors ${
                     installScope === s
-                      ? 'text-[#d1d5db] bg-white/[0.06]'
+                      ? "text-[#d1d5db] bg-white/[0.06]"
                       : `${text.dimmed} hover:${text.muted}`
                   }`}
                 >
-                  {s === 'global' ? 'Global' : 'Project'}
+                  {s === "global" ? "Global" : "Project"}
                 </button>
               ))}
             </div>
           </div>
 
-          {error && (
-            <p className={`${text.error} text-[11px]`}>{error}</p>
-          )}
+          {error && <p className={`${text.error} text-[11px]`}>{error}</p>}
         </div>
       )}
     </Modal>

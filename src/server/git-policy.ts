@@ -1,7 +1,7 @@
-import type { NotesManager } from './notes-manager';
-import type { WorktreeConfig } from './types';
+import type { NotesManager } from "./notes-manager";
+import type { WorktreeConfig } from "./types";
 
-export type GitOperation = 'commit' | 'push' | 'create_pr';
+export type GitOperation = "commit" | "push" | "create_pr";
 
 export interface GitPolicyResult {
   allowed: boolean;
@@ -9,9 +9,21 @@ export interface GitPolicyResult {
 }
 
 const OPERATION_MAP = {
-  commit:    { configKey: 'allowAgentCommits' as const, notesKey: 'agentCommits' as const, label: 'commits' },
-  push:      { configKey: 'allowAgentPushes' as const,  notesKey: 'agentPushes' as const,  label: 'pushes' },
-  create_pr: { configKey: 'allowAgentPRs' as const,     notesKey: 'agentPRs' as const,     label: 'PR creation' },
+  commit: {
+    configKey: "allowAgentCommits" as const,
+    notesKey: "agentCommits" as const,
+    label: "commits",
+  },
+  push: {
+    configKey: "allowAgentPushes" as const,
+    notesKey: "agentPushes" as const,
+    label: "pushes",
+  },
+  create_pr: {
+    configKey: "allowAgentPRs" as const,
+    notesKey: "agentPRs" as const,
+    label: "PR creation",
+  },
 };
 
 export function resolveGitPolicy(
@@ -30,10 +42,10 @@ export function resolveGitPolicy(
     const notes = notesManager.loadNotes(linked.source, linked.issueId);
     const override = notes.gitPolicy?.[notesKey];
 
-    if (override === 'allow') {
+    if (override === "allow") {
       return { allowed: true };
     }
-    if (override === 'deny') {
+    if (override === "deny") {
       return { allowed: false, reason: `Agent ${label} denied by per-worktree policy` };
     }
     // 'inherit' or undefined → fall through to global config

@@ -1,12 +1,12 @@
-import { existsSync, readFileSync } from 'fs';
-import path from 'path';
+import { existsSync, readFileSync } from "fs";
+import path from "path";
 
-import { APP_NAME, CONFIG_DIR_NAME } from '../constants';
-import { log } from '../logger';
-import type { PortConfig, WorktreeConfig } from '../server/types';
+import { APP_NAME, CONFIG_DIR_NAME } from "../constants";
+import { log } from "../logger";
+import type { PortConfig, WorktreeConfig } from "../server/types";
 
 export { CONFIG_DIR_NAME };
-export const CONFIG_FILE_NAME = 'config.json';
+export const CONFIG_FILE_NAME = "config.json";
 
 export interface ConfigFile {
   projectDir?: string;
@@ -24,7 +24,7 @@ export interface ConfigFile {
  */
 function isInsideWorktree(configPath: string): boolean {
   // Normalize and check if path contains .dawg/worktrees/
-  const normalized = configPath.replace(/\\/g, '/');
+  const normalized = configPath.replace(/\\/g, "/");
   return normalized.includes(`${CONFIG_DIR_NAME}/worktrees/`);
 }
 
@@ -50,10 +50,10 @@ export function loadConfig(): { config: WorktreeConfig; configPath: string | nul
   const configPath = findConfigFile();
 
   const defaults: WorktreeConfig = {
-    projectDir: '.',
-    startCommand: '',
-    installCommand: '',
-    baseBranch: 'origin/main',
+    projectDir: ".",
+    startCommand: "",
+    installCommand: "",
+    baseBranch: "origin/main",
     ports: {
       discovered: [],
       offsetStep: 1,
@@ -67,7 +67,7 @@ export function loadConfig(): { config: WorktreeConfig; configPath: string | nul
   }
 
   try {
-    const content = readFileSync(configPath, 'utf-8');
+    const content = readFileSync(configPath, "utf-8");
     const fileConfig: ConfigFile = JSON.parse(content);
 
     const configDir = path.dirname(path.dirname(configPath));

@@ -1,11 +1,11 @@
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import os from 'os';
-import path from 'path';
+import { existsSync, mkdirSync, writeFileSync } from "fs";
+import os from "os";
+import path from "path";
 
-import { PREDEFINED_SKILLS } from '../instructions';
+import { PREDEFINED_SKILLS } from "../instructions";
 
 function getRegistryDir(): string {
-  return path.join(os.homedir(), '.dawg', 'skills');
+  return path.join(os.homedir(), ".dawg", "skills");
 }
 
 export function ensurePredefinedHookSkills(): void {
@@ -13,7 +13,7 @@ export function ensurePredefinedHookSkills(): void {
 
   for (const skill of PREDEFINED_SKILLS) {
     const skillDir = path.join(registryDir, skill.dirName);
-    const skillMdPath = path.join(skillDir, 'SKILL.md');
+    const skillMdPath = path.join(skillDir, "SKILL.md");
 
     if (existsSync(skillMdPath)) continue;
 

@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import path from 'path';
+import { existsSync, mkdirSync, writeFileSync } from "fs";
+import path from "path";
 
 import type {
   LinearCredentials,
@@ -7,9 +7,9 @@ import type {
   LinearIssueSummary,
   LinearIssueDetail,
   LinearTaskData,
-} from './types';
+} from "./types";
 
-const LINEAR_API = 'https://api.linear.app/graphql';
+const LINEAR_API = "https://api.linear.app/graphql";
 
 async function graphql<T>(
   creds: LinearCredentials,
@@ -17,9 +17,9 @@ async function graphql<T>(
   variables?: Record<string, unknown>,
 ): Promise<T> {
   const resp = await fetch(LINEAR_API, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: creds.apiKey,
     },
     body: JSON.stringify({ query, variables }),
@@ -35,7 +35,7 @@ async function graphql<T>(
     throw new Error(`Linear GraphQL error: ${json.errors[0].message}`);
   }
   if (!json.data) {
-    throw new Error('Linear API returned no data');
+    throw new Error("Linear API returned no data");
   }
   return json.data;
 }
@@ -55,7 +55,8 @@ export async function fetchIssues(
   teamKey?: string,
   query?: string,
 ): Promise<LinearIssueSummary[]> {
-  let filter = 'assignee: { isMe: { eq: true } }, completedAt: { null: true }, canceledAt: { null: true }';
+  let filter =
+    "assignee: { isMe: { eq: true } }, completedAt: { null: true }, canceledAt: { null: true }";
   if (teamKey) {
     filter += `, team: { key: { eq: "${teamKey}" } }`;
   }
@@ -130,7 +131,9 @@ export async function fetchIssue(
   // Parse "ENG-123" into team key "ENG" and number 123
   const match = identifier.match(/^([A-Za-z]+)-(\d+)$/);
   if (!match) {
-    throw new Error(`Invalid Linear identifier format: "${identifier}". Expected format like ENG-123.`);
+    throw new Error(
+      `Invalid Linear identifier format: "${identifier}". Expected format like ENG-123.`,
+    );
   }
   const teamKey = match[1].toUpperCase();
   const issueNumber = parseInt(match[2], 10);
@@ -218,7 +221,7 @@ export async function fetchIssue(
     labels: node.labels.nodes,
     url: node.url,
     comments: node.comments.nodes.map((c) => ({
-      author: c.user?.name ?? 'Unknown',
+      author: c.user?.name ?? "Unknown",
       body: c.body,
       createdAt: c.createdAt,
     })),
@@ -227,7 +230,7 @@ export async function fetchIssue(
 }
 
 export function resolveIdentifier(id: string, config: LinearProjectConfig): string {
-  if (id.includes('-')) return id.toUpperCase();
+  if (id.includes("-")) return id.toUpperCase();
 
   if (!config.defaultTeamKey) {
     throw new Error(
@@ -241,17 +244,24 @@ export function resolveIdentifier(id: string, config: LinearProjectConfig): stri
 
 export function saveTaskData(taskData: LinearTaskData, tasksDir: string): void {
   // Write to issues/linear/<IDENTIFIER>/issue.json
-  const issueDir = path.join(path.dirname(tasksDir), 'issues', 'linear', taskData.identifier);
+  const issueDir = path.join(path.dirname(tasksDir), "issues", "linear", taskData.identifier);
   mkdirSync(issueDir, { recursive: true });
-  writeFileSync(path.join(issueDir, 'issue.json'), JSON.stringify(taskData, null, 2) + '\n');
+  writeFileSync(path.join(issueDir, "issue.json"), JSON.stringify(taskData, null, 2) + "\n");
 
   // Create empty notes.json if it doesn't exist
-  const notesPath = path.join(issueDir, 'notes.json');
+  const notesPath = path.join(issueDir, "notes.json");
   if (!existsSync(notesPath)) {
-    writeFileSync(notesPath, JSON.stringify({
-      linkedWorktreeId: null,
-      personal: null,
-      aiContext: null,
-    }, null, 2) + '\n');
+    writeFileSync(
+      notesPath,
+      JSON.stringify(
+        {
+          linkedWorktreeId: null,
+          personal: null,
+          aiContext: null,
+        },
+        null,
+        2,
+      ) + "\n",
+    );
   }
 }

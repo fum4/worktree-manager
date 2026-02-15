@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
-import type { WorktreeInfo, PortsInfo, JiraStatus, GitHubStatus, LinearStatus } from '../types';
-import { useServerUrlOptional } from '../contexts/ServerContext';
+import type { WorktreeInfo, PortsInfo, JiraStatus, GitHubStatus, LinearStatus } from "../types";
+import { useServerUrlOptional } from "../contexts/ServerContext";
 import {
   fetchWorktrees as apiFetchWorktrees,
   getEventsUrl,
@@ -10,10 +10,10 @@ import {
   fetchGitHubStatus as apiFetchGitHubStatus,
   fetchLinearStatus as apiFetchLinearStatus,
   fetchConfig as apiFetchConfig,
-} from './api';
+} from "./api";
 
 export function useWorktrees(
-  onNotification?: (message: string, level: 'error' | 'info') => void,
+  onNotification?: (message: string, level: "error" | "info") => void,
   onHookUpdate?: (worktreeId: string) => void,
 ) {
   const serverUrl = useServerUrlOptional();
@@ -28,20 +28,24 @@ export function useWorktrees(
       setWorktrees((data.worktrees || []) as WorktreeInfo[]);
       setError(null);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to fetch worktrees',
-      );
+      setError(err instanceof Error ? err.message : "Failed to fetch worktrees");
     }
   }, [serverUrl]);
 
   // Store callbacks in refs so they don't cause reconnects
-  const notificationRef = useCallback((message: string, level: 'error' | 'info') => {
-    onNotification?.(message, level);
-  }, [onNotification]);
+  const notificationRef = useCallback(
+    (message: string, level: "error" | "info") => {
+      onNotification?.(message, level);
+    },
+    [onNotification],
+  );
 
-  const hookUpdateRef = useCallback((worktreeId: string) => {
-    onHookUpdate?.(worktreeId);
-  }, [onHookUpdate]);
+  const hookUpdateRef = useCallback(
+    (worktreeId: string) => {
+      onHookUpdate?.(worktreeId);
+    },
+    [onHookUpdate],
+  );
 
   useEffect(() => {
     if (serverUrl === null) {
@@ -62,11 +66,11 @@ export function useWorktrees(
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'worktrees') {
+        if (data.type === "worktrees") {
           setWorktrees(data.worktrees || []);
-        } else if (data.type === 'notification') {
+        } else if (data.type === "notification") {
           notificationRef(data.message, data.level);
-        } else if (data.type === 'hook-update') {
+        } else if (data.type === "hook-update") {
           hookUpdateRef(data.worktreeId);
         }
       } catch {

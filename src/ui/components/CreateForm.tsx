@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
-import { GitBranch, ListTodo, Plus, Ticket } from 'lucide-react';
+import { useEffect, useRef, useState } from "react";
+import { GitBranch, ListTodo, Plus, Ticket } from "lucide-react";
 
-import { integration, surface, tab, text } from '../theme';
-import { LinearIcon } from './icons';
+import { integration, surface, tab, text } from "../theme";
+import { LinearIcon } from "./icons";
 
 interface CreateFormProps {
   jiraConfigured: boolean;
   linearConfigured: boolean;
   hasCustomTasks: boolean;
-  activeTab: 'branch' | 'issues';
-  onTabChange: (tab: 'branch' | 'issues') => void;
+  activeTab: "branch" | "issues";
+  onTabChange: (tab: "branch" | "issues") => void;
   onCreateWorktree: () => void;
   onCreateFromJira: () => void;
   onCreateFromLinear: () => void;
@@ -17,7 +17,18 @@ interface CreateFormProps {
   onNavigateToIntegrations: () => void;
 }
 
-export function CreateForm({ jiraConfigured, linearConfigured, hasCustomTasks, activeTab, onTabChange, onCreateWorktree, onCreateFromJira, onCreateFromLinear, onCreateCustomTask, onNavigateToIntegrations }: CreateFormProps) {
+export function CreateForm({
+  jiraConfigured,
+  linearConfigured,
+  hasCustomTasks,
+  activeTab,
+  onTabChange,
+  onCreateWorktree,
+  onCreateFromJira,
+  onCreateFromLinear,
+  onCreateCustomTask,
+  onNavigateToIntegrations,
+}: CreateFormProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
@@ -37,8 +48,8 @@ export function CreateForm({ jiraConfigured, linearConfigured, hasCustomTasks, a
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showMenu]);
 
   const handleToggleMenu = () => {
@@ -53,22 +64,22 @@ export function CreateForm({ jiraConfigured, linearConfigured, hasCustomTasks, a
 
   return (
     <div className="px-3 pt-3.5 pb-2 flex items-center justify-between gap-2">
-      {(jiraConfigured || linearConfigured || hasCustomTasks) ? (
+      {jiraConfigured || linearConfigured || hasCustomTasks ? (
         <div className="flex gap-1">
           <button
             type="button"
-            onClick={() => onTabChange('branch')}
+            onClick={() => onTabChange("branch")}
             className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors duration-150 ${
-              activeTab === 'branch' ? tab.active : tab.inactive
+              activeTab === "branch" ? tab.active : tab.inactive
             }`}
           >
             Worktrees
           </button>
           <button
             type="button"
-            onClick={() => onTabChange('issues')}
+            onClick={() => onTabChange("issues")}
             className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors duration-150 ${
-              activeTab === 'issues' ? tab.active : tab.inactive
+              activeTab === "issues" ? tab.active : tab.inactive
             }`}
           >
             Issues

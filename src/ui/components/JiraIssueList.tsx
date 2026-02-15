@@ -1,7 +1,7 @@
-import type { JiraIssueSummary } from '../types';
-import { text } from '../theme';
-import { JiraIssueItem } from './JiraIssueItem';
-import { Spinner } from './Spinner';
+import type { JiraIssueSummary } from "../types";
+import { text } from "../theme";
+import { JiraIssueItem } from "./JiraIssueItem";
+import { Spinner } from "./Spinner";
 
 interface JiraIssueListProps {
   issues: JiraIssueSummary[];

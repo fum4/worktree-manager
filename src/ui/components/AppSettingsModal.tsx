@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Settings } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Settings } from "lucide-react";
 
-import { DEFAULT_PORT } from '../../constants';
-import { Modal } from './Modal';
-import { button, input, settings, text } from '../theme';
+import { DEFAULT_PORT } from "../../constants";
+import { Modal } from "./Modal";
+import { button, input, settings, text } from "../theme";
 
 interface AppSettingsModalProps {
   onClose: () => void;
@@ -11,9 +11,11 @@ interface AppSettingsModalProps {
 
 export function AppSettingsModal({ onClose }: AppSettingsModalProps) {
   const [basePort, setBasePort] = useState(DEFAULT_PORT);
-  const [setupPreference, setSetupPreference] = useState<'ask' | 'auto' | 'manual'>('ask');
+  const [setupPreference, setSetupPreference] = useState<"ask" | "auto" | "manual">("ask");
   const [initialBasePort, setInitialBasePort] = useState(DEFAULT_PORT);
-  const [initialSetupPreference, setInitialSetupPreference] = useState<'ask' | 'auto' | 'manual'>('ask');
+  const [initialSetupPreference, setInitialSetupPreference] = useState<"ask" | "auto" | "manual">(
+    "ask",
+  );
 
   useEffect(() => {
     window.electronAPI?.getPreferences().then((prefs) => {
@@ -61,9 +63,7 @@ export function AppSettingsModal({ onClose }: AppSettingsModalProps) {
     >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-1.5">
-          <label className={`text-xs font-medium ${settings.label}`}>
-            Base Server Port
-          </label>
+          <label className={`text-xs font-medium ${settings.label}`}>Base Server Port</label>
           <span className={`text-[11px] ${settings.description}`}>
             Starting port for project servers
           </span>
@@ -79,15 +79,13 @@ export function AppSettingsModal({ onClose }: AppSettingsModalProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className={`text-xs font-medium ${settings.label}`}>
-            New Project Setup
-          </label>
+          <label className={`text-xs font-medium ${settings.label}`}>New Project Setup</label>
           <span className={`text-[11px] ${settings.description}`}>
             How to handle projects without configuration
           </span>
           <select
             value={setupPreference}
-            onChange={(e) => setSetupPreference(e.target.value as 'ask' | 'auto' | 'manual')}
+            onChange={(e) => setSetupPreference(e.target.value as "ask" | "auto" | "manual")}
             className={fieldInputClass}
           >
             <option value="ask">Ask every time</option>

@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Server } from 'lucide-react';
+import { useState } from "react";
+import { Server } from "lucide-react";
 
-import { useApi } from '../hooks/useApi';
-import { Modal } from './Modal';
-import { input, mcpServer, text } from '../theme';
+import { useApi } from "../hooks/useApi";
+import { Modal } from "./Modal";
+import { input, mcpServer, text } from "../theme";
 
 interface McpServerCreateModalProps {
   onCreated: () => void;
@@ -12,12 +12,12 @@ interface McpServerCreateModalProps {
 
 export function McpServerCreateModal({ onCreated, onClose }: McpServerCreateModalProps) {
   const api = useApi();
-  const [name, setName] = useState('');
-  const [command, setCommand] = useState('');
-  const [args, setArgs] = useState('');
-  const [description, setDescription] = useState('');
-  const [tags, setTags] = useState('');
-  const [envText, setEnvText] = useState('');
+  const [name, setName] = useState("");
+  const [command, setCommand] = useState("");
+  const [args, setArgs] = useState("");
+  const [description, setDescription] = useState("");
+  const [tags, setTags] = useState("");
+  const [envText, setEnvText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -31,8 +31,8 @@ export function McpServerCreateModal({ onCreated, onClose }: McpServerCreateModa
     // Parse env from KEY=VALUE lines
     const env: Record<string, string> = {};
     if (envText.trim()) {
-      for (const line of envText.split('\n')) {
-        const eqIdx = line.indexOf('=');
+      for (const line of envText.split("\n")) {
+        const eqIdx = line.indexOf("=");
         if (eqIdx > 0) {
           env[line.slice(0, eqIdx).trim()] = line.slice(eqIdx + 1).trim();
         }
@@ -44,7 +44,12 @@ export function McpServerCreateModal({ onCreated, onClose }: McpServerCreateModa
       command: command.trim(),
       args: args.trim() ? args.split(/\s+/) : [],
       description: description.trim(),
-      tags: tags.trim() ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+      tags: tags.trim()
+        ? tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : [],
       env,
     });
 
@@ -54,7 +59,7 @@ export function McpServerCreateModal({ onCreated, onClose }: McpServerCreateModa
       onCreated();
       onClose();
     } else {
-      setError(result.error ?? 'Failed to create server');
+      setError(result.error ?? "Failed to create server");
     }
   };
 
@@ -81,7 +86,7 @@ export function McpServerCreateModal({ onCreated, onClose }: McpServerCreateModa
             disabled={!name.trim() || !command.trim() || creating}
             className={`px-4 py-1.5 text-xs font-medium ${mcpServer.button} rounded-lg disabled:opacity-50 transition-colors duration-150`}
           >
-            {creating ? 'Adding...' : 'Add Server'}
+            {creating ? "Adding..." : "Add Server"}
           </button>
         </>
       }
@@ -146,20 +151,20 @@ export function McpServerCreateModal({ onCreated, onClose }: McpServerCreateModa
         </div>
 
         <div>
-          <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>Environment Variables</label>
+          <label className={`block text-[11px] font-medium ${text.muted} mb-1`}>
+            Environment Variables
+          </label>
           <textarea
             value={envText}
             onChange={(e) => setEnvText(e.target.value)}
-            placeholder={'KEY=value\nANOTHER_KEY=value'}
+            placeholder={"KEY=value\nANOTHER_KEY=value"}
             rows={3}
             className={`${inputClass} resize-none`}
           />
           <p className={`text-[10px] ${text.dimmed} mt-0.5`}>One KEY=value per line</p>
         </div>
 
-        {error && (
-          <p className={`${text.error} text-[11px]`}>{error}</p>
-        )}
+        {error && <p className={`${text.error} text-[11px]`}>{error}</p>}
       </div>
     </Modal>
   );

@@ -1,23 +1,23 @@
-import { createWriteStream, existsSync, mkdirSync, writeFileSync } from 'fs';
-import { pipeline } from 'stream/promises';
-import { Readable } from 'stream';
-import path from 'path';
+import { createWriteStream, existsSync, mkdirSync, writeFileSync } from "fs";
+import { pipeline } from "stream/promises";
+import { Readable } from "stream";
+import path from "path";
 
-import { APP_NAME } from '../../constants';
-import { log } from '../../logger';
-import { adfToMarkdown } from './adf-to-markdown';
-import { getApiBase, getAuthHeaders } from './auth';
+import { APP_NAME } from "../../constants";
+import { log } from "../../logger";
+import { adfToMarkdown } from "./adf-to-markdown";
+import { getApiBase, getAuthHeaders } from "./auth";
 import type {
   JiraCredentials,
   JiraProjectConfig,
   JiraTaskData,
   JiraComment,
   JiraAttachment,
-} from './types';
+} from "./types";
 
 export function resolveTaskKey(taskId: string, projectConfig: JiraProjectConfig): string {
   // If already contains a dash, assume it's a full key like PROJ-123
-  if (taskId.includes('-')) return taskId.toUpperCase();
+  if (taskId.includes("-")) return taskId.toUpperCase();
 
   // Otherwise, prepend default project key
   if (!projectConfig.defaultProjectKey) {
@@ -39,10 +39,9 @@ export async function fetchIssue(
   const headers = await getAuthHeaders(creds, configDir);
 
   // Fetch issue with all fields
-  const resp = await fetch(
-    `${base}/issue/${encodeURIComponent(key)}?expand=renderedFields`,
-    { headers },
-  );
+  const resp = await fetch(`${base}/issue/${encodeURIComponent(key)}?expand=renderedFields`, {
+    headers,
+  });
 
   if (!resp.ok) {
     const body = await resp.text();
@@ -75,12 +74,12 @@ export async function fetchIssue(
 
   // Build site URL for the issue
   let siteUrl: string;
-  if (creds.authMethod === 'oauth') {
+  if (creds.authMethod === "oauth") {
     siteUrl = creds.oauth.siteUrl;
   } else {
     siteUrl = creds.apiToken.baseUrl;
   }
-  const issueUrl = `${siteUrl.replace(/\/$/, '')}/browse/${key}`;
+  const issueUrl = `${siteUrl.replace(/\/$/, "")}/browse/${key}`;
 
   const rawAttachments = (fields.attachment ?? []) as Array<{
     id: string;
@@ -102,27 +101,27 @@ export async function fetchIssue(
   }
 
   const comments: JiraComment[] = rawComments.map((c) => ({
-    author: c.author?.displayName ?? 'Unknown',
+    author: c.author?.displayName ?? "Unknown",
     body: adfToMarkdown(c.body, attachmentMap),
     created: c.created,
   }));
 
   return {
     key,
-    summary: (fields.summary as string) ?? '',
+    summary: (fields.summary as string) ?? "",
     description: adfToMarkdown(fields.description, attachmentMap),
-    status: ((fields.status as Record<string, unknown>)?.name as string) ?? 'Unknown',
-    priority: ((fields.priority as Record<string, unknown>)?.name as string) ?? 'None',
-    type: ((fields.issuetype as Record<string, unknown>)?.name as string) ?? 'Unknown',
+    status: ((fields.status as Record<string, unknown>)?.name as string) ?? "Unknown",
+    priority: ((fields.priority as Record<string, unknown>)?.name as string) ?? "None",
+    type: ((fields.issuetype as Record<string, unknown>)?.name as string) ?? "Unknown",
     assignee: ((fields.assignee as Record<string, unknown>)?.displayName as string) ?? null,
     reporter: ((fields.reporter as Record<string, unknown>)?.displayName as string) ?? null,
     labels: (fields.labels as string[]) ?? [],
-    created: (fields.created as string) ?? '',
-    updated: (fields.updated as string) ?? '',
+    created: (fields.created as string) ?? "",
+    updated: (fields.updated as string) ?? "",
     comments,
     attachments: rawAttachments.map((a) => ({
       filename: a.filename,
-      localPath: '', // filled in after download
+      localPath: "", // filled in after download
       mimeType: a.mimeType,
       size: a.size,
       contentUrl: a.content,
@@ -178,7 +177,10 @@ export async function downloadAttachments(
       }
 
       const writeStream = createWriteStream(localPath);
-      await pipeline(Readable.fromWeb(resp.body as import('stream/web').ReadableStream), writeStream);
+      await pipeline(
+        Readable.fromWeb(resp.body as import("stream/web").ReadableStream),
+        writeStream,
+      );
 
       results.push({
         filename,
@@ -196,17 +198,24 @@ export async function downloadAttachments(
 
 export function saveTaskData(taskData: JiraTaskData, tasksDir: string): void {
   // Write to issues/jira/<KEY>/issue.json
-  const issueDir = path.join(path.dirname(tasksDir), 'issues', 'jira', taskData.key);
+  const issueDir = path.join(path.dirname(tasksDir), "issues", "jira", taskData.key);
   mkdirSync(issueDir, { recursive: true });
-  writeFileSync(path.join(issueDir, 'issue.json'), JSON.stringify(taskData, null, 2) + '\n');
+  writeFileSync(path.join(issueDir, "issue.json"), JSON.stringify(taskData, null, 2) + "\n");
 
   // Create empty notes.json if it doesn't exist
-  const notesPath = path.join(issueDir, 'notes.json');
+  const notesPath = path.join(issueDir, "notes.json");
   if (!existsSync(notesPath)) {
-    writeFileSync(notesPath, JSON.stringify({
-      linkedWorktreeId: null,
-      personal: null,
-      aiContext: null,
-    }, null, 2) + '\n');
+    writeFileSync(
+      notesPath,
+      JSON.stringify(
+        {
+          linkedWorktreeId: null,
+          personal: null,
+          aiContext: null,
+        },
+        null,
+        2,
+      ) + "\n",
+    );
   }
 }

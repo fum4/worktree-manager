@@ -1,13 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
-import { fetchCustomTasks } from './api';
-import { useServerUrlOptional } from '../contexts/ServerContext';
+import { fetchCustomTasks } from "./api";
+import { useServerUrlOptional } from "../contexts/ServerContext";
 
 export function useCustomTasks() {
   const serverUrl = useServerUrlOptional();
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['customTasks', serverUrl],
+    queryKey: ["customTasks", serverUrl],
     queryFn: async () => {
       const result = await fetchCustomTasks(serverUrl);
       if (result.error) throw new Error(result.error);

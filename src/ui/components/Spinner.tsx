@@ -1,15 +1,15 @@
 interface SpinnerProps {
-  size?: 'xs' | 'sm' | 'md';
+  size?: "xs" | "sm" | "md";
   className?: string;
 }
 
 const sizes = {
-  xs: 'w-3 h-3',
-  sm: 'w-4 h-4',
-  md: 'w-5 h-5',
+  xs: "w-3 h-3",
+  sm: "w-4 h-4",
+  md: "w-5 h-5",
 };
 
-export function Spinner({ size = 'sm', className = '' }: SpinnerProps) {
+export function Spinner({ size = "sm", className = "" }: SpinnerProps) {
   return (
     <svg
       className={`animate-spin ${sizes[size]} ${className}`}
@@ -17,14 +17,7 @@ export function Spinner({ size = 'sm', className = '' }: SpinnerProps) {
       fill="none"
       viewBox="0 0 24 24"
     >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path
         className="opacity-75"
         fill="currentColor"

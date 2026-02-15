@@ -1,11 +1,11 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 
 export interface Project {
   id: string;
   projectDir: string;
   port: number;
   name: string;
-  status: 'starting' | 'running' | 'stopped' | 'error';
+  status: "starting" | "running" | "stopped" | "error";
   error?: string;
 }
 
@@ -39,7 +39,7 @@ const ServerContext = createContext<ServerContextValue | null>(null);
 export function useServer() {
   const context = useContext(ServerContext);
   if (!context) {
-    throw new Error('useServer must be used within a ServerProvider');
+    throw new Error("useServer must be used within a ServerProvider");
   }
   return context;
 }
@@ -48,7 +48,7 @@ export function useServer() {
 export function useServerUrl(): string {
   const { serverUrl } = useServer();
   if (!serverUrl) {
-    throw new Error('No active project');
+    throw new Error("No active project");
   }
   return serverUrl;
 }
@@ -67,13 +67,12 @@ export function ServerProvider({ children }: ServerProviderProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
-  const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
+  const isElectron = typeof window !== "undefined" && !!window.electronAPI;
   const [projectsLoading, setProjectsLoading] = useState(isElectron);
 
-  const activeProject = projects.find(p => p.id === activeProjectId) ?? null;
-  const serverUrl = activeProject?.status === 'running'
-    ? `http://localhost:${activeProject.port}`
-    : null;
+  const activeProject = projects.find((p) => p.id === activeProjectId) ?? null;
+  const serverUrl =
+    activeProject?.status === "running" ? `http://localhost:${activeProject.port}` : null;
 
   // Load initial state from Electron
   useEffect(() => {
@@ -108,7 +107,7 @@ export function ServerProvider({ children }: ServerProviderProps) {
 
   const openProject = useCallback(async (folderPath: string) => {
     if (!window.electronAPI) {
-      return { success: false, error: 'Not running in Electron' };
+      return { success: false, error: "Not running in Electron" };
     }
     return window.electronAPI.openProject(folderPath);
   }, []);

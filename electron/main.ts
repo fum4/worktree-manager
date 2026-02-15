@@ -1,26 +1,20 @@
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray } from "electron";
+import path from "path";
+import { fileURLToPath } from "url";
+import { ProjectManager, type Project } from "./project-manager.js";
 import {
-  app,
-  BrowserWindow,
-  dialog,
-  ipcMain,
-  Menu,
-  nativeImage,
-  shell,
-  Tray,
-} from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { ProjectManager, type Project } from './project-manager.js';
-import { preferencesManager, type AppPreferences, type SetupPreference } from './preferences-manager.js';
+  preferencesManager,
+  type AppPreferences,
+  type SetupPreference,
+} from "./preferences-manager.js";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 // Set app name (shows in dock, menu bar, etc.)
-app.setName('dawg');
+app.setName("dawg");
 
 // Custom protocol for opening projects
-const PROTOCOL = 'dawg';
-
+const PROTOCOL = "dawg";
 
 // Single main window and project manager
 let mainWindow: BrowserWindow | null = null;
@@ -29,7 +23,7 @@ const projectManager = new ProjectManager();
 
 function getUiPath(): string {
   // In prod: dist/electron/ -> look for dist/ui/index.html
-  return path.join(currentDir, '..', 'ui', 'index.html');
+  return path.join(currentDir, "..", "ui", "index.html");
 }
 
 function createMainWindow(): BrowserWindow {
@@ -48,13 +42,13 @@ function createMainWindow(): BrowserWindow {
     y: savedBounds?.y,
     minWidth: 800,
     minHeight: 700,
-    backgroundColor: '#0a0c10',
-    title: 'dawg',
-    titleBarStyle: 'hiddenInset' as const,
+    backgroundColor: "#0a0c10",
+    title: "dawg",
+    titleBarStyle: "hiddenInset" as const,
     trafficLightPosition: { x: 12, y: 12 },
-    icon: path.join(currentDir, '..', 'assets', 'icon.png'),
+    icon: path.join(currentDir, "..", "assets", "icon.png"),
     webPreferences: {
-      preload: path.join(currentDir, 'preload.cjs'),
+      preload: path.join(currentDir, "preload.cjs"),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -77,10 +71,10 @@ function createMainWindow(): BrowserWindow {
     }
   };
 
-  mainWindow.on('resize', saveBounds);
-  mainWindow.on('move', saveBounds);
+  mainWindow.on("resize", saveBounds);
+  mainWindow.on("move", saveBounds);
 
-  mainWindow.on('close', (event) => {
+  mainWindow.on("close", (event) => {
     if (tray) {
       // Hide to tray instead of closing
       event.preventDefault();
@@ -88,14 +82,14 @@ function createMainWindow(): BrowserWindow {
     }
   });
 
-  mainWindow.on('closed', () => {
+  mainWindow.on("closed", () => {
     mainWindow = null;
   });
 
   // Open external links in default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
-    return { action: 'deny' };
+    return { action: "deny" };
   });
 
   return mainWindow;
@@ -105,25 +99,25 @@ function notifyProjectsChanged() {
   const projects = projectManager.getProjects();
   const activeId = projectManager.getActiveProjectId();
 
-  mainWindow?.webContents.send('projects-changed', projects);
-  mainWindow?.webContents.send('active-project-changed', activeId);
+  mainWindow?.webContents.send("projects-changed", projects);
+  mainWindow?.webContents.send("active-project-changed", activeId);
   updateTrayMenu();
 }
 
 // IPC Handlers
 function setupIpcHandlers() {
-  ipcMain.handle('select-folder', async () => {
+  ipcMain.handle("select-folder", async () => {
     if (!mainWindow) return null;
 
     const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openDirectory'],
-      title: 'Select Project Directory',
+      properties: ["openDirectory"],
+      title: "Select Project Directory",
     });
 
     return result.canceled ? null : result.filePaths[0];
   });
 
-  ipcMain.handle('open-project', async (_, folderPath: string) => {
+  ipcMain.handle("open-project", async (_, folderPath: string) => {
     const result = await projectManager.openProject(folderPath);
 
     if (result.success) {
@@ -133,47 +127,47 @@ function setupIpcHandlers() {
     return result;
   });
 
-  ipcMain.handle('close-project', async (_, projectId: string) => {
+  ipcMain.handle("close-project", async (_, projectId: string) => {
     await projectManager.closeProject(projectId);
     notifyProjectsChanged();
   });
 
-  ipcMain.handle('get-projects', () => {
+  ipcMain.handle("get-projects", () => {
     return projectManager.getProjects();
   });
 
-  ipcMain.handle('get-active-project', () => {
+  ipcMain.handle("get-active-project", () => {
     return projectManager.getActiveProjectId();
   });
 
-  ipcMain.handle('switch-tab', (_, projectId: string) => {
+  ipcMain.handle("switch-tab", (_, projectId: string) => {
     projectManager.setActiveProject(projectId);
     notifyProjectsChanged();
     return true;
   });
 
   // Preferences handlers
-  ipcMain.handle('get-preferences', () => {
+  ipcMain.handle("get-preferences", () => {
     return preferencesManager.getPreferences();
   });
 
-  ipcMain.handle('get-setup-preference', () => {
+  ipcMain.handle("get-setup-preference", () => {
     return preferencesManager.getSetupPreference();
   });
 
-  ipcMain.handle('set-setup-preference', (_, preference: SetupPreference) => {
+  ipcMain.handle("set-setup-preference", (_, preference: SetupPreference) => {
     preferencesManager.setSetupPreference(preference);
   });
 
-  ipcMain.handle('get-sidebar-width', () => {
+  ipcMain.handle("get-sidebar-width", () => {
     return preferencesManager.getSidebarWidth();
   });
 
-  ipcMain.handle('set-sidebar-width', (_, width: number) => {
+  ipcMain.handle("set-sidebar-width", (_, width: number) => {
     preferencesManager.setSidebarWidth(width);
   });
 
-  ipcMain.handle('update-preferences', (_, updates: Partial<AppPreferences>) => {
+  ipcMain.handle("update-preferences", (_, updates: Partial<AppPreferences>) => {
     preferencesManager.updatePreferences(updates);
   });
 }
@@ -198,19 +192,17 @@ function updateTrayMenu() {
   }));
 
   const contextMenu = Menu.buildFromTemplate([
-    ...(projectItems.length > 0
-      ? [...projectItems, { type: 'separator' as const }]
-      : []),
+    ...(projectItems.length > 0 ? [...projectItems, { type: "separator" as const }] : []),
     {
-      label: 'Open Project...',
+      label: "Open Project...",
       click: async () => {
         createMainWindow();
         mainWindow?.show();
       },
     },
-    { type: 'separator' },
+    { type: "separator" },
     {
-      label: 'Quit',
+      label: "Quit",
       click: async () => {
         tray = null;
         await projectManager.closeAllProjects();
@@ -226,16 +218,16 @@ function updateTrayMenu() {
 function createTray() {
   const icon = nativeImage.createFromBuffer(
     Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiklEQVQoz2NgGAUkAEYGBob/DAwM/6E0MZiJgYHhPwMDwwIGBoYCBgYGBWIMAGkGaVxAjAuwuQCbN4gCjAwMDAsYGBgKQBwGBgYFBgYGRmI0I7sAm2aQy0B8dBcQDECuB7mMGE3IAYjNyIYBNaMAmS8oYCRgUGBgYEiANHIxMBAbgBwwkABGAQAAJ1cwK/7gzBkAAAAASUVORK5CYII=',
-      'base64',
+      "iVBORw0KGgoAAAANSUhEUgAAABAAAAAPCAYAAADtc08vAAAAiklEQVQoz2NgGAUkAEYGBob/DAwM/6E0MZiJgYHhPwMDwwIGBoYCBgYGBWIMAGkGaVxAjAuwuQCbN4gCjAwMDAsYGBgKQBwGBgYFBgYGRmI0I7sAm2aQy0B8dBcQDECuB7mMGE3IAYjNyIYBNaMAmS8oYCRgUGBgYEiANHIxMBAbgBwwkABGAQAAJ1cwK/7gzBkAAAAASUVORK5CYII=",
+      "base64",
     ),
   );
   icon.setTemplateImage(true);
 
   tray = new Tray(icon);
-  tray.setToolTip('dawg - Worktree Manager');
+  tray.setToolTip("dawg - Worktree Manager");
 
-  tray.on('click', () => {
+  tray.on("click", () => {
     if (mainWindow) {
       if (mainWindow.isVisible()) {
         mainWindow.focus();
@@ -254,9 +246,9 @@ function handleProtocolUrl(url: string) {
   try {
     const parsed = new URL(url);
 
-    if (parsed.hostname === 'open') {
+    if (parsed.hostname === "open") {
       // Legacy: open by port (for backwards compatibility)
-      const port = parsed.searchParams.get('port');
+      const port = parsed.searchParams.get("port");
       if (port) {
         createMainWindow();
         mainWindow?.show();
@@ -264,9 +256,9 @@ function handleProtocolUrl(url: string) {
       }
     }
 
-    if (parsed.hostname === 'open-project') {
+    if (parsed.hostname === "open-project") {
       // New: open by directory
-      const dir = parsed.searchParams.get('dir');
+      const dir = parsed.searchParams.get("dir");
       if (dir) {
         createMainWindow();
         mainWindow?.show();
@@ -286,15 +278,13 @@ function handleProtocolUrl(url: string) {
 
 // Register as handler for dawg:// protocol
 if (process.defaultApp) {
-  app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
-    path.resolve(process.argv[1]),
-  ]);
+  app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
 } else {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
 
 // macOS: handle protocol URLs when app is already running
-app.on('open-url', (_event, url) => {
+app.on("open-url", (_event, url) => {
   handleProtocolUrl(url);
 });
 
@@ -303,7 +293,7 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
-  app.on('second-instance', (_event, argv) => {
+  app.on("second-instance", (_event, argv) => {
     const urlArg = argv.find((arg) => arg.startsWith(`${PROTOCOL}://`));
     if (urlArg) {
       handleProtocolUrl(urlArg);
@@ -324,15 +314,13 @@ app.whenReady().then(() => {
   createTray();
 
   // Check if launched with a protocol URL
-  const protocolArg = process.argv.find((arg) =>
-    arg.startsWith(`${PROTOCOL}://`),
-  );
+  const protocolArg = process.argv.find((arg) => arg.startsWith(`${PROTOCOL}://`));
   if (protocolArg) {
     handleProtocolUrl(protocolArg);
   }
 
   // Open project from --project flag (fire-and-forget, onChange listener updates UI)
-  const projectIdx = process.argv.indexOf('--project');
+  const projectIdx = process.argv.indexOf("--project");
   if (projectIdx !== -1 && process.argv[projectIdx + 1]) {
     projectManager.openProject(process.argv[projectIdx + 1]);
   }
@@ -342,7 +330,7 @@ app.whenReady().then(() => {
     projectManager.restoreProjects();
   }
 
-  app.on('activate', () => {
+  app.on("activate", () => {
     if (mainWindow) {
       mainWindow.show();
       mainWindow.focus();
@@ -352,14 +340,14 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('window-all-closed', () => {
+app.on("window-all-closed", () => {
   // Keep running in tray on macOS
-  if (process.platform !== 'darwin' && !tray) {
+  if (process.platform !== "darwin" && !tray) {
     app.quit();
   }
 });
 
-app.on('before-quit', async () => {
+app.on("before-quit", async () => {
   tray = null;
   await projectManager.closeAllProjects();
   projectManager.removeLockFile();

@@ -1,9 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import os from 'os';
-import path from 'path';
-import type { Hono } from 'hono';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import os from "os";
+import path from "path";
+import type { Hono } from "hono";
 
-import type { WorktreeManager } from '../manager';
+import type { WorktreeManager } from "../manager";
 import {
   type AgentId,
   type Scope,
@@ -16,7 +16,7 @@ import {
   removeServerFromConfig,
   scanFilesystemForServers,
   getDeviceScanRoots,
-} from '../lib/tool-configs';
+} from "../lib/tool-configs";
 
 // ─── Registry types ─────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ interface McpServerRegistry {
 // ─── Registry storage ───────────────────────────────────────────
 
 function getRegistryPath(): string {
-  return path.join(os.homedir(), '.dawg', 'mcp-servers.json');
+  return path.join(os.homedir(), ".dawg", "mcp-servers.json");
 }
 
 function loadRegistry(): McpServerRegistry {
@@ -50,7 +50,7 @@ function loadRegistry(): McpServerRegistry {
     return { version: 1, servers: {} };
   }
   try {
-    return JSON.parse(readFileSync(filePath, 'utf-8')) as McpServerRegistry;
+    return JSON.parse(readFileSync(filePath, "utf-8")) as McpServerRegistry;
   } catch {
     return { version: 1, servers: {} };
   }
@@ -60,14 +60,14 @@ function saveRegistry(registry: McpServerRegistry): void {
   const filePath = getRegistryPath();
   const dir = path.dirname(filePath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(filePath, JSON.stringify(registry, null, 2) + '\n');
+  writeFileSync(filePath, JSON.stringify(registry, null, 2) + "\n");
 }
 
 function slugify(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
     .slice(0, 60);
 }
 
@@ -76,14 +76,14 @@ function slugify(name: string): string {
 type ProjectEnvStore = Record<string, Record<string, string>>;
 
 function getProjectEnvPath(configDir: string): string {
-  return path.join(configDir, 'mcp-env.json');
+  return path.join(configDir, "mcp-env.json");
 }
 
 function loadProjectEnv(configDir: string): ProjectEnvStore {
   const filePath = getProjectEnvPath(configDir);
   if (!existsSync(filePath)) return {};
   try {
-    return JSON.parse(readFileSync(filePath, 'utf-8')) as ProjectEnvStore;
+    return JSON.parse(readFileSync(filePath, "utf-8")) as ProjectEnvStore;
   } catch {
     return {};
   }
@@ -93,7 +93,7 @@ function saveProjectEnv(configDir: string, store: ProjectEnvStore): void {
   const filePath = getProjectEnvPath(configDir);
   const dir = path.dirname(filePath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(filePath, JSON.stringify(store, null, 2) + '\n');
+  writeFileSync(filePath, JSON.stringify(store, null, 2) + "\n");
 }
 
 // ─── Routes ─────────────────────────────────────────────────────
@@ -104,10 +104,10 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
   // ── Static GET routes (before parameterized :id) ──────────────
 
   // List servers
-  app.get('/api/mcp-servers', (c) => {
+  app.get("/api/mcp-servers", (c) => {
     const registry = loadRegistry();
-    const q = (c.req.query('q') ?? '').toLowerCase();
-    const tag = c.req.query('tag');
+    const q = (c.req.query("q") ?? "").toLowerCase();
+    const tag = c.req.query("tag");
 
     let servers = Object.values(registry.servers);
 
@@ -131,19 +131,30 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
   });
 
   // Bulk deployment status
-  app.get('/api/mcp-servers/deployment-status', (c) => {
+  app.get("/api/mcp-servers/deployment-status", (c) => {
     const registry = loadRegistry();
 
-    const status: Record<string, Record<string, { global?: boolean; project?: boolean; globalPath?: string; projectPath?: string }>> = {};
+    const status: Record<
+      string,
+      Record<
+        string,
+        { global?: boolean; project?: boolean; globalPath?: string; projectPath?: string }
+      >
+    > = {};
 
     const serverIds = new Set(Object.keys(registry.servers));
-    serverIds.add('dawg'); // built-in server
+    serverIds.add("dawg"); // built-in server
 
     for (const serverId of serverIds) {
       status[serverId] = {};
 
       for (const [agentId, spec] of Object.entries(AGENT_SPECS)) {
-        const entry: { global?: boolean; project?: boolean; globalPath?: string; projectPath?: string } = {};
+        const entry: {
+          global?: boolean;
+          project?: boolean;
+          globalPath?: string;
+          projectPath?: string;
+        } = {};
 
         if (spec.global) {
           const filePath = resolveConfigPath(spec.global.configPath, projectDir);
@@ -164,15 +175,15 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
   });
 
   // Get per-project env for a server
-  app.get('/api/mcp-env/:serverId', (c) => {
-    const serverId = c.req.param('serverId');
+  app.get("/api/mcp-env/:serverId", (c) => {
+    const serverId = c.req.param("serverId");
     const store = loadProjectEnv(projectDir);
     return c.json({ env: store[serverId] ?? {} });
   });
 
   // Set per-project env for a server
-  app.put('/api/mcp-env/:serverId', async (c) => {
-    const serverId = c.req.param('serverId');
+  app.put("/api/mcp-env/:serverId", async (c) => {
+    const serverId = c.req.param("serverId");
     const body = await c.req.json<{ env: Record<string, string> }>();
     const store = loadProjectEnv(projectDir);
 
@@ -187,17 +198,17 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
   });
 
   // Get single server (parameterized — must come after static GET routes)
-  app.get('/api/mcp-servers/:id', (c) => {
+  app.get("/api/mcp-servers/:id", (c) => {
     const registry = loadRegistry();
-    const server = registry.servers[c.req.param('id')];
-    if (!server) return c.json({ error: 'Server not found' }, 404);
+    const server = registry.servers[c.req.param("id")];
+    if (!server) return c.json({ error: "Server not found" }, 404);
     return c.json({ server });
   });
 
   // ── Static POST routes (before parameterized :id) ─────────────
 
   // Create server
-  app.post('/api/mcp-servers', async (c) => {
+  app.post("/api/mcp-servers", async (c) => {
     const body = await c.req.json<{
       id?: string;
       name?: string;
@@ -209,7 +220,7 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
     }>();
 
     if (!body.name?.trim() || !body.command?.trim()) {
-      return c.json({ success: false, error: 'Name and command are required' }, 400);
+      return c.json({ success: false, error: "Name and command are required" }, 400);
     }
 
     const registry = loadRegistry();
@@ -223,11 +234,11 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
     const server: McpServerDefinition = {
       id,
       name: body.name.trim(),
-      description: body.description?.trim() ?? '',
+      description: body.description?.trim() ?? "",
       tags: Array.isArray(body.tags) ? body.tags.map((t) => String(t).trim()).filter(Boolean) : [],
       command: body.command.trim(),
       args: Array.isArray(body.args) ? body.args.map(String) : [],
-      env: body.env && typeof body.env === 'object' ? body.env : {},
+      env: body.env && typeof body.env === "object" ? body.env : {},
       createdAt: now,
       updatedAt: now,
     };
@@ -238,25 +249,29 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
   });
 
   // Scan for MCP servers
-  app.post('/api/mcp-servers/scan', async (c) => {
-    const body: { mode?: 'project' | 'folder' | 'device'; scanPath?: string } =
-      await c.req.json().catch(() => ({}));
+  app.post("/api/mcp-servers/scan", async (c) => {
+    const body: { mode?: "project" | "folder" | "device"; scanPath?: string } = await c.req
+      .json()
+      .catch(() => ({}));
 
-    const mode = body.mode ?? 'project';
+    const mode = body.mode ?? "project";
     const registry = loadRegistry();
 
-    const serverMap = new Map<string, {
-      entry: McpServerEntry;
-      foundIn: Array<{ configPath: string }>;
-    }>();
+    const serverMap = new Map<
+      string,
+      {
+        entry: McpServerEntry;
+        foundIn: Array<{ configPath: string }>;
+      }
+    >();
 
     let scanRoots: string[];
     let maxDepth: number;
 
-    if (mode === 'project') {
+    if (mode === "project") {
       scanRoots = [projectDir];
       maxDepth = 4;
-    } else if (mode === 'folder' && body.scanPath) {
+    } else if (mode === "folder" && body.scanPath) {
       scanRoots = [body.scanPath];
       maxDepth = 8;
     } else {
@@ -292,7 +307,7 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
     for (const [key, { entry, foundIn }] of serverMap) {
       discovered.push({
         key,
-        command: entry.command ?? '',
+        command: entry.command ?? "",
         args: entry.args ?? [],
         env: entry.env ?? {},
         foundIn,
@@ -305,7 +320,7 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
   });
 
   // Bulk import scan results into registry
-  app.post('/api/mcp-servers/import', async (c) => {
+  app.post("/api/mcp-servers/import", async (c) => {
     const body = await c.req.json<{
       servers: Array<{
         key: string;
@@ -320,7 +335,7 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
     }>();
 
     if (!Array.isArray(body.servers)) {
-      return c.json({ success: false, error: 'servers array is required' }, 400);
+      return c.json({ success: false, error: "servers array is required" }, 400);
     }
 
     const registry = loadRegistry();
@@ -334,11 +349,11 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
       registry.servers[s.key] = {
         id: s.key,
         name: s.name?.trim() || s.key,
-        description: s.description?.trim() ?? '',
+        description: s.description?.trim() ?? "",
         tags: Array.isArray(s.tags) ? s.tags.map((t) => String(t).trim()).filter(Boolean) : [],
         command: s.command,
         args: Array.isArray(s.args) ? s.args.map(String) : [],
-        env: s.env && typeof s.env === 'object' ? s.env : {},
+        env: s.env && typeof s.env === "object" ? s.env : {},
         source: s.source,
         createdAt: now,
         updatedAt: now,
@@ -353,24 +368,27 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
   // ── Parameterized routes ──────────────────────────────────────
 
   // Update server
-  app.patch('/api/mcp-servers/:id', async (c) => {
+  app.patch("/api/mcp-servers/:id", async (c) => {
     const registry = loadRegistry();
-    const id = c.req.param('id');
+    const id = c.req.param("id");
     const server = registry.servers[id];
-    if (!server) return c.json({ success: false, error: 'Server not found' }, 404);
+    if (!server) return c.json({ success: false, error: "Server not found" }, 404);
 
-    const body = await c.req.json<Partial<{
-      name: string;
-      description: string;
-      tags: string[];
-      command: string;
-      args: string[];
-      env: Record<string, string>;
-    }>>();
+    const body = await c.req.json<
+      Partial<{
+        name: string;
+        description: string;
+        tags: string[];
+        command: string;
+        args: string[];
+        env: Record<string, string>;
+      }>
+    >();
 
     if (body.name !== undefined) server.name = body.name.trim();
     if (body.description !== undefined) server.description = body.description.trim();
-    if (body.tags !== undefined) server.tags = body.tags.map((t) => String(t).trim()).filter(Boolean);
+    if (body.tags !== undefined)
+      server.tags = body.tags.map((t) => String(t).trim()).filter(Boolean);
     if (body.command !== undefined) server.command = body.command.trim();
     if (body.args !== undefined) server.args = body.args.map(String);
     if (body.env !== undefined) server.env = body.env;
@@ -382,10 +400,10 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
   });
 
   // Delete server
-  app.delete('/api/mcp-servers/:id', (c) => {
+  app.delete("/api/mcp-servers/:id", (c) => {
     const registry = loadRegistry();
-    const id = c.req.param('id');
-    if (!registry.servers[id]) return c.json({ success: false, error: 'Server not found' }, 404);
+    const id = c.req.param("id");
+    if (!registry.servers[id]) return c.json({ success: false, error: "Server not found" }, 404);
 
     delete registry.servers[id];
     saveRegistry(registry);
@@ -393,11 +411,11 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
   });
 
   // Deploy server to a tool config
-  app.post('/api/mcp-servers/:id/deploy', async (c) => {
+  app.post("/api/mcp-servers/:id/deploy", async (c) => {
     const registry = loadRegistry();
-    const id = c.req.param('id');
+    const id = c.req.param("id");
     const server = registry.servers[id];
-    if (!server) return c.json({ success: false, error: 'Server not found' }, 404);
+    if (!server) return c.json({ success: false, error: "Server not found" }, 404);
 
     const body = await c.req.json<{ tool: AgentId; scope: Scope }>();
     const { tool, scope } = body;
@@ -423,8 +441,8 @@ export function registerMcpServerRoutes(app: Hono, _manager: WorktreeManager) {
   });
 
   // Undeploy server from a tool config
-  app.post('/api/mcp-servers/:id/undeploy', async (c) => {
-    const id = c.req.param('id');
+  app.post("/api/mcp-servers/:id/undeploy", async (c) => {
+    const id = c.req.param("id");
     const body = await c.req.json<{ tool: AgentId; scope: Scope }>();
     const { tool, scope } = body;
 

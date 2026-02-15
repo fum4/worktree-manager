@@ -1,16 +1,16 @@
-import { APP_NAME } from '../constants';
+import { APP_NAME } from "../constants";
 
-import mcpServerMd from './mcp-server.md';
-import mcpWorkOnTaskMd from './mcp-work-on-task.md';
-import sharedWorkflowMd from './agents/shared-workflow.md';
-import claudeSkillMd from './agents/claude-skill.md';
-import cursorRuleMd from './agents/cursor-rule.md';
-import vscodePromptMd from './agents/vscode-prompt.md';
-import summarizeChangesMd from './skills/summarize-changes.md';
-import reviewChangesMd from './skills/review-changes.md';
-import draftTestPlanMd from './skills/draft-test-plan.md';
-import writeTestsMd from './skills/write-tests.md';
-import explainLikeIm5Md from './skills/explain-like-im-5.md';
+import mcpServerMd from "./mcp-server.md";
+import mcpWorkOnTaskMd from "./mcp-work-on-task.md";
+import sharedWorkflowMd from "./agents/shared-workflow.md";
+import claudeSkillMd from "./agents/claude-skill.md";
+import cursorRuleMd from "./agents/cursor-rule.md";
+import vscodePromptMd from "./agents/vscode-prompt.md";
+import summarizeChangesMd from "./skills/summarize-changes.md";
+import reviewChangesMd from "./skills/review-changes.md";
+import draftTestPlanMd from "./skills/draft-test-plan.md";
+import writeTestsMd from "./skills/write-tests.md";
+import explainLikeIm5Md from "./skills/explain-like-im-5.md";
 
 // ─── Placeholder resolution ─────────────────────────────────────
 
@@ -49,9 +49,9 @@ export interface PredefinedSkill {
 }
 
 export const PREDEFINED_SKILLS: PredefinedSkill[] = [
-  { dirName: 'summarize-changes', content: summarizeChangesMd },
-  { dirName: 'review-changes', content: reviewChangesMd },
-  { dirName: 'draft-test-plan', content: draftTestPlanMd },
-  { dirName: 'write-tests', content: writeTestsMd },
-  { dirName: 'explain-like-im-5', content: explainLikeIm5Md },
+  { dirName: "summarize-changes", content: summarizeChangesMd },
+  { dirName: "review-changes", content: reviewChangesMd },
+  { dirName: "draft-test-plan", content: draftTestPlanMd },
+  { dirName: "write-tests", content: writeTestsMd },
+  { dirName: "explain-like-im-5", content: explainLikeIm5Md },
 ];

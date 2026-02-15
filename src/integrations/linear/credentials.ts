@@ -1,16 +1,16 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
-import path from 'path';
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
 
-import { CONFIG_DIR_NAME } from '../../constants';
-import type { DataLifecycleConfig, LinearCredentials, LinearProjectConfig } from './types';
+import { CONFIG_DIR_NAME } from "../../constants";
+import type { DataLifecycleConfig, LinearCredentials, LinearProjectConfig } from "./types";
 
-const INTEGRATIONS_FILE = 'integrations.json';
+const INTEGRATIONS_FILE = "integrations.json";
 
 function readIntegrations(configDir: string): Record<string, unknown> {
   const filePath = path.join(configDir, CONFIG_DIR_NAME, INTEGRATIONS_FILE);
   if (!existsSync(filePath)) return {};
   try {
-    return JSON.parse(readFileSync(filePath, 'utf-8'));
+    return JSON.parse(readFileSync(filePath, "utf-8"));
   } catch {
     return {};
   }
@@ -18,7 +18,7 @@ function readIntegrations(configDir: string): Record<string, unknown> {
 
 function writeIntegrations(configDir: string, data: Record<string, unknown>): void {
   const filePath = path.join(configDir, CONFIG_DIR_NAME, INTEGRATIONS_FILE);
-  writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
+  writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n");
 }
 
 export function loadLinearCredentials(configDir: string): LinearCredentials | null {
@@ -29,7 +29,7 @@ export function loadLinearCredentials(configDir: string): LinearCredentials | nu
 
 export function saveLinearCredentials(configDir: string, creds: LinearCredentials): void {
   const data = readIntegrations(configDir);
-  data.linear = { ...(data.linear as Record<string, unknown> ?? {}), ...creds };
+  data.linear = { ...((data.linear as Record<string, unknown>) ?? {}), ...creds };
   writeIntegrations(configDir, data);
 }
 
@@ -45,6 +45,6 @@ export function loadLinearProjectConfig(configDir: string): LinearProjectConfig 
 
 export function saveLinearProjectConfig(configDir: string, config: LinearProjectConfig): void {
   const data = readIntegrations(configDir);
-  data.linear = { ...(data.linear as Record<string, unknown> ?? {}), ...config };
+  data.linear = { ...((data.linear as Record<string, unknown>) ?? {}), ...config };
   writeIntegrations(configDir, data);
 }

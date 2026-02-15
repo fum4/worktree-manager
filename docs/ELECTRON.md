@@ -6,15 +6,15 @@ dawg includes an optional Electron app that provides a native desktop experience
 
 The Electron app is structured across several modules in the `electron/` directory:
 
-| File | Purpose |
-|---|---|
-| `electron/main.ts` | Main process: window creation, IPC handlers, tray, protocol handling |
-| `electron/preload.ts` | TypeScript source for the preload script (reference only) |
-| `electron/preload.cjs` | CommonJS preload script that bridges renderer and main process |
-| `electron/project-manager.ts` | Manages multiple project connections and server lifecycles |
-| `electron/preferences-manager.ts` | Persists window state, sidebar width, and app preferences |
-| `electron/server-spawner.ts` | Spawns and stops dawg backend server processes |
-| `electron/tsconfig.json` | TypeScript config for compiling electron sources to `dist/electron/` |
+| File                              | Purpose                                                              |
+| --------------------------------- | -------------------------------------------------------------------- |
+| `electron/main.ts`                | Main process: window creation, IPC handlers, tray, protocol handling |
+| `electron/preload.ts`             | TypeScript source for the preload script (reference only)            |
+| `electron/preload.cjs`            | CommonJS preload script that bridges renderer and main process       |
+| `electron/project-manager.ts`     | Manages multiple project connections and server lifecycles           |
+| `electron/preferences-manager.ts` | Persists window state, sidebar width, and app preferences            |
+| `electron/server-spawner.ts`      | Spawns and stops dawg backend server processes                       |
+| `electron/tsconfig.json`          | TypeScript config for compiling electron sources to `dist/electron/` |
 
 The renderer loads the same React SPA that the browser mode uses (`dist/ui/index.html`), but with additional capabilities exposed through `window.electronAPI` via the preload script.
 
@@ -79,6 +79,7 @@ The Electron app can manage multiple dawg projects simultaneously, each running 
 ### How It Works
 
 Each project gets:
+
 - A unique ID derived from a hash of its absolute directory path
 - An allocated port (incrementing from the base port)
 - A spawned dawg server process (`node dist/cli/index.js --no-open`)
@@ -108,9 +109,7 @@ Switching tabs changes the active project in the main process, which updates the
 
 ```json
 {
-  "openProjects": [
-    { "projectDir": "/path/to/project", "lastOpened": "2025-01-15T10:30:00.000Z" }
-  ],
+  "openProjects": [{ "projectDir": "/path/to/project", "lastOpened": "2025-01-15T10:30:00.000Z" }],
   "lastActiveProjectDir": "/path/to/project"
 }
 ```
@@ -123,12 +122,12 @@ On launch, if no projects are open (no `--project` flag, no protocol URL), the a
 
 ### Stored Preferences
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `basePort` | `number` | `6969` | Starting port for allocating project server ports |
-| `setupPreference` | `'auto' \| 'manual' \| 'ask'` | `'ask'` | How to handle projects without `.dawg/config.json` |
-| `sidebarWidth` | `number` | `300` | Persisted sidebar width in pixels |
-| `windowBounds` | `{ x?, y?, width, height } \| null` | `null` | Last window position and size |
+| Key               | Type                                | Default | Description                                        |
+| ----------------- | ----------------------------------- | ------- | -------------------------------------------------- |
+| `basePort`        | `number`                            | `6969`  | Starting port for allocating project server ports  |
+| `setupPreference` | `'auto' \| 'manual' \| 'ask'`       | `'ask'` | How to handle projects without `.dawg/config.json` |
+| `sidebarWidth`    | `number`                            | `300`   | Persisted sidebar width in pixels                  |
+| `windowBounds`    | `{ x?, y?, width, height } \| null` | `null`  | Last window position and size                      |
 
 Window bounds are saved on every resize/move (unless the window is maximized or minimized) and restored on the next launch.
 
@@ -154,12 +153,15 @@ The Electron app uses strict context isolation. The preload script (`electron/pr
 The preload script exposes the following methods:
 
 **Platform detection:**
+
 - `isElectron: true` -- static flag for the renderer to detect Electron mode
 
 **Folder picker:**
+
 - `selectFolder(): Promise<string | null>` -- opens a native OS folder picker dialog
 
 **Project management:**
+
 - `openProject(folderPath): Promise<{ success, project?, error? }>` -- opens a project directory
 - `closeProject(projectId): Promise<void>` -- closes a project and stops its server
 - `getProjects(): Promise<Project[]>` -- returns all open projects
@@ -167,10 +169,12 @@ The preload script exposes the following methods:
 - `switchTab(projectId): Promise<boolean>` -- switches to a different project tab
 
 **Event subscriptions:**
+
 - `onProjectsChanged(callback): () => void` -- subscribes to project list updates, returns unsubscribe function
 - `onActiveProjectChanged(callback): () => void` -- subscribes to active project changes, returns unsubscribe function
 
 **Preferences:**
+
 - `getPreferences(): Promise<AppPreferences>` -- returns all preferences
 - `getSetupPreference(): Promise<SetupPreference>` -- returns setup mode
 - `setSetupPreference(preference): Promise<void>` -- sets setup mode
@@ -235,12 +239,12 @@ pnpm dev
 
 This executes:
 
-| Process | Command | Description |
-|---|---|---|
-| `dev:ui` | `vite` | Vite dev server for the React UI (port 6969) |
-| `dev:backend` | `tsup ... --watch` | Watches and rebuilds CLI and electron-entry |
-| `dev:electron:compile` | `tsc -p electron/tsconfig.json --watch` | Watches and compiles Electron TypeScript sources |
-| `dev:electron:run` | `electronmon .` | Runs Electron with auto-restart, waits for UI dev server and compiled main.js |
+| Process                | Command                                 | Description                                                                   |
+| ---------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
+| `dev:ui`               | `vite`                                  | Vite dev server for the React UI (port 6969)                                  |
+| `dev:backend`          | `tsup ... --watch`                      | Watches and rebuilds CLI and electron-entry                                   |
+| `dev:electron:compile` | `tsc -p electron/tsconfig.json --watch` | Watches and compiles Electron TypeScript sources                              |
+| `dev:electron:run`     | `electronmon .`                         | Runs Electron with auto-restart, waits for UI dev server and compiled main.js |
 
 In dev mode, the renderer loads from the Vite dev server (`UI_DEV_SERVER_URL=http://localhost:6969`) instead of the built files, enabling hot module replacement. `electronmon` automatically restarts the Electron main process when `dist/electron/main.js` changes.
 

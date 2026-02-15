@@ -12,7 +12,6 @@ concurrency:
 
 jobs:
   format:
-    name: Format
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -20,7 +19,6 @@ jobs:
       - run: npx oxfmt --check .
 
   lint:
-    name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -28,7 +26,6 @@ jobs:
       - uses: oxc-project/oxlint-action@v1
 
   typecheck:
-    name: Typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

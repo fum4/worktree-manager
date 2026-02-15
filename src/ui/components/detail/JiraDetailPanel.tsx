@@ -1,18 +1,18 @@
-import { useState } from 'react';
+import { useState } from "react";
 
-import { useJiraIssueDetail } from '../../hooks/useJiraIssueDetail';
-import { useApi } from '../../hooks/useApi';
-import { useServerUrlOptional } from '../../contexts/ServerContext';
-import type { JiraIssueDetail } from '../../types';
-import { badge, border, button, jiraPriority, jiraStatus, jiraType, text } from '../../theme';
-import { Tooltip } from '../Tooltip';
-import { TruncatedTooltip } from '../TruncatedTooltip';
-import { AttachmentImage } from '../AttachmentImage';
-import { MarkdownContent } from '../MarkdownContent';
-import { PersonalNotesSection, AgentSection } from './NotesSection';
-import { Spinner } from '../Spinner';
-import { WorktreeExistsModal } from '../WorktreeExistsModal';
-import { ImageModal } from '../ImageModal';
+import { useJiraIssueDetail } from "../../hooks/useJiraIssueDetail";
+import { useApi } from "../../hooks/useApi";
+import { useServerUrlOptional } from "../../contexts/ServerContext";
+import type { JiraIssueDetail } from "../../types";
+import { badge, border, button, jiraPriority, jiraStatus, jiraType, text } from "../../theme";
+import { Tooltip } from "../Tooltip";
+import { TruncatedTooltip } from "../TruncatedTooltip";
+import { AttachmentImage } from "../AttachmentImage";
+import { MarkdownContent } from "../MarkdownContent";
+import { PersonalNotesSection, AgentSection } from "./NotesSection";
+import { Spinner } from "../Spinner";
+import { WorktreeExistsModal } from "../WorktreeExistsModal";
+import { ImageModal } from "../ImageModal";
 
 interface JiraDetailPanelProps {
   issueKey: string;
@@ -24,9 +24,9 @@ interface JiraDetailPanelProps {
 }
 
 function formatTimeAgo(timestamp: number): string {
-  if (!timestamp) return '';
+  if (!timestamp) return "";
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return 'just now';
+  if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
@@ -34,10 +34,10 @@ function formatTimeAgo(timestamp: number): string {
 }
 
 function formatDate(iso: string) {
-  if (!iso) return '';
+  if (!iso) return "";
   return new Date(iso).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    dateStyle: "medium",
+    timeStyle: "short",
   });
 }
 
@@ -48,24 +48,24 @@ function formatSize(bytes: number) {
 }
 
 function proxyUrl(url: string, serverUrl: string | null) {
-  return `${serverUrl ?? ''}/api/jira/attachment?url=${encodeURIComponent(url)}`;
+  return `${serverUrl ?? ""}/api/jira/attachment?url=${encodeURIComponent(url)}`;
 }
 
 function isImage(mimeType: string) {
-  return mimeType.startsWith('image/');
+  return mimeType.startsWith("image/");
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>
-      {children}
-    </h3>
-  );
+  return <h3 className={`text-[11px] font-medium ${text.muted} mb-3`}>{children}</h3>;
 }
 
-function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail['attachments'] }) {
+function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail["attachments"] }) {
   const serverUrl = useServerUrlOptional();
-  const [preview, setPreview] = useState<{ src: string; filename: string; type: 'image' | 'pdf' } | null>(null);
+  const [preview, setPreview] = useState<{
+    src: string;
+    filename: string;
+    type: "image" | "pdf";
+  } | null>(null);
 
   return (
     <>
@@ -73,7 +73,7 @@ function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail['att
         <div className="flex flex-wrap gap-3">
           {attachments.map((att, i) => {
             const isImg = isImage(att.mimeType) && att.contentUrl;
-            const isPdf = att.mimeType === 'application/pdf' && att.contentUrl;
+            const isPdf = att.mimeType === "application/pdf" && att.contentUrl;
             const url = att.contentUrl ? proxyUrl(att.contentUrl, serverUrl) : null;
 
             return (
@@ -82,7 +82,9 @@ function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail['att
                   {isImg ? (
                     <button
                       type="button"
-                      onClick={() => setPreview({ src: url!, filename: att.filename, type: 'image' })}
+                      onClick={() =>
+                        setPreview({ src: url!, filename: att.filename, type: "image" })
+                      }
                       className="rounded overflow-hidden block"
                     >
                       <AttachmentImage
@@ -94,14 +96,23 @@ function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail['att
                   ) : isPdf ? (
                     <button
                       type="button"
-                      onClick={() => setPreview({ src: url!, filename: att.filename, type: 'pdf' })}
+                      onClick={() => setPreview({ src: url!, filename: att.filename, type: "pdf" })}
                       className="w-36 h-28 rounded bg-white/[0.03] flex flex-col items-center justify-center gap-1 hover:gap-1.5 hover:bg-white/[0.06] transition-all group/pdf"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-red-400/70 transition-transform group-hover/pdf:scale-110">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        className="w-8 h-8 text-red-400/70 transition-transform group-hover/pdf:scale-110"
+                      >
                         <path d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0 0 16.5 9h-1.875a1.875 1.875 0 0 1-1.875-1.875V5.25A3.75 3.75 0 0 0 9 1.5H5.625Z" />
                         <path d="M12.971 1.816A5.23 5.23 0 0 1 14.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 0 1 3.434 1.279 9.768 9.768 0 0 0-6.963-6.963Z" />
                       </svg>
-                      <span className={`text-[10px] font-semibold ${text.secondary} transition-transform group-hover/pdf:scale-110`}>PDF</span>
+                      <span
+                        className={`text-[10px] font-semibold ${text.secondary} transition-transform group-hover/pdf:scale-110`}
+                      >
+                        PDF
+                      </span>
                     </button>
                   ) : (
                     <div className="w-36 h-28 rounded bg-white/[0.03] flex items-center justify-center">
@@ -109,7 +120,10 @@ function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail['att
                     </div>
                   )}
                 </div>
-                <TruncatedTooltip text={att.filename} className={`text-[10px] ${text.muted} mt-1.5`} />
+                <TruncatedTooltip
+                  text={att.filename}
+                  className={`text-[10px] ${text.muted} mt-1.5`}
+                />
                 <span className={`text-[9px] ${text.dimmed}`}>{formatSize(att.size)}</span>
               </div>
             );
@@ -118,53 +132,82 @@ function AttachmentsSection({ attachments }: { attachments: JiraIssueDetail['att
       </div>
 
       {preview && (
-        <ImageModal src={preview.src} filename={preview.filename} type={preview.type} onClose={() => setPreview(null)} />
+        <ImageModal
+          src={preview.src}
+          filename={preview.filename}
+          type={preview.type}
+          onClose={() => setPreview(null)}
+        />
       )}
     </>
   );
 }
 
 function FileIcon({ mimeType }: { mimeType: string }) {
-  const color = mimeType.includes('pdf') ? 'text-red-400'
-    : mimeType.includes('zip') || mimeType.includes('archive') ? 'text-yellow-400'
-    : mimeType.includes('text') || mimeType.includes('json') ? 'text-green-400'
-    : 'text-gray-400';
+  const color = mimeType.includes("pdf")
+    ? "text-red-400"
+    : mimeType.includes("zip") || mimeType.includes("archive")
+      ? "text-yellow-400"
+      : mimeType.includes("text") || mimeType.includes("json")
+        ? "text-green-400"
+        : "text-gray-400";
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-3.5 h-3.5 flex-shrink-0 ${color}`}>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className={`w-3.5 h-3.5 flex-shrink-0 ${color}`}
+    >
       <path d="M3 3.5A1.5 1.5 0 0 1 4.5 2h6.879a1.5 1.5 0 0 1 1.06.44l4.122 4.12A1.5 1.5 0 0 1 17 8.622V16.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 16.5v-13Z" />
     </svg>
   );
 }
 
-export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, onViewWorktree, refreshIntervalMinutes, onSetupNeeded }: JiraDetailPanelProps) {
+export function JiraDetailPanel({
+  issueKey,
+  linkedWorktreeId,
+  onCreateWorktree,
+  onViewWorktree,
+  refreshIntervalMinutes,
+  onSetupNeeded,
+}: JiraDetailPanelProps) {
   const api = useApi();
   const serverUrl = useServerUrlOptional();
-  const { issue, isLoading, isFetching, error, refetch, dataUpdatedAt } = useJiraIssueDetail(issueKey, refreshIntervalMinutes);
+  const { issue, isLoading, isFetching, error, refetch, dataUpdatedAt } = useJiraIssueDetail(
+    issueKey,
+    refreshIntervalMinutes,
+  );
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [existingWorktree, setExistingWorktree] = useState<{ id: string; branch: string } | null>(null);
-  const [contentPreview, setContentPreview] = useState<{ src: string; filename: string; type: 'image' | 'pdf' } | null>(null);
+  const [existingWorktree, setExistingWorktree] = useState<{ id: string; branch: string } | null>(
+    null,
+  );
+  const [contentPreview, setContentPreview] = useState<{
+    src: string;
+    filename: string;
+    type: "image" | "pdf";
+  } | null>(null);
 
   const handleImageClick = (src: string, alt: string) => {
-    const isPdf = src.includes('application%2Fpdf') || alt.toLowerCase().endsWith('.pdf');
-    setContentPreview({ src, filename: alt, type: isPdf ? 'pdf' : 'image' });
+    const isPdf = src.includes("application%2Fpdf") || alt.toLowerCase().endsWith(".pdf");
+    setContentPreview({ src, filename: alt, type: isPdf ? "pdf" : "image" });
   };
 
   const handleCreate = async () => {
     setIsCreating(true);
     setCreateError(null);
     const result = await api.createFromJira(issueKey);
-    console.log('createFromJira result:', result);
+    console.log("createFromJira result:", result);
     setIsCreating(false);
     if (result.success) {
       onCreateWorktree(issueKey);
-    } else if (result.code === 'WORKTREE_EXISTS' && result.worktreeId) {
-      console.log('Showing WorktreeExistsModal for:', result.worktreeId);
+    } else if (result.code === "WORKTREE_EXISTS" && result.worktreeId) {
+      console.log("Showing WorktreeExistsModal for:", result.worktreeId);
       setExistingWorktree({ id: result.worktreeId, branch: issueKey });
     } else {
-      const errorMsg = result.error || 'Failed to create worktree';
+      const errorMsg = result.error || "Failed to create worktree";
       // Check if error indicates repository setup is needed
-      if (errorMsg.includes('no commits') || errorMsg.includes('invalid reference')) {
+      if (errorMsg.includes("no commits") || errorMsg.includes("invalid reference")) {
         if (onSetupNeeded) {
           onSetupNeeded();
         } else {
@@ -234,7 +277,10 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                 {issue.type}
               </span>
               {issue.labels.map((label) => (
-                <span key={label} className={`text-[11px] font-medium px-2 py-0.5 rounded bg-white/[0.06] ${text.secondary}`}>
+                <span
+                  key={label}
+                  className={`text-[11px] font-medium px-2 py-0.5 rounded bg-white/[0.06] ${text.secondary}`}
+                >
                   {label}
                 </span>
               ))}
@@ -242,10 +288,15 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
               <span className={`text-[11px] ${priorityClass}`}>{issue.priority}</span>
             </div>
             {/* Summary — largest text, clear anchor */}
-            <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>{issue.summary}</h2>
+            <h2 className={`text-[15px] font-semibold ${text.primary} leading-snug`}>
+              {issue.summary}
+            </h2>
           </div>
           <div className="flex-shrink-0 pt-1 flex items-center gap-2">
-            <Tooltip position="left" text={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : 'Refresh'}>
+            <Tooltip
+              position="left"
+              text={dataUpdatedAt ? `Last refreshed: ${formatTimeAgo(dataUpdatedAt)}` : "Refresh"}
+            >
               <button
                 type="button"
                 onClick={() => refetch()}
@@ -255,7 +306,7 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 16 16"
                   fill="currentColor"
-                  className={`w-3.5 h-3.5 ${isFetching && !isLoading ? 'animate-spin' : ''}`}
+                  className={`w-3.5 h-3.5 ${isFetching && !isLoading ? "animate-spin" : ""}`}
                 >
                   <path
                     fillRule="evenodd"
@@ -288,14 +339,12 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                 disabled={isCreating}
                 className={`px-3 py-1.5 text-xs font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}
               >
-                {isCreating ? 'Creating...' : 'Create Worktree'}
+                {isCreating ? "Creating..." : "Create Worktree"}
               </button>
             )}
           </div>
         </div>
-        {createError && (
-          <p className={`${text.error} text-[10px] mt-2`}>{createError}</p>
-        )}
+        {createError && <p className={`${text.error} text-[10px] mt-2`}>{createError}</p>}
       </div>
 
       {/* Scrollable body — each section gets its own visual container */}
@@ -304,7 +353,11 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
           <section>
             <SectionLabel>Description</SectionLabel>
             <div className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-4 py-3">
-              <MarkdownContent content={issue.description} baseUrl={serverUrl ?? undefined} onImageClick={handleImageClick} />
+              <MarkdownContent
+                content={issue.description}
+                baseUrl={serverUrl ?? undefined}
+                onImageClick={handleImageClick}
+              />
             </div>
           </section>
         )}
@@ -326,10 +379,18 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
                   className="rounded-lg bg-white/[0.02] border border-white/[0.04] px-4 py-3"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-[11px] font-medium ${text.primary}`}>{comment.author}</span>
-                    <span className={`text-[10px] ${text.dimmed}`}>{formatDate(comment.created)}</span>
+                    <span className={`text-[11px] font-medium ${text.primary}`}>
+                      {comment.author}
+                    </span>
+                    <span className={`text-[10px] ${text.dimmed}`}>
+                      {formatDate(comment.created)}
+                    </span>
                   </div>
-                  <MarkdownContent content={comment.body} baseUrl={serverUrl ?? undefined} onImageClick={handleImageClick} />
+                  <MarkdownContent
+                    content={comment.body}
+                    baseUrl={serverUrl ?? undefined}
+                    onImageClick={handleImageClick}
+                  />
                 </div>
               ))}
             </div>
@@ -360,7 +421,12 @@ export function JiraDetailPanel({ issueKey, linkedWorktreeId, onCreateWorktree, 
       )}
 
       {contentPreview && (
-        <ImageModal src={contentPreview.src} filename={contentPreview.filename} type={contentPreview.type} onClose={() => setContentPreview(null)} />
+        <ImageModal
+          src={contentPreview.src}
+          filename={contentPreview.filename}
+          type={contentPreview.type}
+          onClose={() => setContentPreview(null)}
+        />
       )}
     </div>
   );

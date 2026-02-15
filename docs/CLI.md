@@ -35,10 +35,10 @@ When run without a subcommand, dawg does the following:
 
 **Options:**
 
-| Option | Environment Variable | Description |
-|---|---|---|
-| `--no-open` | `DAWG_NO_OPEN=1` | Start the server without opening the UI |
-| `--auto-init` | `DAWG_AUTO_INIT=1` | Auto-initialize config if none is found (skips interactive prompts) |
+| Option        | Environment Variable | Description                                                         |
+| ------------- | -------------------- | ------------------------------------------------------------------- |
+| `--no-open`   | `DAWG_NO_OPEN=1`     | Start the server without opening the UI                             |
+| `--auto-init` | `DAWG_AUTO_INIT=1`   | Auto-initialize config if none is found (skips interactive prompts) |
 
 On first run, dawg also installs itself into `~/.local/bin/` (as a shell wrapper) so the `dawg` command is available system-wide. If `~/.local/bin` is not in your `PATH`, it will print a warning with instructions.
 
@@ -56,12 +56,12 @@ Must be run inside a git repository. Exits with an error if a config file alread
 
 The wizard prompts for:
 
-| Prompt | Default | Description |
-|---|---|---|
-| Project directory | `.` (current directory) | Absolute or relative path to the project root |
-| Base branch | Auto-detected (e.g., `origin/main`) | Branch that new worktrees are created from |
-| Dev start command | Auto-detected from `package.json` scripts | Command to start the dev server in each worktree |
-| Install command | Auto-detected (`pnpm install`, `yarn install`, etc.) | Command to install dependencies in each worktree |
+| Prompt            | Default                                              | Description                                      |
+| ----------------- | ---------------------------------------------------- | ------------------------------------------------ |
+| Project directory | `.` (current directory)                              | Absolute or relative path to the project root    |
+| Base branch       | Auto-detected (e.g., `origin/main`)                  | Branch that new worktrees are created from       |
+| Dev start command | Auto-detected from `package.json` scripts            | Command to start the dev server in each worktree |
+| Install command   | Auto-detected (`pnpm install`, `yarn install`, etc.) | Command to install dependencies in each worktree |
 
 After writing the config, `init` also:
 
@@ -104,6 +104,7 @@ Requires an existing config (`dawg init` must have been run first). If no integr
 Checks for the GitHub CLI (`gh`) and verifies authentication. Does not store any credentials -- GitHub integration relies entirely on the `gh` CLI being installed and authenticated.
 
 Prerequisites:
+
 - Install `gh`: `brew install gh` (macOS) or see [GitHub CLI docs](https://github.com/cli/cli)
 - Authenticate: `gh auth login`
 
@@ -114,6 +115,7 @@ Once set up, enables PR creation, commit, and push from the dawg UI.
 Connects to Linear for issue tracking.
 
 Prompts for:
+
 - **API Key** -- create one at https://linear.app/settings/account/security/api-keys/new
 - **Default team key** (optional, e.g., `ENG`)
 
@@ -124,12 +126,14 @@ Tests the connection before saving. Credentials are stored in `.dawg/integration
 Connects to Atlassian Jira for issue tracking. Offers two authentication methods:
 
 **OAuth 2.0 (recommended):**
+
 - Requires creating an OAuth app at https://developer.atlassian.com/console
 - Prompts for Client ID and Client Secret
 - Runs a browser-based OAuth authorization flow
 - Auto-discovers the Jira Cloud ID and site URL
 
 **API Token:**
+
 - Simpler setup, no app registration needed
 - Create a token at https://id.atlassian.com/manage-profile/security/api-tokens
 - Prompts for site URL, email, and API token
@@ -250,14 +254,14 @@ Once found, dawg changes the working directory to the project root (the parent o
 
 If no config is found, dawg uses defaults:
 
-| Setting | Default |
-|---|---|
-| `projectDir` | `.` |
-| `startCommand` | `""` (empty) |
-| `installCommand` | `""` (empty) |
-| `baseBranch` | `origin/main` |
-| `ports.discovered` | `[]` |
-| `ports.offsetStep` | `1` |
+| Setting            | Default       |
+| ------------------ | ------------- |
+| `projectDir`       | `.`           |
+| `startCommand`     | `""` (empty)  |
+| `installCommand`   | `""` (empty)  |
+| `baseBranch`       | `origin/main` |
+| `ports.discovered` | `[]`          |
+| `ports.offsetStep` | `1`           |
 
 ---
 
@@ -275,11 +279,11 @@ If the chosen port is already in use, dawg automatically increments and tries th
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `DAWG_PORT` | Override the server port (highest priority) |
-| `DAWG_NO_OPEN` | Set to `1` to start the server without opening the UI (equivalent to `--no-open`) |
-| `DAWG_AUTO_INIT` | Set to `1` to auto-initialize config if none found (equivalent to `--auto-init`) |
+| Variable         | Description                                                                       |
+| ---------------- | --------------------------------------------------------------------------------- |
+| `DAWG_PORT`      | Override the server port (highest priority)                                       |
+| `DAWG_NO_OPEN`   | Set to `1` to start the server without opening the UI (equivalent to `--no-open`) |
+| `DAWG_AUTO_INIT` | Set to `1` to auto-initialize config if none found (equivalent to `--auto-init`)  |
 
 ---
 
@@ -287,12 +291,12 @@ If the chosen port is already in use, dawg automatically increments and tries th
 
 Stored at `~/.dawg/app-preferences.json`. These preferences persist across all projects.
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `basePort` | `number` | `6969` | Default server port |
-| `setupPreference` | `"auto" \| "manual" \| "ask"` | `"ask"` | How to handle missing config |
-| `sidebarWidth` | `number` | `300` | UI sidebar width in pixels |
-| `windowBounds` | `object \| null` | `null` | Electron window position and size |
+| Key               | Type                          | Default | Description                       |
+| ----------------- | ----------------------------- | ------- | --------------------------------- |
+| `basePort`        | `number`                      | `6969`  | Default server port               |
+| `setupPreference` | `"auto" \| "manual" \| "ask"` | `"ask"` | How to handle missing config      |
+| `sidebarWidth`    | `number`                      | `300`   | UI sidebar width in pixels        |
+| `windowBounds`    | `object \| null`              | `null`  | Electron window position and size |
 
 ---
 

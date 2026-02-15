@@ -14,6 +14,7 @@ dawg         # start the server and open the UI
 ```
 
 In the UI:
+
 1. Click **Discover Ports** to auto-detect all ports your dev command binds
 2. Create worktrees from branches or issue tracker tickets
 3. Start them — ports are offset automatically, no conflicts
@@ -33,38 +34,43 @@ See [Port Mapping](docs/PORT-MAPPING.md) for the full technical details.
 ## Features
 
 ### Worktree Management
+
 Create, start, stop, and remove git worktrees from the UI or CLI. Each worktree gets its own port offset, environment variables, and process lifecycle.
 
 ### Issue Tracker Integration
+
 Connect to **Jira** (OAuth or API token), **Linear** (API key), or create **local issues**. Create worktrees directly from tickets — dawg fetches issue details, generates a TASK.md with context, and sets up the branch.
 
 See [Integrations](docs/INTEGRATIONS.md) for setup details.
 
 ### AI Agent Support (MCP)
+
 dawg exposes 20+ tools via MCP (Model Context Protocol) that any AI coding agent can use — browse issues, create worktrees, manage todos, commit/push/PR, run hooks. Agents get a structured workflow: pick an issue, create a worktree, read TASK.md, work through todos, run hooks, and ship.
 
 See [MCP](docs/MCP.md) for the tool reference and [Agents](docs/AGENTS.md) for the agent tooling system.
 
 ### Hooks
+
 Automated checks and agent skills organized by trigger type (pre-implementation, post-implementation, custom, on-demand). Add shell command steps and import skills from the registry. Run from the UI or via MCP tools.
 
 See [Hooks](docs/HOOKS.md) for configuration and usage.
 
 ### Electron Desktop App
+
 Optional native app with multi-project tab support, `dawg://` deep linking, and window state persistence.
 
 See [Electron](docs/ELECTRON.md) for details.
 
 ## CLI Commands
 
-| Command | Description |
-|---------|-------------|
-| `dawg` | Start the server and open the UI |
-| `dawg init` | Interactive setup wizard |
+| Command           | Description                                  |
+| ----------------- | -------------------------------------------- |
+| `dawg`            | Start the server and open the UI             |
+| `dawg init`       | Interactive setup wizard                     |
 | `dawg add [name]` | Set up an integration (github, linear, jira) |
-| `dawg mcp` | Start as an MCP server for AI agents |
-| `dawg task <ID>` | Create a worktree from an issue ID |
-| `dawg connect` | Connect to an existing dawg server |
+| `dawg mcp`        | Start as an MCP server for AI agents         |
+| `dawg task <ID>`  | Create a worktree from an issue ID           |
+| `dawg connect`    | Connect to an existing dawg server           |
 
 See [CLI Reference](docs/CLI.md) for full details.
 
@@ -76,21 +82,21 @@ See [Configuration](docs/CONFIGURATION.md) for the complete reference.
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Architecture](docs/ARCHITECTURE.md) | System layers, components, data flow, build system |
-| [CLI Reference](docs/CLI.md) | All CLI commands and options |
-| [Configuration](docs/CONFIGURATION.md) | Config files, settings, and data storage |
-| [API Reference](docs/API.md) | REST API endpoints |
-| [MCP Tools](docs/MCP.md) | Model Context Protocol integration and tool reference |
-| [Agents](docs/AGENTS.md) | Agent tooling system, skills, plugins, git policy |
-| [Integrations](docs/INTEGRATIONS.md) | Jira, Linear, and GitHub setup |
-| [Port Mapping](docs/PORT-MAPPING.md) | Port discovery, offset algorithm, runtime hook |
-| [Hooks](docs/HOOKS.md) | Hooks system (trigger types, commands, skills) |
-| [Electron](docs/ELECTRON.md) | Desktop app, deep linking, multi-project |
-| [Frontend](docs/FRONTEND.md) | React UI architecture, theme, components |
-| [Development](docs/DEVELOPMENT.md) | Developer guide, build commands, conventions |
-| [Setup Flow](docs/SETUP-FLOW.md) | Project setup wizard, state machine, integrations |
+| Document                               | Description                                           |
+| -------------------------------------- | ----------------------------------------------------- |
+| [Architecture](docs/ARCHITECTURE.md)   | System layers, components, data flow, build system    |
+| [CLI Reference](docs/CLI.md)           | All CLI commands and options                          |
+| [Configuration](docs/CONFIGURATION.md) | Config files, settings, and data storage              |
+| [API Reference](docs/API.md)           | REST API endpoints                                    |
+| [MCP Tools](docs/MCP.md)               | Model Context Protocol integration and tool reference |
+| [Agents](docs/AGENTS.md)               | Agent tooling system, skills, plugins, git policy     |
+| [Integrations](docs/INTEGRATIONS.md)   | Jira, Linear, and GitHub setup                        |
+| [Port Mapping](docs/PORT-MAPPING.md)   | Port discovery, offset algorithm, runtime hook        |
+| [Hooks](docs/HOOKS.md)                 | Hooks system (trigger types, commands, skills)        |
+| [Electron](docs/ELECTRON.md)           | Desktop app, deep linking, multi-project              |
+| [Frontend](docs/FRONTEND.md)           | React UI architecture, theme, components              |
+| [Development](docs/DEVELOPMENT.md)     | Developer guide, build commands, conventions          |
+| [Setup Flow](docs/SETUP-FLOW.md)       | Project setup wizard, state machine, integrations     |
 
 ## Platform Constraints
 

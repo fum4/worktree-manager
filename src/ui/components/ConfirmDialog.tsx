@@ -1,7 +1,7 @@
-import { Trash2 } from 'lucide-react';
+import { Trash2 } from "lucide-react";
 
-import { button, text } from '../theme';
-import { Modal } from './Modal';
+import { button, text } from "../theme";
+import { Modal } from "./Modal";
 
 interface ConfirmDialogProps {
   title: string;
@@ -15,7 +15,7 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({
   title,
-  confirmLabel = 'Delete',
+  confirmLabel = "Delete",
   confirmClassName,
   icon,
   onConfirm,

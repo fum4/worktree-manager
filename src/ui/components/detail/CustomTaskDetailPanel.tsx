@@ -1,17 +1,16 @@
-import { useCallback, useRef, useState } from 'react';
-import { Paperclip, Trash2, X } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useRef, useState } from "react";
+import { Paperclip, Trash2, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { useCustomTaskDetail } from '../../hooks/useCustomTaskDetail';
-import { useApi } from '../../hooks/useApi';
-import { border, button, customTask, getLabelColor, text } from '../../theme';
-import { MarkdownContent } from '../MarkdownContent';
-import { PersonalNotesSection, AgentSection } from './NotesSection';
-import { Spinner } from '../Spinner';
-import { ImageModal } from '../ImageModal';
-import { AttachmentThumbnail } from '../AttachmentThumbnail';
-import type { CustomTaskAttachment } from '../../types';
-
+import { useCustomTaskDetail } from "../../hooks/useCustomTaskDetail";
+import { useApi } from "../../hooks/useApi";
+import { border, button, customTask, getLabelColor, text } from "../../theme";
+import { MarkdownContent } from "../MarkdownContent";
+import { PersonalNotesSection, AgentSection } from "./NotesSection";
+import { Spinner } from "../Spinner";
+import { ImageModal } from "../ImageModal";
+import { AttachmentThumbnail } from "../AttachmentThumbnail";
+import type { CustomTaskAttachment } from "../../types";
 
 interface CustomTaskDetailPanelProps {
   taskId: string;
@@ -21,35 +20,40 @@ interface CustomTaskDetailPanelProps {
 }
 
 function formatDate(iso: string) {
-  if (!iso) return '';
+  if (!iso) return "";
   return new Date(iso).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    dateStyle: "medium",
+    timeStyle: "short",
   });
 }
 
 const statusOptions = [
-  { value: 'todo', label: 'Todo' },
-  { value: 'in-progress', label: 'In Progress' },
-  { value: 'done', label: 'Done' },
+  { value: "todo", label: "Todo" },
+  { value: "in-progress", label: "In Progress" },
+  { value: "done", label: "Done" },
 ] as const;
 
 const priorityOptions = [
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
 ] as const;
 
-export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onViewWorktree }: CustomTaskDetailPanelProps) {
+export function CustomTaskDetailPanel({
+  taskId,
+  onDeleted,
+  onCreateWorktree,
+  onViewWorktree,
+}: CustomTaskDetailPanelProps) {
   const api = useApi();
   const queryClient = useQueryClient();
   const { task, isLoading, error, refetch } = useCustomTaskDetail(taskId);
 
   const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState('');
+  const [titleDraft, setTitleDraft] = useState("");
   const [editingDescription, setEditingDescription] = useState(false);
-  const [descriptionDraft, setDescriptionDraft] = useState('');
-  const [labelInput, setLabelInput] = useState('');
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [labelInput, setLabelInput] = useState("");
   const [labelInputFocused, setLabelInputFocused] = useState(false);
   const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -57,17 +61,21 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [previewImage, setPreviewImage] = useState<{ src: string; filename: string; type: 'image' | 'pdf' } | null>(null);
+  const [previewImage, setPreviewImage] = useState<{
+    src: string;
+    filename: string;
+    type: "image" | "pdf";
+  } | null>(null);
 
   const update = async (updates: Record<string, unknown>) => {
     await api.updateCustomTask(taskId, updates);
     refetch();
-    queryClient.invalidateQueries({ queryKey: ['customTasks'] });
+    queryClient.invalidateQueries({ queryKey: ["customTasks"] });
   };
 
   const handleDelete = async () => {
     await api.deleteCustomTask(taskId);
-    queryClient.invalidateQueries({ queryKey: ['customTasks'] });
+    queryClient.invalidateQueries({ queryKey: ["customTasks"] });
     onDeleted();
   };
 
@@ -78,10 +86,10 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
     setIsCreatingWorktree(false);
     if (result.success) {
       refetch();
-      queryClient.invalidateQueries({ queryKey: ['customTasks'] });
+      queryClient.invalidateQueries({ queryKey: ["customTasks"] });
       onCreateWorktree();
     } else {
-      setCreateError(result.error ?? 'Failed to create worktree');
+      setCreateError(result.error ?? "Failed to create worktree");
     }
   };
 
@@ -117,12 +125,15 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
     setEditingDescription(false);
   };
 
-  const autoResize = useCallback((el: HTMLTextAreaElement | null) => {
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = Math.max(el.scrollHeight, descriptionMinHeight) + 'px';
-    el.focus();
-  }, [descriptionMinHeight]);
+  const autoResize = useCallback(
+    (el: HTMLTextAreaElement | null) => {
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = Math.max(el.scrollHeight, descriptionMinHeight) + "px";
+      el.focus();
+    },
+    [descriptionMinHeight],
+  );
 
   const handleUploadFiles = async (files: FileList | File[]) => {
     setIsUploading(true);
@@ -142,7 +153,7 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
     const raw = value ?? labelInput;
     if (!task || !raw.trim()) return;
     const trimmed = raw.trim();
-    setLabelInput('');
+    setLabelInput("");
     if (!task.labels.includes(trimmed)) {
       await update({ labels: [...task.labels, trimmed] });
     }
@@ -185,12 +196,8 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className={`text-xs font-semibold text-amber-500`}>
-                {task.id}
-              </span>
-              {task.labels.length > 0 && (
-                <span className={`text-[5px] ${text.dimmed}`}>●</span>
-              )}
+              <span className={`text-xs font-semibold text-amber-500`}>{task.id}</span>
+              {task.labels.length > 0 && <span className={`text-[5px] ${text.dimmed}`}>●</span>}
               {task.labels.map((label: string) => {
                 const colorSet = getLabelColor(label);
                 return (
@@ -210,9 +217,12 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
                 );
               })}
               {(() => {
-                const matchColor = labelInput.trim() && task.labels.includes(labelInput.trim())
-                  ? getLabelColor(labelInput.trim())
-                  : labelInput.trim() ? getLabelColor(labelInput.trim()) : null;
+                const matchColor =
+                  labelInput.trim() && task.labels.includes(labelInput.trim())
+                    ? getLabelColor(labelInput.trim())
+                    : labelInput.trim()
+                      ? getLabelColor(labelInput.trim())
+                      : null;
                 return (
                   <input
                     type="text"
@@ -222,21 +232,21 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
                     onBlur={() => {
                       const value = labelInput.trim();
                       setLabelInputFocused(false);
-                      setLabelInput('');
+                      setLabelInput("");
                       if (value) addLabel(value);
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         e.preventDefault();
                         (e.target as HTMLInputElement).blur();
                       }
-                      if (e.key === 'Escape') {
-                        setLabelInput('');
+                      if (e.key === "Escape") {
+                        setLabelInput("");
                         (e.target as HTMLInputElement).blur();
                       }
                     }}
-                    placeholder={labelInputFocused ? '' : '+'}
-                    className={`${labelInputFocused ? 'w-20 h-auto py-0.5 text-left cursor-text px-2 bg-white/[0.08]' : 'w-5 h-5 text-center bg-transparent hover:bg-white/[0.08]'} text-sm leading-[18px] rounded cursor-pointer ${matchColor ? matchColor.text : text.muted} border-none placeholder-[#6b7280] focus:outline-none transition-all`}
+                    placeholder={labelInputFocused ? "" : "+"}
+                    className={`${labelInputFocused ? "w-20 h-auto py-0.5 text-left cursor-text px-2 bg-white/[0.08]" : "w-5 h-5 text-center bg-transparent hover:bg-white/[0.08]"} text-sm leading-[18px] rounded cursor-pointer ${matchColor ? matchColor.text : text.muted} border-none placeholder-[#6b7280] focus:outline-none transition-all`}
                   />
                 );
               })()}
@@ -248,8 +258,8 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
                 onChange={(e) => setTitleDraft(e.target.value)}
                 onBlur={saveTitle}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') saveTitle();
-                  if (e.key === 'Escape') setEditingTitle(false);
+                  if (e.key === "Enter") saveTitle();
+                  if (e.key === "Escape") setEditingTitle(false);
                 }}
                 style={{ width: `${Math.max(titleDraft.length + 1, 10)}ch` }}
                 className={`max-w-full text-[15px] font-semibold ${text.primary} bg-white/[0.04] border border-amber-400/30 rounded-md px-2 py-1 focus:outline-none`}
@@ -287,18 +297,18 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
                 disabled={isCreatingWorktree}
                 className={`px-3 py-1.5 text-xs font-medium ${button.primary} rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98]`}
               >
-                {isCreatingWorktree ? 'Creating...' : 'Create Worktree'}
+                {isCreatingWorktree ? "Creating..." : "Create Worktree"}
               </button>
             )}
           </div>
         </div>
-        {createError && (
-          <p className={`${text.error} text-[10px] mt-2`}>{createError}</p>
-        )}
+        {createError && <p className={`${text.error} text-[10px] mt-2`}>{createError}</p>}
       </div>
 
       {/* Metadata bar */}
-      <div className={`flex-shrink-0 px-5 py-3 border-b ${border.section} flex flex-wrap items-center gap-4`}>
+      <div
+        className={`flex-shrink-0 px-5 py-3 border-b ${border.section} flex flex-wrap items-center gap-4`}
+      >
         {/* Status */}
         <div className="flex items-center gap-2">
           <span className={`text-[10px] font-medium ${text.muted}`}>Status</span>
@@ -331,7 +341,7 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
                 onClick={() => update({ priority: opt.value })}
                 className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors ${
                   task.priority === opt.value
-                    ? customTask.priority[opt.value] + ' bg-white/[0.08]'
+                    ? customTask.priority[opt.value] + " bg-white/[0.08]"
                     : `${text.dimmed} hover:${text.muted}`
                 }`}
               >
@@ -340,7 +350,6 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
             ))}
           </div>
         </div>
-
       </div>
 
       {/* Scrollable body */}
@@ -353,8 +362,9 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
               value={descriptionDraft}
               onChange={(e) => {
                 setDescriptionDraft(e.target.value);
-                e.target.style.height = 'auto';
-                e.target.style.height = Math.max(e.target.scrollHeight, descriptionMinHeight) + 'px';
+                e.target.style.height = "auto";
+                e.target.style.height =
+                  Math.max(e.target.scrollHeight, descriptionMinHeight) + "px";
               }}
               onBlur={saveDescription}
               className={`w-full px-4 py-3 bg-white/[0.02] border border-white/[0.08] rounded-lg text-xs ${text.primary} focus:outline-none resize-none`}
@@ -377,7 +387,10 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
 
         {/* Attachments */}
         <section
-          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
+          }}
           onDragLeave={() => setIsDragOver(false)}
           onDrop={(e) => {
             e.preventDefault();
@@ -387,7 +400,7 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
         >
           <div className="flex items-center justify-between mb-3">
             <h3 className={`text-[11px] font-medium ${text.muted}`}>
-              Attachments{task.attachments?.length > 0 ? ` (${task.attachments.length})` : ''}
+              Attachments{task.attachments?.length > 0 ? ` (${task.attachments.length})` : ""}
             </h3>
             <button
               type="button"
@@ -396,7 +409,7 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
               className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium ${text.muted} hover:${text.secondary} rounded-md hover:bg-white/[0.06] transition-colors disabled:opacity-50`}
             >
               <Paperclip className="w-3.5 h-3.5" />
-              {isUploading ? 'Uploading...' : 'Add file'}
+              {isUploading ? "Uploading..." : "Add file"}
             </button>
             <input
               ref={fileInputRef}
@@ -406,7 +419,7 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
               onChange={(e) => {
                 if (e.target.files?.length) {
                   handleUploadFiles(e.target.files);
-                  e.target.value = '';
+                  e.target.value = "";
                 }
               }}
             />
@@ -421,7 +434,14 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
                     mimeType={att.mimeType}
                     size={att.size}
                     src={api.getTaskAttachmentUrl(taskId, att.filename)}
-                    extra={att.createdAt ? new Date(att.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : undefined}
+                    extra={
+                      att.createdAt
+                        ? new Date(att.createdAt).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : undefined
+                    }
                     onPreview={setPreviewImage}
                     onRemove={() => handleDeleteAttachment(att.filename)}
                   />
@@ -431,9 +451,14 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="w-10 h-10 ml-5 -mt-8 rounded-full bg-white/[0.04] hover:bg-white/[0.07] transition-colors self-center"
-                  style={{ display: 'grid', placeItems: 'center' }}
+                  style={{ display: "grid", placeItems: "center" }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-4 h-4 ${text.dimmed}`}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className={`w-4 h-4 ${text.dimmed}`}
+                  >
                     <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
                   </svg>
                 </button>
@@ -441,9 +466,12 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
             </div>
           ) : (
             <div
-              className={`rounded-lg border border-dashed ${isDragOver ? 'border-amber-400/40 bg-amber-400/[0.04]' : 'border-white/[0.08]'} px-4 py-6 text-center transition-colors cursor-pointer hover:border-white/[0.15]`}
+              className={`rounded-lg border border-dashed ${isDragOver ? "border-amber-400/40 bg-amber-400/[0.04]" : "border-white/[0.08]"} px-4 py-6 text-center transition-colors cursor-pointer hover:border-white/[0.15]`}
               onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOver(true);
+              }}
               onDragLeave={() => setIsDragOver(false)}
               onDrop={(e) => {
                 e.preventDefault();
@@ -452,7 +480,7 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
               }}
             >
               <p className={`text-xs ${text.dimmed}`}>
-                {isUploading ? 'Uploading...' : 'Drop files here or click to upload'}
+                {isUploading ? "Uploading..." : "Drop files here or click to upload"}
               </p>
             </div>
           )}
@@ -471,9 +499,15 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
       {/* Delete confirmation */}
       {showDeleteConfirm && (
         <>
-          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowDeleteConfirm(false)} />
+          <div
+            className="fixed inset-0 bg-black/60 z-50"
+            onClick={() => setShowDeleteConfirm(false)}
+          />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-surface-panel rounded-xl shadow-2xl border border-white/[0.08] p-5 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="bg-surface-panel rounded-xl shadow-2xl border border-white/[0.08] p-5 max-w-sm w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3 className={`text-sm font-medium ${text.primary} mb-2`}>Delete task?</h3>
               <p className={`text-xs ${text.secondary} mb-4`}>
                 This will permanently delete "{task.title}". This cannot be undone.
@@ -500,7 +534,12 @@ export function CustomTaskDetailPanel({ taskId, onDeleted, onCreateWorktree, onV
       )}
 
       {previewImage && (
-        <ImageModal src={previewImage.src} filename={previewImage.filename} type={previewImage.type} onClose={() => setPreviewImage(null)} />
+        <ImageModal
+          src={previewImage.src}
+          filename={previewImage.filename}
+          type={previewImage.type}
+          onClose={() => setPreviewImage(null)}
+        />
       )}
     </div>
   );

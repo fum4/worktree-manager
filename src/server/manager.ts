@@ -1,51 +1,53 @@
-import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'fs';
-import path from 'path';
-import { promisify } from 'util';
+import { execFile as execFileCb, execFileSync, spawn } from "child_process";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from "fs";
+import path from "path";
+import { promisify } from "util";
 
 const execFile = promisify(execFileCb);
 
-import pc from 'picocolors';
-import { APP_NAME, CONFIG_DIR_NAME } from '../constants';
-import { copyEnvFiles } from '../core/env-files';
-import { log } from '../logger';
-import { generateBranchName } from './branch-name';
-import { getGitRoot, getWorktreeBranch, validateBranchName } from '../core/git';
-import { GitHubManager } from '../integrations/github/github-manager';
-import {
-  loadJiraCredentials,
-  loadJiraProjectConfig,
-} from '../integrations/jira/credentials';
+import pc from "picocolors";
+import { APP_NAME, CONFIG_DIR_NAME } from "../constants";
+import { copyEnvFiles } from "../core/env-files";
+import { log } from "../logger";
+import { generateBranchName } from "./branch-name";
+import { getGitRoot, getWorktreeBranch, validateBranchName } from "../core/git";
+import { GitHubManager } from "../integrations/github/github-manager";
+import { loadJiraCredentials, loadJiraProjectConfig } from "../integrations/jira/credentials";
 import {
   downloadAttachments,
   fetchIssue,
   resolveTaskKey,
   saveTaskData,
-} from '../integrations/jira/api';
-import { getApiBase, getAuthHeaders } from '../integrations/jira/auth';
-import {
-  loadLinearCredentials,
-  loadLinearProjectConfig,
-} from '../integrations/linear/credentials';
+} from "../integrations/jira/api";
+import { getApiBase, getAuthHeaders } from "../integrations/jira/auth";
+import { loadLinearCredentials, loadLinearProjectConfig } from "../integrations/linear/credentials";
 import {
   fetchIssue as fetchLinearIssue,
   fetchIssues as fetchLinearIssues,
   resolveIdentifier as resolveLinearIdentifier,
   saveTaskData as saveLinearTaskData,
-} from '../integrations/linear/api';
-import type { LinearTaskData } from '../integrations/linear/types';
+} from "../integrations/linear/api";
+import type { LinearTaskData } from "../integrations/linear/types";
 
-import { NotesManager } from './notes-manager';
-import { PortManager } from './port-manager';
-import type { PendingTaskContext } from './task-context';
-import { writeTaskMd, generateTaskMd } from './task-context';
+import { NotesManager } from "./notes-manager";
+import { PortManager } from "./port-manager";
+import type { PendingTaskContext } from "./task-context";
+import { writeTaskMd, generateTaskMd } from "./task-context";
 import type {
   RunningProcess,
   WorktreeConfig,
   WorktreeCreateRequest,
   WorktreeInfo,
   WorktreeRenameRequest,
-} from './types';
+} from "./types";
 
 const MAX_LOG_LINES = 100;
 
@@ -56,11 +58,11 @@ const WORKTREE_COLORS: Array<(s: string) => string> = [
   pc.magenta,
   pc.green,
   pc.blue,
-  (s: string) => pc.red(pc.bold(s)),    // bright red
-  (s: string) => pc.cyan(pc.bold(s)),    // bright cyan
-  (s: string) => pc.yellow(pc.bold(s)),  // bright yellow
+  (s: string) => pc.red(pc.bold(s)), // bright red
+  (s: string) => pc.cyan(pc.bold(s)), // bright cyan
+  (s: string) => pc.yellow(pc.bold(s)), // bright yellow
   (s: string) => pc.magenta(pc.bold(s)), // bright magenta
-  (s: string) => pc.green(pc.bold(s)),   // bright green
+  (s: string) => pc.green(pc.bold(s)), // bright green
 ];
 
 let worktreeColorIndex = 0;
@@ -95,14 +97,19 @@ export class WorktreeManager {
 
   private pendingWorktreeContext: Map<string, PendingTaskContext> = new Map();
 
-  private worktreeCallbacks: Map<string, {
-    onSuccess?: (worktreeId: string) => void;
-    onFailure?: (worktreeId: string, error: string) => void;
-  }> = new Map();
+  private worktreeCallbacks: Map<
+    string,
+    {
+      onSuccess?: (worktreeId: string) => void;
+      onFailure?: (worktreeId: string, error: string) => void;
+    }
+  > = new Map();
 
   private eventListeners: Set<(worktrees: WorktreeInfo[]) => void> = new Set();
 
-  private notificationListeners: Set<(notification: { message: string; level: 'error' | 'info' }) => void> = new Set();
+  private notificationListeners: Set<
+    (notification: { message: string; level: "error" | "info" }) => void
+  > = new Set();
 
   private hookUpdateListeners: Set<(worktreeId: string) => void> = new Set();
 
@@ -122,14 +129,15 @@ export class WorktreeManager {
   // Reload config from disk (after initialization via UI)
   reloadConfig(): void {
     // Determine the config file path
-    const configPath = this.configFilePath ?? path.join(this.configDir, CONFIG_DIR_NAME, 'config.json');
+    const configPath =
+      this.configFilePath ?? path.join(this.configDir, CONFIG_DIR_NAME, "config.json");
 
     if (!existsSync(configPath)) {
       return;
     }
 
     try {
-      const content = readFileSync(configPath, 'utf-8');
+      const content = readFileSync(configPath, "utf-8");
       const fileConfig = JSON.parse(content);
 
       // Update the config
@@ -159,12 +167,12 @@ export class WorktreeManager {
         mkdirSync(worktreesPath, { recursive: true });
       }
     } catch (error) {
-      log.error('Failed to reload config:', error);
+      log.error("Failed to reload config:", error);
     }
   }
 
   private getWorktreesAbsolutePath(): string {
-    return path.join(this.configDir, CONFIG_DIR_NAME, 'worktrees');
+    return path.join(this.configDir, CONFIG_DIR_NAME, "worktrees");
   }
 
   getPortManager(): PortManager {
@@ -187,12 +195,12 @@ export class WorktreeManager {
       if (status.repo) {
         log.info(`GitHub: connected to ${status.repo}`);
       } else if (!status.installed) {
-        log.warn('GitHub: gh CLI not found, GitHub features disabled');
+        log.warn("GitHub: gh CLI not found, GitHub features disabled");
       } else if (!status.authenticated) {
         log.warn('GitHub: not authenticated, run "gh auth login"');
       }
     } catch {
-      log.warn('GitHub: initialization failed, features disabled');
+      log.warn("GitHub: initialization failed, features disabled");
       this.githubManager = null;
     }
   }
@@ -202,12 +210,14 @@ export class WorktreeManager {
     return () => this.eventListeners.delete(listener);
   }
 
-  subscribeNotifications(listener: (notification: { message: string; level: 'error' | 'info' }) => void): () => void {
+  subscribeNotifications(
+    listener: (notification: { message: string; level: "error" | "info" }) => void,
+  ): () => void {
     this.notificationListeners.add(listener);
     return () => this.notificationListeners.delete(listener);
   }
 
-  private emitNotification(message: string, level: 'error' | 'info' = 'error'): void {
+  private emitNotification(message: string, level: "error" | "info" = "error"): void {
     this.notificationListeners.forEach((listener) => listener({ message, level }));
   }
 
@@ -258,7 +268,7 @@ export class WorktreeManager {
       if (!entry.isDirectory()) continue;
 
       const worktreePath = path.join(worktreesPath, entry.name);
-      const gitPath = path.join(worktreePath, '.git');
+      const gitPath = path.join(worktreePath, ".git");
 
       if (!existsSync(gitPath)) continue;
 
@@ -271,8 +281,8 @@ export class WorktreeManager {
       const info: WorktreeInfo = {
         id: entry.name,
         path: worktreePath,
-        branch: branch || 'unknown',
-        status: runningInfo ? 'running' : 'stopped',
+        branch: branch || "unknown",
+        status: runningInfo ? "running" : "stopped",
         ports: runningInfo?.ports ?? [],
         offset: runningInfo?.offset ?? null,
         pid: runningInfo?.pid ?? null,
@@ -286,33 +296,39 @@ export class WorktreeManager {
       const linked = linkMap.get(entry.name);
       if (linked) {
         const issueDir = this.notesManager.getIssueDir(linked.source, linked.issueId);
-        if (linked.source === 'local') {
+        if (linked.source === "local") {
           // Read the local task.json for identifier and status
-          const taskFile = path.join(issueDir, 'task.json');
+          const taskFile = path.join(issueDir, "task.json");
           if (existsSync(taskFile)) {
             try {
-              const taskData = JSON.parse(readFileSync(taskFile, 'utf-8'));
+              const taskData = JSON.parse(readFileSync(taskFile, "utf-8"));
               if (taskData.id) info.localIssueId = taskData.id;
               if (taskData.status) info.localIssueStatus = taskData.status;
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
           }
-        } else if (linked.source === 'linear') {
-          const issueFile = path.join(issueDir, 'issue.json');
+        } else if (linked.source === "linear") {
+          const issueFile = path.join(issueDir, "issue.json");
           if (existsSync(issueFile)) {
             try {
-              const issueData = JSON.parse(readFileSync(issueFile, 'utf-8'));
+              const issueData = JSON.parse(readFileSync(issueFile, "utf-8"));
               if (issueData.url) info.linearUrl = issueData.url;
               if (issueData.status) info.linearStatus = issueData.status;
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
           }
-        } else if (linked.source === 'jira') {
-          const issueFile = path.join(issueDir, 'issue.json');
+        } else if (linked.source === "jira") {
+          const issueFile = path.join(issueDir, "issue.json");
           if (existsSync(issueFile)) {
             try {
-              const issueData = JSON.parse(readFileSync(issueFile, 'utf-8'));
+              const issueData = JSON.parse(readFileSync(issueFile, "utf-8"));
               if (issueData.url) info.jiraUrl = issueData.url;
               if (issueData.status) info.jiraStatus = issueData.status;
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
           }
         }
       }
@@ -322,7 +338,7 @@ export class WorktreeManager {
         const pr = this.githubManager.getCachedPR(entry.name);
         if (pr) {
           info.githubPrUrl = pr.url;
-          info.githubPrState = pr.isDraft ? 'draft' : pr.state;
+          info.githubPrState = pr.isDraft ? "draft" : pr.state;
         }
         const git = this.githubManager.getCachedGitStatus(entry.name);
         if (git) {
@@ -349,9 +365,7 @@ export class WorktreeManager {
     copyEnvFiles(this.configDir, worktreePath, this.getWorktreesAbsolutePath());
   }
 
-  async startWorktree(
-    id: string,
-  ): Promise<{
+  async startWorktree(id: string): Promise<{
     success: boolean;
     ports?: number[];
     pid?: number;
@@ -369,7 +383,7 @@ export class WorktreeManager {
     }
 
     const workingDir =
-      this.config.projectDir && this.config.projectDir !== '.'
+      this.config.projectDir && this.config.projectDir !== "."
         ? path.join(worktreePath, this.config.projectDir)
         : worktreePath;
 
@@ -381,21 +395,20 @@ export class WorktreeManager {
     }
 
     try {
-      const [cmd, ...args] = this.config.startCommand.split(' ');
+      const [cmd, ...args] = this.config.startCommand.split(" ");
 
       // Allocate a port offset for this worktree
       const offset = this.portManager.allocateOffset();
       const portEnv = this.portManager.getEnvForOffset(offset);
       const ports = this.portManager.getPortsForOffset(offset);
 
-      const portsDisplay =
-        ports.length > 0 ? ports.join(', ') : `offset=${offset}`;
+      const portsDisplay = ports.length > 0 ? ports.join(", ") : `offset=${offset}`;
       log.info(`Starting ${id} at ${workingDir} (ports: ${portsDisplay})`);
 
       const childProcess = spawn(cmd, args, {
         cwd: workingDir,
-        env: { ...process.env, ...portEnv, FORCE_COLOR: '1' },
-        stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, ...portEnv, FORCE_COLOR: "1" },
+        stdio: ["ignore", "pipe", "pipe"],
         shell: true,
         detached: false,
       });
@@ -412,7 +425,7 @@ export class WorktreeManager {
         logs,
       });
 
-      childProcess.on('exit', (code) => {
+      childProcess.on("exit", (code) => {
         log.info(`Worktree "${id}" exited with code ${code}`);
         const processInfo = this.runningProcesses.get(id);
         if (processInfo) {
@@ -424,7 +437,7 @@ export class WorktreeManager {
 
       const wtColor = getWorktreeColor(id);
       const coloredName = pc.bold(wtColor(id));
-      const linePrefix = `${pc.dim('[')}${coloredName}${pc.dim(']')}`;
+      const linePrefix = `${pc.dim("[")}${coloredName}${pc.dim("]")}`;
 
       const scheduleLogNotify = () => {
         const info = this.runningProcesses.get(id);
@@ -437,11 +450,12 @@ export class WorktreeManager {
         }
       };
 
-      childProcess.stdout?.on('data', (data) => {
-        const lines = data.toString().split('\n').filter((l: string) => l.trim());
-        lines.forEach((line: string) =>
-          process.stdout.write(`${linePrefix} ${line}\n`),
-        );
+      childProcess.stdout?.on("data", (data) => {
+        const lines = data
+          .toString()
+          .split("\n")
+          .filter((l: string) => l.trim());
+        lines.forEach((line: string) => process.stdout.write(`${linePrefix} ${line}\n`));
         const processInfo = this.runningProcesses.get(id);
         if (processInfo) {
           processInfo.logs.push(...lines);
@@ -452,14 +466,12 @@ export class WorktreeManager {
         scheduleLogNotify();
       });
 
-      childProcess.stderr?.on('data', (data) => {
+      childProcess.stderr?.on("data", (data) => {
         const lines = data
           .toString()
-          .split('\n')
+          .split("\n")
           .filter((l: string) => l.trim());
-        lines.forEach((line: string) =>
-          process.stderr.write(`${linePrefix} ${line}\n`),
-        );
+        lines.forEach((line: string) => process.stderr.write(`${linePrefix} ${line}\n`));
         const processInfo = this.runningProcesses.get(id);
         if (processInfo) {
           processInfo.logs.push(...lines);
@@ -475,15 +487,12 @@ export class WorktreeManager {
     } catch (error) {
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : 'Failed to start process',
+        error: error instanceof Error ? error.message : "Failed to start process",
       };
     }
   }
 
-  async stopWorktree(
-    id: string,
-  ): Promise<{ success: boolean; error?: string }> {
+  async stopWorktree(id: string): Promise<{ success: boolean; error?: string }> {
     const processInfo = this.runningProcesses.get(id);
     if (!processInfo) {
       return { success: true };
@@ -492,10 +501,10 @@ export class WorktreeManager {
     this.portManager.releaseOffset(processInfo.offset);
 
     try {
-      process.kill(-processInfo.pid, 'SIGTERM');
+      process.kill(-processInfo.pid, "SIGTERM");
     } catch {
       try {
-        processInfo.process.kill('SIGTERM');
+        processInfo.process.kill("SIGTERM");
       } catch {
         // Process may have already exited
       }
@@ -507,29 +516,36 @@ export class WorktreeManager {
     return { success: true };
   }
 
-
   async createWorktree(
     request: WorktreeCreateRequest,
     callbacks?: {
       onSuccess?: (worktreeId: string) => void;
       onFailure?: (worktreeId: string, error: string) => void;
     },
-  ): Promise<{ success: boolean; worktree?: WorktreeInfo; error?: string; code?: string; worktreeId?: string }> {
+  ): Promise<{
+    success: boolean;
+    worktree?: WorktreeInfo;
+    error?: string;
+    code?: string;
+    worktreeId?: string;
+  }> {
     const { branch, id } = request;
 
     if (!validateBranchName(branch)) {
-      return { success: false, error: 'Invalid branch name' };
+      return { success: false, error: "Invalid branch name" };
     }
 
     const worktreeId =
       request.name?.trim() ||
       id ||
-      branch
-        .replace(/^(feature|fix|chore)\//, '')
-        .replace(/[^a-zA-Z0-9- ]/g, '-');
+      branch.replace(/^(feature|fix|chore)\//, "").replace(/[^a-zA-Z0-9- ]/g, "-");
 
     if (!/^[a-zA-Z0-9][a-zA-Z0-9 -]*$/.test(worktreeId)) {
-      return { success: false, error: 'Worktree name must start with a letter or number and contain only letters, numbers, spaces, and hyphens' };
+      return {
+        success: false,
+        error:
+          "Worktree name must start with a letter or number and contain only letters, numbers, spaces, and hyphens",
+      };
     }
 
     const worktreesPath = this.getWorktreesAbsolutePath();
@@ -541,9 +557,9 @@ export class WorktreeManager {
     let gitWorktreeExists = false;
 
     try {
-      const { stdout } = await execFile('git', ['worktree', 'list', '--porcelain'], {
+      const { stdout } = await execFile("git", ["worktree", "list", "--porcelain"], {
         cwd: gitRoot,
-        encoding: 'utf-8',
+        encoding: "utf-8",
       });
       gitWorktreeExists = stdout.includes(worktreePath);
     } catch {
@@ -554,7 +570,7 @@ export class WorktreeManager {
       return {
         success: false,
         error: `Worktree "${worktreeId}" already exists`,
-        code: 'WORKTREE_EXISTS',
+        code: "WORKTREE_EXISTS",
         worktreeId,
       };
     }
@@ -569,15 +585,16 @@ export class WorktreeManager {
     // Check if repo has any commits BEFORE starting async creation
     // This allows the frontend to show the setup modal
     try {
-      execFileSync('git', ['rev-parse', '--verify', 'HEAD'], {
+      execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
         cwd: gitRoot,
-        encoding: 'utf-8',
-        stdio: 'pipe',
+        encoding: "utf-8",
+        stdio: "pipe",
       });
     } catch {
       return {
         success: false,
-        error: 'Repository has no commits yet. Create an initial commit from the Integrations panel or run: git add . && git commit -m "Initial commit"',
+        error:
+          'Repository has no commits yet. Create an initial commit from the Integrations panel or run: git add . && git commit -m "Initial commit"',
       };
     }
 
@@ -586,8 +603,8 @@ export class WorktreeManager {
       id: worktreeId,
       path: worktreePath,
       branch,
-      status: 'creating',
-      statusMessage: 'Fetching branch...',
+      status: "creating",
+      statusMessage: "Fetching branch...",
       ports: [],
       offset: null,
       pid: null,
@@ -627,25 +644,25 @@ export class WorktreeManager {
 
       // Step 1: Fetch
       try {
-        await execFile('git', ['fetch', 'origin', branch], {
+        await execFile("git", ["fetch", "origin", branch], {
           cwd: gitRoot,
-          encoding: 'utf-8',
+          encoding: "utf-8",
         });
       } catch {
         // Branch might not exist on remote
       }
 
       // Step 2: Create worktree
-      updateStatus('Creating worktree...');
+      updateStatus("Creating worktree...");
 
       // Determine the best base ref to use
       let baseRef = this.config.baseBranch;
       let baseRefValid = false;
       try {
         // Check if configured baseBranch exists
-        await execFile('git', ['rev-parse', '--verify', baseRef], {
+        await execFile("git", ["rev-parse", "--verify", baseRef], {
           cwd: gitRoot,
-          encoding: 'utf-8',
+          encoding: "utf-8",
         });
         baseRefValid = true;
       } catch {
@@ -653,12 +670,12 @@ export class WorktreeManager {
       }
 
       if (!baseRefValid) {
-        const fallbacks = ['main', 'master', 'HEAD'];
+        const fallbacks = ["main", "master", "HEAD"];
         for (const fallback of fallbacks) {
           try {
-            await execFile('git', ['rev-parse', '--verify', fallback], {
+            await execFile("git", ["rev-parse", "--verify", fallback], {
               cwd: gitRoot,
-              encoding: 'utf-8',
+              encoding: "utf-8",
             });
             baseRef = fallback;
             baseRefValid = true;
@@ -675,7 +692,7 @@ export class WorktreeManager {
 
       // Prune stale worktree references before creating
       try {
-        await execFile('git', ['worktree', 'prune'], { cwd: gitRoot, encoding: 'utf-8' });
+        await execFile("git", ["worktree", "prune"], { cwd: gitRoot, encoding: "utf-8" });
       } catch {
         // Ignore prune errors - not critical
       }
@@ -683,25 +700,23 @@ export class WorktreeManager {
       // Try to create the worktree with various strategies
       try {
         // New branch from baseRef (e.g. origin/develop)
-        await execFile(
-          'git',
-          ['worktree', 'add', worktreePath, '-b', branch, baseRef],
-          { cwd: gitRoot, encoding: 'utf-8' },
-        );
+        await execFile("git", ["worktree", "add", worktreePath, "-b", branch, baseRef], {
+          cwd: gitRoot,
+          encoding: "utf-8",
+        });
       } catch {
         try {
           // Branch already exists locally — check it out
-          await execFile('git', ['worktree', 'add', worktreePath, branch], {
+          await execFile("git", ["worktree", "add", worktreePath, branch], {
             cwd: gitRoot,
-            encoding: 'utf-8',
+            encoding: "utf-8",
           });
         } catch {
           // Branch exists but is conflicting — force-reset from baseRef
-          await execFile(
-            'git',
-            ['worktree', 'add', worktreePath, '-B', branch, baseRef],
-            { cwd: gitRoot, encoding: 'utf-8' },
-          );
+          await execFile("git", ["worktree", "add", worktreePath, "-B", branch, baseRef], {
+            cwd: gitRoot,
+            encoding: "utf-8",
+          });
         }
       }
 
@@ -710,12 +725,12 @@ export class WorktreeManager {
 
       // Step 3: Install dependencies (unless disabled)
       if (this.config.autoInstall !== false) {
-        updateStatus('Installing dependencies...');
+        updateStatus("Installing dependencies...");
         log.info(`Installing dependencies in ${worktreeId}...`);
-        const [installCmd, ...installArgs] = this.config.installCommand.split(' ');
+        const [installCmd, ...installArgs] = this.config.installCommand.split(" ");
         await execFile(installCmd, installArgs, {
           cwd: worktreePath,
-          encoding: 'utf-8',
+          encoding: "utf-8",
         });
       }
 
@@ -738,12 +753,15 @@ export class WorktreeManager {
       // Call success callback (e.g. to link worktree to issue)
       const callbacks = this.worktreeCallbacks.get(worktreeId);
       if (callbacks?.onSuccess) {
-        try { callbacks.onSuccess(worktreeId); } catch { /* ignore */ }
+        try {
+          callbacks.onSuccess(worktreeId);
+        } catch {
+          /* ignore */
+        }
       }
       this.worktreeCallbacks.delete(worktreeId);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to create worktree';
+      const message = error instanceof Error ? error.message : "Failed to create worktree";
       log.error(`Failed to create ${worktreeId}: ${message}`);
       updateStatus(`Error: ${message}`);
 
@@ -753,7 +771,11 @@ export class WorktreeManager {
       // Call failure callback (e.g. to NOT link worktree)
       const callbacks = this.worktreeCallbacks.get(worktreeId);
       if (callbacks?.onFailure) {
-        try { callbacks.onFailure(worktreeId, message); } catch { /* ignore */ }
+        try {
+          callbacks.onFailure(worktreeId, message);
+        } catch {
+          /* ignore */
+        }
       }
       this.worktreeCallbacks.delete(worktreeId);
 
@@ -775,7 +797,7 @@ export class WorktreeManager {
     if (this.runningProcesses.has(currentId)) {
       return {
         success: false,
-        error: 'Cannot rename a running worktree. Stop it first.',
+        error: "Cannot rename a running worktree. Stop it first.",
       };
     }
 
@@ -787,7 +809,7 @@ export class WorktreeManager {
     }
 
     if (!request.name && !request.branch) {
-      return { success: false, error: 'Nothing to rename' };
+      return { success: false, error: "Nothing to rename" };
     }
 
     try {
@@ -796,7 +818,11 @@ export class WorktreeManager {
       // Rename directory (worktree name)
       if (request.name && request.name !== currentId) {
         if (!/^[a-zA-Z0-9][a-zA-Z0-9 -]*$/.test(request.name.trim())) {
-          return { success: false, error: 'Worktree name must start with a letter or number and contain only letters, numbers, spaces, and hyphens' };
+          return {
+            success: false,
+            error:
+              "Worktree name must start with a letter or number and contain only letters, numbers, spaces, and hyphens",
+          };
         }
 
         const newPath = path.join(worktreesPath, request.name);
@@ -807,10 +833,10 @@ export class WorktreeManager {
           };
         }
 
-        execFileSync('git', ['worktree', 'move', currentPath, newPath], {
+        execFileSync("git", ["worktree", "move", currentPath, newPath], {
           cwd: gitRoot,
-          encoding: 'utf-8',
-          stdio: 'pipe',
+          encoding: "utf-8",
+          stdio: "pipe",
         });
 
         // Update color map
@@ -824,24 +850,18 @@ export class WorktreeManager {
       // Rename branch
       if (request.branch) {
         if (!validateBranchName(request.branch)) {
-          return { success: false, error: 'Invalid branch name' };
+          return { success: false, error: "Invalid branch name" };
         }
 
-        const worktreeCwd = request.name
-          ? path.join(worktreesPath, request.name)
-          : currentPath;
+        const worktreeCwd = request.name ? path.join(worktreesPath, request.name) : currentPath;
 
         const currentBranch = getWorktreeBranch(worktreeCwd);
         if (currentBranch && currentBranch !== request.branch) {
-          execFileSync(
-            'git',
-            ['branch', '-m', currentBranch, request.branch],
-            {
-              cwd: worktreeCwd,
-              encoding: 'utf-8',
-              stdio: 'pipe',
-            },
-          );
+          execFileSync("git", ["branch", "-m", currentBranch, request.branch], {
+            cwd: worktreeCwd,
+            encoding: "utf-8",
+            stdio: "pipe",
+          });
         }
       }
 
@@ -850,17 +870,18 @@ export class WorktreeManager {
     } catch (error) {
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : 'Failed to rename worktree',
+        error: error instanceof Error ? error.message : "Failed to rename worktree",
       };
     }
   }
 
-  async removeWorktree(
-    id: string,
-  ): Promise<{ success: boolean; error?: string }> {
+  async removeWorktree(id: string): Promise<{ success: boolean; error?: string }> {
     if (!/^[a-zA-Z0-9][a-zA-Z0-9 -]*$/.test(id)) {
-      return { success: false, error: 'Worktree name must start with a letter or number and contain only letters, numbers, spaces, and hyphens' };
+      return {
+        success: false,
+        error:
+          "Worktree name must start with a letter or number and contain only letters, numbers, spaces, and hyphens",
+      };
     }
 
     await this.stopWorktree(id);
@@ -875,23 +896,23 @@ export class WorktreeManager {
       const gitRoot = this.getGitRoot();
 
       try {
-        execFileSync('git', ['worktree', 'remove', worktreePath, '--force'], {
+        execFileSync("git", ["worktree", "remove", worktreePath, "--force"], {
           cwd: gitRoot,
-          encoding: 'utf-8',
-          stdio: 'pipe',
+          encoding: "utf-8",
+          stdio: "pipe",
         });
       } catch {
         // Git doesn't recognize it as a worktree — remove the directory directly
-        execFileSync('rm', ['-rf', worktreePath], {
-          encoding: 'utf-8',
-          stdio: 'pipe',
+        execFileSync("rm", ["-rf", worktreePath], {
+          encoding: "utf-8",
+          stdio: "pipe",
         });
         // Clean up any stale worktree references
         try {
-          execFileSync('git', ['worktree', 'prune'], {
+          execFileSync("git", ["worktree", "prune"], {
             cwd: gitRoot,
-            encoding: 'utf-8',
-            stdio: 'pipe',
+            encoding: "utf-8",
+            stdio: "pipe",
           });
         } catch {
           // Ignore prune failures
@@ -903,15 +924,14 @@ export class WorktreeManager {
     } catch (error) {
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : 'Failed to remove worktree',
+        error: error instanceof Error ? error.message : "Failed to remove worktree",
       };
     }
   }
 
   async recoverWorktree(
     worktreeId: string,
-    action: 'reuse' | 'recreate',
+    action: "reuse" | "recreate",
     branch?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const worktreesPath = this.getWorktreesAbsolutePath();
@@ -920,13 +940,13 @@ export class WorktreeManager {
     const branchName = branch || worktreeId;
 
     try {
-      if (action === 'recreate') {
+      if (action === "recreate") {
         // First, forcefully remove the existing worktree
         try {
-          execFileSync('git', ['worktree', 'remove', worktreePath, '--force'], {
+          execFileSync("git", ["worktree", "remove", worktreePath, "--force"], {
             cwd: gitRoot,
-            encoding: 'utf-8',
-            stdio: 'pipe',
+            encoding: "utf-8",
+            stdio: "pipe",
           });
         } catch {
           // Directory might not exist in git's view, try direct removal
@@ -934,18 +954,18 @@ export class WorktreeManager {
 
         // Remove the directory if it still exists
         if (existsSync(worktreePath)) {
-          execFileSync('rm', ['-rf', worktreePath], {
-            encoding: 'utf-8',
-            stdio: 'pipe',
+          execFileSync("rm", ["-rf", worktreePath], {
+            encoding: "utf-8",
+            stdio: "pipe",
           });
         }
 
         // Prune stale worktree entries
         try {
-          execFileSync('git', ['worktree', 'prune'], {
+          execFileSync("git", ["worktree", "prune"], {
             cwd: gitRoot,
-            encoding: 'utf-8',
-            stdio: 'pipe',
+            encoding: "utf-8",
+            stdio: "pipe",
           });
         } catch {
           // Ignore prune failures
@@ -953,10 +973,10 @@ export class WorktreeManager {
 
         // Delete the branch if it exists (start completely fresh)
         try {
-          execFileSync('git', ['branch', '-D', branchName], {
+          execFileSync("git", ["branch", "-D", branchName], {
             cwd: gitRoot,
-            encoding: 'utf-8',
-            stdio: 'pipe',
+            encoding: "utf-8",
+            stdio: "pipe",
           });
         } catch {
           // Branch might not exist, that's fine
@@ -969,10 +989,10 @@ export class WorktreeManager {
 
         // Prune stale worktree entries first
         try {
-          execFileSync('git', ['worktree', 'prune'], {
+          execFileSync("git", ["worktree", "prune"], {
             cwd: gitRoot,
-            encoding: 'utf-8',
-            stdio: 'pipe',
+            encoding: "utf-8",
+            stdio: "pipe",
           });
         } catch {
           // Ignore prune failures
@@ -981,19 +1001,19 @@ export class WorktreeManager {
         // Check if the directory already exists and is valid
         if (existsSync(worktreePath)) {
           try {
-            execFileSync('git', ['rev-parse', '--git-dir'], {
+            execFileSync("git", ["rev-parse", "--git-dir"], {
               cwd: worktreePath,
-              encoding: 'utf-8',
-              stdio: 'pipe',
+              encoding: "utf-8",
+              stdio: "pipe",
             });
             // Directory exists and is valid, just notify and return
             this.notifyListeners();
             return { success: true };
           } catch {
             // Directory exists but is not a valid worktree, remove it
-            execFileSync('rm', ['-rf', worktreePath], {
-              encoding: 'utf-8',
-              stdio: 'pipe',
+            execFileSync("rm", ["-rf", worktreePath], {
+              encoding: "utf-8",
+              stdio: "pipe",
             });
           }
         }
@@ -1001,10 +1021,10 @@ export class WorktreeManager {
         // Directory doesn't exist - check if branch exists so we can restore
         let branchExists = false;
         try {
-          execFileSync('git', ['rev-parse', '--verify', branchName], {
+          execFileSync("git", ["rev-parse", "--verify", branchName], {
             cwd: gitRoot,
-            encoding: 'utf-8',
-            stdio: 'pipe',
+            encoding: "utf-8",
+            stdio: "pipe",
           });
           branchExists = true;
         } catch {
@@ -1020,10 +1040,10 @@ export class WorktreeManager {
 
         // Branch exists - create worktree directory pointing to it
         try {
-          execFileSync('git', ['worktree', 'add', worktreePath, branchName], {
+          execFileSync("git", ["worktree", "add", worktreePath, branchName], {
             cwd: gitRoot,
-            encoding: 'utf-8',
-            stdio: 'pipe',
+            encoding: "utf-8",
+            stdio: "pipe",
           });
         } catch (err) {
           return {
@@ -1038,7 +1058,7 @@ export class WorktreeManager {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to recover worktree',
+        error: error instanceof Error ? error.message : "Failed to recover worktree",
       };
     }
   }
@@ -1057,7 +1077,7 @@ export class WorktreeManager {
   }
 
   async cleanupIssueData(
-    source: 'jira' | 'linear',
+    source: "jira" | "linear",
     issueId: string,
     actions: { issueData: boolean; attachments: boolean; notes: boolean; linkedWorktree: boolean },
   ): Promise<void> {
@@ -1074,17 +1094,17 @@ export class WorktreeManager {
     }
 
     if (actions.issueData) {
-      const issueFile = path.join(issueDir, 'issue.json');
+      const issueFile = path.join(issueDir, "issue.json");
       if (existsSync(issueFile)) unlinkSync(issueFile);
     }
 
     if (actions.attachments) {
-      const attachDir = path.join(issueDir, 'attachments');
+      const attachDir = path.join(issueDir, "attachments");
       if (existsSync(attachDir)) rmSync(attachDir, { recursive: true });
     }
 
     if (actions.notes) {
-      const notesFile = path.join(issueDir, 'notes.json');
+      const notesFile = path.join(issueDir, "notes.json");
       if (existsSync(notesFile)) unlinkSync(notesFile);
     }
 
@@ -1092,13 +1112,15 @@ export class WorktreeManager {
     try {
       const remaining = readdirSync(issueDir);
       if (remaining.length === 0) rmSync(issueDir, { recursive: true });
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   getProjectName(): string | null {
     try {
-      const pkgPath = path.join(this.configDir, 'package.json');
-      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+      const pkgPath = path.join(this.configDir, "package.json");
+      const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
       return pkg.name || null;
     } catch {
       return null;
@@ -1114,19 +1136,25 @@ export class WorktreeManager {
   }
 
   updateConfig(partial: Partial<WorktreeConfig>): { success: boolean; error?: string } {
-    const configPath = path.join(this.configDir, CONFIG_DIR_NAME, 'config.json');
+    const configPath = path.join(this.configDir, CONFIG_DIR_NAME, "config.json");
 
     try {
       let existing: Record<string, unknown> = {};
       if (existsSync(configPath)) {
-        existing = JSON.parse(readFileSync(configPath, 'utf-8'));
+        existing = JSON.parse(readFileSync(configPath, "utf-8"));
       }
 
       // Merge allowed top-level fields
       const allowedKeys = [
-        'startCommand', 'installCommand', 'baseBranch',
-        'projectDir', 'autoInstall', 'localIssuePrefix',
-        'allowAgentCommits', 'allowAgentPushes', 'allowAgentPRs',
+        "startCommand",
+        "installCommand",
+        "baseBranch",
+        "projectDir",
+        "autoInstall",
+        "localIssuePrefix",
+        "allowAgentCommits",
+        "allowAgentPushes",
+        "allowAgentPRs",
       ] as const;
 
       for (const key of allowedKeys) {
@@ -1150,36 +1178,44 @@ export class WorktreeManager {
         this.config.envMapping = partial.envMapping;
       }
 
-      writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n');
+      writeFileSync(configPath, JSON.stringify(existing, null, 2) + "\n");
       return { success: true };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update config',
+        error: error instanceof Error ? error.message : "Failed to update config",
       };
     }
   }
 
   async listJiraIssues(query?: string): Promise<{
-    issues: Array<{ key: string; summary: string; status: string; type: string; priority: string; assignee: string | null; url: string }>;
+    issues: Array<{
+      key: string;
+      summary: string;
+      status: string;
+      type: string;
+      priority: string;
+      assignee: string | null;
+      url: string;
+    }>;
     error?: string;
   }> {
     const creds = loadJiraCredentials(this.configDir);
-    if (!creds) return { issues: [], error: 'Jira not configured' };
+    if (!creds) return { issues: [], error: "Jira not configured" };
 
     const projectConfig = loadJiraProjectConfig(this.configDir);
     const apiBase = getApiBase(creds);
     const headers = await getAuthHeaders(creds, this.configDir);
 
-    let jql = 'assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC';
+    let jql = "assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC";
     if (query) {
       jql = `assignee = currentUser() AND resolution = Unresolved AND text ~ "${query}" ORDER BY updated DESC`;
     }
 
     const params = new URLSearchParams({
       jql,
-      fields: 'summary,status,priority,issuetype,assignee,updated,labels',
-      maxResults: '50',
+      fields: "summary,status,priority,issuetype,assignee,updated,labels",
+      maxResults: "50",
     });
 
     const resp = await fetch(`${apiBase}/search/jql?${params}`, { headers });
@@ -1202,20 +1238,20 @@ export class WorktreeManager {
     };
 
     let siteUrl: string;
-    if (creds.authMethod === 'oauth') {
+    if (creds.authMethod === "oauth") {
       siteUrl = creds.oauth.siteUrl;
     } else {
       siteUrl = creds.apiToken.baseUrl;
     }
-    const baseUrl = siteUrl.replace(/\/$/, '');
+    const baseUrl = siteUrl.replace(/\/$/, "");
 
     return {
       issues: data.issues.map((issue) => ({
         key: issue.key,
-        summary: issue.fields.summary ?? '',
-        status: issue.fields.status?.name ?? 'Unknown',
-        type: issue.fields.issuetype?.name ?? 'Unknown',
-        priority: issue.fields.priority?.name ?? 'None',
+        summary: issue.fields.summary ?? "",
+        status: issue.fields.status?.name ?? "Unknown",
+        type: issue.fields.issuetype?.name ?? "Unknown",
+        priority: issue.fields.priority?.name ?? "None",
         assignee: issue.fields.assignee?.displayName ?? null,
         url: `${baseUrl}/browse/${issue.key}`,
       })),
@@ -1223,17 +1259,27 @@ export class WorktreeManager {
   }
 
   async getJiraIssue(issueKey: string): Promise<{
-    issue?: { key: string; summary: string; description: string; status: string; type: string; priority: string; assignee: string | null; url: string; comments: Array<{ author: string; body: string }> };
+    issue?: {
+      key: string;
+      summary: string;
+      description: string;
+      status: string;
+      type: string;
+      priority: string;
+      assignee: string | null;
+      url: string;
+      comments: Array<{ author: string; body: string }>;
+    };
     error?: string;
   }> {
     const creds = loadJiraCredentials(this.configDir);
-    if (!creds) return { error: 'Jira not configured' };
+    if (!creds) return { error: "Jira not configured" };
 
     let resolvedKey: string;
     try {
       resolvedKey = resolveTaskKey(issueKey, loadJiraProjectConfig(this.configDir));
     } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Invalid issue key' };
+      return { error: err instanceof Error ? err.message : "Invalid issue key" };
     }
 
     const taskData = await fetchIssue(resolvedKey, creds, this.configDir);
@@ -1253,11 +1299,18 @@ export class WorktreeManager {
   }
 
   async listLinearIssues(query?: string): Promise<{
-    issues: Array<{ identifier: string; title: string; status: string; priority: number; assignee: string | null; url: string }>;
+    issues: Array<{
+      identifier: string;
+      title: string;
+      status: string;
+      priority: number;
+      assignee: string | null;
+      url: string;
+    }>;
     error?: string;
   }> {
     const creds = loadLinearCredentials(this.configDir);
-    if (!creds) return { issues: [], error: 'Linear not configured' };
+    if (!creds) return { issues: [], error: "Linear not configured" };
 
     const projectConfig = loadLinearProjectConfig(this.configDir);
     const issues = await fetchLinearIssues(creds, projectConfig.defaultTeamKey, query);
@@ -1274,18 +1327,26 @@ export class WorktreeManager {
   }
 
   async getLinearIssue(identifier: string): Promise<{
-    issue?: { identifier: string; title: string; description: string; status: string; priority: number; assignee: string | null; url: string };
+    issue?: {
+      identifier: string;
+      title: string;
+      description: string;
+      status: string;
+      priority: number;
+      assignee: string | null;
+      url: string;
+    };
     error?: string;
   }> {
     const creds = loadLinearCredentials(this.configDir);
-    if (!creds) return { error: 'Linear not configured' };
+    if (!creds) return { error: "Linear not configured" };
 
     const projectConfig = loadLinearProjectConfig(this.configDir);
     let resolvedId: string;
     try {
       resolvedId = resolveLinearIdentifier(identifier, projectConfig);
     } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Invalid identifier' };
+      return { error: err instanceof Error ? err.message : "Invalid identifier" };
     }
 
     const issueDetail = await fetchLinearIssue(resolvedId, creds);
@@ -1293,7 +1354,7 @@ export class WorktreeManager {
       issue: {
         identifier: issueDetail.identifier,
         title: issueDetail.title,
-        description: issueDetail.description ?? '',
+        description: issueDetail.description ?? "",
         status: issueDetail.state.name,
         priority: issueDetail.priority,
         assignee: issueDetail.assignee,
@@ -1325,7 +1386,7 @@ export class WorktreeManager {
   }> {
     const creds = loadJiraCredentials(this.configDir);
     if (!creds) {
-      return { success: false, error: 'Jira credentials not configured' };
+      return { success: false, error: "Jira credentials not configured" };
     }
 
     const projectConfig = loadJiraProjectConfig(this.configDir);
@@ -1335,7 +1396,7 @@ export class WorktreeManager {
     } catch (err) {
       return {
         success: false,
-        error: err instanceof Error ? err.message : 'Invalid task key',
+        error: err instanceof Error ? err.message : "Invalid task key",
       };
     }
 
@@ -1345,44 +1406,50 @@ export class WorktreeManager {
     } catch (err) {
       return {
         success: false,
-        error: err instanceof Error ? err.message : 'Failed to fetch issue',
+        error: err instanceof Error ? err.message : "Failed to fetch issue",
       };
     }
 
     // Save issue data locally unless saveOn is 'never'
-    const saveOn = projectConfig.dataLifecycle?.saveOn ?? 'view';
-    if (saveOn !== 'never') {
-      const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
+    const saveOn = projectConfig.dataLifecycle?.saveOn ?? "view";
+    if (saveOn !== "never") {
+      const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, "tasks");
       saveTaskData(taskData, tasksDir);
 
       // Download attachments in background
       if (taskData.attachments.length > 0) {
-        const issueDir = path.join(this.configDir, CONFIG_DIR_NAME, 'issues', 'jira', taskData.key);
-        const attachDir = path.join(issueDir, 'attachments');
+        const issueDir = path.join(this.configDir, CONFIG_DIR_NAME, "issues", "jira", taskData.key);
+        const attachDir = path.join(issueDir, "attachments");
         downloadAttachments(
-          taskData.attachments.filter((a) => a.contentUrl).map((a) => ({
-            filename: a.filename,
-            content: a.contentUrl!,
-            mimeType: a.mimeType,
-            size: a.size,
-          })),
+          taskData.attachments
+            .filter((a) => a.contentUrl)
+            .map((a) => ({
+              filename: a.filename,
+              content: a.contentUrl!,
+              mimeType: a.mimeType,
+              size: a.size,
+            })),
           attachDir,
           creds,
           this.configDir,
-        ).then((downloaded) => {
-          if (downloaded.length > 0) {
-            for (const dl of downloaded) {
-              const att = taskData.attachments.find((a) => a.filename === dl.filename);
-              if (att) att.localPath = dl.localPath;
+        )
+          .then((downloaded) => {
+            if (downloaded.length > 0) {
+              for (const dl of downloaded) {
+                const att = taskData.attachments.find((a) => a.filename === dl.filename);
+                if (att) att.localPath = dl.localPath;
+              }
+              saveTaskData(taskData, path.join(this.configDir, CONFIG_DIR_NAME, "tasks"));
             }
-            saveTaskData(taskData, path.join(this.configDir, CONFIG_DIR_NAME, 'tasks'));
-          }
-        }).catch(() => { /* non-critical */ });
+          })
+          .catch(() => {
+            /* non-critical */
+          });
       }
     }
 
     // Load AI context notes
-    const notes = this.notesManager.loadNotes('jira', resolvedKey);
+    const notes = this.notesManager.loadNotes("jira", resolvedKey);
     const aiContext = notes.aiContext?.content ?? null;
 
     // Set pending context so TASK.md gets written after worktree creation
@@ -1391,7 +1458,7 @@ export class WorktreeManager {
 
     this.setPendingWorktreeContext(resolvedKey, {
       data: {
-        source: 'jira',
+        source: "jira",
         issueId: resolvedKey,
         identifier: taskData.key,
         title: taskData.summary,
@@ -1399,28 +1466,43 @@ export class WorktreeManager {
         status: taskData.status,
         url: taskData.url,
         comments: taskData.comments.slice(0, 10),
-        attachments: taskData.attachments.filter((a) => a.localPath).map((a) => ({
-          filename: a.filename,
-          localPath: a.localPath,
-          mimeType: a.mimeType,
-        })),
+        attachments: taskData.attachments
+          .filter((a) => a.localPath)
+          .map((a) => ({
+            filename: a.filename,
+            localPath: a.localPath,
+            mimeType: a.mimeType,
+          })),
       },
       aiContext,
     });
 
     // Create worktree using custom branch or generated name from rule
-    const worktreeBranch = branch?.trim()
-      || await generateBranchName(this.configDir, { issueId: resolvedKey, name: taskData.summary, type: 'jira' });
-    const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedKey }, {
-      onSuccess: () => {
-        // Link the worktree to the issue only after async creation succeeds
-        this.notesManager.setLinkedWorktreeId('jira', resolvedKey, resolvedKey);
+    const worktreeBranch =
+      branch?.trim() ||
+      (await generateBranchName(this.configDir, {
+        issueId: resolvedKey,
+        name: taskData.summary,
+        type: "jira",
+      }));
+    const result = await this.createWorktree(
+      { branch: worktreeBranch, name: resolvedKey },
+      {
+        onSuccess: () => {
+          // Link the worktree to the issue only after async creation succeeds
+          this.notesManager.setLinkedWorktreeId("jira", resolvedKey, resolvedKey);
+        },
       },
-    });
+    );
 
     if (!result.success) {
       this.clearPendingWorktreeContext(resolvedKey);
-      return { success: false, error: result.error, code: result.code, worktreeId: result.worktreeId };
+      return {
+        success: false,
+        error: result.error,
+        code: result.code,
+        worktreeId: result.worktreeId,
+      };
     }
 
     return {
@@ -1463,7 +1545,7 @@ export class WorktreeManager {
   }> {
     const creds = loadLinearCredentials(this.configDir);
     if (!creds) {
-      return { success: false, error: 'Linear credentials not configured' };
+      return { success: false, error: "Linear credentials not configured" };
     }
 
     const projectConfig = loadLinearProjectConfig(this.configDir);
@@ -1473,7 +1555,7 @@ export class WorktreeManager {
     } catch (err) {
       return {
         success: false,
-        error: err instanceof Error ? err.message : 'Invalid identifier',
+        error: err instanceof Error ? err.message : "Invalid identifier",
       };
     }
 
@@ -1483,16 +1565,16 @@ export class WorktreeManager {
     } catch (err) {
       return {
         success: false,
-        error: err instanceof Error ? err.message : 'Failed to fetch issue',
+        error: err instanceof Error ? err.message : "Failed to fetch issue",
       };
     }
 
     // Save issue data locally unless saveOn is 'never'
-    const linearSaveOn = projectConfig.dataLifecycle?.saveOn ?? 'view';
-    if (linearSaveOn !== 'never') {
-      const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, 'tasks');
+    const linearSaveOn = projectConfig.dataLifecycle?.saveOn ?? "view";
+    if (linearSaveOn !== "never") {
+      const tasksDir = path.join(this.configDir, CONFIG_DIR_NAME, "tasks");
       const taskData: LinearTaskData = {
-        source: 'linear',
+        source: "linear",
         identifier: issueDetail.identifier,
         title: issueDetail.title,
         description: issueDetail.description,
@@ -1512,7 +1594,7 @@ export class WorktreeManager {
     }
 
     // Load AI context notes
-    const notes = this.notesManager.loadNotes('linear', resolvedId);
+    const notes = this.notesManager.loadNotes("linear", resolvedId);
     const aiContext = notes.aiContext?.content ?? null;
 
     // Set pending context so TASK.md gets written after worktree creation
@@ -1520,18 +1602,18 @@ export class WorktreeManager {
     const worktreePath = path.join(worktreesPath, resolvedId);
 
     const linearComments = issueDetail.comments?.map((c) => ({
-      author: c.author ?? 'Unknown',
-      body: c.body ?? '',
+      author: c.author ?? "Unknown",
+      body: c.body ?? "",
       created: c.createdAt,
     }));
 
     this.setPendingWorktreeContext(resolvedId, {
       data: {
-        source: 'linear',
+        source: "linear",
         issueId: resolvedId,
         identifier: issueDetail.identifier,
         title: issueDetail.title,
-        description: issueDetail.description ?? '',
+        description: issueDetail.description ?? "",
         status: issueDetail.state.name,
         url: issueDetail.url,
         comments: linearComments,
@@ -1545,18 +1627,31 @@ export class WorktreeManager {
     });
 
     // Create worktree using custom branch or generated name from rule
-    const worktreeBranch = branch?.trim()
-      || await generateBranchName(this.configDir, { issueId: resolvedId, name: issueDetail.title, type: 'linear' });
-    const result = await this.createWorktree({ branch: worktreeBranch, name: resolvedId }, {
-      onSuccess: () => {
-        // Link the worktree to the issue only after async creation succeeds
-        this.notesManager.setLinkedWorktreeId('linear', resolvedId, resolvedId);
+    const worktreeBranch =
+      branch?.trim() ||
+      (await generateBranchName(this.configDir, {
+        issueId: resolvedId,
+        name: issueDetail.title,
+        type: "linear",
+      }));
+    const result = await this.createWorktree(
+      { branch: worktreeBranch, name: resolvedId },
+      {
+        onSuccess: () => {
+          // Link the worktree to the issue only after async creation succeeds
+          this.notesManager.setLinkedWorktreeId("linear", resolvedId, resolvedId);
+        },
       },
-    });
+    );
 
     if (!result.success) {
       this.clearPendingWorktreeContext(resolvedId);
-      return { success: false, error: result.error, code: result.code, worktreeId: result.worktreeId };
+      return {
+        success: false,
+        error: result.error,
+        code: result.code,
+        worktreeId: result.worktreeId,
+      };
     }
 
     return {
@@ -1566,7 +1661,7 @@ export class WorktreeManager {
       task: {
         identifier: issueDetail.identifier,
         title: issueDetail.title,
-        description: issueDetail.description ?? '',
+        description: issueDetail.description ?? "",
         status: issueDetail.state.name,
         url: issueDetail.url,
         comments: linearComments,

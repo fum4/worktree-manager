@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState } from "react";
 
-import { text } from '../theme';
-import { Spinner } from './Spinner';
+import { text } from "../theme";
+import { Spinner } from "./Spinner";
 
 interface AttachmentImageProps {
   src: string;
@@ -9,7 +9,7 @@ interface AttachmentImageProps {
   className?: string;
 }
 
-export function AttachmentImage({ src, alt, className = '' }: AttachmentImageProps) {
+export function AttachmentImage({ src, alt, className = "" }: AttachmentImageProps) {
   const [loading, setLoading] = useState(true);
 
   return (
@@ -22,7 +22,7 @@ export function AttachmentImage({ src, alt, className = '' }: AttachmentImagePro
       <img
         src={src}
         alt={alt}
-        className={`${className} ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
+        className={`${className} ${loading ? "opacity-0" : "opacity-100"} transition-opacity`}
         loading="lazy"
         onLoad={() => setLoading(false)}
         onError={() => setLoading(false)}

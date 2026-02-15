@@ -1,4 +1,4 @@
-import type { WorktreeInfo } from '../../server/types';
+import type { WorktreeInfo } from "../../server/types";
 
 import {
   checkGhAuth,
@@ -15,8 +15,8 @@ import {
   hasGitRemote,
   logoutGh,
   pushBranch,
-} from './gh-client';
-import type { GitHubConfig, GitStatusInfo, PRInfo } from './types';
+} from "./gh-client";
+import type { GitHubConfig, GitStatusInfo, PRInfo } from "./types";
 
 export class GitHubManager {
   private config: GitHubConfig | null = null;
@@ -60,7 +60,14 @@ export class GitHubManager {
     return this.installed && this.authenticated && this.config !== null;
   }
 
-  getStatus(): { installed: boolean; authenticated: boolean; username: string | null; repo: string | null; hasRemote: boolean; hasCommits: boolean } {
+  getStatus(): {
+    installed: boolean;
+    authenticated: boolean;
+    username: string | null;
+    repo: string | null;
+    hasRemote: boolean;
+    hasCommits: boolean;
+  } {
     return {
       installed: this.installed,
       authenticated: this.authenticated,
@@ -71,9 +78,11 @@ export class GitHubManager {
     };
   }
 
-  async createRepo(isPrivate: boolean): Promise<{ success: boolean; repo?: string; error?: string }> {
+  async createRepo(
+    isPrivate: boolean,
+  ): Promise<{ success: boolean; repo?: string; error?: string }> {
     if (!this.gitRoot) {
-      return { success: false, error: 'Git root not initialized' };
+      return { success: false, error: "Git root not initialized" };
     }
     const result = await createGitHubRepo(this.gitRoot, isPrivate);
     if (result.success) {
@@ -97,7 +106,7 @@ export class GitHubManager {
 
   async createInitialCommit(): Promise<{ success: boolean; error?: string }> {
     if (!this.gitRoot) {
-      return { success: false, error: 'Git root not initialized' };
+      return { success: false, error: "Git root not initialized" };
     }
     const result = await createInitialCommit(this.gitRoot);
     if (result.success) {
@@ -110,10 +119,7 @@ export class GitHubManager {
     return this.config?.defaultBranch ?? null;
   }
 
-  startPolling(
-    getWorktrees: () => WorktreeInfo[],
-    onUpdate: () => void,
-  ): void {
+  startPolling(getWorktrees: () => WorktreeInfo[], onUpdate: () => void): void {
     if (!this.isAvailable()) return;
 
     // Git status polling — every 10s
@@ -122,7 +128,7 @@ export class GitHubManager {
       let changed = false;
       const baseBranch = this.config?.defaultBranch;
       for (const wt of worktrees) {
-        if (wt.status === 'creating') continue;
+        if (wt.status === "creating") continue;
         try {
           const status = await getGitStatus(wt.path, baseBranch);
           const prev = this.gitStatusCache.get(wt.id);
@@ -150,14 +156,16 @@ export class GitHubManager {
       const worktrees = getWorktrees();
       let changed = false;
       for (const wt of worktrees) {
-        if (wt.status === 'creating') continue;
+        if (wt.status === "creating") continue;
         try {
           const pr = await findPRForBranch(this.config.owner, this.config.repo, wt.branch);
           const prev = this.prCache.get(wt.id);
           const prChanged =
             (!prev && pr) ||
             (prev && !pr) ||
-            (prev && pr && (prev.url !== pr.url || prev.state !== pr.state || prev.isDraft !== pr.isDraft));
+            (prev &&
+              pr &&
+              (prev.url !== pr.url || prev.state !== pr.state || prev.isDraft !== pr.isDraft));
           if (prChanged) {
             this.prCache.set(wt.id, pr);
             changed = true;
@@ -228,12 +236,12 @@ export class GitHubManager {
       if (this.config) {
         // Find the branch for this worktree path
         try {
-          const { execFile: execFileCb } = await import('child_process');
-          const { promisify } = await import('util');
+          const { execFile: execFileCb } = await import("child_process");
+          const { promisify } = await import("util");
           const execFile = promisify(execFileCb);
-          const { stdout } = await execFile('git', ['branch', '--show-current'], {
+          const { stdout } = await execFile("git", ["branch", "--show-current"], {
             cwd: worktreePath,
-            encoding: 'utf-8',
+            encoding: "utf-8",
           });
           const branch = stdout.trim();
           if (branch) {

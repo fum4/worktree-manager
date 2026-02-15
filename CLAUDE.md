@@ -25,18 +25,18 @@ Comprehensive documentation lives in `/docs/`. **Always check the relevant docs 
 
 **Keep docs up to date.** When making changes, check if any docs in `/docs/` need updating and update them. If a change introduces a new system or concept not covered by existing docs, create a new doc file in `/docs/` and add it to the table below and in `README.md`. Outdated docs are worse than no docs.
 
-| Document | Covers | When to Read |
-|----------|--------|--------------|
-| [Architecture](docs/ARCHITECTURE.md) | System layers, components, data flow, build system | Understanding project structure |
-| [Development](docs/DEVELOPMENT.md) | Build system, dev workflow, code organization, conventions | Before writing code |
-| [Frontend](docs/FRONTEND.md) | UI architecture, views, theme, components | UI changes |
-| [API Reference](docs/API.md) | REST API endpoints | New or modified endpoints |
-| [CLI Reference](docs/CLI.md) | All CLI commands and options | CLI changes |
-| [Configuration](docs/CONFIGURATION.md) | Config files, settings, data storage | Config changes |
-| [MCP Tools](docs/MCP.md) | MCP integration and tool reference | MCP/agent tool changes |
-| [Agents](docs/AGENTS.md) | Agent tooling, skills, plugins, git policy | Agent system changes |
-| [Integrations](docs/INTEGRATIONS.md) | Jira, Linear, GitHub setup | Integration changes |
-| [Port Mapping](docs/PORT-MAPPING.md) | Port discovery, offset algorithm, runtime hook | Port system changes |
-| [Hooks](docs/HOOKS.md) | Hooks system (trigger types, commands, skills) | Hooks changes |
-| [Electron](docs/ELECTRON.md) | Desktop app, deep linking, multi-project | Electron changes |
-| [Setup Flow](docs/SETUP-FLOW.md) | Project setup wizard, steps, state machine, integrations | Setup/onboarding changes |
+| Document                               | Covers                                                     | When to Read                    |
+| -------------------------------------- | ---------------------------------------------------------- | ------------------------------- |
+| [Architecture](docs/ARCHITECTURE.md)   | System layers, components, data flow, build system         | Understanding project structure |
+| [Development](docs/DEVELOPMENT.md)     | Build system, dev workflow, code organization, conventions | Before writing code             |
+| [Frontend](docs/FRONTEND.md)           | UI architecture, views, theme, components                  | UI changes                      |
+| [API Reference](docs/API.md)           | REST API endpoints                                         | New or modified endpoints       |
+| [CLI Reference](docs/CLI.md)           | All CLI commands and options                               | CLI changes                     |
+| [Configuration](docs/CONFIGURATION.md) | Config files, settings, data storage                       | Config changes                  |
+| [MCP Tools](docs/MCP.md)               | MCP integration and tool reference                         | MCP/agent tool changes          |
+| [Agents](docs/AGENTS.md)               | Agent tooling, skills, plugins, git policy                 | Agent system changes            |
+| [Integrations](docs/INTEGRATIONS.md)   | Jira, Linear, GitHub setup                                 | Integration changes             |
+| [Port Mapping](docs/PORT-MAPPING.md)   | Port discovery, offset algorithm, runtime hook             | Port system changes             |
+| [Hooks](docs/HOOKS.md)                 | Hooks system (trigger types, commands, skills)             | Hooks changes                   |
+| [Electron](docs/ELECTRON.md)           | Desktop app, deep linking, multi-project                   | Electron changes                |
+| [Setup Flow](docs/SETUP-FLOW.md)       | Project setup wizard, steps, state machine, integrations   | Setup/onboarding changes        |
