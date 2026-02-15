@@ -14,7 +14,14 @@ body {
 }
 
 /* Restore cursor: pointer on interactive elements (removed in Tailwind v4 preflight) */
-a, button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], select, summary {
+a,
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+select,
+summary {
   cursor: pointer;
 }
 

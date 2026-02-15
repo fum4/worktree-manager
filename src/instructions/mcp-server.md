@@ -126,6 +126,20 @@ For skills that produce detailed output (code review, changes summary, test inst
 
 ---
 
+## Activity Feed
+
+Use the `notify` tool to keep the user informed about progress on long-running tasks. The activity feed shows real-time updates in the UI — the user can see what you're doing without switching context.
+
+- Call `notify` with a short `message` describing what you're doing or what just happened
+- Use `severity` to indicate the nature of the update: `info` (default), `warning`, or `error`
+- Include `worktreeId` when the update relates to a specific worktree
+- Good examples: "Analyzing codebase structure", "Found 3 files that need changes", "Running type checker — 2 errors found"
+- Don't over-notify — one update per meaningful progress milestone is enough
+
+Other tool calls (`commit`, `push`, `create_pr`, `run_hooks`, `report_hook_status`) are automatically tracked in the activity feed.
+
+---
+
 ## After Completing Work
 
 After finishing all implementation and running all post-implementation hooks:

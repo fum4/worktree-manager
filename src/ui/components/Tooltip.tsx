@@ -34,7 +34,7 @@ export function Tooltip({ text, children, position = "top", delay = 0 }: Tooltip
   const [visible, setVisible] = useState(false);
   const [style, setStyle] = useState<React.CSSProperties | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const show = useCallback(() => {
     if (delay > 0) {

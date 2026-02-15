@@ -1,5 +1,11 @@
+import { AnimatePresence } from "motion/react";
+import { useCallback, useState } from "react";
+
+import { useActivityFeed } from "../hooks/useActivityFeed";
+import { useToast } from "../contexts/ToastContext";
+import { ActivityBell, ActivityFeed } from "./ActivityFeed";
 import type { View } from "./NavBar";
-import { badge, nav, text } from "../theme";
+import { badge, nav } from "../theme";
 
 const tabs: { id: View; label: string }[] = [
   { id: "workspace", label: "Workspace" },
@@ -13,23 +19,34 @@ interface HeaderProps {
   runningCount: number;
   activeView: View;
   onChangeView: (view: View) => void;
-  configNeedsPush?: boolean;
-  onCommitConfig?: () => void;
 }
 
-export function Header({
-  runningCount,
-  activeView,
-  onChangeView,
-  configNeedsPush,
-  onCommitConfig,
-}: HeaderProps) {
+export function Header({ runningCount, activeView, onChangeView }: HeaderProps) {
+  const { addToast } = useToast();
+  const [feedOpen, setFeedOpen] = useState(false);
+
+  const handleToast = useCallback(
+    (message: string, level: "error" | "info" | "success") => addToast(message, level),
+    [addToast],
+  );
+
+  const { events, unreadCount, filter, setFilter, markAllRead, clearAll } =
+    useActivityFeed(handleToast);
+
+  const handleToggleFeed = () => {
+    if (!feedOpen) {
+      // Opening — mark as read after a short delay
+      setTimeout(() => markAllRead(), 500);
+    }
+    setFeedOpen(!feedOpen);
+  };
+
   return (
     <header
       className="h-[4.25rem] flex-shrink-0 relative bg-[#0c0e12]/60 backdrop-blur-md z-40"
       style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
     >
-      {/* Center: nav tabs - using inset-x-0 + flex for pixel-perfect centering */}
+      {/* Center: nav tabs */}
       <div
         className="absolute inset-x-0 bottom-[1.375rem] flex justify-center"
         style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
@@ -56,52 +73,28 @@ export function Header({
         </div>
       </div>
 
-      {/* Right: config warning indicator */}
-      {configNeedsPush && (
-        <div
-          className="absolute right-4 bottom-[1.375rem] flex items-center"
-          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-        >
-          <div className="group relative">
-            <button
-              onClick={onCommitConfig}
-              className="p-1.5 rounded-md hover:bg-amber-400/10 transition-colors duration-150"
-            >
-              <span className="relative flex h-2.5 w-2.5">
-                <span
-                  className="absolute inline-flex h-full w-full rounded-full bg-amber-400"
-                  style={{ animation: "pulse-calm 2.5s ease-out infinite" }}
-                />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400" />
-              </span>
-              <style>{`
-                @keyframes pulse-calm {
-                  0%, 100% { transform: scale(1); opacity: 0.7; }
-                  22% { transform: scale(2.8); opacity: 0; }
-                  23% { transform: scale(1); opacity: 0; }
-                }
-              `}</style>
-            </button>
-
-            {/* Tooltip - shows on hover using CSS group-hover */}
-            <div className="absolute -right-2 top-full pt-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
-              <div className="w-72 p-3 rounded-lg bg-[#1a1d24] border border-white/[0.08] shadow-xl">
-                <p className={`text-xs ${text.secondary} mb-2`}>
-                  Configuration files are not pushed yet.
-                  <br />
-                  New worktrees won't have them until you push.
-                </p>
-                <button
-                  onClick={onCommitConfig}
-                  className="text-[11px] font-medium text-amber-400 hover:text-amber-300 transition-colors"
-                >
-                  Push configuration →
-                </button>
-              </div>
-            </div>
-          </div>
+      {/* Right: activity bell */}
+      <div
+        className="absolute right-4 bottom-[1.375rem] flex items-center"
+        style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+      >
+        <div className="relative">
+          <ActivityBell unreadCount={unreadCount} isOpen={feedOpen} onClick={handleToggleFeed} />
+          <AnimatePresence>
+            {feedOpen && (
+              <ActivityFeed
+                events={events}
+                unreadCount={unreadCount}
+                filter={filter}
+                onFilterChange={setFilter}
+                onMarkAllRead={markAllRead}
+                onClearAll={clearAll}
+                onClose={() => setFeedOpen(false)}
+              />
+            )}
+          </AnimatePresence>
         </div>
-      )}
+      </div>
     </header>
   );
 }

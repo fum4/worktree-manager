@@ -5,6 +5,7 @@ import { actions } from "../actions";
 import type { ActionContext, ActionParam } from "../actions";
 import { APP_NAME } from "../constants";
 import { MCP_INSTRUCTIONS, MCP_WORK_ON_TASK_PROMPT } from "../instructions";
+import type { ActivityCategory, ActivitySeverity } from "./activity-event";
 
 function toZodType(param: ActionParam) {
   let schema: z.ZodTypeAny;
@@ -32,11 +33,98 @@ function buildZodShape(params: Record<string, ActionParam>): Record<string, z.Zo
   return shape;
 }
 
+// Maps tool names to activity events emitted after successful/failed execution
+const TRACKED_TOOLS: Record<
+  string,
+  {
+    category: ActivityCategory;
+    success: {
+      type: string;
+      severity: ActivitySeverity;
+      title: (params: Record<string, unknown>) => string;
+    };
+    failure?: {
+      type: string;
+      severity: ActivitySeverity;
+      title: (params: Record<string, unknown>, err: string) => string;
+    };
+  }
+> = {
+  commit: {
+    category: "agent",
+    success: {
+      type: "commit_completed",
+      severity: "success",
+      title: (p) => `Committed in ${p.id}`,
+    },
+    failure: {
+      type: "commit_failed",
+      severity: "error",
+      title: (p, err) => `Commit failed in ${p.id}: ${err}`,
+    },
+  },
+  push: {
+    category: "agent",
+    success: { type: "push_completed", severity: "success", title: (p) => `Pushed ${p.id}` },
+    failure: {
+      type: "push_failed",
+      severity: "error",
+      title: (p, err) => `Push failed in ${p.id}: ${err}`,
+    },
+  },
+  create_pr: {
+    category: "agent",
+    success: { type: "pr_created", severity: "success", title: (p) => `PR created for ${p.id}` },
+  },
+  run_hooks: {
+    category: "agent",
+    success: { type: "hooks_ran", severity: "info", title: (p) => `Hooks ran for ${p.worktreeId}` },
+  },
+};
+
+// Tools that emit activity based on report_hook_status params
+function emitHookStatusActivity(ctx: ActionContext, params: Record<string, unknown>): void {
+  if (!ctx.activityLog) return;
+
+  const skillName = params.skillName as string;
+  const success = params.success as boolean | undefined;
+  const worktreeId = params.worktreeId as string | undefined;
+
+  if (success === undefined || success === null) {
+    ctx.activityLog.addEvent({
+      category: "agent",
+      type: "skill_started",
+      severity: "info",
+      title: `Skill "${skillName}" started`,
+      worktreeId,
+    });
+  } else {
+    ctx.activityLog.addEvent({
+      category: "agent",
+      type: success ? "skill_completed" : "skill_failed",
+      severity: success ? "success" : "error",
+      title: success ? `Skill "${skillName}" passed` : `Skill "${skillName}" failed`,
+      detail: params.summary as string | undefined,
+      worktreeId,
+    });
+  }
+}
+
 export function createMcpServer(ctx: ActionContext): McpServer {
   const server = new McpServer(
     { name: APP_NAME, version: "0.1.0" },
     { instructions: MCP_INSTRUCTIONS },
   );
+
+  // Emit agent connected event
+  if (ctx.activityLog) {
+    ctx.activityLog.addEvent({
+      category: "agent",
+      type: "agent_connected",
+      severity: "info",
+      title: "Agent connected via MCP",
+    });
+  }
 
   for (const action of actions) {
     const zodShape = buildZodShape(action.params);
@@ -44,10 +132,60 @@ export function createMcpServer(ctx: ActionContext): McpServer {
     server.tool(action.name, action.description, zodShape, async (params) => {
       try {
         const result = await action.handler(ctx, params as Record<string, unknown>);
+
+        // Auto-emit activity for tracked tools
+        const tracking = TRACKED_TOOLS[action.name];
+        if (tracking && ctx.activityLog) {
+          // Check if the result indicates failure (has success: false)
+          const resultObj = result as Record<string, unknown> | null;
+          if (resultObj && resultObj.success === false && tracking.failure) {
+            const errMsg = (resultObj.error as string) || "Unknown error";
+            ctx.activityLog.addEvent({
+              category: tracking.category,
+              type: tracking.failure.type,
+              severity: tracking.failure.severity,
+              title: tracking.failure.title(params as Record<string, unknown>, errMsg),
+              worktreeId:
+                ((params as Record<string, unknown>).id as string | undefined) ??
+                ((params as Record<string, unknown>).worktreeId as string | undefined),
+            });
+          } else {
+            ctx.activityLog.addEvent({
+              category: tracking.category,
+              type: tracking.success.type,
+              severity: tracking.success.severity,
+              title: tracking.success.title(params as Record<string, unknown>),
+              worktreeId:
+                ((params as Record<string, unknown>).id as string | undefined) ??
+                ((params as Record<string, unknown>).worktreeId as string | undefined),
+            });
+          }
+        }
+
+        // Special handling for report_hook_status
+        if (action.name === "report_hook_status") {
+          emitHookStatusActivity(ctx, params as Record<string, unknown>);
+        }
+
         return {
           content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
         };
       } catch (err) {
+        // Emit failure activity for tracked tools
+        const tracking = TRACKED_TOOLS[action.name];
+        if (tracking?.failure && ctx.activityLog) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          ctx.activityLog.addEvent({
+            category: tracking.category,
+            type: tracking.failure.type,
+            severity: tracking.failure.severity,
+            title: tracking.failure.title(params as Record<string, unknown>, errMsg),
+            worktreeId:
+              ((params as Record<string, unknown>).id as string | undefined) ??
+              ((params as Record<string, unknown>).worktreeId as string | undefined),
+          });
+        }
+
         return {
           isError: true,
           content: [

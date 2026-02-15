@@ -64,7 +64,10 @@ export default function App() {
   } = useServer();
   const [hookUpdateKey, setHookUpdateKey] = useState(0);
   const { worktrees, isConnected, error, refetch } = useWorktrees(
-    useCallback((message: string, level: "error" | "info") => addToast(message, level), [addToast]),
+    useCallback(
+      (message: string, level: "error" | "info" | "success") => addToast(message, level),
+      [addToast],
+    ),
     useCallback(() => setHookUpdateKey((k) => k + 1), []),
   );
   const {
@@ -335,26 +338,9 @@ export default function App() {
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [showSetupCommitModal, setShowSetupCommitModal] = useState(false);
-  const [configNeedsPush, setConfigNeedsPush] = useState(false);
-
-  // Check if dawg config files need to be committed when project loads
-  useEffect(() => {
-    if (!serverUrl || configLoading) return;
-
-    api
-      .fetchSetupStatus()
-      .then((status) => {
-        setConfigNeedsPush(status.needsPush);
-      })
-      .catch(() => {
-        // Ignore errors - this is a nice-to-have prompt
-      });
-  }, [serverUrl, configLoading]);
-
   const handleSetupCommit = async (message: string) => {
     await api.commitSetup(message);
     setShowSetupCommitModal(false);
-    setConfigNeedsPush(false);
   };
 
   const needsCommit = githubStatus?.hasCommits === false;
@@ -696,13 +682,7 @@ export default function App() {
         </div>
       )}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }}>
-        <Header
-          runningCount={runningCount}
-          activeView={activeView}
-          onChangeView={setActiveView}
-          configNeedsPush={configNeedsPush}
-          onCommitConfig={() => setShowSetupCommitModal(true)}
-        />
+        <Header runningCount={runningCount} activeView={activeView} onChangeView={setActiveView} />
       </motion.div>
 
       {error && (

@@ -25,6 +25,7 @@ import { registerConfigRoutes } from "./routes/config";
 import { registerGitHubRoutes } from "./routes/github";
 import { registerJiraRoutes } from "./routes/jira";
 import { registerLinearRoutes } from "./routes/linear";
+import { registerActivityRoutes } from "./routes/activity";
 import { registerEventRoutes } from "./routes/events";
 import { registerMcpRoutes } from "./routes/mcp";
 import { registerMcpServerRoutes } from "./routes/mcp-servers";
@@ -99,6 +100,7 @@ export function createWorktreeServer(manager: WorktreeManager) {
   registerJiraRoutes(app, manager);
   registerLinearRoutes(app, manager);
   registerEventRoutes(app, manager);
+  registerActivityRoutes(app, manager.getActivityLog());
   registerMcpRoutes(app, manager);
   registerMcpServerRoutes(app, manager);
   registerSkillRoutes(app, manager);

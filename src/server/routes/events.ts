@@ -9,6 +9,15 @@ export function registerEventRoutes(app: Hono, manager: WorktreeManager) {
         const worktrees = manager.getWorktrees();
         controller.enqueue(`data: ${JSON.stringify({ type: "worktrees", worktrees })}\n\n`);
 
+        // Send recent activity events on initial connection
+        const activityLog = manager.getActivityLog();
+        const recentEvents = activityLog.getRecentEvents(50);
+        if (recentEvents.length > 0) {
+          controller.enqueue(
+            `data: ${JSON.stringify({ type: "activity-history", events: recentEvents })}\n\n`,
+          );
+        }
+
         const unsubscribeWorktrees = manager.subscribe((updatedWorktrees) => {
           try {
             controller.enqueue(
@@ -48,10 +57,19 @@ export function registerEventRoutes(app: Hono, manager: WorktreeManager) {
           }
         });
 
+        const unsubscribeActivity = activityLog.subscribe((event) => {
+          try {
+            controller.enqueue(`data: ${JSON.stringify({ type: "activity", event })}\n\n`);
+          } catch {
+            unsubscribeActivity();
+          }
+        });
+
         c.req.raw.signal.addEventListener("abort", () => {
           unsubscribeWorktrees();
           unsubscribeNotifications();
           unsubscribeHookUpdates();
+          unsubscribeActivity();
           controller.close();
         });
       },

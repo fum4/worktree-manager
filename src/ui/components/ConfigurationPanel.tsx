@@ -203,7 +203,7 @@ export function ConfigurationPanel({
   }, [config]);
 
   // Auto-save config on form changes (debounced)
-  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const prevFormJson = useRef<string>("");
 
   useEffect(() => {
@@ -227,7 +227,7 @@ export function ConfigurationPanel({
   }, [form]);
 
   // Auto-save branch rules (debounced)
-  const branchSaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const branchSaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const saveBranchRule = useCallback(
     (tabKey: string, content: string) => {
@@ -271,7 +271,7 @@ export function ConfigurationPanel({
   }, [branchTab, loadBranchTab]);
 
   // Auto-save commit message rules (debounced)
-  const commitSaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const commitSaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const saveCommitRule = useCallback(
     (tabKey: string, content: string) => {
@@ -755,6 +755,37 @@ export function ConfigurationPanel({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Notifications Card */}
+        <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>Notifications</h3>
+          <p className={`text-[11px] ${text.dimmed} leading-relaxed mb-4`}>
+            Control which activity events appear as toast notifications.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { key: "creation_completed", label: "Worktree created" },
+              { key: "creation_failed", label: "Creation failed" },
+              { key: "crashed", label: "Process crashed" },
+              { key: "skill_failed", label: "Skill failed" },
+              { key: "pr_merged", label: "PR merged" },
+              { key: "commit_completed", label: "Commit" },
+              { key: "push_completed", label: "Push" },
+            ].map(({ key, label }) => {
+              const enabled = true; // Toast events are always enabled for now
+              return (
+                <span
+                  key={key}
+                  className={`px-2.5 py-1 text-[10px] font-medium rounded-md ${
+                    enabled ? "bg-teal-500/[0.15] text-teal-300" : `bg-white/[0.06] ${text.dimmed}`
+                  }`}
+                >
+                  {label}
+                </span>
+              );
+            })}
+          </div>
         </div>
 
         {/* Connection status */}

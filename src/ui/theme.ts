@@ -410,6 +410,29 @@ export const hooks = {
   skipped: "text-[#4b5563] bg-white/[0.03]",
 } as const;
 
+// ─── Activity feed ──────────────────────────────────────────
+export const activity = {
+  categoryColor: {
+    agent: "text-purple-400",
+    worktree: "text-teal-400",
+    git: "text-blue-400",
+    integration: "text-amber-400",
+    system: "text-red-400",
+  } as Record<string, string>,
+  categoryBg: {
+    agent: "bg-purple-400/10",
+    worktree: "bg-teal-400/10",
+    git: "bg-blue-400/10",
+    integration: "bg-amber-400/10",
+    system: "bg-red-400/10",
+  } as Record<string, string>,
+  severityDot: {
+    success: "bg-emerald-400",
+    warning: "bg-amber-400",
+    error: "bg-red-400",
+  } as Record<string, string>,
+} as const;
+
 // ─── Detail panel tabs (Logs / Terminal) ────────────────────────
 export const detailTab = {
   active: "text-white bg-white/[0.08]",

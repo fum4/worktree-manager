@@ -374,7 +374,7 @@ function HooksSection({
   setNewName: (v: string) => void;
   newCommand: string;
   setNewCommand: (v: string) => void;
-  nameRef: React.RefObject<HTMLInputElement>;
+  nameRef: React.RefObject<HTMLInputElement | null>;
   updateStep: (
     stepId: string,
     updates: Partial<Pick<HookStep, "name" | "command" | "enabled" | "condition">>,

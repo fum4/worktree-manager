@@ -19,6 +19,10 @@ pnpm check-lint    # Lint
 
 There is no test runner configured.
 
+## Code Quality
+
+**Fix any lint or format errors you encounter — whether introduced by current changes or pre-existing in the codebase.** Don't leave broken windows.
+
 ## Dependencies
 
 **Always use `pnpm add` (or `pnpm add -D`) to install packages — never edit `package.json` dependencies manually.** Use the latest version unless a specific version is required.

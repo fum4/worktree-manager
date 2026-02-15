@@ -2412,3 +2412,35 @@ export async function fetchFileContent(
     return { error: "Failed to fetch file" };
   }
 }
+
+export interface ActivityEvent {
+  id: string;
+  timestamp: string;
+  category: "agent" | "worktree" | "git" | "integration" | "system";
+  type: string;
+  severity: "info" | "success" | "warning" | "error";
+  title: string;
+  detail?: string;
+  worktreeId?: string;
+  projectName?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export async function fetchActivity(
+  serverUrl: string | null = null,
+  params?: { since?: string; category?: string; limit?: number },
+): Promise<{ events: ActivityEvent[] }> {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params?.since) searchParams.set("since", params.since);
+    if (params?.category) searchParams.set("category", params.category);
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+
+    const qs = searchParams.toString();
+    const url = `${getBaseUrl(serverUrl)}/api/activity${qs ? `?${qs}` : ""}`;
+    const res = await fetch(url);
+    return await res.json();
+  } catch {
+    return { events: [] };
+  }
+}

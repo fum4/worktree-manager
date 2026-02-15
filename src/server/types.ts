@@ -30,6 +30,13 @@ export interface WorktreeConfig {
   allowAgentPushes?: boolean;
   /** Whether MCP agents are allowed to create PRs (default: false) */
   allowAgentPRs?: boolean;
+  /** Activity feed configuration */
+  activity?: {
+    retentionDays?: number;
+    categories?: Record<string, boolean>;
+    toastEvents?: string[];
+    osNotificationEvents?: string[];
+  };
 }
 
 export interface WorktreeInfo {

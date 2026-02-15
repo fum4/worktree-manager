@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray } f
 import path from "path";
 import { fileURLToPath } from "url";
 import { ProjectManager, type Project } from "./project-manager.js";
+import { NotificationManager } from "./notification-manager.js";
 import {
   preferencesManager,
   type AppPreferences,
@@ -20,6 +21,7 @@ const PROTOCOL = "dawg";
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 const projectManager = new ProjectManager();
+const notificationManager = new NotificationManager(() => mainWindow, projectManager);
 
 function getUiPath(): string {
   // In prod: dist/electron/ -> look for dist/ui/index.html
@@ -102,6 +104,7 @@ function notifyProjectsChanged() {
   mainWindow?.webContents.send("projects-changed", projects);
   mainWindow?.webContents.send("active-project-changed", activeId);
   updateTrayMenu();
+  notificationManager.syncProjectStreams();
 }
 
 // IPC Handlers
@@ -349,6 +352,7 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", async () => {
   tray = null;
+  notificationManager.dispose();
   await projectManager.closeAllProjects();
   projectManager.removeLockFile();
 });

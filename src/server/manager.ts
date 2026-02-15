@@ -37,6 +37,7 @@ import {
 } from "../integrations/linear/api";
 import type { LinearTaskData } from "../integrations/linear/types";
 
+import { ActivityLog } from "./activity-log";
 import { NotesManager } from "./notes-manager";
 import { PortManager } from "./port-manager";
 import type { PendingTaskContext } from "./task-context";
@@ -89,6 +90,8 @@ export class WorktreeManager {
 
   private notesManager: NotesManager;
 
+  private activityLog: ActivityLog;
+
   private runningProcesses: Map<string, RunningProcess> = new Map();
 
   private creatingWorktrees: Map<string, WorktreeInfo> = new Map();
@@ -119,6 +122,7 @@ export class WorktreeManager {
     this.configDir = configFilePath ? path.dirname(path.dirname(configFilePath)) : process.cwd();
     this.portManager = new PortManager(config, configFilePath);
     this.notesManager = new NotesManager(this.configDir);
+    this.activityLog = new ActivityLog(this.configDir);
 
     const worktreesPath = this.getWorktreesAbsolutePath();
     if (!existsSync(worktreesPath)) {
@@ -241,6 +245,10 @@ export class WorktreeManager {
 
   getNotesManager(): NotesManager {
     return this.notesManager;
+  }
+
+  getActivityLog(): ActivityLog {
+    return this.activityLog;
   }
 
   setPendingWorktreeContext(id: string, ctx: PendingTaskContext): void {
@@ -433,6 +441,18 @@ export class WorktreeManager {
         }
         this.runningProcesses.delete(id);
         this.notifyListeners();
+
+        // Emit crashed event if exit was unexpected (non-zero and not user-initiated stop)
+        if (code !== null && code !== 0) {
+          this.activityLog.addEvent({
+            category: "worktree",
+            type: "crashed",
+            severity: "error",
+            title: `Worktree "${id}" crashed (exit code ${code})`,
+            worktreeId: id,
+            metadata: { exitCode: code },
+          });
+        }
       });
 
       const wtColor = getWorktreeColor(id);
@@ -483,6 +503,14 @@ export class WorktreeManager {
       });
 
       this.notifyListeners();
+      this.activityLog.addEvent({
+        category: "worktree",
+        type: "started",
+        severity: "info",
+        title: `Worktree "${id}" started`,
+        worktreeId: id,
+        metadata: { ports, pid },
+      });
       return { success: true, ports, pid };
     } catch (error) {
       return {
@@ -512,6 +540,13 @@ export class WorktreeManager {
 
     this.runningProcesses.delete(id);
     this.notifyListeners();
+    this.activityLog.addEvent({
+      category: "worktree",
+      type: "stopped",
+      severity: "info",
+      title: `Worktree "${id}" stopped`,
+      worktreeId: id,
+    });
 
     return { success: true };
   }
@@ -617,6 +652,14 @@ export class WorktreeManager {
       this.worktreeCallbacks.set(worktreeId, callbacks);
     }
     this.notifyListeners();
+    this.activityLog.addEvent({
+      category: "worktree",
+      type: "creation_started",
+      severity: "info",
+      title: `Creating worktree "${worktreeId}"`,
+      worktreeId,
+      metadata: { branch },
+    });
 
     // Run the actual creation async — don't block the HTTP response
     this.runCreateWorktree(worktreeId, branch, worktreePath).catch(() => {
@@ -749,6 +792,14 @@ export class WorktreeManager {
       // Done — remove from creating map; getWorktrees() will pick it up from filesystem
       this.creatingWorktrees.delete(worktreeId);
       this.notifyListeners();
+      this.activityLog.addEvent({
+        category: "worktree",
+        type: "creation_completed",
+        severity: "success",
+        title: `Worktree "${worktreeId}" created`,
+        worktreeId,
+        metadata: { branch },
+      });
 
       // Call success callback (e.g. to link worktree to issue)
       const callbacks = this.worktreeCallbacks.get(worktreeId);
@@ -781,6 +832,14 @@ export class WorktreeManager {
 
       // Emit notification so the frontend can show a toast
       this.emitNotification(`Failed to create worktree "${worktreeId}": ${message}`);
+      this.activityLog.addEvent({
+        category: "worktree",
+        type: "creation_failed",
+        severity: "error",
+        title: `Worktree "${worktreeId}" creation failed`,
+        detail: message,
+        worktreeId,
+      });
 
       // Remove after a delay so the user can see the error
       setTimeout(() => {

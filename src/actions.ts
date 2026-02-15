@@ -11,6 +11,7 @@ import type { NotesManager } from "./server/notes-manager";
 import { generateTaskMd, writeTaskMd } from "./server/task-context";
 import type { TaskContextData } from "./server/task-context";
 import type { HooksManager } from "./server/verification-manager";
+import type { ActivityLog } from "./server/activity-log";
 
 export interface ActionParam {
   type: "string" | "number" | "boolean";
@@ -29,6 +30,7 @@ export interface ActionContext {
   manager: WorktreeManager;
   notesManager: NotesManager;
   hooksManager?: HooksManager;
+  activityLog?: ActivityLog;
 }
 
 function findWorktreeOrThrow(ctx: ActionContext, id: string) {
@@ -604,6 +606,45 @@ export const actions: Action[] = [
       // delete
       const notes = ctx.notesManager.deleteTodo(src, issueId, todoId);
       return { success: true, todos: notes.todos };
+    },
+  },
+
+  // -- Notifications --
+  {
+    name: "notify",
+    description:
+      "Send a status update to the dawg activity feed. Use to keep the user informed about progress on long-running tasks.",
+    params: {
+      message: { type: "string", description: "Status message to display", required: true },
+      severity: {
+        type: "string",
+        description: 'Severity level: "info" (default), "success", "warning", or "error"',
+      },
+      worktreeId: { type: "string", description: "Related worktree ID (optional)" },
+    },
+    handler: async (ctx, params) => {
+      const message = params.message as string;
+      const severity = (params.severity as string) || "info";
+      const worktreeId = params.worktreeId as string | undefined;
+
+      if (!["info", "success", "warning", "error"].includes(severity)) {
+        return {
+          success: false,
+          error: 'Invalid severity (must be "info", "success", "warning", or "error")',
+        };
+      }
+
+      if (ctx.activityLog) {
+        ctx.activityLog.addEvent({
+          category: "agent",
+          type: "notify",
+          severity: severity as "info" | "success" | "warning" | "error",
+          title: message,
+          worktreeId,
+        });
+      }
+
+      return { success: true };
     },
   },
 

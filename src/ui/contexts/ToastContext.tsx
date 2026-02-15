@@ -4,12 +4,12 @@ import type { ReactNode } from "react";
 export interface Toast {
   id: string;
   message: string;
-  level: "error" | "info";
+  level: "error" | "info" | "success";
 }
 
 interface ToastContextValue {
   toasts: Toast[];
-  addToast: (message: string, level?: "error" | "info") => void;
+  addToast: (message: string, level?: "error" | "info" | "success") => void;
   removeToast: (id: string) => void;
 }
 
@@ -25,11 +25,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addToast = useCallback(
-    (message: string, level: "error" | "info" = "error") => {
+    (message: string, level: "error" | "info" | "success" = "error") => {
       const id = String(++nextId);
       setToasts((prev) => [...prev, { id, message, level }]);
 
-      // Auto-dismiss info toasts after 5s, error toasts after 10s
+      // Auto-dismiss: info/success=5s, error=10s
       const timeout = level === "error" ? 10000 : 5000;
       setTimeout(() => removeToast(id), timeout);
     },

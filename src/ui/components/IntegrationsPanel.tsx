@@ -559,7 +559,7 @@ function JiraCard({
     null,
   );
   const configReadyRef = useRef(false);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (status?.defaultProjectKey) {
@@ -791,7 +791,7 @@ function LinearCard({
     null,
   );
   const configReadyRef = useRef(false);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (status?.defaultTeamKey) {

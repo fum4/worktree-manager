@@ -72,6 +72,10 @@ export function useWorktrees(
           notificationRef(data.message, data.level);
         } else if (data.type === "hook-update") {
           hookUpdateRef(data.worktreeId);
+        } else if (data.type === "activity") {
+          window.dispatchEvent(new CustomEvent("dawg:activity", { detail: data.event }));
+        } else if (data.type === "activity-history") {
+          window.dispatchEvent(new CustomEvent("dawg:activity-history", { detail: data.events }));
         }
       } catch {
         // Ignore parse errors

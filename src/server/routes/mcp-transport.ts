@@ -16,7 +16,8 @@ export function registerMcpTransportRoute(
     hooksManager,
   }: { manager: WorktreeManager; notesManager: NotesManager; hooksManager?: HooksManager },
 ) {
-  const ctx: ActionContext = { manager, notesManager, hooksManager };
+  const activityLog = manager.getActivityLog();
+  const ctx: ActionContext = { manager, notesManager, hooksManager, activityLog };
   const mcpServer = createMcpServer(ctx);
 
   // Stateless transport — single-user local dev tool, no session tracking needed
