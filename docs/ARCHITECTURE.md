@@ -39,6 +39,7 @@ flowchart TB
     PM["PortManager\n(port discovery + allocation)"]
     TM["TerminalManager\n(PTY sessions via WebSocket)"]
     NM["NotesManager\n(issue notes, todos, AI context)"]
+    AL["ActivityLog\n(event persistence + emission)"]
     VM["HooksManager\n(hooks: commands + skills)"]
     GH["GitHubManager\n(PR status, git operations)"]
     Hook["port-hook.cjs\n(runtime port patching)"]
@@ -48,15 +49,18 @@ flowchart TB
 
     WM --> PM
     WM --> NM
+    WM --> AL
     WM --> GH
     VM --> WM
     Routes --> WM
     Routes --> TM
     Routes --> NM
     Routes --> VM
+    Routes --> AL
     Actions --> WM
     Actions --> NM
     Actions --> VM
+    Actions --> AL
     McpFactory --> Actions
     PM -->|env vars| Hook
 ```
@@ -73,6 +77,7 @@ Key responsibilities:
 - **Issue integration**: `createWorktreeFromJira()` and `createWorktreeFromLinear()` fetch issue data, generate a branch name, write `TASK.md`, and link the issue to the worktree
 - **Config management**: `reloadConfig()`, `updateConfig()`, `getConfig()`
 - **Log capture**: Stdout/stderr from spawned processes is captured (last 100 lines) and forwarded to listeners with debounced batching (250ms)
+- **Activity tracking**: Owns an `ActivityLog` instance, emitting lifecycle events (`creation_started`, `creation_completed`, `creation_failed`, `started`, `stopped`, `crashed`) during worktree operations
 
 ### PortManager
 
@@ -109,6 +114,20 @@ Stored data per issue:
 - **gitPolicy**: Per-issue overrides for agent git permissions (`agentCommits`, `agentPushes`, `agentPRs`)
 
 The `buildWorktreeLinkMap()` method scans all notes files to produce a reverse map from worktree IDs to their linked issues -- used by `WorktreeManager.getWorktrees()` to enrich worktree info with issue metadata.
+
+### ActivityLog
+
+`src/server/activity-log.ts` -- Persists and broadcasts activity events (agent actions, worktree lifecycle, git operations) to SSE listeners.
+
+Key responsibilities:
+
+- **Event persistence**: Events are appended to `.dawg/activity.json` in JSONL format (one JSON object per line)
+- **Real-time broadcast**: Maintains a set of subscriber callbacks, notified on every new event
+- **Querying**: `getEvents(filter?)` supports filtering by category, timestamp, and limit
+- **Pruning**: Removes events older than the configured retention period (default 7 days), runs on startup and every hour
+- **Toast/notification classification**: `isToastEvent()` and `isOsNotificationEvent()` check events against configurable event type lists
+
+Shared types are defined in `src/server/activity-event.ts`: `ActivityCategory` (`agent` | `worktree` | `git` | `integration` | `system`), `ActivitySeverity` (`info` | `success` | `warning` | `error`), `ActivityEvent`, and the `ACTIVITY_TYPES` event catalog.
 
 ### HooksManager
 
@@ -264,6 +283,8 @@ src/
 │   ├── terminal-manager.ts  PTY session management
 │   ├── notes-manager.ts     Issue notes, todos, AI context
 │   ├── verification-manager.ts  HooksManager (commands + skills by trigger type)
+│   ├── activity-event.ts  Shared activity event types and constants
+│   ├── activity-log.ts    Activity event persistence and emission
 │   ├── mcp-server-factory.ts   Creates MCP server from actions registry
 │   ├── git-policy.ts    Agent git permission resolution
 │   ├── branch-name.ts   Branch name generation from rules
@@ -280,6 +301,7 @@ src/
 │       ├── linear.ts      Linear issue operations
 │       ├── notes.ts       Notes/todos CRUD
 │       ├── tasks.ts       Task context and local issues
+│       ├── activity.ts    Activity feed query endpoint
 │       ├── mcp.ts         MCP configuration endpoints
 │       ├── mcp-transport.ts  Streamable HTTP MCP transport
 │       ├── mcp-servers.ts    External MCP server management
@@ -294,7 +316,8 @@ src/
 │   ├── types.ts         Frontend type definitions
 │   ├── contexts/        React context providers
 │   ├── components/      UI components
-│   │   ├── Header.tsx     Top bar (project name, connection, navigation)
+│   │   ├── ActivityFeed.tsx Activity feed dropdown with bell icon
+│   │   ├── Header.tsx     Top bar (project name, connection, activity bell)
 │   │   ├── CreateForm.tsx   Worktree creation form
 │   │   ├── WorktreeList.tsx, WorktreeItem.tsx
 │   │   ├── JiraIssueList.tsx, JiraIssueItem.tsx
@@ -320,6 +343,7 @@ src/
 │       ├── useJiraIssues.ts, useJiraIssueDetail.ts
 │       ├── useLinearIssues.ts, useLinearIssueDetail.ts
 │       ├── useCustomTasks.ts, useCustomTaskDetail.ts
+│       ├── useActivityFeed.ts  Activity feed state and SSE integration
 │       ├── useTerminal.ts   WebSocket terminal connection
 │       ├── useMcpServers.ts
 │       ├── useSkills.ts
@@ -372,6 +396,7 @@ electron/              Electron desktop app
 ├── preload.cjs          Context bridge for renderer
 ├── server-spawner.ts    Spawn/stop dawg server per project
 ├── project-manager.ts   Multi-project tab management
+├── notification-manager.ts  Native OS notifications from SSE activity streams
 ├── preferences-manager.ts  App preferences persistence
 └── tsconfig.json        Electron-specific TypeScript config
 ```

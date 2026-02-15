@@ -111,6 +111,7 @@ The app uses a dark theme with a neutral slate background family and teal as the
 | `hooks`       | Hooks accent (emerald), step result status colors                                                     |
 | `notes`       | Notes tab styles, todo checkbox colors                                                                |
 | `agentRule`   | Agent rule accent (cyan), background, border styles                                                   |
+| `activity`    | Activity feed category colors (agent=purple, worktree=teal, git=blue, system=red), severity dot colors |
 
 ### Integration Color Mapping
 
@@ -143,7 +144,7 @@ const { text: textClass, bg: bgClass } = getLabelColor("frontend");
 
 ```
 App
-+-- Header                    (top bar: nav tabs, running count badge, config push indicator)
++-- Header                    (top bar: nav tabs, running count badge, activity bell icon)
 +-- [error banner]            (connection error, if any)
 |
 +-- [Workspace view]
@@ -272,6 +273,8 @@ All hooks live in `src/ui/hooks/`.
 - `worktrees` -- worktree state updates (status, logs, git state)
 - `notification` -- error/info notifications displayed as toast messages
 - `hook-update` -- signals that hook results changed for a worktree, triggering auto-refetch in the HooksTab
+- `activity-history` -- batch of recent events on initial connection (dispatched as `dawg:activity-history` CustomEvent)
+- `activity` -- individual real-time activity events (dispatched as `dawg:activity` CustomEvent)
 
 On connection error, it falls back to polling with a 5-second retry.
 
@@ -465,7 +468,7 @@ The app uses Framer Motion for transitions:
 | `CustomTaskList.tsx`        | Custom task list in sidebar                                                |
 | `DeployDialog.tsx`          | MCP server/skill deployment dialog                                         |
 | `GitHubSetupModal.tsx`      | GitHub initial setup (commit + repo creation)                              |
-| `Header.tsx`                | Top header bar with nav tabs and running count                             |
+| `Header.tsx`                | Top header bar with nav tabs, running count, and activity bell icon        |
 | `ImageModal.tsx`            | Full-screen image lightbox                                                 |
 | `IntegrationsPanel.tsx`     | Configure Jira/Linear/GitHub integrations                                  |
 | `IssueList.tsx`             | Aggregated issue list (Jira + Linear + custom tasks)                       |
@@ -488,7 +491,8 @@ The app uses Framer Motion for transitions:
 | `SkillItem.tsx`             | Skill sidebar item                                                         |
 | `Spinner.tsx`               | Loading spinner component                                                  |
 | `TabBar.tsx`                | Electron multi-project tab bar                                             |
-| `Toast.tsx`                 | Animated toast notification component (error=red, info=teal, with dismiss) |
+| `ActivityFeed.tsx`          | Activity feed dropdown panel with bell icon, filter chips, event list      |
+| `Toast.tsx`                 | Animated toast notification (error=red, info=teal, success=green)          |
 | `Tooltip.tsx`               | Tooltip component (always use this instead of native `title` attribute)    |
 | `TruncatedTooltip.tsx`      | Text with automatic tooltip on overflow                                    |
 | `VerificationPanel.tsx`     | Hooks configuration view (trigger-based command steps and skills)          |
@@ -538,6 +542,7 @@ The app uses Framer Motion for transitions:
 | `useTerminal.ts`          | WebSocket terminal session management                           |
 | `useAgentRules.ts`        | React Query hook for agent rule file content                    |
 | `useHooks.ts`             | Hooks config and skill results fetching                         |
+| `useActivityFeed.ts`      | Activity feed state, unread count, filtering, toast triggers    |
 | `useWorktrees.ts`         | SSE-based real-time worktree updates + integration status hooks |
 
 ### Context (`src/ui/contexts/`)
@@ -545,4 +550,4 @@ The app uses Framer Motion for transitions:
 | File                | Description                                                                      |
 | ------------------- | -------------------------------------------------------------------------------- |
 | `ServerContext.tsx` | Multi-project server URL management, Electron IPC bridge                         |
-| `ToastContext.tsx`  | Toast/snackbar notification state management (error: 10s auto-dismiss, info: 5s) |
+| `ToastContext.tsx`  | Toast notification state management (error: 10s, info: 5s, success: 5s auto-dismiss) |

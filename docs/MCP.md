@@ -86,6 +86,12 @@ All git operations are subject to the agent git policy. Call `get_git_policy` fi
 | `read_issue_notes` | Read AI context notes for a worktree or issue. Returns directions and todo checklist.                                                                             | `worktreeId` (string, optional); `source` (string, optional) -- `"jira"`, `"linear"`, or `"local"`; `issueId` (string, optional). Provide either `worktreeId` or both `source` and `issueId`.                                                                                            |
 | `update_todo`      | Add, toggle, or delete a todo checklist item on an issue. The user monitors progress through these checkboxes in real-time.                                       | `source` (string, **required**) -- `"jira"`, `"linear"`, or `"local"`; `issueId` (string, **required**); `action` (string, **required**) -- `"add"`, `"toggle"`, or `"delete"`; `todoId` (string, optional) -- required for toggle/delete; `text` (string, optional) -- required for add |
 
+### Activity Feed
+
+| Tool     | Description                                                                                                                                                               | Parameters                                                                                                                                                                                  |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `notify` | Send a free-form status update to the dawg activity feed. Use to keep the user informed about progress on long-running tasks. Other tool calls are tracked automatically. | `message` (string, **required**) -- status message; `severity` (string, optional) -- `"info"` (default), `"warning"`, or `"error"`; `worktreeId` (string, optional) -- related worktree ID |
+
 ### Configuration
 
 | Tool         | Description                                          | Parameters |
@@ -186,6 +192,15 @@ For skills that produce detailed output (e.g. code review, changes summary, test
 - File naming: {worktreePath}/.dawg-{skillName}.md (e.g. .dawg-code-review.md)
 - The summary field should be a short one-liner; the file contains the full report
 - The content field can be omitted when filePath is provided
+
+## Activity Feed
+Use the notify tool to keep the user informed about progress on long-running tasks.
+The activity feed shows real-time updates in the UI.
+- Call notify with a short message describing what you're doing or what just happened
+- Use severity to indicate the nature: info (default), warning, or error
+- Include worktreeId when the update relates to a specific worktree
+- Don't over-notify — one update per meaningful progress milestone is enough
+- Other tool calls (commit, push, create_pr, run_hooks, report_hook_status) are automatically tracked
 
 ## Skill-Specific Guidelines
 - Code review: thorough investigation — read actual code, trace logic, check for bugs, edge cases, security

@@ -6,15 +6,16 @@ dawg includes an optional Electron app that provides a native desktop experience
 
 The Electron app is structured across several modules in the `electron/` directory:
 
-| File                              | Purpose                                                              |
-| --------------------------------- | -------------------------------------------------------------------- |
-| `electron/main.ts`                | Main process: window creation, IPC handlers, tray, protocol handling |
-| `electron/preload.ts`             | TypeScript source for the preload script (reference only)            |
-| `electron/preload.cjs`            | CommonJS preload script that bridges renderer and main process       |
-| `electron/project-manager.ts`     | Manages multiple project connections and server lifecycles           |
-| `electron/preferences-manager.ts` | Persists window state, sidebar width, and app preferences            |
-| `electron/server-spawner.ts`      | Spawns and stops dawg backend server processes                       |
-| `electron/tsconfig.json`          | TypeScript config for compiling electron sources to `dist/electron/` |
+| File                               | Purpose                                                              |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| `electron/main.ts`                 | Main process: window creation, IPC handlers, tray, protocol handling |
+| `electron/preload.ts`              | TypeScript source for the preload script (reference only)            |
+| `electron/preload.cjs`             | CommonJS preload script that bridges renderer and main process       |
+| `electron/project-manager.ts`      | Manages multiple project connections and server lifecycles           |
+| `electron/notification-manager.ts` | Native OS notifications from project SSE activity streams            |
+| `electron/preferences-manager.ts`  | Persists window state, sidebar width, and app preferences            |
+| `electron/server-spawner.ts`       | Spawns and stops dawg backend server processes                       |
+| `electron/tsconfig.json`           | TypeScript config for compiling electron sources to `dist/electron/` |
 
 The renderer loads the same React SPA that the browser mode uses (`dist/ui/index.html`), but with additional capabilities exposed through `window.electronAPI` via the preload script.
 
@@ -195,6 +196,39 @@ The app creates a system tray icon on startup with a context menu that includes:
 On macOS, closing the window hides it to the tray instead of quitting the app. Clicking the tray icon toggles window visibility. The tray menu is rebuilt whenever the project list changes.
 
 The tray icon is a small PNG encoded as a base64 string in `main.ts`, set as a template image (adapts to light/dark menu bar on macOS).
+
+## Native OS Notifications
+
+`NotificationManager` (`electron/notification-manager.ts`) subscribes to activity event streams from all open projects and fires native OS notifications when the app window is unfocused.
+
+### How It Works
+
+1. When projects change (added, removed, status transitions), `syncProjectStreams()` is called
+2. For each running project, it opens an HTTP connection to `http://localhost:<port>/api/events` (the SSE endpoint)
+3. It parses incoming SSE `data:` lines looking for `{ type: "activity", event: {...} }` messages
+4. If the event type is in the notification set and the main window is not focused, it fires a native `Notification`
+5. Clicking the notification shows and focuses the main window
+
+### Notification Events
+
+Only high-priority events trigger native notifications:
+
+- `creation_completed` -- worktree finished creating
+- `creation_failed` -- worktree creation failed
+- `skill_failed` -- an agent skill hook failed
+- `pr_merged` -- a pull request was merged
+- `crashed` -- a worktree process crashed
+
+### Debouncing
+
+Notifications are debounced at 10 seconds per project to avoid spam. If multiple events fire within 10 seconds for the same project, only the first triggers a notification.
+
+### Connection Management
+
+- Connections are keyed by project port number
+- When a project is closed or stops running, its SSE connection is destroyed
+- If a connection drops (server restart, network error), it automatically reconnects after 5 seconds
+- All connections are cleaned up on app quit via `dispose()`
 
 ## Build Configuration
 

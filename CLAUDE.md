@@ -31,7 +31,16 @@ There is no test runner configured.
 
 Comprehensive documentation lives in `/docs/`. **Always check the relevant docs before working on unfamiliar areas** — they contain architectural context, component patterns, and API details that will help you make correct changes.
 
-**Keep docs up to date.** When making changes, check if any docs in `/docs/` need updating and update them. If a change introduces a new system or concept not covered by existing docs, create a new doc file in `/docs/` and add it to the table below and in `README.md`. Outdated docs are worse than no docs.
+**CRITICAL: Keep ALL docs in sync at ALL TIMES.** After every change, check if any docs in `/docs/` or `README.md` need updating and update them immediately — this is not optional. Docs that fall out of sync are actively harmful. Specifically:
+
+- When adding/changing API endpoints → update `docs/API.md`
+- When adding/changing components, hooks, or theme tokens → update `docs/FRONTEND.md`
+- When adding/changing MCP tools or instructions → update `docs/MCP.md`
+- When changing architecture, adding new modules/files → update `docs/ARCHITECTURE.md`
+- When adding/changing config fields → update `docs/CONFIGURATION.md`
+- When changing Electron behavior → update `docs/ELECTRON.md`
+- When adding/changing user-facing features → update `README.md`
+- When adding a new system or concept → create a new doc file in `/docs/` and add it to the table below and in `README.md`
 
 | Document                               | Covers                                                     | When to Read                    |
 | -------------------------------------- | ---------------------------------------------------------- | ------------------------------- |

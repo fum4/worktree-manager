@@ -519,21 +519,45 @@ Create a worktree from a Linear issue.
 
 ---
 
+## Activity Feed
+
+Query and stream activity events (agent actions, worktree lifecycle, git operations, etc.).
+
+#### `GET /api/activity`
+
+Query persisted activity events with optional filters.
+
+- **Query params**:
+  - `?since=<iso>` -- Only events after this ISO 8601 timestamp
+  - `?category=<cat>` -- Filter by category (`agent`, `worktree`, `git`, `integration`, `system`)
+  - `?limit=<n>` -- Max number of events to return (default: 100)
+- **Response**: `{ events: ActivityEvent[] }`
+
+Each `ActivityEvent` includes: `id`, `timestamp`, `category`, `type`, `severity` (`info` | `success` | `warning` | `error`), `title`, `detail?`, `worktreeId?`, `projectName?`, `metadata?`.
+
+Events are persisted to `.dawg/activity.json` (JSONL format) and pruned based on the `activity.retentionDays` config setting.
+
+---
+
 ## Events (SSE)
 
-Server-Sent Events stream for real-time worktree updates.
+Server-Sent Events stream for real-time worktree and activity updates.
 
 #### `GET /api/events`
 
-Opens an SSE connection. Immediately sends the current worktree state, then pushes updates whenever worktrees change.
+Opens an SSE connection. Immediately sends the current worktree state and recent activity history, then pushes updates as they occur.
 
 - **Headers**: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`
 - **Event format**:
   ```
   data: {"type":"worktrees","worktrees":[...]}
+  data: {"type":"activity-history","events":[...]}
+  data: {"type":"activity","event":{...}}
   ```
 - **Event types**:
   - `worktrees` -- Full worktree list on every state change (status transitions, log updates, port changes, etc.)
+  - `activity-history` -- Sent once on connection, contains the last 50 activity events
+  - `activity` -- Individual activity events as they occur in real-time
 
 The connection stays open until the client disconnects.
 

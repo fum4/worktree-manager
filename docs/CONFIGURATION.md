@@ -187,6 +187,48 @@ With `offsetStep: 10`:
 - Worktree 1: ports 3010, 5183
 - Worktree 2: ports 3020, 5193
 
+#### `activity`
+
+| Property     | Value    |
+| ------------ | -------- |
+| **Type**     | `object` |
+| **Default**  | See below |
+| **Required** | No       |
+
+Activity feed configuration. Controls event retention, per-category filtering, and which events trigger toasts or native OS notifications.
+
+```json
+{
+  "activity": {
+    "retentionDays": 7,
+    "categories": {
+      "agent": true,
+      "worktree": true,
+      "git": true,
+      "integration": true,
+      "system": true
+    },
+    "toastEvents": [
+      "creation_completed", "creation_failed", "crashed",
+      "skill_failed", "pr_merged", "commit_completed", "push_completed"
+    ],
+    "osNotificationEvents": [
+      "creation_completed", "creation_failed",
+      "skill_failed", "pr_merged", "crashed"
+    ]
+  }
+}
+```
+
+| Sub-field               | Type                         | Default                 | Description                                                  |
+| ----------------------- | ---------------------------- | ----------------------- | ------------------------------------------------------------ |
+| `retentionDays`         | `number`                     | `7`                     | How many days to keep activity events before pruning          |
+| `categories`            | `Record<string, boolean>`    | All `true`              | Per-category toggles for which events appear in the feed     |
+| `toastEvents`           | `string[]`                   | See above               | Event types that trigger toast notifications in the UI       |
+| `osNotificationEvents`  | `string[]`                   | See above               | Event types that trigger native OS notifications (Electron)  |
+
+Activity events are persisted to `.dawg/activity.json` in JSONL format. The file is pruned on server startup and periodically (every hour).
+
 #### `envMapping`
 
 | Property     | Value                    |

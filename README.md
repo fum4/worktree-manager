@@ -49,6 +49,12 @@ dawg exposes 20+ tools via MCP (Model Context Protocol) that any AI coding agent
 
 See [MCP](docs/MCP.md) for the tool reference and [Agents](docs/AGENTS.md) for the agent tooling system.
 
+### Activity Feed & Notifications
+
+Real-time activity feed tracks everything happening across your projects — agent actions (commits, pushes, PRs), worktree lifecycle events, hook results, and more. A bell icon in the header shows unread events with category filtering. Important events trigger toast notifications in the UI, and in the Electron app, native OS notifications fire when the window is unfocused.
+
+Agents can send free-form progress updates via the `notify` MCP tool. Other tool calls (`commit`, `push`, `create_pr`, `run_hooks`) are tracked automatically.
+
 ### Hooks
 
 Automated checks and agent skills organized by trigger type (pre-implementation, post-implementation, custom, on-demand). Add shell command steps and import skills from the registry. Run from the UI or via MCP tools.
@@ -57,7 +63,7 @@ See [Hooks](docs/HOOKS.md) for configuration and usage.
 
 ### Electron Desktop App
 
-Optional native app with multi-project tab support, `dawg://` deep linking, and window state persistence.
+Optional native app with multi-project tab support, `dawg://` deep linking, native OS notifications, and window state persistence.
 
 See [Electron](docs/ELECTRON.md) for details.
 
