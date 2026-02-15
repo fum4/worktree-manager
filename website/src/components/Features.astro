@@ -1,0 +1,173 @@
+---
+const features = [
+  {
+    title: "Port Offsetting",
+    description:
+      "Run multiple dev servers without conflicts. Each worktree gets unique ports automatically — no config changes needed.",
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/></svg>`,
+  },
+  {
+    title: "Issue Integration",
+    description:
+      "Create worktrees directly from Jira, Linear, or local issues. One click from ticket to running branch.",
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`,
+  },
+  {
+    title: "AI Agent Support",
+    description:
+      "20+ MCP tools for Claude and other AI agents to browse issues, create worktrees, commit, push, and open PRs.",
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>`,
+  },
+  {
+    title: "Activity Feed",
+    description:
+      "Real-time notifications across all your projects. Toast alerts in the UI, native OS notifications in the desktop app.",
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`,
+  },
+];
+---
+
+<div class="section-divider"></div>
+<section id="features">
+  <div class="container">
+    <h2 class="section-title fade-in">Everything you need to work in parallel</h2>
+    <p class="section-sub fade-in" data-delay="80">
+      Worktree management, port orchestration, and developer tooling in one place.
+    </p>
+    <div class="features-grid">
+      {
+        features.map((f, i) => (
+          <div class="feature-card fade-in" data-delay={String(i * 100 + 160)}>
+            <div class="feature-icon-wrap">
+              <div class="feature-icon" set:html={f.icon} />
+            </div>
+            <h3>{f.title}</h3>
+            <p>{f.description}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .section-title {
+    font-size: 36px;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .section-sub {
+    font-size: 16px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 64px;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .feature-card {
+    position: relative;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 32px;
+    transition:
+      transform 0.3s var(--ease-out-expo),
+      box-shadow 0.3s var(--ease-out-expo),
+      border-color 0.3s var(--ease-out-expo);
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0) 0%,
+      rgba(45, 212, 191, 0) 100%
+    );
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    transition: background 0.4s var(--ease-out-expo);
+    pointer-events: none;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.15),
+      0 16px 32px rgba(0, 0, 0, 0.1);
+    border-color: rgba(45, 212, 191, 0.12);
+  }
+
+  .feature-card:hover::before {
+    background: linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0.2) 0%,
+      rgba(45, 212, 191, 0.05) 50%,
+      rgba(45, 212, 191, 0.15) 100%
+    );
+  }
+
+  .feature-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: rgba(45, 212, 191, 0.06);
+    border: 1px solid rgba(45, 212, 191, 0.1);
+    margin-bottom: 20px;
+    transition:
+      background 0.3s var(--ease-out-expo),
+      box-shadow 0.3s var(--ease-out-expo);
+  }
+
+  .feature-card:hover .feature-icon-wrap {
+    background: rgba(45, 212, 191, 0.1);
+    box-shadow: 0 0 20px rgba(45, 212, 191, 0.08);
+  }
+
+  .feature-icon {
+    color: var(--accent);
+  }
+
+  .feature-card h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+
+  .feature-card p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+  }
+
+  @media (max-width: 640px) {
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .section-title {
+      font-size: 28px;
+    }
+  }
+</style>

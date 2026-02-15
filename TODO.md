@@ -3,6 +3,7 @@
 ### FEATURES
 
 - projects/roadmaps
+- windows support
 
 ### HOUSE KEEPING
 

@@ -391,6 +391,15 @@ src/
 ├── logger.ts          Logging utility
 └── electron-entry.ts  Electron IPC bridge entry point
 
+website/               Public landing page (Astro static site)
+├── src/
+│   ├── layouts/         Base HTML layout
+│   ├── pages/           Page routes (index.astro)
+│   ├── components/      Nav, Hero, Features, HowItWorks, Download, Footer
+│   ├── scripts/         Client-side JS (GitHub API, arch detection, clipboard)
+│   └── styles/          Global CSS variables and animations
+└── public/              Static assets (icon.svg)
+
 electron/              Electron desktop app
 ├── main.ts              Main process (window, tray, IPC, protocol)
 ├── preload.cjs          Context bridge for renderer

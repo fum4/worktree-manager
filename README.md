@@ -107,6 +107,17 @@ See [Configuration](docs/CONFIGURATION.md) for the complete reference.
 | [Notifications](docs/NOTIFICATIONS.md) | Activity feed, toasts, OS notifications, event types  |
 | [Setup Flow](docs/SETUP-FLOW.md)       | Project setup wizard, state machine, integrations     |
 
+## Website
+
+The landing page lives in `/website`, built with [Astro](https://astro.build/). It's a static site with download links (auto-detecting Apple Silicon vs Intel), feature overview, and install instructions.
+
+```bash
+cd website
+pnpm install
+pnpm dev      # Dev server
+pnpm build    # Static build → website/dist/
+```
+
 ## Platform Constraints
 
 - **Unix/macOS only** — depends on `lsof` for port discovery and process group signals
