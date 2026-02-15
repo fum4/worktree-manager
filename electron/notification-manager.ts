@@ -19,7 +19,6 @@ const OS_NOTIFICATION_EVENTS = new Set([
   "creation_completed",
   "creation_failed",
   "skill_failed",
-  "pr_merged",
   "crashed",
 ]);
 

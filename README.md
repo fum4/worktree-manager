@@ -55,6 +55,8 @@ Real-time activity feed tracks everything happening across your projects — age
 
 Agents can send free-form progress updates via the `notify` MCP tool. Other tool calls (`commit`, `push`, `create_pr`, `run_hooks`) are tracked automatically.
 
+See [Notifications](docs/NOTIFICATIONS.md) for the full architecture, event types, and configuration.
+
 ### Hooks
 
 Automated checks and agent skills organized by trigger type (pre-implementation, post-implementation, custom, on-demand). Add shell command steps and import skills from the registry. Run from the UI or via MCP tools.
@@ -102,6 +104,7 @@ See [Configuration](docs/CONFIGURATION.md) for the complete reference.
 | [Electron](docs/ELECTRON.md)           | Desktop app, deep linking, multi-project              |
 | [Frontend](docs/FRONTEND.md)           | React UI architecture, theme, components              |
 | [Development](docs/DEVELOPMENT.md)     | Developer guide, build commands, conventions          |
+| [Notifications](docs/NOTIFICATIONS.md) | Activity feed, toasts, OS notifications, event types  |
 | [Setup Flow](docs/SETUP-FLOW.md)       | Project setup wizard, state machine, integrations     |
 
 ## Platform Constraints

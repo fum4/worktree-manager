@@ -39,6 +39,7 @@ Comprehensive documentation lives in `/docs/`. **Always check the relevant docs 
 - When changing architecture, adding new modules/files → update `docs/ARCHITECTURE.md`
 - When adding/changing config fields → update `docs/CONFIGURATION.md`
 - When changing Electron behavior → update `docs/ELECTRON.md`
+- When adding/changing notifications or activity events → update `docs/NOTIFICATIONS.md`
 - When adding/changing user-facing features → update `README.md`
 - When adding a new system or concept → create a new doc file in `/docs/` and add it to the table below and in `README.md`
 
@@ -56,4 +57,5 @@ Comprehensive documentation lives in `/docs/`. **Always check the relevant docs 
 | [Port Mapping](docs/PORT-MAPPING.md)   | Port discovery, offset algorithm, runtime hook             | Port system changes             |
 | [Hooks](docs/HOOKS.md)                 | Hooks system (trigger types, commands, skills)             | Hooks changes                   |
 | [Electron](docs/ELECTRON.md)           | Desktop app, deep linking, multi-project                   | Electron changes                |
+| [Notifications](docs/NOTIFICATIONS.md) | Activity feed, toasts, OS notifications, event types       | Notification/activity changes   |
 | [Setup Flow](docs/SETUP-FLOW.md)       | Project setup wizard, steps, state machine, integrations   | Setup/onboarding changes        |

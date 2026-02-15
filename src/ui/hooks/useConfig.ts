@@ -18,6 +18,12 @@ export interface WorktreeConfig {
   allowAgentCommits?: boolean;
   allowAgentPushes?: boolean;
   allowAgentPRs?: boolean;
+  activity?: {
+    retentionDays?: number;
+    categories?: Record<string, boolean>;
+    toastEvents?: string[];
+    osNotificationEvents?: string[];
+  };
 }
 
 export function useConfig() {

@@ -1237,6 +1237,12 @@ export class WorktreeManager {
         this.config.envMapping = partial.envMapping;
       }
 
+      // Handle activity settings
+      if (partial.activity !== undefined) {
+        existing.activity = { ...(existing.activity as Record<string, unknown> ?? {}), ...partial.activity };
+        this.config.activity = { ...(this.config.activity ?? {}), ...partial.activity };
+      }
+
       writeFileSync(configPath, JSON.stringify(existing, null, 2) + "\n");
       return { success: true };
     } catch (error) {

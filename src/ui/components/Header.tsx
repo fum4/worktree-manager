@@ -2,6 +2,7 @@ import { AnimatePresence } from "motion/react";
 import { useCallback, useState } from "react";
 
 import { useActivityFeed } from "../hooks/useActivityFeed";
+import { useConfig } from "../hooks/useConfig";
 import { useToast } from "../contexts/ToastContext";
 import { ActivityBell, ActivityFeed } from "./ActivityFeed";
 import type { View } from "./NavBar";
@@ -23,6 +24,7 @@ interface HeaderProps {
 
 export function Header({ runningCount, activeView, onChangeView }: HeaderProps) {
   const { addToast } = useToast();
+  const { config } = useConfig();
   const [feedOpen, setFeedOpen] = useState(false);
 
   const handleToast = useCallback(
@@ -31,7 +33,7 @@ export function Header({ runningCount, activeView, onChangeView }: HeaderProps) 
   );
 
   const { events, unreadCount, filter, setFilter, markAllRead, clearAll } =
-    useActivityFeed(handleToast);
+    useActivityFeed(handleToast, config?.activity?.toastEvents);
 
   const handleToggleFeed = () => {
     if (!feedOpen) {

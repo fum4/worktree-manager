@@ -3,20 +3,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ActivityEvent } from "./api";
 import { useServerUrlOptional } from "../contexts/ServerContext";
 
-// Events that should trigger toast notifications
-const TOAST_EVENTS = new Set([
+const DEFAULT_TOAST_EVENTS = [
   "creation_completed",
   "creation_failed",
   "crashed",
   "skill_failed",
-  "pr_merged",
   "connection_lost",
-]);
+];
 
-export type ActivityCategory = "agent" | "worktree" | "git" | "integration" | "system";
+export type ActivityCategory = "agent" | "worktree" | "system";
 
 export function useActivityFeed(
   onToast?: (message: string, level: "error" | "info" | "success") => void,
+  toastEvents?: string[],
 ) {
   const serverUrl = useServerUrlOptional();
   const [events, setEvents] = useState<ActivityEvent[]>([]);
@@ -45,7 +44,8 @@ export function useActivityFeed(
       setUnreadCount((c) => c + 1);
 
       // Fire toast for important events
-      if (TOAST_EVENTS.has(event.type) && onToast) {
+      const activeToastEvents = toastEvents ?? DEFAULT_TOAST_EVENTS;
+      if (activeToastEvents.includes(event.type) && onToast) {
         const level =
           event.severity === "error" ? "error" : event.severity === "success" ? "success" : "info";
         onToast(event.title, level);
@@ -69,7 +69,7 @@ export function useActivityFeed(
       window.removeEventListener("dawg:activity", handler as EventListener);
       window.removeEventListener("dawg:activity-history", historyHandler as EventListener);
     };
-  }, [serverUrl, onToast]);
+  }, [serverUrl, onToast, toastEvents]);
 
   const markAllRead = useCallback(() => {
     setUnreadCount(0);

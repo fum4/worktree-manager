@@ -415,15 +415,11 @@ export const activity = {
   categoryColor: {
     agent: "text-purple-400",
     worktree: "text-teal-400",
-    git: "text-blue-400",
-    integration: "text-amber-400",
     system: "text-red-400",
   } as Record<string, string>,
   categoryBg: {
     agent: "bg-purple-400/10",
     worktree: "bg-teal-400/10",
-    git: "bg-blue-400/10",
-    integration: "bg-amber-400/10",
     system: "bg-red-400/10",
   } as Record<string, string>,
   severityDot: {

@@ -1,5 +1,5 @@
 import Editor from "@monaco-editor/react";
-import { RotateCcw, X } from "lucide-react";
+import { Bell, GitCommitHorizontal, GitBranch, Network, RotateCcw, Settings2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { APP_NAME } from "../../constants";
@@ -355,7 +355,7 @@ export function ConfigurationPanel({
 
         {/* Project Configuration Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>Project Configuration</h3>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}><Settings2 className={`w-3.5 h-3.5 ${text.muted}`} />Project Configuration</h3>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Start Command" description="Command to start dev server">
               <TextInput
@@ -422,7 +422,7 @@ export function ConfigurationPanel({
 
         {/* Port Configuration Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>Port Configuration</h3>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}><Network className={`w-3.5 h-3.5 ${text.muted}`} />Port Configuration</h3>
           <div className="flex flex-col gap-6">
             <Field label="Port Offset Step" description="Increment per worktree instance">
               <NumberInput
@@ -460,7 +460,7 @@ export function ConfigurationPanel({
 
         {/* Branches Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>Branches</h3>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}><GitBranch className={`w-3.5 h-3.5 ${text.muted}`} />Branches</h3>
 
           <div className="flex items-center justify-between mb-3">
             <h4 className={`text-[11px] font-medium ${text.secondary}`}>Branch naming</h4>
@@ -589,7 +589,7 @@ export function ConfigurationPanel({
 
         {/* Commits Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <h3 className={`text-xs font-semibold ${text.primary} mb-5`}>Commits</h3>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-5 flex items-center gap-2`}><GitCommitHorizontal className={`w-3.5 h-3.5 ${text.muted}`} />Commits</h3>
 
           <div className="mb-5">
             <h4 className={`text-[11px] font-medium ${text.secondary} mb-1`}>Agent git policy</h4>
@@ -600,10 +600,10 @@ export function ConfigurationPanel({
               {(["allowAgentCommits", "allowAgentPushes", "allowAgentPRs"] as const).map((key) => {
                 const label =
                   key === "allowAgentCommits"
-                    ? "Commits"
+                    ? "Commit"
                     : key === "allowAgentPushes"
-                      ? "Pushes"
-                      : "PRs";
+                      ? "Push"
+                      : "PR";
                 const enabled = config?.[key] ?? false;
                 return (
                   <button
@@ -759,32 +759,89 @@ export function ConfigurationPanel({
 
         {/* Notifications Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <h3 className={`text-xs font-semibold ${text.primary} mb-4`}>Notifications</h3>
-          <p className={`text-[11px] ${text.dimmed} leading-relaxed mb-4`}>
-            Control which activity events appear as toast notifications.
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}><Bell className={`w-3.5 h-3.5 ${text.muted}`} />Notifications</h3>
+          <p className={`text-[11px] ${text.dimmed} leading-relaxed mb-3`}>
+            Choose which activity events trigger toast notifications.
           </p>
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              { key: "creation_completed", label: "Worktree created" },
-              { key: "creation_failed", label: "Creation failed" },
-              { key: "crashed", label: "Process crashed" },
-              { key: "skill_failed", label: "Skill failed" },
-              { key: "pr_merged", label: "PR merged" },
-              { key: "commit_completed", label: "Commit" },
-              { key: "push_completed", label: "Push" },
-            ].map(({ key, label }) => {
-              const enabled = true; // Toast events are always enabled for now
-              return (
-                <span
-                  key={key}
-                  className={`px-2.5 py-1 text-[10px] font-medium rounded-md ${
-                    enabled ? "bg-teal-500/[0.15] text-teal-300" : `bg-white/[0.06] ${text.dimmed}`
-                  }`}
-                >
-                  {label}
+          <div className="flex flex-col gap-4">
+            {(
+              [
+                {
+                  category: "Worktree",
+                  events: [
+                    { key: "creation_completed", label: "Created" },
+                    { key: "creation_failed", label: "Creation failed" },
+                    { key: "started", label: "Started" },
+                    { key: "stopped", label: "Stopped" },
+                    { key: "crashed", label: "Crashed" },
+                  ],
+                },
+                {
+                  category: "Agent",
+                  events: [
+                    { key: "agent_connected", label: "Connected" },
+                    { key: "notify", label: "Status update" },
+                    { key: "commit_completed", label: "Commit" },
+                    { key: "commit_failed", label: "Commit failed" },
+                    { key: "push_completed", label: "Push" },
+                    { key: "push_failed", label: "Push failed" },
+                    { key: "pr_created", label: "PR created" },
+                    { key: "skill_started", label: "Skill started" },
+                    { key: "skill_completed", label: "Skill completed" },
+                    { key: "skill_failed", label: "Skill failed" },
+                    { key: "hooks_ran", label: "Hooks ran" },
+                  ],
+                },
+              ] as const
+            ).map((group) => (
+              <div key={group.category}>
+                <span className={`text-[10px] font-medium ${text.secondary} mb-1.5 block`}>
+                  {group.category}
                 </span>
-              );
-            })}
+                <div className="flex flex-wrap gap-1.5">
+                  {group.events.map(({ key, label }) => {
+                    const toastEvents = config?.activity?.toastEvents ?? [
+                      "creation_completed",
+                      "creation_failed",
+                      "crashed",
+                      "skill_failed",
+                    ];
+                    const enabled = toastEvents.includes(key);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={async () => {
+                          const current = config?.activity?.toastEvents ?? [
+                            "creation_completed",
+                            "creation_failed",
+                            "crashed",
+                            "skill_failed",
+                                      ];
+                          const next = enabled
+                            ? current.filter((e: string) => e !== key)
+                            : [...current, key];
+                          await api.saveConfig({
+                            activity: { ...config?.activity, toastEvents: next },
+                          });
+                          onSaved();
+                        }}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-medium rounded-md transition-colors duration-150 ${
+                          enabled
+                            ? "bg-teal-500/[0.15] text-teal-300"
+                            : `bg-white/[0.06] ${text.dimmed} hover:text-white/40`
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${enabled ? "bg-teal-400" : "bg-white/20"}`}
+                        />
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

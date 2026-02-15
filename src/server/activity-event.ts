@@ -1,4 +1,4 @@
-export type ActivityCategory = "agent" | "worktree" | "git" | "integration" | "system";
+export type ActivityCategory = "agent" | "worktree" | "system";
 export type ActivitySeverity = "info" | "success" | "warning" | "error";
 
 export interface ActivityEvent {
@@ -38,16 +38,6 @@ export const ACTIVITY_TYPES = {
   WORKTREE_STOPPED: "stopped",
   WORKTREE_CRASHED: "crashed",
 
-  // Git events
-  PR_MERGED: "pr_merged",
-  CHECKS_FAILED: "checks_failed",
-  CHECKS_PASSED: "checks_passed",
-  REVIEW_REQUESTED: "review_requested",
-  BEHIND_UPSTREAM: "behind_upstream",
-
-  // Integration events
-  ISSUE_ASSIGNED: "issue_assigned",
-
   // System events
   CONNECTION_LOST: "connection_lost",
   CONNECTION_RESTORED: "connection_restored",
@@ -68,8 +58,6 @@ export const DEFAULT_ACTIVITY_CONFIG: ActivityConfig = {
   categories: {
     agent: true,
     worktree: true,
-    git: true,
-    integration: true,
     system: true,
   },
   toastEvents: [
@@ -77,8 +65,7 @@ export const DEFAULT_ACTIVITY_CONFIG: ActivityConfig = {
     "creation_failed",
     "crashed",
     "skill_failed",
-    "pr_merged",
     "connection_lost",
   ],
-  osNotificationEvents: ["creation_completed", "skill_failed", "pr_merged", "crashed"],
+  osNotificationEvents: ["creation_completed", "skill_failed", "crashed"],
 };

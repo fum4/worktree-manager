@@ -2416,7 +2416,7 @@ export async function fetchFileContent(
 export interface ActivityEvent {
   id: string;
   timestamp: string;
-  category: "agent" | "worktree" | "git" | "integration" | "system";
+  category: "agent" | "worktree" | "system";
   type: string;
   severity: "info" | "success" | "warning" | "error";
   title: string;
