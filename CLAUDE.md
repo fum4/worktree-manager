@@ -19,6 +19,10 @@ pnpm check-lint    # Lint
 
 There is no test runner configured.
 
+## Dependencies
+
+**Always use `pnpm add` (or `pnpm add -D`) to install packages — never edit `package.json` dependencies manually.** Use the latest version unless a specific version is required.
+
 ## Documentation
 
 Comprehensive documentation lives in `/docs/`. **Always check the relevant docs before working on unfamiliar areas** — they contain architectural context, component patterns, and API details that will help you make correct changes.
