@@ -88,8 +88,8 @@ All git operations are subject to the agent git policy. Call `get_git_policy` fi
 
 ### Activity Feed
 
-| Tool     | Description                                                                                                                                                               | Parameters                                                                                                                                                                                  |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tool     | Description                                                                                                                                                               | Parameters                                                                                                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `notify` | Send a free-form status update to the dawg activity feed. Use to keep the user informed about progress on long-running tasks. Other tool calls are tracked automatically. | `message` (string, **required**) -- status message; `severity` (string, optional) -- `"info"` (default), `"warning"`, or `"error"`; `worktreeId` (string, optional) -- related worktree ID |
 
 ### Configuration

@@ -1239,7 +1239,10 @@ export class WorktreeManager {
 
       // Handle activity settings
       if (partial.activity !== undefined) {
-        existing.activity = { ...(existing.activity as Record<string, unknown> ?? {}), ...partial.activity };
+        existing.activity = {
+          ...((existing.activity as Record<string, unknown>) ?? {}),
+          ...partial.activity,
+        };
         this.config.activity = { ...(this.config.activity ?? {}), ...partial.activity };
       }
 

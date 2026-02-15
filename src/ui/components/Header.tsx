@@ -32,8 +32,10 @@ export function Header({ runningCount, activeView, onChangeView }: HeaderProps) 
     [addToast],
   );
 
-  const { events, unreadCount, filter, setFilter, markAllRead, clearAll } =
-    useActivityFeed(handleToast, config?.activity?.toastEvents);
+  const { events, unreadCount, filter, setFilter, markAllRead, clearAll } = useActivityFeed(
+    handleToast,
+    config?.activity?.toastEvents,
+  );
 
   const handleToggleFeed = () => {
     if (!feedOpen) {

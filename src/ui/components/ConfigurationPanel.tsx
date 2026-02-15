@@ -1,5 +1,13 @@
 import Editor from "@monaco-editor/react";
-import { Bell, GitCommitHorizontal, GitBranch, Network, RotateCcw, Settings2, X } from "lucide-react";
+import {
+  Bell,
+  GitCommitHorizontal,
+  GitBranch,
+  Network,
+  RotateCcw,
+  Settings2,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { APP_NAME } from "../../constants";
@@ -355,7 +363,10 @@ export function ConfigurationPanel({
 
         {/* Project Configuration Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}><Settings2 className={`w-3.5 h-3.5 ${text.muted}`} />Project Configuration</h3>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}>
+            <Settings2 className={`w-3.5 h-3.5 ${text.muted}`} />
+            Project Configuration
+          </h3>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Start Command" description="Command to start dev server">
               <TextInput
@@ -422,7 +433,10 @@ export function ConfigurationPanel({
 
         {/* Port Configuration Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}><Network className={`w-3.5 h-3.5 ${text.muted}`} />Port Configuration</h3>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}>
+            <Network className={`w-3.5 h-3.5 ${text.muted}`} />
+            Port Configuration
+          </h3>
           <div className="flex flex-col gap-6">
             <Field label="Port Offset Step" description="Increment per worktree instance">
               <NumberInput
@@ -460,7 +474,10 @@ export function ConfigurationPanel({
 
         {/* Branches Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}><GitBranch className={`w-3.5 h-3.5 ${text.muted}`} />Branches</h3>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}>
+            <GitBranch className={`w-3.5 h-3.5 ${text.muted}`} />
+            Branches
+          </h3>
 
           <div className="flex items-center justify-between mb-3">
             <h4 className={`text-[11px] font-medium ${text.secondary}`}>Branch naming</h4>
@@ -589,7 +606,10 @@ export function ConfigurationPanel({
 
         {/* Commits Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <h3 className={`text-xs font-semibold ${text.primary} mb-5 flex items-center gap-2`}><GitCommitHorizontal className={`w-3.5 h-3.5 ${text.muted}`} />Commits</h3>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-5 flex items-center gap-2`}>
+            <GitCommitHorizontal className={`w-3.5 h-3.5 ${text.muted}`} />
+            Commits
+          </h3>
 
           <div className="mb-5">
             <h4 className={`text-[11px] font-medium ${text.secondary} mb-1`}>Agent git policy</h4>
@@ -759,7 +779,10 @@ export function ConfigurationPanel({
 
         {/* Notifications Card */}
         <div className={`rounded-xl ${surface.panel} border border-white/[0.08] p-5`}>
-          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}><Bell className={`w-3.5 h-3.5 ${text.muted}`} />Notifications</h3>
+          <h3 className={`text-xs font-semibold ${text.primary} mb-4 flex items-center gap-2`}>
+            <Bell className={`w-3.5 h-3.5 ${text.muted}`} />
+            Notifications
+          </h3>
           <p className={`text-[11px] ${text.dimmed} leading-relaxed mb-3`}>
             Choose which activity events trigger toast notifications.
           </p>
@@ -817,7 +840,7 @@ export function ConfigurationPanel({
                             "creation_failed",
                             "crashed",
                             "skill_failed",
-                                      ];
+                          ];
                           const next = enabled
                             ? current.filter((e: string) => e !== key)
                             : [...current, key];

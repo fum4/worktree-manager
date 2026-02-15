@@ -85,32 +85,32 @@ The app uses a dark theme with a neutral slate background family and teal as the
 
 ### Theme Token Categories
 
-| Export        | Purpose                                                                                               |
-| ------------- | ----------------------------------------------------------------------------------------------------- |
-| `palette`     | Raw hex/rgba color values                                                                             |
-| `surface`     | Background classes for page, panels, modals, overlays                                                 |
-| `border`      | Border classes (subtle, section, modal, input, accent, focus)                                         |
-| `input`       | Input field backgrounds, text, placeholder, ring styles                                               |
-| `text`        | Text hierarchy: primary, secondary, muted, dimmed, error                                              |
-| `status`      | Worktree status indicators (running, stopped, creating, deleting)                                     |
-| `action`      | Ghost-style action button colors (start, stop, delete, commit, push, PR)                              |
-| `button`      | Filled button variants (primary, secondary, confirm/destructive)                                      |
-| `tab`         | Tab active/inactive styles                                                                            |
-| `badge`       | Integration and status badge colors                                                                   |
-| `integration` | Per-integration accent colors (jira=blue, linear=indigo, localIssue=amber, worktree=teal, mcp=purple) |
-| `header`      | Header bar specific styles                                                                            |
-| `nav`         | Navigation bar active/inactive styles                                                                 |
-| `settings`    | Configuration panel label/description/card styles                                                     |
-| `detailTab`   | Detail panel tab (Logs/Terminal/Hooks) active/inactive styles                                         |
-| `errorBanner` | Error banner backgrounds and borders                                                                  |
-| `infoBanner`  | Informational banner (teal accent) styles                                                             |
-| `customTask`  | Custom task accent, badge, button, status, priority, and label colors                                 |
-| `skill`       | Skill accent (pink) and badge styles                                                                  |
-| `plugin`      | Plugin accent (warm copper) and badge styles                                                          |
-| `mcpServer`   | MCP server accent (purple), deployment status dot colors                                              |
-| `hooks`       | Hooks accent (emerald), step result status colors                                                     |
-| `notes`       | Notes tab styles, todo checkbox colors                                                                |
-| `agentRule`   | Agent rule accent (cyan), background, border styles                                                   |
+| Export        | Purpose                                                                                                |
+| ------------- | ------------------------------------------------------------------------------------------------------ |
+| `palette`     | Raw hex/rgba color values                                                                              |
+| `surface`     | Background classes for page, panels, modals, overlays                                                  |
+| `border`      | Border classes (subtle, section, modal, input, accent, focus)                                          |
+| `input`       | Input field backgrounds, text, placeholder, ring styles                                                |
+| `text`        | Text hierarchy: primary, secondary, muted, dimmed, error                                               |
+| `status`      | Worktree status indicators (running, stopped, creating, deleting)                                      |
+| `action`      | Ghost-style action button colors (start, stop, delete, commit, push, PR)                               |
+| `button`      | Filled button variants (primary, secondary, confirm/destructive)                                       |
+| `tab`         | Tab active/inactive styles                                                                             |
+| `badge`       | Integration and status badge colors                                                                    |
+| `integration` | Per-integration accent colors (jira=blue, linear=indigo, localIssue=amber, worktree=teal, mcp=purple)  |
+| `header`      | Header bar specific styles                                                                             |
+| `nav`         | Navigation bar active/inactive styles                                                                  |
+| `settings`    | Configuration panel label/description/card styles                                                      |
+| `detailTab`   | Detail panel tab (Logs/Terminal/Hooks) active/inactive styles                                          |
+| `errorBanner` | Error banner backgrounds and borders                                                                   |
+| `infoBanner`  | Informational banner (teal accent) styles                                                              |
+| `customTask`  | Custom task accent, badge, button, status, priority, and label colors                                  |
+| `skill`       | Skill accent (pink) and badge styles                                                                   |
+| `plugin`      | Plugin accent (warm copper) and badge styles                                                           |
+| `mcpServer`   | MCP server accent (purple), deployment status dot colors                                               |
+| `hooks`       | Hooks accent (emerald), step result status colors                                                      |
+| `notes`       | Notes tab styles, todo checkbox colors                                                                 |
+| `agentRule`   | Agent rule accent (cyan), background, border styles                                                    |
 | `activity`    | Activity feed category colors (agent=purple, worktree=teal, git=blue, system=red), severity dot colors |
 
 ### Integration Color Mapping
@@ -450,56 +450,56 @@ The app uses Framer Motion for transitions:
 
 ### Components (`src/ui/components/`)
 
-| File                        | Description                                                                |
-| --------------------------- | -------------------------------------------------------------------------- |
-| `AgentsView.tsx`            | Top-level agents management view                                           |
-| `AgentsSidebar.tsx`         | Sidebar for agents view (MCP servers, skills, plugins lists)               |
-| `AgentsToolbar.tsx`         | Toolbar for agents view actions                                            |
-| `AppSettingsModal.tsx`      | Electron app settings (themes, preferences)                                |
-| `AttachmentImage.tsx`       | Image attachment preview with lightbox                                     |
-| `Button.tsx`                | Reusable button component                                                  |
-| `ConfigurationPanel.tsx`    | Edit `.dawg/config.json` settings                                          |
-| `ConfirmDialog.tsx`         | Confirmation dialog for destructive actions                                |
-| `ConfirmModal.tsx`          | Generic confirmation modal                                                 |
-| `CreateCustomTaskModal.tsx` | Create new custom task form                                                |
-| `CreateForm.tsx`            | Sidebar tab switcher (Branch/Issues) with create buttons                   |
-| `CreateWorktreeModal.tsx`   | Create worktree modal (from branch, Jira, or Linear)                       |
-| `CustomTaskItem.tsx`        | Custom task sidebar list item                                              |
-| `CustomTaskList.tsx`        | Custom task list in sidebar                                                |
-| `DeployDialog.tsx`          | MCP server/skill deployment dialog                                         |
-| `GitHubSetupModal.tsx`      | GitHub initial setup (commit + repo creation)                              |
-| `Header.tsx`                | Top header bar with nav tabs, running count, and activity bell icon        |
-| `ImageModal.tsx`            | Full-screen image lightbox                                                 |
-| `IntegrationsPanel.tsx`     | Configure Jira/Linear/GitHub integrations                                  |
-| `IssueList.tsx`             | Aggregated issue list (Jira + Linear + custom tasks)                       |
-| `JiraIssueItem.tsx`         | Jira issue sidebar item                                                    |
-| `JiraIssueList.tsx`         | Jira-specific issue list                                                   |
-| `LinearIssueItem.tsx`       | Linear issue sidebar item                                                  |
-| `LinearIssueList.tsx`       | Linear-specific issue list                                                 |
-| `MarkdownContent.tsx`       | Markdown renderer with dark theme styling                                  |
-| `McpServerCreateModal.tsx`  | Create/edit MCP server modal                                               |
-| `McpServerItem.tsx`         | MCP server sidebar item                                                    |
-| `McpServerScanModal.tsx`    | Scan for MCP servers on device                                             |
-| `Modal.tsx`                 | Base modal component (sm/md/lg widths)                                     |
-| `NavBar.tsx`                | Navigation bar (defines View type)                                         |
-| `PluginInstallModal.tsx`    | Install Claude plugin modal                                                |
-| `PluginItem.tsx`            | Plugin sidebar item                                                        |
-| `ProjectSetupScreen.tsx`    | First-run setup for new Electron projects                                  |
-| `ResizableHandle.tsx`       | Drag handle for sidebar resizing                                           |
-| `SetupCommitModal.tsx`      | Commit dawg config files modal                                             |
-| `SkillCreateModal.tsx`      | Create/edit skill modal                                                    |
-| `SkillItem.tsx`             | Skill sidebar item                                                         |
-| `Spinner.tsx`               | Loading spinner component                                                  |
-| `TabBar.tsx`                | Electron multi-project tab bar                                             |
-| `ActivityFeed.tsx`          | Activity feed dropdown panel with bell icon, filter chips, event list      |
-| `Toast.tsx`                 | Animated toast notification (error=red, info=teal, success=green)          |
-| `Tooltip.tsx`               | Tooltip component (always use this instead of native `title` attribute)    |
-| `TruncatedTooltip.tsx`      | Text with automatic tooltip on overflow                                    |
-| `VerificationPanel.tsx`     | Hooks configuration view (trigger-based command steps and skills)          |
-| `WelcomeScreen.tsx`         | Initial welcome/onboarding screen                                          |
-| `WorktreeExistsModal.tsx`   | Handle worktree already exists error                                       |
-| `WorktreeItem.tsx`          | Worktree sidebar list item                                                 |
-| `WorktreeList.tsx`          | Worktree list in sidebar                                                   |
+| File                        | Description                                                             |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `AgentsView.tsx`            | Top-level agents management view                                        |
+| `AgentsSidebar.tsx`         | Sidebar for agents view (MCP servers, skills, plugins lists)            |
+| `AgentsToolbar.tsx`         | Toolbar for agents view actions                                         |
+| `AppSettingsModal.tsx`      | Electron app settings (themes, preferences)                             |
+| `AttachmentImage.tsx`       | Image attachment preview with lightbox                                  |
+| `Button.tsx`                | Reusable button component                                               |
+| `ConfigurationPanel.tsx`    | Edit `.dawg/config.json` settings                                       |
+| `ConfirmDialog.tsx`         | Confirmation dialog for destructive actions                             |
+| `ConfirmModal.tsx`          | Generic confirmation modal                                              |
+| `CreateCustomTaskModal.tsx` | Create new custom task form                                             |
+| `CreateForm.tsx`            | Sidebar tab switcher (Branch/Issues) with create buttons                |
+| `CreateWorktreeModal.tsx`   | Create worktree modal (from branch, Jira, or Linear)                    |
+| `CustomTaskItem.tsx`        | Custom task sidebar list item                                           |
+| `CustomTaskList.tsx`        | Custom task list in sidebar                                             |
+| `DeployDialog.tsx`          | MCP server/skill deployment dialog                                      |
+| `GitHubSetupModal.tsx`      | GitHub initial setup (commit + repo creation)                           |
+| `Header.tsx`                | Top header bar with nav tabs, running count, and activity bell icon     |
+| `ImageModal.tsx`            | Full-screen image lightbox                                              |
+| `IntegrationsPanel.tsx`     | Configure Jira/Linear/GitHub integrations                               |
+| `IssueList.tsx`             | Aggregated issue list (Jira + Linear + custom tasks)                    |
+| `JiraIssueItem.tsx`         | Jira issue sidebar item                                                 |
+| `JiraIssueList.tsx`         | Jira-specific issue list                                                |
+| `LinearIssueItem.tsx`       | Linear issue sidebar item                                               |
+| `LinearIssueList.tsx`       | Linear-specific issue list                                              |
+| `MarkdownContent.tsx`       | Markdown renderer with dark theme styling                               |
+| `McpServerCreateModal.tsx`  | Create/edit MCP server modal                                            |
+| `McpServerItem.tsx`         | MCP server sidebar item                                                 |
+| `McpServerScanModal.tsx`    | Scan for MCP servers on device                                          |
+| `Modal.tsx`                 | Base modal component (sm/md/lg widths)                                  |
+| `NavBar.tsx`                | Navigation bar (defines View type)                                      |
+| `PluginInstallModal.tsx`    | Install Claude plugin modal                                             |
+| `PluginItem.tsx`            | Plugin sidebar item                                                     |
+| `ProjectSetupScreen.tsx`    | First-run setup for new Electron projects                               |
+| `ResizableHandle.tsx`       | Drag handle for sidebar resizing                                        |
+| `SetupCommitModal.tsx`      | Commit dawg config files modal                                          |
+| `SkillCreateModal.tsx`      | Create/edit skill modal                                                 |
+| `SkillItem.tsx`             | Skill sidebar item                                                      |
+| `Spinner.tsx`               | Loading spinner component                                               |
+| `TabBar.tsx`                | Electron multi-project tab bar                                          |
+| `ActivityFeed.tsx`          | Activity feed dropdown panel with bell icon, filter chips, event list   |
+| `Toast.tsx`                 | Animated toast notification (error=red, info=teal, success=green)       |
+| `Tooltip.tsx`               | Tooltip component (always use this instead of native `title` attribute) |
+| `TruncatedTooltip.tsx`      | Text with automatic tooltip on overflow                                 |
+| `VerificationPanel.tsx`     | Hooks configuration view (trigger-based command steps and skills)       |
+| `WelcomeScreen.tsx`         | Initial welcome/onboarding screen                                       |
+| `WorktreeExistsModal.tsx`   | Handle worktree already exists error                                    |
+| `WorktreeItem.tsx`          | Worktree sidebar list item                                              |
+| `WorktreeList.tsx`          | Worktree list in sidebar                                                |
 
 ### Detail Components (`src/ui/components/detail/`)
 
@@ -547,7 +547,7 @@ The app uses Framer Motion for transitions:
 
 ### Context (`src/ui/contexts/`)
 
-| File                | Description                                                                      |
-| ------------------- | -------------------------------------------------------------------------------- |
-| `ServerContext.tsx` | Multi-project server URL management, Electron IPC bridge                         |
+| File                | Description                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `ServerContext.tsx` | Multi-project server URL management, Electron IPC bridge                             |
 | `ToastContext.tsx`  | Toast notification state management (error: 10s, info: 5s, success: 5s auto-dismiss) |
