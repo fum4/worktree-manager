@@ -275,6 +275,7 @@ src/
 │   ├── config.ts        Config file discovery and loading
 │   ├── init.ts          Interactive setup wizard
 │   ├── add.ts           Integration setup (github, jira, linear)
+│   ├── install-app.ts   Auto-install desktop app from GitHub Releases
 │   └── task.ts          Create worktree from issue ID
 ├── server/            Hono HTTP server, managers, and routes
 │   ├── index.ts         Server creation, startup, server.json write

@@ -43,9 +43,22 @@ electron <projectRoot> --port <port>
 
 The process is spawned detached so the CLI can exit immediately.
 
-### 3. Fall Back to Browser
+### 3. Prompt to Install Desktop App (macOS, Interactive TTY)
 
-If neither Electron option is available, the CLI opens `http://localhost:<port>` in the default browser using `open` (macOS) or `xdg-open` (Linux).
+If neither Electron option is available and the terminal is interactive (`process.stdin.isTTY`), the CLI prompts the user to install the desktop app. If the user accepts:
+
+1. Fetches the latest release from `https://api.github.com/repos/fum4/worktree-manager/releases/latest`
+2. Finds the DMG asset matching the current architecture (`arm64` or `x64`)
+3. Downloads the DMG with `curl`
+4. Mounts it with `hdiutil`, copies the `.app` to `/Applications/` (falls back to `~/Applications/` if no write access)
+5. Cleans up the mount and temp files
+6. Opens the freshly installed app via the `dawg://` protocol
+
+All errors are caught gracefully — if anything fails, the CLI falls back to just printing the server URL.
+
+### 4. Non-Interactive Fallback
+
+If the terminal is non-interactive (no TTY) or the user declines the install prompt, the CLI prints the server URL without opening any UI. This is equivalent to `--no-open` behavior for the UI opening step.
 
 ### Existing Instance Detection
 

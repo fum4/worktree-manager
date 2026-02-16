@@ -11,6 +11,7 @@ import { log } from "../logger";
 import { loadGlobalPreferences } from "../shared/global-preferences";
 import { startWorktreeServer } from "../server/index";
 import { findConfigFile, loadConfig } from "./config";
+import { promptAndInstallApp } from "./install-app";
 
 const cliDir = path.dirname(fileURLToPath(import.meta.url));
 const LOCK_FILE = path.join(os.homedir(), CONFIG_DIR_NAME, "electron.lock");
@@ -47,7 +48,7 @@ function findElectron():
   return null;
 }
 
-function openUI(port: number): void {
+async function openUI(port: number): Promise<void> {
   const electron = findElectron();
 
   if (electron?.type === "app") {
@@ -65,8 +66,13 @@ function openUI(port: number): void {
       stdio: "ignore",
     });
     child.unref();
+  } else if (process.stdin.isTTY) {
+    const installed = await promptAndInstallApp(port);
+    if (!installed) {
+      log.info(`Server running at http://localhost:${port}`);
+    }
   } else {
-    openBrowser(`http://localhost:${port}`);
+    log.info(`Server running at http://localhost:${port}`);
   }
 }
 
@@ -254,7 +260,7 @@ async function main() {
     log.plain("");
     log.info(`Opening ${url}`);
     log.plain("");
-    openUI(actualPort);
+    await openUI(actualPort);
   }
 }
 

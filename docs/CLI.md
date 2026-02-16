@@ -31,7 +31,11 @@ When run without a subcommand, dawg does the following:
    - Non-interactive (e.g., spawned by Electron): proceeds with defaults
 5. Starts the Hono HTTP server
 6. Writes `server.json` to `.dawg/` for agent discovery (contains the server URL and PID)
-7. Opens the UI in the Electron app (if installed) or falls back to the default browser
+7. Opens the UI:
+   - If the Electron app is installed, opens it via the `dawg://` protocol
+   - If running in dev mode with Electron available, spawns Electron directly
+   - If no Electron is found and the terminal is interactive, prompts to install the desktop app (macOS only — downloads and installs the latest DMG from GitHub Releases)
+   - If the user declines or the terminal is non-interactive, just prints the server URL
 
 **Options:**
 
