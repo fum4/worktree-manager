@@ -15,10 +15,7 @@ import {
   downloadAttachments,
 } from "../integrations/jira/api";
 import type { JiraTaskData } from "../integrations/jira/types";
-import {
-  loadLinearCredentials,
-  loadLinearProjectConfig,
-} from "../integrations/linear/credentials";
+import { loadLinearCredentials, loadLinearProjectConfig } from "../integrations/linear/credentials";
 import {
   resolveIdentifier as resolveLinearId,
   fetchIssue as fetchLinearIssue,
@@ -96,7 +93,15 @@ async function processJiraTask(taskId: string, configDir: string, batch: boolean
     throw err;
   }
 
-  printSummary(taskData.key, taskData.summary, taskData.status, taskData.priority, taskData.assignee, taskData.labels, taskData.url);
+  printSummary(
+    taskData.key,
+    taskData.summary,
+    taskData.status,
+    taskData.priority,
+    taskData.assignee,
+    taskData.labels,
+    taskData.url,
+  );
 
   const tasksDir = path.join(configDir, CONFIG_DIR_NAME, "tasks");
   saveJiraTaskData(taskData, tasksDir);
@@ -180,7 +185,15 @@ async function processLinearTask(taskId: string, configDir: string, batch: boole
     url: issue.url,
   };
 
-  printSummary(issue.identifier, issue.title, issue.state.name, null, issue.assignee, issue.labels.map((l) => l.name), issue.url);
+  printSummary(
+    issue.identifier,
+    issue.title,
+    issue.state.name,
+    null,
+    issue.assignee,
+    issue.labels.map((l) => l.name),
+    issue.url,
+  );
 
   const tasksDir = path.join(configDir, CONFIG_DIR_NAME, "tasks");
   saveLinearTaskData(taskData, tasksDir);

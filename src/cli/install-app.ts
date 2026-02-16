@@ -58,9 +58,7 @@ function findDmgAsset(release: GithubRelease): GithubAsset | null {
   const archSuffix = arch === "arm64" ? "arm64" : "x64";
 
   return (
-    release.assets.find(
-      (a) => a.name.endsWith(".dmg") && a.name.includes(archSuffix),
-    ) ??
+    release.assets.find((a) => a.name.endsWith(".dmg") && a.name.includes(archSuffix)) ??
     // Fallback: any DMG if arch-specific not found
     release.assets.find((a) => a.name.endsWith(".dmg")) ??
     null

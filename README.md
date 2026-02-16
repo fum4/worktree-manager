@@ -71,14 +71,14 @@ See [Electron](docs/ELECTRON.md) for details.
 
 ## CLI Commands
 
-| Command           | Description                                  |
-| ----------------- | -------------------------------------------- |
-| `dawg`            | Start the server and open the UI             |
-| `dawg init`       | Interactive setup wizard                     |
-| `dawg add [name]` | Set up an integration (github, linear, jira) |
-| `dawg mcp`        | Start as an MCP server for AI agents         |
+| Command                      | Description                                        |
+| ---------------------------- | -------------------------------------------------- |
+| `dawg`                       | Start the server and open the UI                   |
+| `dawg init`                  | Interactive setup wizard                           |
+| `dawg add [name]`            | Set up an integration (github, linear, jira)       |
+| `dawg mcp`                   | Start as an MCP server for AI agents               |
 | `dawg task [source] [ID...]` | Create worktrees from issues (jira, linear, local) |
-| `dawg connect`    | Connect to an existing dawg server           |
+| `dawg connect`               | Connect to an existing dawg server                 |
 
 See [CLI Reference](docs/CLI.md) for full details.
 

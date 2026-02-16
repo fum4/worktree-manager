@@ -449,13 +449,13 @@ This follows an established pattern. You will need:
 
 For reference, these are the CLI entry points (all in `src/cli/`):
 
-| Command          | Description                                            |
-| ---------------- | ------------------------------------------------------ |
-| `dawg`           | Start the server and open UI (Electron or browser)     |
-| `dawg init`      | Interactive setup wizard to create `.dawg/config.json` |
-| `dawg connect`   | Connect to an existing running dawg server             |
-| `dawg mcp`       | Start as an MCP server (for Claude Code integration)   |
-| `dawg task [source] [ID...]` | Create worktrees from issues (jira, linear, local) |
+| Command                      | Description                                            |
+| ---------------------------- | ------------------------------------------------------ |
+| `dawg`                       | Start the server and open UI (Electron or browser)     |
+| `dawg init`                  | Interactive setup wizard to create `.dawg/config.json` |
+| `dawg connect`               | Connect to an existing running dawg server             |
+| `dawg mcp`                   | Start as an MCP server (for Claude Code integration)   |
+| `dawg task [source] [ID...]` | Create worktrees from issues (jira, linear, local)     |
 
 ## Configuration
 
