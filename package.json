@@ -1,6 +1,6 @@
 {
   "name": "dawg",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "bin": {
     "dawg": "./dist/cli/index.js"
   },
