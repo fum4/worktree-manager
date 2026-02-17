@@ -59,6 +59,7 @@ interface ActivityEvent {
   worktreeId?: string;
   projectName?: string;
   metadata?: Record<string, unknown>;
+  groupKey?: string; // groups related events (e.g. creation_started → creation_completed)
 }
 ```
 
@@ -154,7 +155,7 @@ interface ActivityConfig {
 }
 ```
 
-Default toast events: `creation_completed`, `creation_failed`, `crashed`, `skill_failed`, `pr_merged`, `connection_lost`
+Default toast events: `creation_started`, `creation_completed`, `creation_failed`, `skill_started`, `skill_completed`, `skill_failed`, `crashed`, `connection_lost`
 
 Default OS notification events: `creation_completed`, `skill_failed`, `pr_merged`, `crashed`
 
@@ -198,10 +199,15 @@ This decouples the activity feed from the SSE connection hook.
 
 `useActivityFeed` (`src/ui/hooks/useActivityFeed.ts`) listens for those CustomEvents and manages:
 
-- **Event list** — up to 200 events, newest first, deduplicated by `id`
+- **Event list** — up to 200 events, newest first, deduplicated by `id`. Events with the same `groupKey` replace each other (e.g. `creation_started` is replaced by `creation_completed`)
 - **Unread count** — increments on each new event, resets on `markAllRead()`
 - **Category filter** — optional filter applied to the returned `events`
-- **Toast triggering** — when an incoming event's type is in the `toastEvents` list, it calls the `onToast` callback
+- **Toast triggering** — when an incoming event's type is in the `toastEvents` list:
+  - Skill events (`skill_started`/`skill_completed`/`skill_failed`) with `metadata.trigger` are routed to `onUpsertGroupedToast` — these produce a single toast per trigger phase with expandable children
+  - Other events with a `groupKey` call `onUpsertToast` to replace existing toasts in the same group (loading → success/failure)
+  - Events without a `groupKey` call the basic `onToast` callback
+  - Event types ending in `_started` are treated as loading (spinner icon, no auto-dismiss)
+  - All toast callbacks receive `projectName` and `worktreeId` from the event for display
 
 Returns: `{ events, allEvents, unreadCount, filter, setFilter, markAllRead, clearAll }`
 
@@ -211,9 +217,10 @@ Returns: `{ events, allEvents, unreadCount, filter, setFilter, markAllRead, clea
 
 - **Header** with "Mark read" and "Clear" buttons
 - **Filter chips** — All, Agent, Worktree, Git, System
-- **Event list** — each item shows a category icon (color-coded), title, optional detail, relative timestamp, optional worktree ID, and a severity dot for non-info events
+- **Event list** — each item shows a category icon (color-coded), title, optional detail, relative timestamp, project name (if present), clickable worktree ID (navigates to worktree), and a severity dot for non-info events
 - Closes on outside click or Escape key
 - Animated with `motion/react` (fade + scale)
+- Accepts `onNavigateToWorktree` prop for worktree link navigation
 
 ### ActivityBell Component
 
@@ -226,10 +233,29 @@ Returns: `{ events, allEvents, unreadCount, filter, setFilter, markAllRead, clea
 
 `Header` (`src/ui/components/Header.tsx`) composes everything:
 
-1. Creates `useActivityFeed` with toast callback and config-driven `toastEvents`
+1. Creates `useActivityFeed` with `handleToast`, `handleUpsertToast`, `handleUpsertGroupedToast`, and config-driven `toastEvents`
 2. Renders `ActivityBell` in the top-right
 3. Conditionally renders `ActivityFeed` in an `AnimatePresence` wrapper
-4. Auto-marks events as read 500ms after opening the feed
+4. Passes `onNavigateToWorktree` through to `ActivityFeed`
+5. Auto-marks events as read 500ms after opening the feed
+
+### Toast System
+
+`ToastContainer` (`src/ui/components/Toast.tsx`) renders toast notifications. Accepts an `onNavigateToWorktree` prop (wired from App.tsx).
+
+Toast features:
+- **Project name** — shown as a small label above the message when present
+- **Worktree link** — "Go to worktree →" link that navigates to the worktree
+- **Grouped children** — skill toasts are grouped by trigger phase (one toast per `hooks:{worktreeId}:{trigger}`), with expandable children showing individual skill results (status icon + name)
+- **Auto-dismiss** — 5s for success/info, 10s for errors; loading toasts persist until resolved
+
+### Grouped Hook Toasts
+
+When hooks run, skill events share a `groupKey` of `hooks:{worktreeId}:{trigger}`. The `upsertGroupedToast` method in `ToastContext` aggregates these into a single parent toast with expandable children:
+
+- Parent message: "Running hooks (2/3)..." → "3 hooks completed"
+- Each child: spinner/check/X icon + skill name + status
+- Chevron toggle to expand/collapse the children list
 
 ### Settings UI
 
@@ -281,6 +307,20 @@ notify({ message: "Analyzing codebase structure", severity: "info", worktreeId: 
 The event is created with `category: "agent"` and `type: "notify"`.
 
 Other MCP actions (`commit`, `push`, `create_pr`, `run_hooks`, `report_hook_status`) automatically emit their own activity events — agents don't need to call `notify` for those.
+
+### projectName on Events
+
+All activity events include `projectName` when available. Manager events use `this.activityProjectName()` (a private helper that calls `this.getProjectName() ?? undefined`). MCP events extract `projectName` once at the top of `createMcpServer`. The `report_hook_status` handler in `actions.ts` also sets `projectName`.
+
+### Skill Event Metadata
+
+Skill events (`skill_started`, `skill_completed`, `skill_failed`) from `report_hook_status` include:
+- `metadata.trigger` — the hook trigger phase (`pre-implementation`, `post-implementation`, `custom`, `on-demand`)
+- `metadata.skillName` — the skill name
+- `metadata.filePath` — path to the report file (completion events only)
+- `groupKey` — `hooks:{worktreeId}:{trigger}` (groups all skills in the same trigger phase)
+
+The duplicate `emitHookStatusActivity` function in `mcp-server-factory.ts` has been removed — the `report_hook_status` handler in `actions.ts` handles all skill event emission.
 
 ## Theme Tokens
 

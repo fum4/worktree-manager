@@ -491,8 +491,8 @@ The app uses Framer Motion for transitions:
 | `SkillItem.tsx`             | Skill sidebar item                                                      |
 | `Spinner.tsx`               | Loading spinner component                                               |
 | `TabBar.tsx`                | Electron multi-project tab bar                                          |
-| `ActivityFeed.tsx`          | Activity feed dropdown panel with bell icon, filter chips, event list   |
-| `Toast.tsx`                 | Animated toast notification (error=red, info=teal, success=green)       |
+| `ActivityFeed.tsx`          | Activity feed dropdown panel with bell icon, filter chips, event list, clickable worktree links |
+| `Toast.tsx`                 | Animated toast notification (error=red, success=green, info=teal, loading=amber) with groupKey deduplication, grouped children, project name, worktree links |
 | `Tooltip.tsx`               | Tooltip component (always use this instead of native `title` attribute) |
 | `TruncatedTooltip.tsx`      | Text with automatic tooltip on overflow                                 |
 | `VerificationPanel.tsx`     | Hooks configuration view (trigger-based command steps and skills)       |
@@ -550,4 +550,4 @@ The app uses Framer Motion for transitions:
 | File                | Description                                                                          |
 | ------------------- | ------------------------------------------------------------------------------------ |
 | `ServerContext.tsx` | Multi-project server URL management, Electron IPC bridge                             |
-| `ToastContext.tsx`  | Toast notification state management (error: 10s, info: 5s, success: 5s auto-dismiss) |
+| `ToastContext.tsx`  | Toast notification state management with `addToast`, `upsertToast`, `upsertGroupedToast` (grouped children), `toggleToastExpanded`, auto-dismiss, `projectName`/`worktreeId` support |

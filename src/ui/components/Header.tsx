@@ -4,9 +4,10 @@ import { useCallback, useState } from "react";
 import { useActivityFeed } from "../hooks/useActivityFeed";
 import { useConfig } from "../hooks/useConfig";
 import { useToast } from "../contexts/ToastContext";
+import type { ToastChild } from "../contexts/ToastContext";
 import { ActivityBell, ActivityFeed } from "./ActivityFeed";
 import type { View } from "./NavBar";
-import { badge, nav } from "../theme";
+import { nav } from "../theme";
 
 const tabs: { id: View; label: string }[] = [
   { id: "workspace", label: "Workspace" },
@@ -17,24 +18,39 @@ const tabs: { id: View; label: string }[] = [
 ];
 
 interface HeaderProps {
-  runningCount: number;
   activeView: View;
   onChangeView: (view: View) => void;
+  onNavigateToWorktree?: (worktreeId: string) => void;
 }
 
-export function Header({ runningCount, activeView, onChangeView }: HeaderProps) {
-  const { addToast } = useToast();
+export function Header({ activeView, onChangeView, onNavigateToWorktree }: HeaderProps) {
+  const { addToast, upsertToast, upsertGroupedToast } = useToast();
   const { config } = useConfig();
   const [feedOpen, setFeedOpen] = useState(false);
 
   const handleToast = useCallback(
-    (message: string, level: "error" | "info" | "success") => addToast(message, level),
+    (message: string, level: "error" | "info" | "success", projectName?: string, worktreeId?: string) =>
+      addToast(message, level, projectName, worktreeId),
     [addToast],
+  );
+
+  const handleUpsertToast = useCallback(
+    (groupKey: string, message: string, level: "error" | "info" | "success", isLoading: boolean, projectName?: string, worktreeId?: string) =>
+      upsertToast(groupKey, message, level, isLoading, projectName, worktreeId),
+    [upsertToast],
+  );
+
+  const handleUpsertGroupedToast = useCallback(
+    (groupKey: string, child: ToastChild, projectName?: string, worktreeId?: string) =>
+      upsertGroupedToast(groupKey, child, projectName, worktreeId),
+    [upsertGroupedToast],
   );
 
   const { events, unreadCount, filter, setFilter, markAllRead, clearAll } = useActivityFeed(
     handleToast,
+    handleUpsertToast,
     config?.activity?.toastEvents,
+    handleUpsertGroupedToast,
   );
 
   const handleToggleFeed = () => {
@@ -67,13 +83,6 @@ export function Header({ runningCount, activeView, onChangeView }: HeaderProps) 
               {t.label}
             </button>
           ))}
-          {runningCount > 0 && (
-            <span
-              className={`ml-2 px-1.5 py-0.5 text-[10px] font-semibold ${badge.running} rounded-full`}
-            >
-              {runningCount}
-            </span>
-          )}
         </div>
       </div>
 
@@ -94,6 +103,7 @@ export function Header({ runningCount, activeView, onChangeView }: HeaderProps) 
                 onMarkAllRead={markAllRead}
                 onClearAll={clearAll}
                 onClose={() => setFeedOpen(false)}
+                onNavigateToWorktree={onNavigateToWorktree}
               />
             )}
           </AnimatePresence>

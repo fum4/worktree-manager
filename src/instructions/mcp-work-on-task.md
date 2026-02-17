@@ -16,7 +16,7 @@ Use the dawg MCP server tools to create a worktree for issue "{{ISSUE_ID}}".
 
 ## Skill Reports
 
-For skills with detailed output (code review, changes summary, test instructions, explanations), write the full report to `{worktreePath}/.dawg-{skillName}.md` and pass the path via `filePath` in `report_hook_status`.
+For skills with detailed output (code review, changes summary, test instructions, explanations), write the full report to `{issueDir}/skill-{skillName}.md` (`issueDir` is returned by `get_task_context`) and pass the path via `filePath` in `report_hook_status`.
 
 ## Skill Quality
 

@@ -45,6 +45,7 @@ interface ActivityFeedProps {
   onMarkAllRead: () => void;
   onClearAll: () => void;
   onClose: () => void;
+  onNavigateToWorktree?: (worktreeId: string) => void;
 }
 
 export function ActivityFeed({
@@ -55,6 +56,7 @@ export function ActivityFeed({
   onMarkAllRead,
   onClearAll,
   onClose,
+  onNavigateToWorktree,
 }: ActivityFeedProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -171,9 +173,19 @@ export function ActivityFeed({
                       <span className={`text-[10px] ${text.dimmed}`}>
                         {formatRelativeTime(event.timestamp)}
                       </span>
-                      {event.worktreeId && (
-                        <span className={`text-[10px] ${text.dimmed}`}>{event.worktreeId}</span>
+                      {event.projectName && (
+                        <span className={`text-[10px] ${text.dimmed}`}>{event.projectName}</span>
                       )}
+                      {event.worktreeId && onNavigateToWorktree ? (
+                        <button
+                          onClick={() => onNavigateToWorktree(event.worktreeId!)}
+                          className="text-[10px] text-teal-400/70 hover:text-teal-400 transition-colors"
+                        >
+                          {event.worktreeId}
+                        </button>
+                      ) : event.worktreeId ? (
+                        <span className={`text-[10px] ${text.dimmed}`}>{event.worktreeId}</span>
+                      ) : null}
                     </div>
                   </div>
 

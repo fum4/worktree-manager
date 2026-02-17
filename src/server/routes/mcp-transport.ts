@@ -20,18 +20,34 @@ export function registerMcpTransportRoute(
   const ctx: ActionContext = { manager, notesManager, hooksManager, activityLog };
   const mcpServer = createMcpServer(ctx);
 
-  // Stateless transport — single-user local dev tool, no session tracking needed
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-    enableJsonResponse: true,
-  });
-
-  mcpServer.connect(transport).catch((err) => {
-    log.error(`Failed to connect MCP transport: ${err}`);
-  });
-
+  // MCP SDK 1.26+ requires stateless transports to be created per request.
+  // We close the previous connection and create a fresh transport for each POST.
+  // GET/DELETE return 405 since we use JSON response mode (no SSE needed).
   app.all("/mcp", async (c) => {
+    if (c.req.method !== "POST") {
+      return new Response(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: { code: -32000, message: "Method not allowed." },
+          id: null,
+        }),
+        {
+          status: 405,
+          headers: { Allow: "POST", "Content-Type": "application/json" },
+        },
+      );
+    }
+
     try {
+      // Disconnect previous transport so McpServer.connect() won't throw
+      await mcpServer.close();
+
+      const transport = new WebStandardStreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+        enableJsonResponse: true,
+      });
+
+      await mcpServer.connect(transport);
       return await transport.handleRequest(c.req.raw);
     } catch (err) {
       log.error(`MCP transport error: ${err}`);

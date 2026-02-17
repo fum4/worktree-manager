@@ -93,8 +93,6 @@ export default function App() {
       ),
     [customTasks],
   );
-  const runningCount = worktrees.filter((w) => w.status === "running").length;
-
   // Track if config existed when we first connected (to detect "deleted while open")
   const [hadConfigOnConnect, setHadConfigOnConnect] = useState<boolean | null>(null);
   const [isAutoInitializing, setIsAutoInitializing] = useState(false);
@@ -682,7 +680,14 @@ export default function App() {
         </div>
       )}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }}>
-        <Header runningCount={runningCount} activeView={activeView} onChangeView={setActiveView} />
+        <Header
+          activeView={activeView}
+          onChangeView={setActiveView}
+          onNavigateToWorktree={(worktreeId) => {
+            setActiveView("workspace");
+            setSelection({ type: "worktree", id: worktreeId });
+          }}
+        />
       </motion.div>
 
       {error && (
@@ -1038,7 +1043,12 @@ export default function App() {
         <TabBar onOpenSettings={() => setShowSettingsModal(true)} />
       </div>
 
-      <ToastContainer />
+      <ToastContainer
+        onNavigateToWorktree={(worktreeId) => {
+          setActiveView("workspace");
+          setSelection({ type: "worktree", id: worktreeId });
+        }}
+      />
     </div>
   );
 }

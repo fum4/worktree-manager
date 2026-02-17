@@ -1,21 +1,39 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ActivityEvent } from "./api";
+import type { ToastChild } from "../contexts/ToastContext";
 import { useServerUrlOptional } from "../contexts/ServerContext";
 
 const DEFAULT_TOAST_EVENTS = [
+  "creation_started",
   "creation_completed",
   "creation_failed",
-  "crashed",
+  "skill_started",
+  "skill_completed",
   "skill_failed",
+  "crashed",
   "connection_lost",
 ];
 
 export type ActivityCategory = "agent" | "worktree" | "system";
 
 export function useActivityFeed(
-  onToast?: (message: string, level: "error" | "info" | "success") => void,
+  onToast?: (message: string, level: "error" | "info" | "success", projectName?: string, worktreeId?: string) => void,
+  onUpsertToast?: (
+    groupKey: string,
+    message: string,
+    level: "error" | "info" | "success",
+    isLoading: boolean,
+    projectName?: string,
+    worktreeId?: string,
+  ) => void,
   toastEvents?: string[],
+  onUpsertGroupedToast?: (
+    groupKey: string,
+    child: ToastChild,
+    projectName?: string,
+    worktreeId?: string,
+  ) => void,
 ) {
   const serverUrl = useServerUrlOptional();
   const [events, setEvents] = useState<ActivityEvent[]>([]);
@@ -36,7 +54,15 @@ export function useActivityFeed(
     const handler = (e: CustomEvent<ActivityEvent>) => {
       const event = e.detail;
       setEvents((prev) => {
-        // Avoid duplicates
+        // Replace event with same groupKey, or avoid duplicates by id
+        if (event.groupKey) {
+          const groupIndex = prev.findIndex((p) => p.groupKey === event.groupKey);
+          if (groupIndex >= 0) {
+            const updated = [...prev];
+            updated[groupIndex] = event;
+            return updated;
+          }
+        }
         if (prev.some((p) => p.id === event.id)) return prev;
         const updated = [event, ...prev].slice(0, 200); // Keep last 200
         return updated;
@@ -45,10 +71,32 @@ export function useActivityFeed(
 
       // Fire toast for important events
       const activeToastEvents = toastEvents ?? DEFAULT_TOAST_EVENTS;
-      if (activeToastEvents.includes(event.type) && onToast) {
+      if (activeToastEvents.includes(event.type)) {
         const level =
           event.severity === "error" ? "error" : event.severity === "success" ? "success" : "info";
-        onToast(event.title, level);
+        const isLoading = event.type.endsWith("_started");
+
+        // Route skill events to grouped toasts
+        const isSkillEvent = event.type === "skill_started" || event.type === "skill_completed" || event.type === "skill_failed";
+        if (isSkillEvent && onUpsertGroupedToast && event.groupKey && event.metadata?.skillName) {
+          const skillName = event.metadata.skillName as string;
+          const status: ToastChild["status"] = isLoading ? "loading" : event.severity === "error" ? "error" : "success";
+          const childMessage = isLoading
+            ? `${skillName}: running...`
+            : event.severity === "error"
+              ? `${skillName}: failed`
+              : `${skillName}: passed`;
+          onUpsertGroupedToast(
+            event.groupKey,
+            { key: skillName, message: childMessage, status, filePath: event.metadata.filePath as string | undefined },
+            event.projectName,
+            event.worktreeId,
+          );
+        } else if (event.groupKey && onUpsertToast) {
+          onUpsertToast(event.groupKey, event.title, level, isLoading, event.projectName, event.worktreeId);
+        } else if (onToast) {
+          onToast(event.title, level, event.projectName, event.worktreeId);
+        }
       }
     };
 
@@ -69,7 +117,7 @@ export function useActivityFeed(
       window.removeEventListener("dawg:activity", handler as EventListener);
       window.removeEventListener("dawg:activity-history", historyHandler as EventListener);
     };
-  }, [serverUrl, onToast, toastEvents]);
+  }, [serverUrl, onToast, onUpsertToast, onUpsertGroupedToast, toastEvents]);
 
   const markAllRead = useCallback(() => {
     setUnreadCount(0);

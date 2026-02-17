@@ -22,7 +22,7 @@ When the user mentions an issue key (like PROJ-123, ENG-42), a ticket number, or
 
 ## Skill Report Files
 
-For skills with detailed output (code review, changes summary, test instructions, explanations), write the full report to `{worktreePath}/.dawg-{skillName}.md` and pass the absolute path via `filePath` in `report_hook_status`.
+For skills with detailed output (code review, changes summary, test instructions, explanations), write the full report to `{issueDir}/skill-{skillName}.md` (`issueDir` is returned by `get_task_context`) and pass the absolute path via `filePath` in `report_hook_status`.
 
 ## Skill Quality Guidelines
 

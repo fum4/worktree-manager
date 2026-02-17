@@ -8,7 +8,7 @@ import cursorRuleMd from "./agents/cursor-rule.md";
 import vscodePromptMd from "./agents/vscode-prompt.md";
 import summarizeChangesMd from "./skills/summarize-changes.md";
 import reviewChangesMd from "./skills/review-changes.md";
-import draftTestPlanMd from "./skills/draft-test-plan.md";
+import howToTestMd from "./skills/how-to-test.md";
 import writeTestsMd from "./skills/write-tests.md";
 import explainLikeIm5Md from "./skills/explain-like-im-5.md";
 
@@ -51,7 +51,7 @@ export interface PredefinedSkill {
 export const PREDEFINED_SKILLS: PredefinedSkill[] = [
   { dirName: "summarize-changes", content: summarizeChangesMd },
   { dirName: "review-changes", content: reviewChangesMd },
-  { dirName: "draft-test-plan", content: draftTestPlanMd },
+  { dirName: "how-to-test", content: howToTestMd },
   { dirName: "write-tests", content: writeTestsMd },
   { dirName: "explain-like-im-5", content: explainLikeIm5Md },
 ];

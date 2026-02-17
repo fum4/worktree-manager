@@ -82,35 +82,9 @@ const TRACKED_TOOLS: Record<
   },
 };
 
-// Tools that emit activity based on report_hook_status params
-function emitHookStatusActivity(ctx: ActionContext, params: Record<string, unknown>): void {
-  if (!ctx.activityLog) return;
-
-  const skillName = params.skillName as string;
-  const success = params.success as boolean | undefined;
-  const worktreeId = params.worktreeId as string | undefined;
-
-  if (success === undefined || success === null) {
-    ctx.activityLog.addEvent({
-      category: "agent",
-      type: "skill_started",
-      severity: "info",
-      title: `Skill "${skillName}" started`,
-      worktreeId,
-    });
-  } else {
-    ctx.activityLog.addEvent({
-      category: "agent",
-      type: success ? "skill_completed" : "skill_failed",
-      severity: success ? "success" : "error",
-      title: success ? `Skill "${skillName}" passed` : `Skill "${skillName}" failed`,
-      detail: params.summary as string | undefined,
-      worktreeId,
-    });
-  }
-}
-
 export function createMcpServer(ctx: ActionContext): McpServer {
+  const projectName = ctx.manager.getProjectName() ?? undefined;
+
   const server = new McpServer(
     { name: APP_NAME, version: "0.1.0" },
     { instructions: MCP_INSTRUCTIONS },
@@ -123,6 +97,7 @@ export function createMcpServer(ctx: ActionContext): McpServer {
       type: "agent_connected",
       severity: "info",
       title: "Agent connected via MCP",
+      projectName,
     });
   }
 
@@ -148,6 +123,7 @@ export function createMcpServer(ctx: ActionContext): McpServer {
               worktreeId:
                 ((params as Record<string, unknown>).id as string | undefined) ??
                 ((params as Record<string, unknown>).worktreeId as string | undefined),
+              projectName,
             });
           } else {
             ctx.activityLog.addEvent({
@@ -158,13 +134,9 @@ export function createMcpServer(ctx: ActionContext): McpServer {
               worktreeId:
                 ((params as Record<string, unknown>).id as string | undefined) ??
                 ((params as Record<string, unknown>).worktreeId as string | undefined),
+              projectName,
             });
           }
-        }
-
-        // Special handling for report_hook_status
-        if (action.name === "report_hook_status") {
-          emitHookStatusActivity(ctx, params as Record<string, unknown>);
         }
 
         return {
@@ -183,6 +155,7 @@ export function createMcpServer(ctx: ActionContext): McpServer {
             worktreeId:
               ((params as Record<string, unknown>).id as string | undefined) ??
               ((params as Record<string, unknown>).worktreeId as string | undefined),
+            projectName,
           });
         }
 

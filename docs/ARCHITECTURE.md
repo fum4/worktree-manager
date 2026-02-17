@@ -376,7 +376,7 @@ src/
 │   └── skills/          Predefined hook skills (SKILL.md format)
 │       ├── summarize-changes.md
 │       ├── review-changes.md
-│       ├── draft-test-plan.md
+│       ├── how-to-test.md
 │       ├── write-tests.md
 │       └── explain-like-im-5.md
 ├── runtime/           Runtime artifacts (not bundled)

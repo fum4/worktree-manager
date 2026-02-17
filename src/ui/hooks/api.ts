@@ -2424,6 +2424,7 @@ export interface ActivityEvent {
   worktreeId?: string;
   projectName?: string;
   metadata?: Record<string, unknown>;
+  groupKey?: string;
 }
 
 export async function fetchActivity(

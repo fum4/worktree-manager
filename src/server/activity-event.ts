@@ -12,6 +12,7 @@ export interface ActivityEvent {
   worktreeId?: string;
   projectName?: string;
   metadata?: Record<string, unknown>;
+  groupKey?: string;
 }
 
 // Event type constants for type safety
@@ -61,10 +62,13 @@ export const DEFAULT_ACTIVITY_CONFIG: ActivityConfig = {
     system: true,
   },
   toastEvents: [
+    "creation_started",
     "creation_completed",
     "creation_failed",
-    "crashed",
+    "skill_started",
+    "skill_completed",
     "skill_failed",
+    "crashed",
     "connection_lost",
   ],
   osNotificationEvents: ["creation_completed", "skill_failed", "crashed"],

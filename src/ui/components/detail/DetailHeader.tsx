@@ -137,7 +137,7 @@ export function DetailHeader({
                 type="button"
                 onClick={onRemove}
                 disabled={isLoading}
-                className="h-7 px-2.5 text-[11px] font-medium text-red-400/70 hover:text-red-300 hover:bg-red-500/15 rounded-md disabled:opacity-50 transition-colors duration-150 inline-flex items-center gap-1.5"
+                className="h-7 px-2.5 text-[11px] font-medium text-red-400/70 hover:text-red-400 hover:bg-red-900/30 rounded-md disabled:opacity-50 transition-colors duration-150 inline-flex items-center gap-1.5"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

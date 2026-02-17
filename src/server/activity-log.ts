@@ -53,6 +53,7 @@ export class ActivityLog {
     worktreeId?: string;
     projectName?: string;
     metadata?: Record<string, unknown>;
+    groupKey?: string;
   }): ActivityEvent {
     const event: ActivityEvent = {
       id: nanoid(),

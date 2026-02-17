@@ -1,6 +1,6 @@
 import {
   Ban,
-  CheckCircle,
+  Check,
   ChevronDown,
   CircleCheck,
   FileText,
@@ -33,7 +33,7 @@ import { Modal } from "../Modal";
 function statusIcon(status: StepResult["status"]) {
   switch (status) {
     case "passed":
-      return <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />;
+      return <Check className="w-3.5 h-3.5 text-emerald-400" />;
     case "failed":
       return <XCircle className="w-3.5 h-3.5 text-red-400" />;
     case "running":
@@ -948,7 +948,7 @@ function StepList({
             </div>
 
             {isExpanded && result?.output && (
-              <div className="px-3 pb-3 pt-1 border-t border-white/[0.04]">
+              <div className="px-3 pb-4 pt-1">
                 <pre
                   className={`text-[10px] ${text.muted} whitespace-pre-wrap break-words font-mono leading-relaxed max-h-60 overflow-y-auto`}
                 >
@@ -1045,7 +1045,7 @@ function SkillList({
                 <Loader2 className="w-3.5 h-3.5 text-yellow-400 animate-spin flex-shrink-0" />
               ) : result ? (
                 result.success ? (
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                  <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
                 ) : (
                   <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
                 )
@@ -1054,7 +1054,7 @@ function SkillList({
 
             {/* Expanded content */}
             {isExpanded && !isRunning && (result?.content || result?.summary) && (
-              <div className="px-3 pb-3 pt-1 border-t border-white/[0.04]">
+              <div className="px-3 pb-4 pt-1">
                 {result?.summary && (
                   <p className={`text-[10px] ${text.muted} mb-1.5`}>{result.summary}</p>
                 )}

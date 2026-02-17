@@ -34,8 +34,8 @@ This mode is useful when you want MCP tools without running the full web UI -- f
 
 For MCP clients that support HTTP-based transport directly (without stdio), dawg exposes a streamable HTTP endpoint:
 
-- **Endpoint:** `POST /mcp` (also handles `GET /mcp` and `DELETE /mcp` per the MCP streamable HTTP spec)
-- **Transport:** `WebStandardStreamableHTTPServerTransport` from the MCP SDK
+- **Endpoint:** `POST /mcp` (GET and DELETE return 405 — SSE and session management are not needed)
+- **Transport:** `WebStandardStreamableHTTPServerTransport` from the MCP SDK, created per request (stateless mode)
 - **Session management:** Stateless (no session tracking). dawg is a single-user local dev tool, so session multiplexing is unnecessary.
 - **Response format:** JSON responses enabled (`enableJsonResponse: true`)
 
@@ -188,8 +188,8 @@ There are four trigger types:
 8. After all work and hooks are done, ask the user if they'd like to start the worktree dev server automatically (via start_worktree)
 
 ## Skill Report Files
-For skills that produce detailed output (e.g. code review, changes summary, test instructions, explanations), write the full report to a markdown file in the worktree directory and pass the absolute path via the filePath parameter in report_hook_status. The user can then open and preview the report from the UI.
-- File naming: {worktreePath}/.dawg-{skillName}.md (e.g. .dawg-code-review.md)
+For skills that produce detailed output (e.g. code review, changes summary, test instructions, explanations), write the full report to a markdown file in the issue folder and pass the absolute path via the filePath parameter in report_hook_status. The user can then open and preview the report from the UI.
+- File naming: {issueDir}/skill-{skillName}.md (e.g. skill-code-review.md) — issueDir is returned by get_task_context
 - The summary field should be a short one-liner; the file contains the full report
 - The content field can be omitted when filePath is provided
 

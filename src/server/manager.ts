@@ -450,6 +450,7 @@ export class WorktreeManager {
             severity: "error",
             title: `Worktree "${id}" crashed (exit code ${code})`,
             worktreeId: id,
+            projectName: this.activityProjectName(),
             metadata: { exitCode: code },
           });
         }
@@ -509,6 +510,7 @@ export class WorktreeManager {
         severity: "info",
         title: `Worktree "${id}" started`,
         worktreeId: id,
+        projectName: this.activityProjectName(),
         metadata: { ports, pid },
       });
       return { success: true, ports, pid };
@@ -546,6 +548,7 @@ export class WorktreeManager {
       severity: "info",
       title: `Worktree "${id}" stopped`,
       worktreeId: id,
+      projectName: this.activityProjectName(),
     });
 
     return { success: true };
@@ -658,6 +661,8 @@ export class WorktreeManager {
       severity: "info",
       title: `Creating worktree "${worktreeId}"`,
       worktreeId,
+      projectName: this.activityProjectName(),
+      groupKey: `worktree-creation:${worktreeId}`,
       metadata: { branch },
     });
 
@@ -798,6 +803,8 @@ export class WorktreeManager {
         severity: "success",
         title: `Worktree "${worktreeId}" created`,
         worktreeId,
+        projectName: this.activityProjectName(),
+        groupKey: `worktree-creation:${worktreeId}`,
         metadata: { branch },
       });
 
@@ -839,6 +846,8 @@ export class WorktreeManager {
         title: `Worktree "${worktreeId}" creation failed`,
         detail: message,
         worktreeId,
+        projectName: this.activityProjectName(),
+        groupKey: `worktree-creation:${worktreeId}`,
       });
 
       // Remove after a delay so the user can see the error
@@ -1184,6 +1193,10 @@ export class WorktreeManager {
     } catch {
       return null;
     }
+  }
+
+  private activityProjectName(): string | undefined {
+    return this.getProjectName() ?? undefined;
   }
 
   getConfig(): WorktreeConfig {

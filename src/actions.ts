@@ -541,9 +541,12 @@ export const actions: Action[] = [
         }
       }
 
+      const issueDir = path.join(configDir, CONFIG_DIR_NAME, "issues", source, issueId);
+
       return {
         worktreeId,
         worktreePath,
+        issueDir,
         task: taskData,
         aiContext,
         todos: notes.todos,
@@ -741,12 +744,30 @@ export const actions: Action[] = [
       const content = params.content as string | undefined;
       const filePath = params.filePath as string | undefined;
 
+      // Look up trigger type from hooks config
+      const hooksConfig = ctx.hooksManager.getConfig();
+      const trigger =
+        hooksConfig.skills.find((s) => s.skillName === skillName)?.trigger ??
+        "post-implementation";
+      const projectName = ctx.manager.getProjectName() ?? undefined;
+      const groupKey = `hooks:${worktreeId}:${trigger}`;
+
       if (success === undefined || success === null) {
         // Starting notification — mark as running
         ctx.hooksManager.reportSkillResult(worktreeId, {
           skillName,
           status: "running",
           reportedAt: new Date().toISOString(),
+        });
+        ctx.activityLog?.addEvent({
+          category: "agent",
+          type: "skill_started",
+          severity: "info",
+          title: `Running skill: ${skillName}`,
+          worktreeId,
+          projectName,
+          groupKey,
+          metadata: { trigger, skillName },
         });
       } else {
         // Completion report
@@ -758,6 +779,17 @@ export const actions: Action[] = [
           content,
           filePath,
           reportedAt: new Date().toISOString(),
+        });
+        ctx.activityLog?.addEvent({
+          category: "agent",
+          type: success ? "skill_completed" : "skill_failed",
+          severity: success ? "success" : "error",
+          title: success ? `Skill "${skillName}" passed` : `Skill "${skillName}" failed`,
+          detail: summary,
+          worktreeId,
+          projectName,
+          groupKey,
+          metadata: { trigger, skillName, filePath },
         });
       }
 

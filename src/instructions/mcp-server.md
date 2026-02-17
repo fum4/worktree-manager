@@ -107,9 +107,9 @@ Hooks run at different points in the workflow. Call `get_hooks_config` EARLY (ri
 
 ## Skill Report Files
 
-For skills that produce detailed output (code review, changes summary, test instructions, explanations), write the full report to a markdown file in the worktree directory and pass the absolute path via the `filePath` parameter in `report_hook_status`.
+For skills that produce detailed output (code review, changes summary, test instructions, explanations), write the full report to a markdown file in the issue folder and pass the absolute path via the `filePath` parameter in `report_hook_status`.
 
-- **File naming**: `{worktreePath}/.dawg-{skillName}.md` (e.g. `.dawg-code-review.md`)
+- **File naming**: `{issueDir}/skill-{skillName}.md` (e.g. `skill-code-review.md`) — `issueDir` is returned by `get_task_context`
 - **`summary`**: short one-liner; the file contains the full report
 - **`content`**: can be omitted when `filePath` is provided
 

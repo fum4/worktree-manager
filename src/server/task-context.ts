@@ -352,6 +352,13 @@ function loadIssueData(
             created: c.createdAt,
           }),
         ),
+        linkedResources: raw.attachments?.map(
+          (a: { title?: string; url?: string; sourceType?: string }) => ({
+            title: a.title ?? "",
+            url: a.url ?? "",
+            sourceType: a.sourceType,
+          }),
+        ),
       };
     }
   } catch {

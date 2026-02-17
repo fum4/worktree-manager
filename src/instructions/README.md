@@ -33,7 +33,7 @@ Agent instruction text extracted from TypeScript source into standalone markdown
 | ---------------------- | ------------------------------------------- | --------------------------- |
 | `summarize-changes.md` | `~/.dawg/skills/summarize-changes/SKILL.md` | Diff-based changes summary  |
 | `review-changes.md`    | `~/.dawg/skills/review-changes/SKILL.md`    | Self code review            |
-| `draft-test-plan.md`   | `~/.dawg/skills/draft-test-plan/SKILL.md`   | Manual testing instructions |
+| `how-to-test.md`       | `~/.dawg/skills/how-to-test/SKILL.md`       | Manual testing walkthrough  |
 | `write-tests.md`       | `~/.dawg/skills/write-tests/SKILL.md`       | Automated test writing      |
 | `explain-like-im-5.md` | `~/.dawg/skills/explain-like-im-5/SKILL.md` | ELI5 explanation            |
 
